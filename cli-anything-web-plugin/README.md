@@ -1,9 +1,6 @@
-# Web-Harness — CLI-Anything for the Web
+# Web-Harness — Agent-Native CLIs for Web Apps
 
-**Make closed-source web apps Agent-Native via network traffic analysis.**
-
-CLI-Anything generates CLIs from source code.
-**Web-Harness generates CLIs from network traffic.**
+**Build production-grade Python CLIs for closed-source web applications by capturing and analyzing their HTTP traffic.**
 
 ## How It Works
 
@@ -16,11 +13,14 @@ CLI-Anything generates CLIs from source code.
 ## Quick Start
 
 ```bash
-# Add the marketplace
-/plugin marketplace add <your-github>/web-harness
+# Copy plugin to Claude Code plugins directory
+cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/web-harness
 
-# Install the plugin
-/plugin install web-harness
+# Reload plugins in Claude Code
+/reload-plugins
+
+# Verify installation
+/help web-harness
 
 # Generate a CLI for any web app
 /web-harness https://monday.com
@@ -35,6 +35,7 @@ CLI-Anything generates CLIs from source code.
 | `/web-harness:refine <path> [focus]` | Expand coverage of existing CLI |
 | `/web-harness:test <path>` | Run tests and update TEST.md |
 | `/web-harness:validate <path>` | Validate against CLI-ANYTHING-WEB.md standards |
+| `/web-harness:list` | List all installed and generated `cli-web-*` CLIs |
 
 ## Prerequisites
 
@@ -70,7 +71,7 @@ monday[Board: Sprint 42]> exit
 
 ## Architecture
 
-Follows CLI-Anything's proven conventions:
+Generated package structure:
 
 ```
 <app>/
