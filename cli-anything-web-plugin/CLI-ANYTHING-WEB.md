@@ -31,7 +31,7 @@ REPL mode, auth management, session state, and comprehensive tests.
 
 ---
 
-## 7-Phase Pipeline
+## 8-Phase Pipeline
 
 ### Phase 1 — Record (Traffic Capture)
 
@@ -169,7 +169,47 @@ REPL mode, auth management, session state, and comprehensive tests.
 - Namespace: `cli_web.*`
 - Copy `repl_skin.py` from plugin for consistent REPL experience
 
-### Phase 5 — Test (Write Tests)
+### Phase 5 — Plan Tests (TEST.md Part 1)
+
+**Goal:** Write the test plan BEFORE writing any test code.
+
+**BEFORE writing any test code**, create `tests/TEST.md` in the app package.
+This file serves as the test plan and MUST contain:
+
+1. **Test Inventory** — List planned test files and estimated test counts:
+   - `test_core.py`: XX unit tests planned
+   - `test_e2e.py`: XX E2E tests planned (fixture), XX E2E tests planned (live),
+     XX subprocess tests planned
+
+2. **Unit Test Plan** — For each core module, describe what will be tested:
+   - Module name (e.g., `client.py`)
+   - Functions to test
+   - Edge cases (invalid auth, rate limit response, malformed JSON, 404, 401, 500)
+   - Expected test count
+
+3. **E2E Test Plan** — Describe the test scenarios:
+   - Fixture replay tests: which captured responses will be replayed?
+   - Live tests: which CRUD workflows will run against the real API?
+   - What response fields will be verified?
+
+4. **Realistic Workflow Scenarios** — Detail each multi-step workflow:
+   - **Scenario name**
+   - **Simulates**: what real user task (e.g., "creating and managing a project board",
+     "bulk-creating tasks and archiving completed ones")
+   - **Operations**: step-by-step API calls
+   - **Verified**: what response fields and round-trip consistency is checked
+
+   Example scenarios for web apps:
+   - Auth flow: login → store token → make authenticated request → token refresh
+   - CRUD round-trip: create entity → read it back → verify fields match → update →
+     verify update → delete → verify 404 on read
+   - Paginated list: fetch page 1 → verify count → fetch page 2 → verify no overlap
+   - Bulk operations: create N items → list all → verify count → delete all → verify empty
+   - Rate limit handling: rapid requests → verify backoff behavior
+
+This planning document ensures comprehensive test coverage before writing code.
+
+### Phase 6 — Test (Write Tests)
 
 **Goal:** Comprehensive test suite.
 
@@ -189,17 +229,36 @@ REPL mode, auth management, session state, and comprehensive tests.
 - `TestCLISubprocess` using `_resolve_cli("cli-web-<app>")`
 - Target: >80% coverage on core modules
 
-### Phase 6 — Document (Update TEST.md)
+**Response Body Verification — never trust status 200 alone:**
+- Always verify the response body contains expected top-level fields
+- For create operations: verify returned entity has the submitted field values
+- For read operations: verify entity ID matches what was requested
+- For update operations: verify changed fields reflect new values
+- For delete operations: verify subsequent read returns 404
+- For list operations: verify count, verify each item has required fields
+- Print entity IDs and counts so users can manually verify: e.g.,
+  `print(f"[verify] Created board id={data['id']} name={data['name']}")`
 
-**Goal:** Write TEST.md with plan and results.
+**Round-trip test requirement:** every E2E live test MUST include at minimum
+a create → read → verify round-trip. Tests that only create without reading back give
+false confidence.
+
+### Phase 7 — Document (Update TEST.md)
+
+**Goal:** Append test results to TEST.md (Part 2).
+
+Phase 7 **appends** results to the existing `TEST.md` (which already has Part 1 from Phase 5). It does NOT write TEST.md from scratch.
 
 **Process:**
-1. Run full test suite: `python3 -m pytest cli_web/<app>/tests/ -v`
-2. Update TEST.md with pass/fail summary
-3. Document any skipped tests and why
+1. Run full test suite: `python3 -m pytest cli_web/<app>/tests/ -v --tb=short`
+2. Run subprocess tests: `CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s -k subprocess`
+3. **Append** Part 2 to existing `TEST.md`:
+   - Full `pytest -v --tb=no` output
+   - Summary: total tests, pass rate, execution date
+   - Any gaps or failed tests with explanation
 4. Include example CLI usage in README.md
 
-### Phase 7 — Publish (Install to PATH)
+### Phase 8 — Publish (Install to PATH)
 
 **Goal:** Make CLI discoverable and installable.
 
