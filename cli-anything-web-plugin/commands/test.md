@@ -28,6 +28,10 @@ Target: $ARGUMENTS
    ```
    CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s -k subprocess 2>&1
    ```
+   After running, verify the subprocess backend was used:
+   - Check output for `[_resolve_cli] Using installed command:` — this confirms
+     the installed package is being tested, not the source fallback
+   - If this line is absent, the installed CLI was not found in PATH
 4. Parse test output: count passed, failed, skipped, errors
 5. Update `TEST.md` with results in standard format
 6. If failures exist, analyze and suggest fixes
@@ -52,3 +56,11 @@ Target: $ARGUMENTS
 ## CLI Subprocess Tests
 <list of test results>
 ```
+
+## Failure Handling
+
+If any tests fail:
+1. **Show the failures** — print the full pytest output with failure details
+2. **Do NOT update TEST.md** — TEST.md should only contain passing results
+3. **Analyze and suggest fixes** — provide specific guidance for each failure
+4. **Offer to re-run** — ask the user if they want to fix and re-test
