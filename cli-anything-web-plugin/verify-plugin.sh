@@ -54,9 +54,11 @@ else
     check ".mcp.json is valid JSON" "false"
 fi
 
-# skills/cli-anything-web-methodology/SKILL.md
-check "skills/cli-anything-web-methodology/SKILL.md exists" \
-    "$([ -f "$SCRIPT_DIR/skills/cli-anything-web-methodology/SKILL.md" ] && echo true || echo false)"
+# All 3 skills
+for skill in cli-anything-web-methodology cli-anything-web-testing cli-anything-web-standards; do
+    check "skills/$skill/SKILL.md exists" \
+        "$([ -f "$SCRIPT_DIR/skills/$skill/SKILL.md" ] && echo true || echo false)"
+done
 
 # PUBLISHING.md
 check "PUBLISHING.md exists" "$([ -f "$SCRIPT_DIR/PUBLISHING.md" ] && echo true || echo false)"

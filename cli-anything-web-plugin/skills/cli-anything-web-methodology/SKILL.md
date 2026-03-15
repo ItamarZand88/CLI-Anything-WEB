@@ -35,6 +35,20 @@ Eight phases:
 7. **Document** — Append TEST.md Part 2 (results)
 8. **Publish** — `pip install -e .` → `cli-web-<app>` on PATH
 
+## Companion Skills
+
+This plugin has three skills that work together — Claude activates the right one
+based on what you're doing:
+
+| Skill | Auto-activates when... |
+|-------|----------------------|
+| **cli-anything-web-methodology** (this) | Building a new CLI from scratch, running the full pipeline |
+| **cli-anything-web-testing** | Writing tests, planning test coverage, debugging test failures |
+| **cli-anything-web-standards** | Checking quality, reviewing implementations, validating structure |
+
+You don't need to invoke these manually — Claude picks the right one based on context.
+During the full pipeline, all three activate at the relevant phases.
+
 ## Reference Files
 
 - **`${CLAUDE_PLUGIN_ROOT}/HARNESS.md`** — Full methodology SOP (source of truth)
