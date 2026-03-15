@@ -25,12 +25,13 @@ Focus area: $2
    - Compare known endpoints vs implemented commands
    - If focus area specified, concentrate on that domain
    - If no focus, do broad gap analysis across all capabilities
-4. **Record new traffic**: Open Chrome DevTools, navigate to underexplored areas
-5. **Analyze new endpoints**: Add to API map in `<APP>.md`
-6. **Implement new commands**: Add to existing command groups or create new ones
-7. **Update tests**: Add unit + E2E tests for new commands
-8. **Run full test suite**: Ensure no regressions
-9. **Update TEST.md**: Document new coverage
+4. **Present gap report**: Show the user the gap analysis results and confirm which gaps to address before proceeding with any recording or implementation
+5. **Record new traffic**: Open Chrome DevTools, navigate to underexplored areas
+6. **Analyze new endpoints**: Add to API map in `<APP>.md`
+7. **Implement new commands**: Add to existing command groups or create new ones
+8. **Update tests**: Add unit + E2E tests for new commands
+9. **Run full test suite**: Ensure no regressions
+10. **Update TEST.md**: Document new coverage
 
 ## Rules
 
@@ -39,3 +40,18 @@ Focus area: $2
 - ADD new commands and options only
 - Run full test suite after changes
 - Update `<APP>.md` with new endpoints
+
+## Success Criteria
+
+- All identified gaps have been addressed or explicitly deferred
+- No existing commands are broken or have changed signatures
+- New commands follow CLI-ANYTHING-WEB.md standards
+- Full test suite passes (including new tests)
+- TEST.md updated with new test coverage
+- `<APP>.md` updated with new endpoints
+
+## Notes
+
+- Refine is **incremental** — it only adds, never removes commands
+- Always **present the gap report** before implementing changes
+- Run the full test suite after changes to ensure no regressions
