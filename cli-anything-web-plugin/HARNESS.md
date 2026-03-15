@@ -193,6 +193,17 @@ The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
   - Error handling with status code mapping
   - Rate limit respect (exponential backoff)
 - `auth.py` — handles token storage, refresh, expiry
+  - **MUST support `auth login --from-browser`** — auto-extract cookies from the
+    Chrome debug profile (port 9222) using CDP. This is the primary login method.
+    Use `${CLAUDE_PLUGIN_ROOT}/scripts/extract-browser-cookies.py` as the reference
+    implementation. The flow:
+    1. Connect to Chrome debug port (`http://127.0.0.1:9222`)
+    2. Use `Storage.getCookies` CDP command to get all cookies
+    3. Filter for the target domain (e.g., `.google.com`)
+    4. Save to `~/.config/cli-web-<app>/auth.json`
+    Requires `pip install websockets`.
+  - Also support `auth login --cookies-json <file>` as a fallback for manual import
+  - Store cookies at `~/.config/cli-web-<app>/auth.json` with chmod 600
 - Every command: `--json` flag, proper error messages
 - Entry point: `cli-web-<app>` via setup.py console_scripts
 - Namespace: `cli_web.*`

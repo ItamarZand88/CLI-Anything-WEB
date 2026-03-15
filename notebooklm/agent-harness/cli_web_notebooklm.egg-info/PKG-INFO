@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: cli-web-notebooklm
+Version: 0.1.0
+Summary: CLI harness for Google NotebookLM via cli-anything-web
+Author: Itamar Zand
+Requires-Python: >=3.10
+Requires-Dist: click>=8.0
+Requires-Dist: requests>=2.28
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-mock>=3.10; extra == "dev"
+Requires-Dist: responses>=0.23; extra == "dev"
+Dynamic: author
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
