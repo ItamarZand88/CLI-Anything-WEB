@@ -27,6 +27,26 @@ equivalent of CLI-Anything's rule that the real software must be installed.
 If a test cannot authenticate, it must call `pytest.fail()` with a message telling
 the user to run `auth login --from-browser`, not silently skip or catch the error.
 
+## Testing with Browser-Delegated Auth
+
+For apps that use browser-delegated auth (Google batchexecute, etc.), tests need
+more than just cookies — they need fresh CSRF and session tokens too.
+
+**Test setup flow:**
+1. Ensure Chrome debug profile is running (port 9222) with active login
+2. `cli-web-<app> auth login --from-browser` — extracts cookies via CDP
+3. Auth module automatically fetches CSRF + session tokens via HTTP GET
+4. `cli-web-<app> auth status` — must show cookies, CSRF token, AND session ID
+5. If first API call gets 401, the client should auto-refresh tokens before failing
+
+**Unit tests for RPC protocols:**
+When the app uses batchexecute or custom RPC, add unit tests for the codec:
+- Test `rpc/encoder.py`: verify triple-nested array format, URL encoding
+- Test `rpc/decoder.py`: verify anti-XSSI stripping, chunked parsing, double-JSON decode
+- Use captured response fixtures in `tests/fixtures/` for decoder tests
+- Test error response detection (`"er"` entries in batchexecute)
+- Test auth error detection and refresh trigger
+
 ## TEST.md: Two-Part Structure
 
 TEST.md is written in two phases — plan first, results later:
