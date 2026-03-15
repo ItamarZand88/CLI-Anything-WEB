@@ -33,14 +33,43 @@ REPL mode, auth management, session state, and comprehensive tests.
 
 ## 8-Phase Pipeline
 
+### Prerequisites — Chrome Debug Profile
+
+Before running the pipeline, the user must have a dedicated Chrome debug profile
+with an active login session for the target web app. This is required because Google
+and many other services block sign-in on automated/debugged browser instances.
+
+**One-time setup:**
+
+1. Launch Chrome with a dedicated debug profile:
+   ```bash
+   # Windows
+   "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="%USERPROFILE%\.chrome-debug-profile"
+
+   # macOS
+   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-debug-profile"
+
+   # Linux
+   google-chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-debug-profile"
+   ```
+2. In that Chrome window, navigate to the target web app and **log in normally**
+3. Close Chrome — your session cookies persist in `~/.chrome-debug-profile/`
+
+**Before each recording session:**
+
+Re-launch the debug Chrome (same command as above). You'll already be logged in.
+The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
+
+---
+
 ### Phase 1 — Record (Traffic Capture)
 
 **Goal:** Capture comprehensive HTTP traffic from the target web app.
 
 **Process:**
-1. chrome-devtools-mcp auto-launches Chrome on first tool call — no setup step needed
+1. Verify the debug Chrome is running on port 9222 with the user already logged in
 2. Call `navigate_page` with the target URL
-3. If login required — pause and ask user to log in manually
+3. If login has expired — pause and ask user to re-authenticate in the debug Chrome
 4. Enable network monitoring (`list_network_requests`)
 5. Systematically exercise the app:
    - Navigate all major sections

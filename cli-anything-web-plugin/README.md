@@ -12,17 +12,30 @@
 
 ## Quick Start
 
+### Step 1: Launch Chrome Debug Profile (one-time login)
+
 ```bash
-# Copy plugin to Claude Code plugins directory
+# Launch Chrome with a persistent debug profile
+bash scripts/launch-chrome-debug.sh https://monday.com
+
+# Log into your account in that Chrome window (one-time — cookies persist)
+```
+
+### Step 2: Load the plugin
+
+```bash
+# Option A: Load for this session only (development)
+claude --plugin-dir /path/to/cli-anything-web-plugin
+
+# Option B: Install permanently
 cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
-
-# Reload plugins in Claude Code
 /reload-plugins
+```
 
-# Verify installation
-/help cli-anything-web
+### Step 3: Generate a CLI
 
-# Generate a CLI for any web app
+```bash
+# Make sure debug Chrome is running, then:
 /cli-anything-web https://monday.com
 ```
 
