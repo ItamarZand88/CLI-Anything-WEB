@@ -12,9 +12,12 @@
 
 ## Quick Start
 
-### Step 1: Open the target web app in Chrome
+### Step 1: Launch Chrome debug profile and log in (one-time)
 
-Navigate to the web app in your normal Chrome browser and log in.
+```bash
+bash scripts/launch-chrome-debug.sh https://monday.com
+# Log into your account in the Chrome window that opens (cookies persist)
+```
 
 ### Step 2: Load the plugin
 
@@ -30,7 +33,7 @@ cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
 ### Step 3: Generate a CLI
 
 ```bash
-# Chrome will ask to allow debugging — click "Allow"
+# Debug Chrome must be running on port 9222
 /cli-anything-web https://monday.com
 ```
 

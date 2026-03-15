@@ -18,12 +18,17 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites Check
 
-Chrome DevTools MCP connects to your regular Chrome via `--autoConnect`.
-The user should have the target web app open in Chrome and be logged in.
-
 **You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
+chrome-devtools-mcp connects to a debug Chrome on port 9222.
 
-Verify Chrome DevTools MCP is available:
+**Step 1: Launch Chrome debug profile with the target URL:**
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
+
+**Step 2: If first time, ask the user to log in:**
+Tell the user: "Please log into your account in the Chrome window that just opened.
+Let me know when you're done." Wait for confirmation.
+
+**Step 3: Verify npx:**
 !`which npx && echo "npx: OK" || echo "npx: MISSING"`
 
 ## Execution Plan
@@ -33,12 +38,10 @@ Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` 
 
 ### Phase 1 — Record (Traffic Capture)
 
-1. chrome-devtools-mcp connects to the user's Chrome via --autoConnect.
-   - If Chrome shows a permission dialog, tell the user to click "Allow"
-   - If the user is not logged in, ask them to log in in their normal Chrome
+1. Verify debug Chrome is running on port 9222 with user logged in.
    Use **chrome-devtools-mcp** tools (`mcp__chrome-devtools__navigate_page`, etc.):
    - Call `navigate_page` with the target URL
-   - If login has expired — pause and ask user to re-authenticate in Chrome
+   - If login has expired — pause and ask user to re-authenticate
 
 2. Systematically explore the app:
    - Navigate to each major section/page

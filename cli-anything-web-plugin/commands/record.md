@@ -20,8 +20,10 @@ Target URL: $ARGUMENTS
 
 **You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
 
-Chrome DevTools MCP connects to the user's regular Chrome via `--autoConnect`.
-The user should have the target web app open and be logged in.
+**Launch Chrome debug profile:**
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
+
+If first time, ask user to log in. Wait for confirmation.
 
 ## Process
 
@@ -31,7 +33,7 @@ Useful for:
 - Adding more traffic data before refining
 - Recording specific workflows
 
-1. chrome-devtools-mcp connects to the user's Chrome via --autoConnect. Call `navigate_page` with the target URL.
+1. Verify debug Chrome is running on port 9222. Call `navigate_page` with the target URL.
 2. If login required — ask user to authenticate manually
 3. Systematically exercise the app features
 4. Capture all API traffic via `list_network_requests` + `get_network_request`
