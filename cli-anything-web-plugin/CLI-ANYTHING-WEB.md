@@ -272,6 +272,18 @@ Phase 7 **appends** results to the existing `TEST.md` (which already has Part 1 
 4. Test installed: `cli-web-<app> --help`
 5. Test JSON: `cli-web-<app> --json <command>`
 
+**Why namespace packages:**
+- Multiple `cli-web-*` CLIs coexist in the same Python environment without conflicts
+- `cli_web/` has NO `__init__.py` — this is the rule that enables it
+- Use `find_namespace_packages(include=["cli_web.*"])` — NOT `find_packages`
+- Install verification:
+  ```bash
+  pip install -e .
+  which cli-web-<app>
+  CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s
+  ```
+  Output must show `[_resolve_cli] Using installed command:` confirming the installed package is tested.
+
 ---
 
 ## Critical Lessons
@@ -303,6 +315,59 @@ expected fields. Some APIs return 200 with error payloads.
 Many modern apps use GraphQL. The CLI should abstract query
 complexity — users run `items list`, not write GraphQL queries.
 Map operations to human-friendly commands.
+
+## Rules
+
+- **Auth credentials MUST be stored securely.** `chmod 600 auth.json`. Never hardcode
+  tokens in source. If auth file missing, CLI errors with clear instructions — never
+  falls back to unauthenticated requests.
+- **Tests MUST fail (not skip) when auth is missing.** Tests that skip on missing auth
+  give false confidence. The CLI is useless without a live account.
+- **Every command MUST support `--json`.** Agents consume structured output.
+  Human-readable is optional; machine-readable is required.
+- **E2E tests MUST include subprocess tests** via `_resolve_cli("cli-web-<app>")`.
+  Tests must run against the installed package, not just source imports.
+- **Every `cli_web/<app>/` MUST contain `README.md`** with auth setup, install steps,
+  and usage examples.
+- **Every `cli_web/<app>/tests/` MUST contain `TEST.md`** written in two parts: plan
+  (before tests), results (appended after running).
+- **Every CLI MUST use the unified REPL skin** (`repl_skin.py`). REPL MUST be the
+  default when invoked without a subcommand.
+- **Rate limits MUST be respected.** Never retry without backoff. Never hammer endpoints.
+- **Response bodies MUST be verified.** Never trust HTTP status alone. Always check
+  that returned JSON contains expected fields.
+
+---
+
+## Testing Strategy
+
+Four test layers with complementary purposes:
+
+| Layer | File | What it tests |
+|-------|------|--------------|
+| Unit tests | `test_core.py` | Core functions with mocked HTTP. No real network. Fast, deterministic. |
+| E2E fixture tests | `test_e2e.py` | Full command flow replaying captured responses from `tests/fixtures/`. Verifies parsing logic. |
+| E2E live tests | `test_e2e.py` | Real API calls. Require auth — FAIL without it. CRUD round-trip, workflow scenarios. |
+| CLI subprocess | `test_e2e.py` | Installed `cli-web-<app>` via `_resolve_cli()`. Full workflow end-to-end. |
+
+Use the `_resolve_cli` helper for subprocess tests:
+```python
+def _resolve_cli(name):
+    force = os.environ.get("CLI_WEB_FORCE_INSTALLED", "").strip() == "1"
+    path = shutil.which(name)
+    if path:
+        print(f"[_resolve_cli] Using installed command: {path}")
+        return [path]
+    if force:
+        raise RuntimeError(f"{name} not found in PATH. Install with: pip install -e .")
+    module = name.replace("cli-web-", "cli_web.") + "." + name.split("-")[-1] + "_cli"
+    print(f"[_resolve_cli] Falling back to: {sys.executable} -m {module}")
+    return [sys.executable, "-m", module]
+```
+
+**App naming convention:** App names must contain no hyphens. Underscores are permitted
+(e.g., `cli-web-monday_com` → `cli_web.monday_com.monday_com_cli`). Valid examples:
+`monday`, `notion`, `jira`, `monday_com`.
 
 ---
 
