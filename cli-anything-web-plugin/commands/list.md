@@ -5,9 +5,9 @@ argument-hint: "[--path <directory>] [--depth <n>] [--json]"
 allowed-tools: Bash(*)
 ---
 
-## CRITICAL: Read WEB-HARNESS.md First
+## CRITICAL: Read CLI-ANYTHING-WEB.md First
 
-**Before doing anything else, read `${CLAUDE_PLUGIN_ROOT}/WEB-HARNESS.md`.** It defines the package structure this command scans for.
+**Before doing anything else, read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** It defines the package structure this command scans for.
 
 # web-harness:list Command
 

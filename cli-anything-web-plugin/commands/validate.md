@@ -1,18 +1,18 @@
 ---
 name: web-harness:validate
-description: Validate a web-harness CLI against WEB-HARNESS.md standards and best practices.
+description: Validate a web-harness CLI against CLI-ANYTHING-WEB.md standards and best practices.
 argument-hint: <app-path>
 allowed-tools: Bash(*), Read, Write, Edit
 ---
 
-## CRITICAL: Read WEB-HARNESS.md First
+## CRITICAL: Read CLI-ANYTHING-WEB.md First
 
-**Before validating, read `${CLAUDE_PLUGIN_ROOT}/WEB-HARNESS.md`.** It is the single source of truth for all validation checks below. Every check in this command maps to a requirement in WEB-HARNESS.md.
+**Before validating, read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** It is the single source of truth for all validation checks below. Every check in this command maps to a requirement in CLI-ANYTHING-WEB.md.
 
 # Web-Harness: Validate Standards
 
 Read the methodology SOP:
-@${CLAUDE_PLUGIN_ROOT}/WEB-HARNESS.md
+@${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md
 
 Target: $ARGUMENTS
 

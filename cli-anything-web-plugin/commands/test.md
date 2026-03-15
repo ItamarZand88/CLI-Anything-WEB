@@ -5,14 +5,14 @@ argument-hint: <app-path>
 allowed-tools: Bash(*), Read, Write, Edit
 ---
 
-## CRITICAL: Read WEB-HARNESS.md First
+## CRITICAL: Read CLI-ANYTHING-WEB.md First
 
-**Before running tests, read `${CLAUDE_PLUGIN_ROOT}/WEB-HARNESS.md`.** It defines the test standards, expected structure, and what constitutes a passing test suite.
+**Before running tests, read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** It defines the test standards, expected structure, and what constitutes a passing test suite.
 
 # Web-Harness: Test Runner
 
 Read the methodology SOP:
-@${CLAUDE_PLUGIN_ROOT}/WEB-HARNESS.md
+@${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md
 
 Target: $ARGUMENTS
 

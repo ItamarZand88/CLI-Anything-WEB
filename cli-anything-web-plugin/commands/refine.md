@@ -5,14 +5,14 @@ argument-hint: <app-path> [focus-area]
 allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
 ---
 
-## CRITICAL: Read WEB-HARNESS.md First
+## CRITICAL: Read CLI-ANYTHING-WEB.md First
 
-**Before refining, read `${CLAUDE_PLUGIN_ROOT}/WEB-HARNESS.md`.** All new commands and tests must follow the same standards as the original build. WEB-HARNESS.md is the single source of truth for architecture, patterns, and quality requirements.
+**Before refining, read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** All new commands and tests must follow the same standards as the original build. CLI-ANYTHING-WEB.md is the single source of truth for architecture, patterns, and quality requirements.
 
 # Web-Harness: Refine Existing Harness
 
 Read the methodology SOP:
-@${CLAUDE_PLUGIN_ROOT}/WEB-HARNESS.md
+@${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md
 
 Target: $1
 Focus area: $2

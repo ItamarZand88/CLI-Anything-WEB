@@ -5,14 +5,14 @@ argument-hint: <url>
 allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
 ---
 
-## CRITICAL: Read WEB-HARNESS.md First
+## CRITICAL: Read CLI-ANYTHING-WEB.md First
 
-**Before doing anything else, you MUST read `${CLAUDE_PLUGIN_ROOT}/WEB-HARNESS.md`.** It defines the complete methodology, all phases, and implementation standards. Every phase below follows WEB-HARNESS.md. Do not improvise — follow the harness specification.
+**Before doing anything else, you MUST read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** It defines the complete methodology, all phases, and implementation standards. Every phase below follows CLI-ANYTHING-WEB.md. Do not improvise — follow the harness specification.
 
 # Web-Harness: Full Pipeline
 
 Read the methodology SOP first:
-@${CLAUDE_PLUGIN_ROOT}/WEB-HARNESS.md
+@${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md
 
 Target URL: $ARGUMENTS
 
