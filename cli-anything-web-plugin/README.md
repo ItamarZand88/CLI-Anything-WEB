@@ -34,7 +34,7 @@ cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
 | `/cli-anything-web:record <url>` | Record traffic only (Phase 1) |
 | `/cli-anything-web:refine <path> [focus]` | Expand coverage of existing CLI |
 | `/cli-anything-web:test <path>` | Run tests and update TEST.md |
-| `/cli-anything-web:validate <path>` | Validate against CLI-ANYTHING-WEB.md standards |
+| `/cli-anything-web:validate <path>` | Validate against HARNESS.md standards |
 | `/cli-anything-web:list` | List all installed and generated `cli-web-*` CLIs |
 
 ## Prerequisites
@@ -89,7 +89,7 @@ Generated package structure:
 
 ## Methodology
 
-See [CLI-ANYTHING-WEB.md](./CLI-ANYTHING-WEB.md) for the complete methodology SOP.
+See [HARNESS.md](./HARNESS.md) for the complete methodology SOP.
 
 ## License
 

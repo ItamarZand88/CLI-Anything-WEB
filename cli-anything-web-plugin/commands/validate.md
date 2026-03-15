@@ -1,18 +1,18 @@
 ---
 name: cli-anything-web:validate
-description: Validate a cli-anything-web CLI against CLI-ANYTHING-WEB.md standards and best practices. Reports 8-category N/N check results.
+description: Validate a cli-anything-web CLI against HARNESS.md standards and best practices. Reports 8-category N/N check results.
 argument-hint: <app-path>
 allowed-tools: Bash(*), Read, Write, Edit
 ---
 
-## CRITICAL: Read CLI-ANYTHING-WEB.md First
+## CRITICAL: Read HARNESS.md First
 
-**Before validating, read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** It is the single source of truth for all validation checks below. Every check in this command maps to a requirement in CLI-ANYTHING-WEB.md.
+**Before validating, read `${CLAUDE_PLUGIN_ROOT}/HARNESS.md`.** It is the single source of truth for all validation checks below. Every check in this command maps to a requirement in HARNESS.md.
 
 # CLI-Anything-Web: Validate Standards
 
 Read the methodology SOP:
-@${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md
+@${CLAUDE_PLUGIN_ROOT}/HARNESS.md
 
 Target: $ARGUMENTS
 
@@ -84,7 +84,7 @@ Target: $ARGUMENTS
 
 - [ ] `README.md`: has installation, auth setup, command reference, examples
 - [ ] `<APP>.md`: has API map, data model, auth scheme, endpoint inventory
-- [ ] No `CLI-ANYTHING-WEB.md` inside app package (it lives in plugin root)
+- [ ] No `HARNESS.md` inside app package (it lives in plugin root)
 
 ## Category 7: PyPI Packaging Standards (5 checks)
 

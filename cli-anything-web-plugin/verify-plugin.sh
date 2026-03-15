@@ -29,8 +29,8 @@ else
     check ".claude-plugin/plugin.json is valid JSON" "false"
 fi
 
-# CLI-ANYTHING-WEB.md exists
-check "CLI-ANYTHING-WEB.md exists" "$([ -f "$SCRIPT_DIR/CLI-ANYTHING-WEB.md" ] && echo true || echo false)"
+# HARNESS.md exists
+check "HARNESS.md exists" "$([ -f "$SCRIPT_DIR/HARNESS.md" ] && echo true || echo false)"
 
 # All 6 command files
 for cmd in cli-anything-web record refine test validate list; do

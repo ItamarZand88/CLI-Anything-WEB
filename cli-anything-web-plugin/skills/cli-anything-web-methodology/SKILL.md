@@ -37,6 +37,6 @@ Eight phases:
 
 ## Reference Files
 
-- **`${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`** — Full methodology SOP (source of truth)
+- **`${CLAUDE_PLUGIN_ROOT}/HARNESS.md`** — Full methodology SOP (source of truth)
 - **`references/traffic-patterns.md`** — Common API patterns (REST, GraphQL, RPC)
 - **`references/auth-strategies.md`** — Auth implementation strategies

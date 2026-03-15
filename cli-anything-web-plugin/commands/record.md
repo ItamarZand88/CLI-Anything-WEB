@@ -5,14 +5,14 @@ argument-hint: <url> [--duration <minutes>]
 allowed-tools: Bash(*), Read, Write, mcp__chrome-devtools__*
 ---
 
-## CRITICAL: Read CLI-ANYTHING-WEB.md First
+## CRITICAL: Read HARNESS.md First
 
-**Before doing anything else, you MUST read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** Phase 1 of the methodology defines the complete recording process. Follow it exactly.
+**Before doing anything else, you MUST read `${CLAUDE_PLUGIN_ROOT}/HARNESS.md`.** Phase 1 of the methodology defines the complete recording process. Follow it exactly.
 
 # CLI-Anything-Web: Record Traffic Only
 
 Read the methodology SOP:
-@${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md
+@${CLAUDE_PLUGIN_ROOT}/HARNESS.md
 
 Target URL: $ARGUMENTS
 
