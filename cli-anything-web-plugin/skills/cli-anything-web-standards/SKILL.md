@@ -81,6 +81,7 @@ Every `cli-web-<app>` CLI must follow this layout:
 - `auth.py`: login, refresh, expiry check, secure storage (chmod 600)
 - `session.py`: Session class with undo/redo stack
 - `models.py`: typed response models
+- If protocol is non-REST: `core/rpc/` exists with `types.py`, `encoder.py`, `decoder.py`
 
 ### 5. Test Standards (8 checks)
 
@@ -112,6 +113,7 @@ Every `cli-web-<app>` CLI must follow this layout:
 - No syntax errors, no import errors
 - No hardcoded auth tokens or API keys
 - No hardcoded API base URLs or credentials in source
+- No hardcoded session tokens, CSRF tokens, build labels, or session IDs (must be extracted dynamically)
 - No bare `except:` blocks
 - Error messages include actionable guidance
 
