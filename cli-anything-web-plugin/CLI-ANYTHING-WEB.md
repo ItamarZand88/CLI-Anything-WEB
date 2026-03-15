@@ -10,26 +10,24 @@ generating production-ready CLI interfaces from observed HTTP traffic.
 
 ## Core Philosophy
 
-CLI-Anything generates CLIs from **source code**.
-Web-Harness generates CLIs from **network traffic**.
+Web-Harness builds production-grade Python CLI interfaces for closed-source web
+applications by observing their live HTTP traffic. We capture real API calls directly
+from the browser, reverse-engineer the API surface, and generate a stateful CLI that
+sends authentic HTTP requests to the real service.
 
-The output is identical: a stateful Python CLI under `cli_web_<app>/`
-with Click commands, `--json` output, REPL mode, undo/redo, session
-management, and comprehensive tests. The difference is the input —
-instead of reading `.py` / `.c` / `.js` source files, we observe
-live HTTP requests flowing between the browser and the server.
+The output: a Python CLI under `cli_web/<app>/` with Click commands, `--json` output,
+REPL mode, auth management, session state, and comprehensive tests.
 
-### Design Principles (inherited from CLI-Anything)
+### Design Principles
 
-1. **Authentic Integration** — The CLI sends real HTTP requests to real
-   servers. No mocks, no reimplementations, no toy replacements.
+1. **Authentic Integration** — The CLI sends real HTTP requests to real servers.
+   No mocks, no reimplementations, no toy replacements.
 2. **Dual Interaction** — Every CLI has REPL mode + subcommand mode.
 3. **Agent-Native** — `--json` flag on every command. `--help` self-docs.
    Agents discover tools via `which cli-web-<app>`.
-4. **Zero Compromise** — Tests fail (not skip) when auth is missing or
-   endpoints are unreachable.
-5. **Structured Output** — JSON for agents, human-readable tables for
-   interactive use.
+4. **Zero Compromise** — Tests fail (not skip) when auth is missing or endpoints
+   are unreachable.
+5. **Structured Output** — JSON for agents, human-readable tables for interactive use.
 
 ---
 
@@ -127,7 +125,7 @@ live HTTP requests flowing between the browser and the server.
 
 **Goal:** Generate the complete Python CLI package.
 
-**Package structure** (matches CLI-Anything convention):
+**Package structure:**
 ```
 <app>/
 └── agent-harness/
@@ -168,14 +166,14 @@ live HTTP requests flowing between the browser and the server.
 - `auth.py` — handles token storage, refresh, expiry
 - Every command: `--json` flag, proper error messages
 - Entry point: `cli-web-<app>` via setup.py console_scripts
-- Namespace: `cli_web.*` (parallel to CLI-Anything's `cli_anything.*`)
+- Namespace: `cli_web.*`
 - Copy `repl_skin.py` from plugin for consistent REPL experience
 
 ### Phase 5 — Test (Write Tests)
 
 **Goal:** Comprehensive test suite.
 
-**Test layers** (matches CLI-Anything):
+**Test layers:**
 
 | Layer | What it tests | Example |
 |-------|--------------|---------|
@@ -220,9 +218,9 @@ live HTTP requests flowing between the browser and the server.
 ## Critical Lessons
 
 ### Lesson 1: Auth is Everything
-Unlike CLI-Anything where the software runs locally, web apps require
-authentication. The auth module is the most critical component. Design
-it for: token refresh, session recovery, multi-account support.
+Web apps require authentication for every operation. The auth module is
+the most critical component. Design it for: token refresh, session
+recovery, multi-account support.
 
 ### Lesson 2: Capture Comprehensively
 A 5-minute browse session won't capture the full API surface.
@@ -251,10 +249,11 @@ Map operations to human-friendly commands.
 
 ## Naming Conventions
 
-| Convention | CLI-Anything | Web-Harness |
-|-----------|-------------|-------------|
-| CLI command | `cli-anything-<software>` | `cli-web-<app>` |
-| Namespace | `cli_anything.<software>` | `cli_web.<app>` |
-| SOP doc | `<SOFTWARE>.md` | `<APP>.md` |
-| Plugin command | `/cli-anything` | `/web-harness` |
-| Traffic data | N/A (source code) | `traffic-capture/` |
+| Convention | Value |
+|-----------|-------|
+| CLI command | `cli-web-<app>` |
+| Python namespace | `cli_web.<app>` |
+| App-specific SOP | `<APP>.md` |
+| Plugin slash command | `/web-harness` |
+| Traffic capture dir | `traffic-capture/` |
+| Auth config dir | `~/.config/cli-web-<app>/` |
