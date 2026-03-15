@@ -54,3 +54,4 @@ During the full pipeline, all three activate at the relevant phases.
 - **`${CLAUDE_PLUGIN_ROOT}/HARNESS.md`** — Full methodology SOP (source of truth)
 - **`references/traffic-patterns.md`** — Common API patterns (REST, GraphQL, RPC)
 - **`references/auth-strategies.md`** — Auth implementation strategies
+- **`references/google-batchexecute.md`** — Google batchexecute RPC protocol spec (URL format, encoding, decoding, tokens)
