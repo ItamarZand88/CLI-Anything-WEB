@@ -82,12 +82,17 @@ Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` 
 ### Phase 4 — Implement (Code Generation)
 
 1. Create the package structure under `<app>/agent-harness/cli_web/<app>/`
-2. Implement `client.py` — HTTP client with auth injection
-3. Implement `auth.py` — token storage and refresh
-4. Implement command files — one per resource
-5. Implement `<app>_cli.py` — main entry point
-6. Copy `repl_skin.py` from: `${CLAUDE_PLUGIN_ROOT}/scripts/repl_skin.py`
-7. Create `setup.py` with `cli-web-<app>` entry point
+2. **First (sequential):** Implement core modules — `client.py`, `auth.py`, `session.py`, `models.py`
+   These are the foundation that command files import.
+3. **Then (parallel subagents):** Dispatch one agent per command module — each is independent:
+   ```
+   Agent 1 → "Implement commands/notebooks.py"
+   Agent 2 → "Implement commands/sources.py"
+   Agent 3 → "Implement commands/chat.py"
+   # All run concurrently
+   ```
+   Each agent gets: the `<APP>.md` API spec, `client.py` interface, its resource endpoints.
+4. **Last (sequential):** Wire together — `<app>_cli.py`, `__main__.py`, `setup.py`, copy `repl_skin.py`
 
 ### Phase 5 — Plan Tests (TEST.md Part 1)
 
@@ -97,10 +102,13 @@ Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` 
 
 ### Phase 6 — Test (Write Tests)
 
-1. Create `test_core.py` — unit tests with mocked HTTP
-2. Create `test_e2e.py` — integration tests with captured fixtures
-3. Store response fixtures in `tests/fixtures/`
-4. Write TEST.md with test plan
+1. **Parallel subagents** for independent test files:
+   ```
+   Agent 1 → "Write unit tests for client.py + auth.py in test_core.py"
+   Agent 2 → "Write E2E fixture replay + live CRUD tests in test_e2e.py"
+   ```
+2. Integrate, store response fixtures in `tests/fixtures/`
+3. Run all tests — ALL must pass with real auth
 
 ### Phase 7 — Document
 

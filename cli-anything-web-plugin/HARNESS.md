@@ -259,6 +259,42 @@ The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
 - Namespace: `cli_web.*`
 - Copy `repl_skin.py` from plugin for consistent REPL experience
 
+**Parallel implementation (dispatch independent modules as subagents):**
+
+When the CLI has 3+ command groups (e.g., notebooks, sources, chat, artifacts),
+dispatch parallel subagents — one per command module. Each agent gets:
+- The `<APP>.md` API spec for its resource
+- The `client.py` and `auth.py` interfaces it depends on
+- Clear scope: "Implement `commands/notebooks.py` with list, get, create, delete"
+
+Parallelization opportunities in Phase 4:
+
+| Independent from each other | Dispatch in parallel |
+|----------------------------|---------------------|
+| `commands/notebooks.py`, `commands/sources.py`, `commands/chat.py` | Yes — each command file only depends on `client.py` |
+| `rpc/encoder.py` and `rpc/decoder.py` | Yes — encoder doesn't depend on decoder |
+| `auth.py` and `models.py` | Yes — no shared logic |
+| `client.py` and `commands/*` | **No** — commands depend on client |
+| `<app>_cli.py` (entry point) | **Last** — imports all commands, write after they're done |
+
+**Implementation order:**
+1. First (sequential): `core/client.py`, `core/auth.py`, `core/session.py`, `core/models.py`
+   — these are the foundation that everything else imports
+2. Then (parallel subagents): all `commands/*.py` files + `rpc/encoder.py` + `rpc/decoder.py`
+   — each is independent once the core exists
+3. Last (sequential): `<app>_cli.py`, `__main__.py`, `setup.py`, copy `repl_skin.py`
+   — these wire everything together
+
+Example dispatch for a Google app with 4 command groups:
+```
+# After core/ modules are written:
+Agent 1 → "Implement commands/notebooks.py (list, get, create, delete, rename)"
+Agent 2 → "Implement commands/sources.py (add-url, add-pdf, add-text, list, delete)"
+Agent 3 → "Implement commands/chat.py (ask, history)"
+Agent 4 → "Implement commands/artifacts.py (list, create, get)"
+# All 4 run concurrently, then integrate
+```
+
 ### Phase 5 — Plan Tests (TEST.md Part 1)
 
 **Goal:** Write the test plan BEFORE writing any test code.
@@ -302,6 +338,31 @@ This planning document ensures comprehensive test coverage before writing code.
 ### Phase 6 — Test (Write Tests)
 
 **Goal:** Comprehensive test suite.
+
+**Parallel test writing (dispatch independent test files as subagents):**
+
+Like Phase 4, test files are independent and can be written in parallel:
+
+| Test file | Scope | Independent? |
+|-----------|-------|-------------|
+| `test_core.py` — client tests | Mock HTTP, test `client.py` | Yes |
+| `test_core.py` — auth tests | Mock filesystem, test `auth.py` | Yes |
+| `test_core.py` — RPC codec tests | Test encoder/decoder with fixtures | Yes |
+| `test_e2e.py` — fixture replay | Replay captured responses | Depends on fixtures existing |
+| `test_e2e.py` — live tests | Real API calls | Depends on auth working |
+| `test_e2e.py` — subprocess tests | `_resolve_cli()` | Depends on `pip install -e .` |
+
+Dispatch strategy:
+```
+Agent 1 → "Write unit tests for core/client.py and core/auth.py in test_core.py"
+Agent 2 → "Write RPC encoder/decoder unit tests (if applicable) in test_core.py"
+Agent 3 → "Write E2E fixture replay tests and live CRUD tests in test_e2e.py"
+# After all return, integrate into final test files and run
+```
+
+Each agent receives: the module it's testing, the TEST.md plan (from Phase 5),
+and sample API responses from `tests/fixtures/`. Agents must NOT depend on each
+other's output.
 
 **Test layers:**
 
