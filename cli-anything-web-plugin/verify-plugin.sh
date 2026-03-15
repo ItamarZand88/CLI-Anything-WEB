@@ -4,7 +4,7 @@
 # Reports ALL checks (no fail-fast). Prints [PASS] or [FAIL] per check.
 # Exits 0 if all pass, 1 if any fail.
 
-set -euo pipefail
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PASS=0
@@ -23,7 +23,7 @@ check() {
 }
 
 # plugin.json valid JSON
-if python3 -c "import json; json.load(open('$SCRIPT_DIR/.claude-plugin/plugin.json'))" 2>/dev/null; then
+if (cd "$SCRIPT_DIR" && python -c "import json; json.load(open('.claude-plugin/plugin.json'))") 2>/dev/null; then
     check ".claude-plugin/plugin.json is valid JSON" "true"
 else
     check ".claude-plugin/plugin.json is valid JSON" "false"
@@ -48,7 +48,7 @@ else
 fi
 
 # .mcp.json valid JSON
-if python3 -c "import json; json.load(open('$SCRIPT_DIR/.mcp.json'))" 2>/dev/null; then
+if (cd "$SCRIPT_DIR" && python -c "import json; json.load(open('.mcp.json'))") 2>/dev/null; then
     check ".mcp.json is valid JSON" "true"
 else
     check ".mcp.json is valid JSON" "false"
