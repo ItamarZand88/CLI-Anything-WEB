@@ -372,31 +372,66 @@ Phase 7 **appends** results to the existing `TEST.md` (which already has Part 1 
    - Any gaps with explanation
 6. Include example CLI usage in README.md
 
-### Phase 8 — Publish (Install to PATH)
+### Phase 8 — Publish and Verify (Install to PATH)
 
-**Goal:** Make CLI discoverable and installable.
+**Goal:** Make CLI installable AND verify it works end-to-end as a real user would use it.
 
 **Process:**
 1. Create `setup.py` with:
    - `find_namespace_packages` for `cli_web.*`
    - `console_scripts` entry point: `cli-web-<app>`
-   - Dependencies: `click>=8.0`, `httpx`, `rich` (optional)
+   - Dependencies: `click>=8.0`, `httpx`
+   - Optional: `extras_require={"browser": ["playwright>=1.40.0"]}`
 2. Install: `pip install -e .`
 3. Verify: `which cli-web-<app>`
-4. Test installed: `cli-web-<app> --help`
-5. Test JSON: `cli-web-<app> --json <command>`
+4. Test help: `cli-web-<app> --help`
+
+**End-User Smoke Test (MANDATORY — do NOT skip this):**
+
+This is the most critical verification step. The agent MUST simulate what a real
+end user would do after `pip install cli-web-<app>`. If this fails, the pipeline
+is NOT complete — go back and fix the issue.
+
+5. **Authenticate as an end user would:**
+   ```bash
+   # Primary method: Playwright (what end users will use)
+   cli-web-<app> auth login
+   # If Playwright not available, fall back to CDP:
+   cli-web-<app> auth login --from-browser
+   ```
+6. **Verify auth status shows LIVE VALIDATION OK:**
+   ```bash
+   cli-web-<app> auth status
+   ```
+   Must show: cookies present, tokens valid. If it shows "expired", "redirect",
+   or any auth failure — STOP. Fix auth before proceeding.
+
+7. **Run a real API call and verify the response:**
+   ```bash
+   cli-web-<app> --json <first-resource> list
+   ```
+   This must return real data from the live API — NOT an error, NOT empty,
+   NOT "auth not configured". Verify the JSON response contains expected fields.
+
+8. **Run a CRUD smoke test if the app supports it:**
+   ```bash
+   cli-web-<app> --json <resource> create --name "smoke-test-$(date +%s)"
+   cli-web-<app> --json <resource> list   # verify the created item appears
+   cli-web-<app> --json <resource> delete --id <id-from-create>
+   ```
+
+9. **Only after steps 5-8 pass, declare the pipeline complete.**
+
+**The pipeline is NOT done until:**
+- `auth login` works (Playwright or CDP)
+- `auth status` shows valid
+- At least one real API call returns real data
+- The user can install and use the CLI without the debug Chrome
 
 **Why namespace packages:**
 - Multiple `cli-web-*` CLIs coexist in the same Python environment without conflicts
 - `cli_web/` has NO `__init__.py` — this is the rule that enables it
 - Use `find_namespace_packages(include=["cli_web.*"])` — NOT `find_packages`
-- Install verification:
-  ```bash
-  pip install -e .
-  which cli-web-<app>
-  CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s
-  ```
-  Output must show `[_resolve_cli] Using installed command:` confirming the installed package is tested.
 
 ---
 
