@@ -18,13 +18,24 @@ Target: $ARGUMENTS
 
 ## Process
 
-1. Locate test directory: `<app>/agent-harness/cli_web/<app>/tests/`
-2. Run full test suite:
+1. **Verify auth is working FIRST** — this is mandatory before any E2E test:
+   ```
+   cli-web-<app> auth login --from-browser
+   cli-web-<app> auth status
+   ```
+   Auth status MUST show live validation succeeded. If it fails:
+   - Verify Chrome debug profile is running on port 9222
+   - Verify user is logged into the target web app in that Chrome
+   - Fix auth before running any tests
+   - Do NOT proceed with "auth not configured" — that is a broken test
+
+2. Locate test directory: `<app>/agent-harness/cli_web/<app>/tests/`
+3. Run full test suite:
    ```
    cd <app>/agent-harness
    python3 -m pytest cli_web/<app>/tests/ -v --tb=short 2>&1
    ```
-3. If installed, also run subprocess tests:
+4. If installed, also run subprocess tests:
    ```
    CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s -k subprocess 2>&1
    ```

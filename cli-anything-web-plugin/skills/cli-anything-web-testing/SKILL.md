@@ -12,6 +12,21 @@ don't need to invoke it explicitly.
 
 For the full methodology SOP, read `${CLAUDE_PLUGIN_ROOT}/HARNESS.md`.
 
+## Auth MUST Be Working Before Any E2E Test
+
+This is the #1 rule for web CLI testing. Before writing or running any E2E test:
+
+1. Run `cli-web-<app> auth login --from-browser` (extracts cookies from Chrome debug profile)
+2. Run `cli-web-<app> auth status` — must show live validation succeeded
+3. If auth fails, STOP and fix it. Do NOT write tests that catch auth errors.
+
+Tests that output "auth not configured" or skip on missing auth are **broken tests**.
+The web app requires authentication — the tests must authenticate. This is the web
+equivalent of CLI-Anything's rule that the real software must be installed.
+
+If a test cannot authenticate, it must call `pytest.fail()` with a message telling
+the user to run `auth login --from-browser`, not silently skip or catch the error.
+
 ## TEST.md: Two-Part Structure
 
 TEST.md is written in two phases — plan first, results later:

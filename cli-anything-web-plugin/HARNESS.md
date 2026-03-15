@@ -262,10 +262,26 @@ This planning document ensures comprehensive test coverage before writing code.
 | E2E tests (live) | Real API calls against running service | Create/read/update/delete cycle |
 | CLI subprocess | Installed command via `subprocess.run` | `cli-web-<app> --json boards list` |
 
+**CRITICAL — Auth must be configured BEFORE running any E2E or subprocess tests:**
+
+Before writing or running any live test, you MUST ensure authentication is working:
+1. Verify the Chrome debug profile is running (port 9222) and user is logged in
+2. Run `cli-web-<app> auth login --from-browser` to extract cookies
+3. Run `cli-web-<app> auth status` — must show "All required cookies present" AND
+   live validation must succeed
+4. If auth status shows a failure (401, missing cookies), STOP and fix auth first.
+   Do NOT write tests that catch auth errors and report "auth not configured" — that
+   defeats the entire purpose. The CLI talks to a REAL service. Tests must talk to
+   the REAL service too.
+
+This is the web equivalent of CLI-Anything's rule "the real software MUST be installed."
+In our case: **real auth MUST be configured and verified working before any E2E test.**
+
 **Testing rules:**
 - Use `unittest.mock.patch` for HTTP in unit tests
 - Store captured responses in `tests/fixtures/` for replay
-- E2E live tests require auth — fail (don't skip) without it
+- E2E live tests require auth — **FAIL (not skip, not catch, not "auth not configured")**
+- If a test cannot authenticate, it must `pytest.fail("Auth not configured. Run: cli-web-<app> auth login --from-browser")`
 - `TestCLISubprocess` using `_resolve_cli("cli-web-<app>")`
 - Target: >80% coverage on core modules
 
@@ -290,13 +306,21 @@ false confidence.
 Phase 7 **appends** results to the existing `TEST.md` (which already has Part 1 from Phase 5). It does NOT write TEST.md from scratch.
 
 **Process:**
-1. Run full test suite: `python3 -m pytest cli_web/<app>/tests/ -v --tb=short`
-2. Run subprocess tests: `CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s -k subprocess`
-3. **Append** Part 2 to existing `TEST.md`:
-   - Full `pytest -v --tb=no` output
+1. **Verify auth is working FIRST:**
+   ```bash
+   cli-web-<app> auth login --from-browser   # extract cookies from debug Chrome
+   cli-web-<app> auth status                  # must show live validation: OK
+   ```
+   If auth status fails, fix it before proceeding. Do NOT run tests without working auth.
+2. Run full test suite: `python3 -m pytest cli_web/<app>/tests/ -v --tb=short`
+3. Run subprocess tests: `CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s -k subprocess`
+4. **ALL tests must pass.** If E2E tests fail with auth errors, go back to step 1.
+   Do NOT record "auth not configured" as a test result — that means auth is broken.
+5. **Append** Part 2 to existing `TEST.md`:
+   - Full `pytest -v --tb=no` output showing ALL tests passing
    - Summary: total tests, pass rate, execution date
-   - Any gaps or failed tests with explanation
-4. Include example CLI usage in README.md
+   - Any gaps with explanation
+6. Include example CLI usage in README.md
 
 ### Phase 8 — Publish (Install to PATH)
 
@@ -362,7 +386,10 @@ Map operations to human-friendly commands.
   tokens in source. If auth file missing, CLI errors with clear instructions — never
   falls back to unauthenticated requests.
 - **Tests MUST fail (not skip) when auth is missing.** Tests that skip on missing auth
-  give false confidence. The CLI is useless without a live account.
+  give false confidence. The CLI is useless without a live account. Before running any
+  E2E test, run `cli-web-<app> auth login --from-browser` then `auth status` to verify.
+  Tests that output "auth not configured" are BROKEN — fix auth first, then test.
+  This is the web equivalent of "the real software MUST be installed."
 - **Every command MUST support `--json`.** Agents consume structured output.
   Human-readable is optional; machine-readable is required.
 - **E2E tests MUST include subprocess tests** via `_resolve_cli("cli-web-<app>")`.
