@@ -23,11 +23,18 @@ Target URL: $ARGUMENTS
 - `chrome-devtools-mcp` — connects to port 9222, has full request/response body capture
 - `claude-in-chrome` — browser extension, limited network capture (no request bodies)
 
-If `mcp__chrome-devtools__*` tools are not available, STOP and tell the user to:
-1. Launch Chrome debug profile: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
-2. Restart this Claude session so chrome-devtools-mcp can connect to port 9222
+**Step 1: Launch Chrome debug profile with the target URL:**
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
 
-Verify Chrome DevTools MCP is available:
+This launches Chrome on port 9222 with a persistent profile. If Chrome is already
+running on that port, the script detects it and skips.
+
+**Step 2: Ask the user to log in (if first time):**
+If this is the first time using the debug profile, tell the user:
+"Please log into your account in the Chrome window that just opened. Let me know when you're done."
+Wait for confirmation before proceeding.
+
+**Step 3: Verify npx is available (for chrome-devtools-mcp):**
 !`which npx && echo "npx: OK" || echo "npx: MISSING"`
 
 ## Execution Plan

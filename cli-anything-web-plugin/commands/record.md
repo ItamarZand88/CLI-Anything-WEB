@@ -19,11 +19,12 @@ Target URL: $ARGUMENTS
 ## Prerequisites
 
 **You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
-If chrome-devtools tools are not available, tell the user to launch the debug Chrome first:
-```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>
-```
-Then restart this Claude session.
+
+**Launch Chrome debug profile with the target URL:**
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
+
+If this is the first time, ask the user to log in to the Chrome window that opened.
+Wait for confirmation before proceeding.
 
 ## Process
 
