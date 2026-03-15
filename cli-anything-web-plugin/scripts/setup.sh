@@ -102,7 +102,7 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 echo ""
 echo "Available commands:"
 echo ""
-echo -e "  ${BLUE}/cli-anything-web${NC} <url>              - Full 7-phase pipeline"
+echo -e "  ${BLUE}/cli-anything-web${NC} <url>              - Full 8-phase pipeline"
 echo -e "  ${BLUE}/cli-anything-web:record${NC} <url>       - Record traffic only"
 echo -e "  ${BLUE}/cli-anything-web:refine${NC} <path> [f]  - Expand coverage"
 echo -e "  ${BLUE}/cli-anything-web:test${NC} <path>        - Run tests, update TEST.md"

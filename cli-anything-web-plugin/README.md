@@ -30,7 +30,7 @@ cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
 
 | Command | Description |
 |---------|-------------|
-| `/cli-anything-web <url>` | Full 7-phase pipeline — record, analyze, generate CLI |
+| `/cli-anything-web <url>` | Full 8-phase pipeline — record, analyze, generate CLI |
 | `/cli-anything-web:record <url>` | Record traffic only (Phase 1) |
 | `/cli-anything-web:refine <path> [focus]` | Expand coverage of existing CLI |
 | `/cli-anything-web:test <path>` | Run tests and update TEST.md |
