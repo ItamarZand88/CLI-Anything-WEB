@@ -212,18 +212,36 @@ The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
   - Automatic JSON parsing
   - Error handling with status code mapping
   - Rate limit respect (exponential backoff)
-- `auth.py` — handles token storage, refresh, expiry
-  - **MUST support `auth login --from-browser`** — auto-extract cookies from the
-    Chrome debug profile (port 9222) using CDP. This is the primary login method.
-    Use `${CLAUDE_PLUGIN_ROOT}/scripts/extract-browser-cookies.py` as the reference
-    implementation. The flow:
-    1. Connect to Chrome debug port (`http://127.0.0.1:9222`)
-    2. Use `Storage.getCookies` CDP command to get all cookies
-    3. Filter for the target domain (e.g., `.google.com`)
-    4. Save to `~/.config/cli-web-<app>/auth.json`
-    Requires `pip install websockets`.
-  - Also support `auth login --cookies-json <file>` as a fallback for manual import
+- `auth.py` — handles token storage, refresh, expiry. MUST support 3 login methods:
+  1. **`auth login`** (default, for end users) — uses Playwright to open a browser.
+     User logs in manually, Playwright saves `storage_state.json` with full cookie
+     metadata (domain, secure, httpOnly attributes preserved). This is the most
+     reliable method across all web apps. Requires `pip install playwright` as an
+     optional dependency (`[browser]` extra).
+     ```python
+     # auth.py — Playwright login
+     async def login_with_playwright(app_url: str, storage_path: Path):
+         from playwright.async_api import async_playwright
+         async with async_playwright() as p:
+             browser = await p.chromium.launch(headless=False)
+             context = await browser.new_context()
+             page = await context.new_page()
+             await page.goto(app_url)
+             input("Log in to the app, then press ENTER here...")
+             await context.storage_state(path=str(storage_path))
+             await browser.close()
+     ```
+  2. **`auth login --from-browser`** (for dev/pipeline) — extracts cookies from the
+     Chrome debug profile (port 9222) via CDP. Fast when debug Chrome is already
+     running during Phase 1 recording. Requires `pip install websockets`.
+     **Important:** Deduplicate cookies by name — prefer `.google.com` domain over
+     `accounts.google.com` to avoid CookieMismatch errors.
+  3. **`auth login --cookies-json <file>`** (manual fallback) — import from JSON file.
   - Store cookies at `~/.config/cli-web-<app>/auth.json` with chmod 600
+  - After saving cookies, automatically fetch session tokens (CSRF, session ID)
+    via HTTP GET to the app homepage. If this fails (anti-bot redirect), extract
+    tokens via CDP JavaScript evaluation as fallback.
+  - `setup.py` should declare Playwright as optional: `extras_require={"browser": ["playwright>=1.40.0"]}`
 - **Anti-bot resilient client construction** (when detected in Phase 2):
   - Extract session tokens via CDP first (cookies), then HTTP GET + HTML parsing (CSRF, session IDs)
   - **Never hardcode** build labels (`bl`), session IDs (`f.sid`), or CSRF tokens — extract dynamically at runtime
