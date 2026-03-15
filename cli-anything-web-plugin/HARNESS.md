@@ -33,32 +33,25 @@ REPL mode, auth management, session state, and comprehensive tests.
 
 ## 8-Phase Pipeline
 
-### Prerequisites — Chrome Debug Profile
+### Prerequisites — Browser Connection
 
-Before running the pipeline, the user must have a dedicated Chrome debug profile
-with an active login session for the target web app. This is required because Google
-and many other services block sign-in on automated/debugged browser instances.
+Chrome DevTools MCP connects to the user's **regular Chrome browser** via `--autoConnect`
+(requires Chrome 144+). No separate debug profile needed — the user is already logged
+in to their web apps.
 
-**One-time setup:**
+**How it works:**
+1. User opens the target web app in their normal Chrome browser
+2. User runs `/cli-anything-web <url>`
+3. Chrome shows a one-time permission dialog: "Allow debugging?" → user clicks OK
+4. The agent gets full access to the browser session including network traffic
+5. The user's existing login sessions are preserved — no re-authentication needed
 
-1. Launch Chrome with a dedicated debug profile:
-   ```bash
-   # Windows
-   "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="%USERPROFILE%\.chrome-debug-profile"
-
-   # macOS
-   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-debug-profile"
-
-   # Linux
-   google-chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-debug-profile"
-   ```
-2. In that Chrome window, navigate to the target web app and **log in normally**
-3. Close Chrome — your session cookies persist in `~/.chrome-debug-profile/`
-
-**Before each recording session:**
-
-Re-launch the debug Chrome (same command as above). You'll already be logged in.
-The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
+**Fallback for Chrome < 144:**
+If `--autoConnect` is not supported, fall back to the debug profile approach:
+```bash
+chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-debug-profile"
+```
+Then update `.mcp.json` to use `--browserUrl=http://127.0.0.1:9222` instead of `--autoConnect`.
 
 ---
 
@@ -67,9 +60,12 @@ The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
 **Goal:** Capture comprehensive HTTP traffic from the target web app.
 
 **Process:**
-1. Verify the debug Chrome is running on port 9222 with the user already logged in
+1. chrome-devtools-mcp auto-connects to the user's regular Chrome via --autoConnect.
+   The user should have the target web app open and be logged in.
+   - If Chrome shows a permission dialog, tell the user to click "Allow"
+   - If the user is not logged in, ask them to log in first in their normal Chrome
 2. Call `navigate_page` with the target URL
-3. If login has expired — pause and ask user to re-authenticate in the debug Chrome
+3. If login has expired — pause and ask user to re-authenticate in Chrome
 4. Enable network monitoring (`list_network_requests`)
 5. Systematically exercise the app:
    - Navigate all major sections
@@ -231,9 +227,9 @@ The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
              await context.storage_state(path=str(storage_path))
              await browser.close()
      ```
-  2. **`auth login --from-browser`** (for dev/pipeline) — extracts cookies from the
-     Chrome debug profile (port 9222) via CDP. Fast when debug Chrome is already
-     running during Phase 1 recording. Requires `pip install websockets`.
+  2. **`auth login --from-chrome`** (for dev/pipeline) — extracts cookies from the
+     connected Chrome session via CDP (autoConnect). Fast when Chrome is already
+     connected during Phase 1 recording. Requires `pip install websockets`.
      **Important:** Deduplicate cookies by name — prefer `.google.com` domain over
      `accounts.google.com` to avoid CookieMismatch errors.
   3. **`auth login --cookies-json <file>`** (manual fallback) — import from JSON file.
@@ -376,8 +372,8 @@ other's output.
 **CRITICAL — Auth must be configured BEFORE running any E2E or subprocess tests:**
 
 Before writing or running any live test, you MUST ensure authentication is working:
-1. Verify the Chrome debug profile is running (port 9222) and user is logged in
-2. Run `cli-web-<app> auth login --from-browser` to extract cookies
+1. Ensure Chrome is connected via autoConnect and user is logged in
+2. Run `cli-web-<app> auth login --from-chrome` to extract cookies
 3. Run `cli-web-<app> auth status` — must show "All required cookies present" AND
    live validation must succeed
 4. If auth status shows a failure (401, missing cookies), STOP and fix auth first.
@@ -392,7 +388,7 @@ In our case: **real auth MUST be configured and verified working before any E2E 
 - Use `unittest.mock.patch` for HTTP in unit tests
 - Store captured responses in `tests/fixtures/` for replay
 - E2E live tests require auth — **FAIL (not skip, not catch, not "auth not configured")**
-- If a test cannot authenticate, it must `pytest.fail("Auth not configured. Run: cli-web-<app> auth login --from-browser")`
+- If a test cannot authenticate, it must `pytest.fail("Auth not configured. Run: cli-web-<app> auth login")`
 - `TestCLISubprocess` using `_resolve_cli("cli-web-<app>")`
 - Target: >80% coverage on core modules
 
@@ -419,7 +415,7 @@ Phase 7 **appends** results to the existing `TEST.md` (which already has Part 1 
 **Process:**
 1. **Verify auth is working FIRST:**
    ```bash
-   cli-web-<app> auth login --from-browser   # extract cookies from debug Chrome
+   cli-web-<app> auth login --from-chrome     # extract cookies from connected Chrome
    cli-web-<app> auth status                  # must show live validation: OK
    ```
    If auth status fails, fix it before proceeding. Do NOT run tests without working auth.
@@ -458,7 +454,7 @@ is NOT complete — go back and fix the issue.
    # Primary method: Playwright (what end users will use)
    cli-web-<app> auth login
    # If Playwright not available, fall back to CDP:
-   cli-web-<app> auth login --from-browser
+   cli-web-<app> auth login --from-chrome
    ```
 6. **Verify auth status shows LIVE VALIDATION OK:**
    ```bash
@@ -487,7 +483,7 @@ is NOT complete — go back and fix the issue.
 - `auth login` works (Playwright or CDP)
 - `auth status` shows valid
 - At least one real API call returns real data
-- The user can install and use the CLI without the debug Chrome
+- The user can install and use the CLI standalone
 
 **Why namespace packages:**
 - Multiple `cli-web-*` CLIs coexist in the same Python environment without conflicts
@@ -533,7 +529,7 @@ Map operations to human-friendly commands.
   falls back to unauthenticated requests.
 - **Tests MUST fail (not skip) when auth is missing.** Tests that skip on missing auth
   give false confidence. The CLI is useless without a live account. Before running any
-  E2E test, run `cli-web-<app> auth login --from-browser` then `auth status` to verify.
+  E2E test, run `cli-web-<app> auth login` then `auth status` to verify.
   Tests that output "auth not configured" are BROKEN — fix auth first, then test.
   This is the web equivalent of "the real software MUST be installed."
 - **Every command MUST support `--json`.** Agents consume structured output.

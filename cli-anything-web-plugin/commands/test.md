@@ -20,12 +20,12 @@ Target: $ARGUMENTS
 
 1. **Verify auth is working FIRST** — this is mandatory before any E2E test:
    ```
-   cli-web-<app> auth login --from-browser
+   cli-web-<app> auth login                    # Playwright (recommended)
+   cli-web-<app> auth login --from-chrome      # or extract from connected Chrome
    cli-web-<app> auth status
    ```
    Auth status MUST show live validation succeeded. If it fails:
-   - Verify Chrome debug profile is running on port 9222
-   - Verify user is logged into the target web app in that Chrome
+   - Ensure Chrome is connected via autoConnect and user is logged in
    - Fix auth before running any tests
    - Do NOT proceed with "auth not configured" — that is a broken test
 

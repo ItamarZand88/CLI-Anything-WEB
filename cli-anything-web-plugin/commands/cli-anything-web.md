@@ -18,23 +18,12 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites Check
 
-**IMPORTANT: You MUST use `mcp__chrome-devtools__*` tools (chrome-devtools-mcp), NOT
-`mcp__claude-in-chrome__*` tools. They are different MCP servers:**
-- `chrome-devtools-mcp` — connects to port 9222, has full request/response body capture
-- `claude-in-chrome` — browser extension, limited network capture (no request bodies)
+Chrome DevTools MCP connects to your regular Chrome via `--autoConnect`.
+The user should have the target web app open in Chrome and be logged in.
 
-**Step 1: Launch Chrome debug profile with the target URL:**
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
+**You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
 
-This launches Chrome on port 9222 with a persistent profile. If Chrome is already
-running on that port, the script detects it and skips.
-
-**Step 2: Ask the user to log in (if first time):**
-If this is the first time using the debug profile, tell the user:
-"Please log into your account in the Chrome window that just opened. Let me know when you're done."
-Wait for confirmation before proceeding.
-
-**Step 3: Verify npx is available (for chrome-devtools-mcp):**
+Verify Chrome DevTools MCP is available:
 !`which npx && echo "npx: OK" || echo "npx: MISSING"`
 
 ## Execution Plan
@@ -44,10 +33,12 @@ Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` 
 
 ### Phase 1 — Record (Traffic Capture)
 
-1. Verify the Chrome debug profile is running on port 9222 with the user logged in.
+1. chrome-devtools-mcp connects to the user's Chrome via --autoConnect.
+   - If Chrome shows a permission dialog, tell the user to click "Allow"
+   - If the user is not logged in, ask them to log in in their normal Chrome
    Use **chrome-devtools-mcp** tools (`mcp__chrome-devtools__navigate_page`, etc.):
    - Call `navigate_page` with the target URL
-   - If login has expired — pause and ask user to re-authenticate in the debug Chrome
+   - If login has expired — pause and ask user to re-authenticate in Chrome
 
 2. Systematically explore the app:
    - Navigate to each major section/page
