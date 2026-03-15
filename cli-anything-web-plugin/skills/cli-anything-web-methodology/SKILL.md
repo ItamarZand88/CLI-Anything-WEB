@@ -1,5 +1,5 @@
 ---
-name: web-harness-methodology
+name: cli-anything-web-methodology
 description: This skill should be used when the user asks to "create a CLI for a website", "generate API wrapper", "reverse engineer web API", "record web traffic", "make a web app agent-native", "build CLI from network traffic", or discusses turning closed-source web applications into agent-controllable command-line interfaces via HTTP traffic analysis and Chrome DevTools MCP.
 version: 0.1.0
 ---
@@ -11,8 +11,8 @@ by analyzing network traffic captured via Chrome DevTools MCP.
 
 ## Overview
 
-CLI-Anything-Web extends the CLI-Anything methodology to web apps that lack
-source code access. Instead of analyzing source files, it records HTTP
+CLI-Anything-Web builds production-grade Python CLI interfaces for closed-source
+web applications by observing their live HTTP traffic. It records HTTP
 traffic between browser and server, maps the API surface, and generates
 a production-ready Python CLI.
 
@@ -24,26 +24,16 @@ a production-ready Python CLI.
 
 ## Pipeline Summary
 
-Seven phases matching CLI-Anything's proven structure:
+Eight phases:
 
 1. **Record** — Capture HTTP traffic via Chrome DevTools MCP
 2. **Analyze** — Map endpoints, schemas, auth patterns
 3. **Design** — Architect Click CLI command structure
 4. **Implement** — Generate Python package under `cli_web.<app>`
-5. **Test** — Unit tests (mocked HTTP) + E2E tests (live/fixtures)
-6. **Document** — TEST.md + README.md
-7. **Publish** — `pip install -e .` → `cli-web-<app>` on PATH
-
-## Key Differences from CLI-Anything
-
-| Aspect | CLI-Anything | CLI-Anything-Web |
-|--------|-------------|-------------|
-| Input | Source code | Network traffic |
-| Backend | Local software | Remote HTTP API |
-| Auth | Not needed | Critical module |
-| Stability | Stable (local) | Volatile (API changes) |
-| Namespace | `cli_anything.*` | `cli_web.*` |
-| CLI name | `cli-anything-<sw>` | `cli-web-<app>` |
+5. **Plan Tests** — Write TEST.md Part 1 (test plan before code)
+6. **Test** — Unit tests (mocked HTTP) + E2E tests (live/fixtures)
+7. **Document** — Append TEST.md Part 2 (results)
+8. **Publish** — `pip install -e .` → `cli-web-<app>` on PATH
 
 ## Reference Files
 

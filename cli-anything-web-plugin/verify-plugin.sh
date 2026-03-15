@@ -40,11 +40,11 @@ done
 # scripts/repl_skin.py
 check "scripts/repl_skin.py exists" "$([ -f "$SCRIPT_DIR/scripts/repl_skin.py" ] && echo true || echo false)"
 
-# scripts/setup-web-harness.sh executable
-if [ -f "$SCRIPT_DIR/scripts/setup-web-harness.sh" ] && [ -x "$SCRIPT_DIR/scripts/setup-web-harness.sh" ]; then
-    check "scripts/setup-web-harness.sh is executable" "true"
+# scripts/setup.sh executable
+if [ -f "$SCRIPT_DIR/scripts/setup.sh" ] && [ -x "$SCRIPT_DIR/scripts/setup.sh" ]; then
+    check "scripts/setup.sh is executable" "true"
 else
-    check "scripts/setup-web-harness.sh is executable" "false"
+    check "scripts/setup.sh is executable" "false"
 fi
 
 # .mcp.json valid JSON
@@ -54,9 +54,9 @@ else
     check ".mcp.json is valid JSON" "false"
 fi
 
-# skills/web-harness-methodology/SKILL.md
-check "skills/web-harness-methodology/SKILL.md exists" \
-    "$([ -f "$SCRIPT_DIR/skills/web-harness-methodology/SKILL.md" ] && echo true || echo false)"
+# skills/cli-anything-web-methodology/SKILL.md
+check "skills/cli-anything-web-methodology/SKILL.md exists" \
+    "$([ -f "$SCRIPT_DIR/skills/cli-anything-web-methodology/SKILL.md" ] && echo true || echo false)"
 
 # PUBLISHING.md
 check "PUBLISHING.md exists" "$([ -f "$SCRIPT_DIR/PUBLISHING.md" ] && echo true || echo false)"
