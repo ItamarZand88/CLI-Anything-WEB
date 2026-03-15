@@ -18,6 +18,15 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites Check
 
+**IMPORTANT: You MUST use `mcp__chrome-devtools__*` tools (chrome-devtools-mcp), NOT
+`mcp__claude-in-chrome__*` tools. They are different MCP servers:**
+- `chrome-devtools-mcp` — connects to port 9222, has full request/response body capture
+- `claude-in-chrome` — browser extension, limited network capture (no request bodies)
+
+If `mcp__chrome-devtools__*` tools are not available, STOP and tell the user to:
+1. Launch Chrome debug profile: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
+2. Restart this Claude session so chrome-devtools-mcp can connect to port 9222
+
 Verify Chrome DevTools MCP is available:
 !`which npx && echo "npx: OK" || echo "npx: MISSING"`
 
@@ -28,11 +37,10 @@ Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` 
 
 ### Phase 1 — Record (Traffic Capture)
 
-1. Use chrome-devtools-mcp to open the target URL:
-   - chrome-devtools-mcp auto-launches Chrome on first tool call
+1. Verify the Chrome debug profile is running on port 9222 with the user logged in.
+   Use **chrome-devtools-mcp** tools (`mcp__chrome-devtools__navigate_page`, etc.):
    - Call `navigate_page` with the target URL
-   - If the page shows a login screen, STOP and ask the user to log in manually
-   - Wait for user confirmation before proceeding
+   - If login has expired — pause and ask user to re-authenticate in the debug Chrome
 
 2. Systematically explore the app:
    - Navigate to each major section/page

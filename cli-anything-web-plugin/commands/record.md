@@ -16,6 +16,15 @@ Read the methodology SOP:
 
 Target URL: $ARGUMENTS
 
+## Prerequisites
+
+**You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
+If chrome-devtools tools are not available, tell the user to launch the debug Chrome first:
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>
+```
+Then restart this Claude session.
+
 ## Process
 
 This command runs Phase 1 only — traffic recording without CLI generation.
@@ -24,7 +33,7 @@ Useful for:
 - Adding more traffic data before refining
 - Recording specific workflows
 
-1. chrome-devtools-mcp auto-launches Chrome on first tool call. Call `navigate_page` with the target URL.
+1. Verify Chrome debug profile is running on port 9222. Call `navigate_page` with the target URL.
 2. If login required — ask user to authenticate manually
 3. Systematically exercise the app features
 4. Capture all API traffic via `list_network_requests` + `get_network_request`
