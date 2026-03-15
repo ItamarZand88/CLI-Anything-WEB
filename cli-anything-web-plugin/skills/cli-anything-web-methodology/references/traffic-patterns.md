@@ -55,6 +55,36 @@ Binary protocol over HTTP.
 - Each gRPC method → one CLI command
 - Flag cli-anything-web that manual decoding may be needed
 
+## Google batchexecute RPC
+
+Google's internal RPC protocol. Single endpoint, method ID in query params.
+
+### Detection signals:
+- URL contains `/_/<ServiceName>/data/batchexecute`
+- POST with `Content-Type: application/x-www-form-urlencoded`
+- Body contains `f.req=` with URL-encoded nested JSON arrays
+- URL has `rpcids=<method_id>` query parameter
+- Response starts with `)]}'\n` anti-XSSI prefix
+- Used by: NotebookLM, Google Keep, Google Contacts, Gemini/Bard
+
+### CLI mapping:
+- Each `rpcids` value maps to one CLI command
+- Discover method IDs from captured traffic
+- Requires dedicated `rpc/` codec layer (encoder + decoder)
+- Example: `rpcids=wXbhsf` → `notebooks list`
+
+### Key differences from REST:
+- Single endpoint (not resource-based URLs)
+- Method ID in query params (not URL path or HTTP method)
+- Triple-nested array encoding (not JSON body)
+- Requires page-embedded tokens (CSRF + session ID)
+- Response needs multi-step decoding (anti-XSSI + chunks + double-JSON)
+- Auth requires cookies + `x-same-domain: 1` header
+
+### Reference:
+See `references/google-batchexecute.md` for the full protocol specification
+including encoding, decoding, token extraction, and code organization patterns.
+
 ## Batch / Multiplex APIs
 
 Multiple operations in single request.
