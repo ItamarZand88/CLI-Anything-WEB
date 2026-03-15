@@ -1,0 +1,73 @@
+# Quick Start — Web-Harness
+
+**From zero to a working CLI in under 10 minutes.**
+
+## Step 1: Install the Plugin (30 seconds)
+
+```bash
+# Copy plugin to Claude Code plugins directory
+cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/web-harness
+
+# Reload plugins in Claude Code
+/reload-plugins
+
+# Verify installation
+/help web-harness
+```
+
+## Step 2: Generate a CLI (5-10 minutes)
+
+```bash
+/web-harness https://your-web-app.com
+```
+
+Claude will:
+1. Open Chrome with your login session
+2. Ask you to log in if needed
+3. Systematically browse the app
+4. Capture all API traffic
+5. Analyze endpoints and data models
+6. Generate a complete Python CLI
+7. Install it to your PATH
+
+## Step 3: Use the CLI
+
+```bash
+# See all commands
+cli-web-yourapp --help
+
+# Authenticate
+cli-web-yourapp auth login
+
+# Use commands
+cli-web-yourapp resources list --json
+cli-web-yourapp resources create --name "New Item"
+
+# Enter REPL
+cli-web-yourapp
+```
+
+## Step 4: Expand Coverage
+
+If the first pass missed some features:
+
+```bash
+# Broad gap analysis
+/web-harness:refine ./yourapp
+
+# Targeted expansion
+/web-harness:refine ./yourapp "reporting and export features"
+```
+
+## Step 5: Validate
+
+```bash
+/web-harness:validate ./yourapp
+```
+
+## Tips
+
+- **More browsing = better CLI**: The more features you exercise during recording, the more complete the generated CLI
+- **Auth matters**: Make sure you're logged in before Claude starts recording
+- **Iterate**: Run `/web-harness:refine` multiple times to expand coverage
+- **Test live**: E2E tests hit real API — verify they pass against the actual service
