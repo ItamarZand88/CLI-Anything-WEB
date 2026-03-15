@@ -105,6 +105,64 @@ auth refresh
 auth status
 ```
 
+## Browser-Delegated Auth (Anti-Bot Protected)
+
+### Detection:
+- HTTP login requests get redirected to CAPTCHA or JavaScript challenges
+- Session tokens (CSRF, session IDs) are embedded in page JavaScript, not HTTP headers
+- Tokens exist in `<script>` blocks or JS global objects (e.g., `WIZ_global_data`)
+- Common with: Google apps, Microsoft 365, Salesforce Lightning
+
+### Why standard login fails:
+Google, Microsoft, and other major platforms detect automated HTTP clients and block
+them — even with valid credentials. The browser is the only reliable login surface.
+
+### Two-phase pattern:
+
+**Phase A — Cookie extraction via CDP (one-time):**
+```python
+# Connect to Chrome debug profile on port 9222
+# Use Storage.getCookies CDP command
+cookies = extract_cookies_via_cdp(port=9222, domain=".google.com")
+save_cookies(cookies)  # ~/.config/cli-web-<app>/auth.json
+```
+
+**Phase B — Token extraction via HTTP (repeatable):**
+```python
+# Once you have valid cookies, HTTP GET works for token extraction
+resp = httpx.get(APP_URL, headers={"Cookie": cookie_header(cookies)})
+csrf = re.search(r'"SNlM0e":"([^"]+)"', resp.text).group(1)
+session_id = re.search(r'"FdrFJe":"([^"]+)"', resp.text).group(1)
+```
+
+Key insight: CDP is only needed for initial cookie extraction. Token refresh
+uses plain HTTP with those cookies — no CDP required for subsequent refreshes.
+
+### Token refresh (on 401):
+```python
+def refresh_tokens(self):
+    """Re-fetch tokens from homepage. Cookies are still valid."""
+    resp = httpx.get(APP_URL, headers={"Cookie": self.cookie_header})
+    self.csrf, self.session_id = extract_tokens(resp.text)
+```
+
+### Auth file format:
+```json
+{
+  "cookies": {"SID": "...", "HSID": "...", ...},
+  "csrf_token": "AIXQIk...",
+  "session_id": "394392219...",
+  "extracted_at": "2026-03-15T12:00:00Z"
+}
+```
+
+### CLI commands:
+```
+auth login --from-browser   # Phase A: extract cookies via CDP
+auth status                 # Show cookies + token validity
+auth refresh                # Phase B: re-fetch tokens via HTTP
+```
+
 ## Config File Location
 
 Standard: `~/.config/cli-web-<app>/auth.json`
