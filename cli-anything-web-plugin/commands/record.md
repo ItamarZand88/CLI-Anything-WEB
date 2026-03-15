@@ -1,5 +1,5 @@
 ---
-name: web-harness:record
+name: cli-anything-web:record
 description: Record network traffic from a web app without generating a CLI. Useful for initial exploration or adding more coverage data.
 argument-hint: <url> [--duration <minutes>]
 allowed-tools: Bash(*), Read, Write, mcp__chrome-devtools__*
@@ -9,7 +9,7 @@ allowed-tools: Bash(*), Read, Write, mcp__chrome-devtools__*
 
 **Before doing anything else, you MUST read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** Phase 1 of the methodology defines the complete recording process. Follow it exactly.
 
-# Web-Harness: Record Traffic Only
+# CLI-Anything-Web: Record Traffic Only
 
 Read the methodology SOP:
 @${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md

@@ -94,7 +94,7 @@ class ReplSkin:
     """Unified REPL skin for cli-web-* CLIs.
 
     Provides consistent branding, prompts, and message formatting
-    across all CLI harnesses built with the web-harness methodology.
+    across all CLI harnesses built with the cli-anything-web methodology.
     """
 
     def __init__(self, app: str, version: str = "1.0.0",

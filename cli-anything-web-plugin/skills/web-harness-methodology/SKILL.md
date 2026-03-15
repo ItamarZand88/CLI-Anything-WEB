@@ -4,14 +4,14 @@ description: This skill should be used when the user asks to "create a CLI for a
 version: 0.1.0
 ---
 
-# Web-Harness Methodology
+# CLI-Anything-Web Methodology
 
 Generate agent-native CLI interfaces for closed-source web applications
 by analyzing network traffic captured via Chrome DevTools MCP.
 
 ## Overview
 
-Web-Harness extends the CLI-Anything methodology to web apps that lack
+CLI-Anything-Web extends the CLI-Anything methodology to web apps that lack
 source code access. Instead of analyzing source files, it records HTTP
 traffic between browser and server, maps the API surface, and generates
 a production-ready Python CLI.
@@ -36,7 +36,7 @@ Seven phases matching CLI-Anything's proven structure:
 
 ## Key Differences from CLI-Anything
 
-| Aspect | CLI-Anything | Web-Harness |
+| Aspect | CLI-Anything | CLI-Anything-Web |
 |--------|-------------|-------------|
 | Input | Source code | Network traffic |
 | Backend | Local software | Remote HTTP API |

@@ -2,7 +2,7 @@
 
 **Making Closed-Source Web Apps Agent-Native via Network Traffic Analysis**
 
-This is the single source of truth for the web-harness pipeline.
+This is the single source of truth for the cli-anything-web pipeline.
 All commands reference this document. It encodes proven patterns for
 generating production-ready CLI interfaces from observed HTTP traffic.
 
@@ -10,7 +10,7 @@ generating production-ready CLI interfaces from observed HTTP traffic.
 
 ## Core Philosophy
 
-Web-Harness builds production-grade Python CLI interfaces for closed-source web
+CLI-Anything-Web builds production-grade Python CLI interfaces for closed-source web
 applications by observing their live HTTP traffic. We capture real API calls directly
 from the browser, reverse-engineer the API surface, and generate a stateful CLI that
 sends authentic HTTP requests to the real service.
@@ -295,7 +295,7 @@ recovery, multi-account support.
 
 ### Lesson 2: Capture Comprehensively
 A 5-minute browse session won't capture the full API surface.
-Systematically exercise every feature. Use `/web-harness:refine`
+Systematically exercise every feature. Use `/cli-anything-web:refine`
 to expand coverage iteratively.
 
 ### Lesson 3: APIs Change
@@ -378,6 +378,6 @@ def _resolve_cli(name):
 | CLI command | `cli-web-<app>` |
 | Python namespace | `cli_web.<app>` |
 | App-specific SOP | `<APP>.md` |
-| Plugin slash command | `/web-harness` |
+| Plugin slash command | `/cli-anything-web` |
 | Traffic capture dir | `traffic-capture/` |
 | Auth config dir | `~/.config/cli-web-<app>/` |

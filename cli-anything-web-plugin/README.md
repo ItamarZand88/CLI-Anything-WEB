@@ -1,10 +1,10 @@
-# Web-Harness — Agent-Native CLIs for Web Apps
+# CLI-Anything-Web — Agent-Native CLIs for Web Apps
 
 **Build production-grade Python CLIs for closed-source web applications by capturing and analyzing their HTTP traffic.**
 
 ## How It Works
 
-1. You point Web-Harness at a web app URL
+1. You point CLI-Anything-Web at a web app URL
 2. Chrome DevTools MCP opens the app in your browser (with your login session)
 3. Claude systematically exercises the app, capturing all API traffic
 4. Claude analyzes the traffic, maps the API, and generates a complete CLI
@@ -14,28 +14,28 @@
 
 ```bash
 # Copy plugin to Claude Code plugins directory
-cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/web-harness
+cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
 
 # Reload plugins in Claude Code
 /reload-plugins
 
 # Verify installation
-/help web-harness
+/help cli-anything-web
 
 # Generate a CLI for any web app
-/web-harness https://monday.com
+/cli-anything-web https://monday.com
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `/web-harness <url>` | Full 7-phase pipeline — record, analyze, generate CLI |
-| `/web-harness:record <url>` | Record traffic only (Phase 1) |
-| `/web-harness:refine <path> [focus]` | Expand coverage of existing CLI |
-| `/web-harness:test <path>` | Run tests and update TEST.md |
-| `/web-harness:validate <path>` | Validate against CLI-ANYTHING-WEB.md standards |
-| `/web-harness:list` | List all installed and generated `cli-web-*` CLIs |
+| `/cli-anything-web <url>` | Full 7-phase pipeline — record, analyze, generate CLI |
+| `/cli-anything-web:record <url>` | Record traffic only (Phase 1) |
+| `/cli-anything-web:refine <path> [focus]` | Expand coverage of existing CLI |
+| `/cli-anything-web:test <path>` | Run tests and update TEST.md |
+| `/cli-anything-web:validate <path>` | Validate against CLI-ANYTHING-WEB.md standards |
+| `/cli-anything-web:list` | List all installed and generated `cli-web-*` CLIs |
 
 ## Prerequisites
 

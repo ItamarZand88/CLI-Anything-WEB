@@ -1,6 +1,6 @@
-# Publishing the web-harness Plugin
+# Publishing the cli-anything-web Plugin
 
-This guide explains how to make the web-harness plugin installable and how to
+This guide explains how to make the cli-anything-web plugin installable and how to
 publish generated `cli-web-*` CLIs.
 
 ## Option 1: Local Installation (Development)
@@ -9,7 +9,7 @@ publish generated `cli-web-*` CLIs.
 
 1. **Copy to Claude Code plugins directory:**
    ```bash
-   cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/web-harness
+   cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
    ```
 
 2. **Reload plugins in Claude Code:**
@@ -19,19 +19,19 @@ publish generated `cli-web-*` CLIs.
 
 3. **Verify installation:**
    ```bash
-   /help web-harness
+   /help cli-anything-web
    ```
 
 ### For Sharing Locally
 
 ```bash
-tar -czf web-harness-plugin-v0.1.0.tar.gz cli-anything-web-plugin/
+tar -czf cli-anything-web-plugin-v0.1.0.tar.gz cli-anything-web-plugin/
 ```
 
 Others can install:
 ```bash
 cd ~/.claude/plugins
-tar -xzf web-harness-plugin-v0.1.0.tar.gz
+tar -xzf cli-anything-web-plugin-v0.1.0.tar.gz
 ```
 
 ## Option 2: GitHub Repository (Recommended)
@@ -40,7 +40,7 @@ tar -xzf web-harness-plugin-v0.1.0.tar.gz
 cd cli-anything-web-plugin
 git init
 git add .
-git commit -m "Initial commit: web-harness plugin v0.1.0"
+git commit -m "Initial commit: cli-anything-web plugin v0.1.0"
 gh repo create cli-anything-web-plugin --public --source=. --remote=origin
 git push -u origin main
 ```
@@ -48,12 +48,12 @@ git push -u origin main
 Users can install directly:
 ```bash
 cd ~/.claude/plugins
-git clone https://github.com/yourusername/cli-anything-web-plugin.git web-harness
+git clone https://github.com/yourusername/cli-anything-web-plugin.git cli-anything-web
 ```
 
 ## Publishing Generated CLIs to PyPI
 
-After generating a CLI with `/web-harness <url>`, make it installable:
+After generating a CLI with `/cli-anything-web <url>`, make it installable:
 
 ### Package structure (PEP 420 namespace)
 

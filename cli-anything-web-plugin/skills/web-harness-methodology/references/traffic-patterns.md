@@ -53,7 +53,7 @@ Binary protocol over HTTP.
 ### CLI mapping:
 - Requires proto file reconstruction or manual mapping
 - Each gRPC method → one CLI command
-- Flag web-harness that manual decoding may be needed
+- Flag cli-anything-web that manual decoding may be needed
 
 ## Batch / Multiplex APIs
 

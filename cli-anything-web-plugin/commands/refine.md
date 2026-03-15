@@ -1,6 +1,6 @@
 ---
-name: web-harness:refine
-description: Refine an existing web-harness CLI by recording additional traffic and expanding command coverage. Performs gap analysis and implements missing endpoints.
+name: cli-anything-web:refine
+description: Refine an existing cli-anything-web CLI by recording additional traffic and expanding command coverage. Performs gap analysis and implements missing endpoints.
 argument-hint: <app-path> [focus-area]
 allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
 ---
@@ -9,7 +9,7 @@ allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
 
 **Before refining, read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** All new commands and tests must follow the same standards as the original build. CLI-ANYTHING-WEB.md is the single source of truth for architecture, patterns, and quality requirements.
 
-# Web-Harness: Refine Existing Harness
+# CLI-Anything-Web: Refine Existing Harness
 
 Read the methodology SOP:
 @${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md

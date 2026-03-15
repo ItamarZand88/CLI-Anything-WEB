@@ -1,4 +1,4 @@
-# Quick Start — Web-Harness
+# Quick Start — CLI-Anything-Web
 
 **From zero to a working CLI in under 10 minutes.**
 
@@ -6,19 +6,19 @@
 
 ```bash
 # Copy plugin to Claude Code plugins directory
-cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/web-harness
+cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
 
 # Reload plugins in Claude Code
 /reload-plugins
 
 # Verify installation
-/help web-harness
+/help cli-anything-web
 ```
 
 ## Step 2: Generate a CLI (5-10 minutes)
 
 ```bash
-/web-harness https://your-web-app.com
+/cli-anything-web https://your-web-app.com
 ```
 
 Claude will:
@@ -53,21 +53,21 @@ If the first pass missed some features:
 
 ```bash
 # Broad gap analysis
-/web-harness:refine ./yourapp
+/cli-anything-web:refine ./yourapp
 
 # Targeted expansion
-/web-harness:refine ./yourapp "reporting and export features"
+/cli-anything-web:refine ./yourapp "reporting and export features"
 ```
 
 ## Step 5: Validate
 
 ```bash
-/web-harness:validate ./yourapp
+/cli-anything-web:validate ./yourapp
 ```
 
 ## Tips
 
 - **More browsing = better CLI**: The more features you exercise during recording, the more complete the generated CLI
 - **Auth matters**: Make sure you're logged in before Claude starts recording
-- **Iterate**: Run `/web-harness:refine` multiple times to expand coverage
+- **Iterate**: Run `/cli-anything-web:refine` multiple times to expand coverage
 - **Test live**: E2E tests hit real API — verify they pass against the actual service

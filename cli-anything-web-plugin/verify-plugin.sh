@@ -33,7 +33,7 @@ fi
 check "CLI-ANYTHING-WEB.md exists" "$([ -f "$SCRIPT_DIR/CLI-ANYTHING-WEB.md" ] && echo true || echo false)"
 
 # All 6 command files
-for cmd in web-harness record refine test validate list; do
+for cmd in cli-anything-web record refine test validate list; do
     check "commands/$cmd.md exists" "$([ -f "$SCRIPT_DIR/commands/$cmd.md" ] && echo true || echo false)"
 done
 

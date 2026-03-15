@@ -1,6 +1,6 @@
 ---
-name: web-harness:list
-description: List all available Web-Harness CLIs (installed and generated).
+name: cli-anything-web:list
+description: List all available CLI-Anything-Web CLIs (installed and generated).
 argument-hint: "[--path <directory>] [--depth <n>] [--json]"
 allowed-tools: Bash(*)
 ---
@@ -9,14 +9,14 @@ allowed-tools: Bash(*)
 
 **Before doing anything else, read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** It defines the package structure this command scans for.
 
-# web-harness:list Command
+# cli-anything-web:list Command
 
-List all available Web-Harness CLIs (installed and generated).
+List all available CLI-Anything-Web CLIs (installed and generated).
 
 ## Usage
 
 ```bash
-/web-harness:list [--path <directory>] [--depth <n>] [--json]
+/cli-anything-web:list [--path <directory>] [--depth <n>] [--json]
 ```
 
 ## Options
@@ -27,7 +27,7 @@ List all available Web-Harness CLIs (installed and generated).
 
 ## What This Command Does
 
-Displays all Web-Harness CLIs available in the system.
+Displays all CLI-Anything-Web CLIs available in the system.
 
 ### 1. Installed CLIs
 
@@ -118,7 +118,7 @@ for pattern in patterns:
 ### Table (default)
 
 ```
-Web-Harness CLIs (found 3)
+CLI-Anything-Web CLIs (found 3)
 
 Name       Status      Version   Source
 ─────────────────────────────────────────────────────────
@@ -150,15 +150,15 @@ linear     generated   0.9.0     ./linear/agent-harness
 
 | Scenario | Action |
 |----------|--------|
-| No CLIs found | Show "No Web-Harness CLIs found" |
+| No CLIs found | Show "No CLI-Anything-Web CLIs found" |
 | Invalid --path | Show error: "Path not found: <path>" |
 | Permission denied | Skip directory, continue, show warning |
 
 ## Examples
 
 ```bash
-/web-harness:list
-/web-harness:list --depth 2
-/web-harness:list --json
-/web-harness:list --path ./projects --depth 3 --json
+/cli-anything-web:list
+/cli-anything-web:list --depth 2
+/cli-anything-web:list --json
+/cli-anything-web:list --path ./projects --depth 3 --json
 ```

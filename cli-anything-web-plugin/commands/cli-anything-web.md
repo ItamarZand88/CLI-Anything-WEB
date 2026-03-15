@@ -1,5 +1,5 @@
 ---
-name: web-harness
+name: cli-anything-web
 description: Generate a complete agent-native CLI for any web app by recording and analyzing network traffic via Chrome DevTools MCP. Runs the full 8-phase pipeline.
 argument-hint: <url>
 allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
@@ -9,7 +9,7 @@ allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
 
 **Before doing anything else, you MUST read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** It defines the complete methodology, all phases, and implementation standards. Every phase below follows CLI-ANYTHING-WEB.md. Do not improvise — follow the harness specification.
 
-# Web-Harness: Full Pipeline
+# CLI-Anything-Web: Full Pipeline
 
 Read the methodology SOP first:
 @${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md

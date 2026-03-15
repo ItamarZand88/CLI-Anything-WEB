@@ -1,6 +1,6 @@
 ---
-name: web-harness:validate
-description: Validate a web-harness CLI against CLI-ANYTHING-WEB.md standards and best practices. Reports 8-category N/N check results.
+name: cli-anything-web:validate
+description: Validate a cli-anything-web CLI against CLI-ANYTHING-WEB.md standards and best practices. Reports 8-category N/N check results.
 argument-hint: <app-path>
 allowed-tools: Bash(*), Read, Write, Edit
 ---
@@ -9,7 +9,7 @@ allowed-tools: Bash(*), Read, Write, Edit
 
 **Before validating, read `${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md`.** It is the single source of truth for all validation checks below. Every check in this command maps to a requirement in CLI-ANYTHING-WEB.md.
 
-# Web-Harness: Validate Standards
+# CLI-Anything-Web: Validate Standards
 
 Read the methodology SOP:
 @${CLAUDE_PLUGIN_ROOT}/CLI-ANYTHING-WEB.md
@@ -107,7 +107,7 @@ Target: $ARGUMENTS
 Print results in this exact format:
 
 ```
-Web Harness Validation Report
+CLI-Anything-Web Validation Report
 App: <app>
 Path: <path>/agent-harness/cli_web/<app>
 

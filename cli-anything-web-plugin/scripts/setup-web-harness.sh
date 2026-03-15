@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# web-harness plugin setup script
+# cli-anything-web plugin setup script
 
 set -euo pipefail
 
@@ -25,11 +25,11 @@ if is_windows_bash && ! command -v cygpath >/dev/null 2>&1; then
 fi
 
 # Plugin info
-PLUGIN_NAME="web-harness"
+PLUGIN_NAME="cli-anything-web"
 PLUGIN_VERSION="0.1.0"
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}  web-harness Plugin v${PLUGIN_VERSION}${NC}"
+echo -e "${BLUE}  cli-anything-web Plugin v${PLUGIN_VERSION}${NC}"
 echo -e "${BLUE}  CLI-Anything for the Web${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
@@ -102,24 +102,24 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 echo ""
 echo "Available commands:"
 echo ""
-echo -e "  ${BLUE}/web-harness${NC} <url>              - Full 7-phase pipeline"
-echo -e "  ${BLUE}/web-harness:record${NC} <url>       - Record traffic only"
-echo -e "  ${BLUE}/web-harness:refine${NC} <path> [f]  - Expand coverage"
-echo -e "  ${BLUE}/web-harness:test${NC} <path>        - Run tests, update TEST.md"
-echo -e "  ${BLUE}/web-harness:validate${NC} <path>    - Validate against standards"
-echo -e "  ${BLUE}/web-harness:list${NC}               - List all generated CLIs"
+echo -e "  ${BLUE}/cli-anything-web${NC} <url>              - Full 7-phase pipeline"
+echo -e "  ${BLUE}/cli-anything-web:record${NC} <url>       - Record traffic only"
+echo -e "  ${BLUE}/cli-anything-web:refine${NC} <path> [f]  - Expand coverage"
+echo -e "  ${BLUE}/cli-anything-web:test${NC} <path>        - Run tests, update TEST.md"
+echo -e "  ${BLUE}/cli-anything-web:validate${NC} <path>    - Validate against standards"
+echo -e "  ${BLUE}/cli-anything-web:list${NC}               - List all generated CLIs"
 echo ""
 echo "Examples:"
 echo ""
-echo -e "  ${BLUE}/web-harness${NC} https://monday.com"
-echo -e "  ${BLUE}/web-harness:refine${NC} ./monday \"reporting and export features\""
-echo -e "  ${BLUE}/web-harness:test${NC} ./monday"
-echo -e "  ${BLUE}/web-harness:validate${NC} ./monday"
+echo -e "  ${BLUE}/cli-anything-web${NC} https://monday.com"
+echo -e "  ${BLUE}/cli-anything-web:refine${NC} ./monday \"reporting and export features\""
+echo -e "  ${BLUE}/cli-anything-web:test${NC} ./monday"
+echo -e "  ${BLUE}/cli-anything-web:validate${NC} ./monday"
 echo ""
 echo "Documentation:"
 echo ""
 echo "  CLI-ANYTHING-WEB.md: See plugin directory"
 echo "  QUICKSTART.md:  See plugin directory"
 echo ""
-echo -e "${GREEN}Ready to build web CLI harnesses!${NC}"
+echo -e "${GREEN}Ready to build CLI-Anything-Web harnesses!${NC}"
 echo ""
