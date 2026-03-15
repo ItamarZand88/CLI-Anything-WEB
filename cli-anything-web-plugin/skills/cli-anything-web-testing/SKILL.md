@@ -170,6 +170,20 @@ def test_client_get_boards():
         assert result["boards"][0]["name"] == "Sprint"
 ```
 
+## End-User Smoke Test (Phase 8)
+
+After all unit and E2E tests pass, the agent MUST run a final smoke test that
+simulates what a real end user would do. This catches issues that test mocks hide:
+
+1. `pip install -e .` (already done)
+2. `cli-web-<app> auth login` (Playwright) or `auth login --from-browser` (CDP)
+3. `cli-web-<app> auth status` — must show live validation OK
+4. `cli-web-<app> --json <resource> list` — must return real data from live API
+5. If any step fails, the pipeline is NOT complete
+
+This is different from E2E tests — those run inside pytest with pre-configured auth.
+The smoke test verifies the full user journey: install → login → use.
+
 ## Failure Handling
 
 When tests fail:

@@ -75,3 +75,21 @@ If any tests fail:
 2. **Do NOT update TEST.md** — TEST.md should only contain passing results
 3. **Analyze and suggest fixes** — provide specific guidance for each failure
 4. **Offer to re-run** — ask the user if they want to fix and re-test
+
+## End-User Smoke Test
+
+After all pytest tests pass, run a manual smoke test as an end user would:
+
+```bash
+# 1. Auth (must work standalone — no debug Chrome dependency)
+cli-web-<app> auth login
+
+# 2. Status (must show valid)
+cli-web-<app> auth status
+
+# 3. Real API call (must return real data)
+cli-web-<app> --json <first-resource> list
+```
+
+If any of these fail, the tests are NOT truly passing — the CLI has auth or
+client issues that the unit/E2E tests didn't catch. Fix before declaring done.
