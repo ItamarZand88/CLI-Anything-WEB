@@ -186,6 +186,11 @@ The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
             │   ├── auth.py         # Auth management
             │   ├── session.py      # State + undo/redo
             │   └── models.py       # Response models
+            │   ├── rpc/              # Optional: for non-REST protocols
+            │   │   ├── __init__.py
+            │   │   ├── types.py      # Method enum, URL constants
+            │   │   ├── encoder.py    # Request encoding
+            │   │   └── decoder.py    # Response decoding
             ├── commands/           # Click command groups
             │   ├── __init__.py
             │   └── <resource>.py   # One file per API resource
@@ -219,6 +224,18 @@ The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
     Requires `pip install websockets`.
   - Also support `auth login --cookies-json <file>` as a fallback for manual import
   - Store cookies at `~/.config/cli-web-<app>/auth.json` with chmod 600
+- **Anti-bot resilient client construction** (when detected in Phase 2):
+  - Extract session tokens via CDP first (cookies), then HTTP GET + HTML parsing (CSRF, session IDs)
+  - **Never hardcode** build labels (`bl`), session IDs (`f.sid`), or CSRF tokens — extract dynamically at runtime
+  - Replicate same-origin headers captured during Phase 1 traffic (e.g., `x-same-domain: 1` for Google apps)
+  - Implement auto-retry on 401/403: re-fetch homepage → re-extract tokens → retry once
+  - See `references/google-batchexecute.md` for the complete Google pattern
+- **RPC codec subpackage** (for non-REST protocols like batchexecute):
+  When the API uses a non-REST protocol, add `core/rpc/` with:
+  - `types.py` — method ID enum, URL constants
+  - `encoder.py` — request encoding (protocol-specific format)
+  - `decoder.py` — response decoding (strip prefix, parse chunks, extract results)
+  The `client.py` still exists but delegates encoding/decoding to `rpc/`.
 - Every command: `--json` flag, proper error messages
 - Entry point: `cli-web-<app>` via setup.py console_scripts
 - Namespace: `cli_web.*`
