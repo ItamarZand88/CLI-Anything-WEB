@@ -147,7 +147,7 @@ def extract_tokens(html):
 
 **How to get the HTML:** HTTP GET to the app homepage with session cookies.
 Some Google apps redirect raw HTTP clients — if that happens, extract via CDP
-(evaluate JavaScript in the Chrome debug profile to read `window.WIZ_global_data`).
+(evaluate JavaScript in the connected Chrome session via autoConnect or debug profile to read `window.WIZ_global_data`).
 
 ## RPC Method Discovery
 

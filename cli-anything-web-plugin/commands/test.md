@@ -81,7 +81,7 @@ If any tests fail:
 After all pytest tests pass, run a manual smoke test as an end user would:
 
 ```bash
-# 1. Auth (must work standalone — no debug Chrome dependency)
+# 1. Auth (must work standalone)
 cli-web-<app> auth login
 
 # 2. Status (must show valid)

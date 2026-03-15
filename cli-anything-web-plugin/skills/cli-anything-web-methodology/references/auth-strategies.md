@@ -121,9 +121,12 @@ them — even with valid credentials. The browser is the only reliable login sur
 
 **Phase A — Cookie extraction via CDP (one-time):**
 ```python
-# Connect to Chrome debug profile on port 9222
-# Use Storage.getCookies CDP command
+# Option 1: autoConnect (Chrome 144+, no port needed)
+cookies = extract_cookies_via_cdp(auto_connect=True, domain=".google.com")
+
+# Option 2: Legacy debug profile (Chrome < 144)
 cookies = extract_cookies_via_cdp(port=9222, domain=".google.com")
+
 save_cookies(cookies)  # ~/.config/cli-web-<app>/auth.json
 ```
 
@@ -158,7 +161,7 @@ def refresh_tokens(self):
 
 ### CLI commands:
 ```
-auth login --from-browser   # Phase A: extract cookies via CDP
+auth login --from-chrome    # Phase A: extract cookies via CDP
 auth status                 # Show cookies + token validity
 auth refresh                # Phase B: re-fetch tokens via HTTP
 ```

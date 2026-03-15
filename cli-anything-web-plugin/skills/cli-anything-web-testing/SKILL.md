@@ -16,16 +16,17 @@ For the full methodology SOP, read `${CLAUDE_PLUGIN_ROOT}/HARNESS.md`.
 
 This is the #1 rule for web CLI testing. Before writing or running any E2E test:
 
-1. Run `cli-web-<app> auth login --from-browser` (extracts cookies from Chrome debug profile)
-2. Run `cli-web-<app> auth status` — must show live validation succeeded
-3. If auth fails, STOP and fix it. Do NOT write tests that catch auth errors.
+1. Ensure the user's Chrome is connected via autoConnect and they're logged in
+2. Run `cli-web-<app> auth login` (Playwright) or `auth login --from-chrome` (CDP)
+3. Run `cli-web-<app> auth status` — must show valid
+4. If auth fails, STOP and fix it. Do NOT write tests that catch auth errors.
 
 Tests that output "auth not configured" or skip on missing auth are **broken tests**.
 The web app requires authentication — the tests must authenticate. This is the web
 equivalent of CLI-Anything's rule that the real software must be installed.
 
 If a test cannot authenticate, it must call `pytest.fail()` with a message telling
-the user to run `auth login --from-browser`, not silently skip or catch the error.
+the user to run `auth login`, not silently skip or catch the error.
 
 ## Testing with Browser-Delegated Auth
 
@@ -33,8 +34,8 @@ For apps that use browser-delegated auth (Google batchexecute, etc.), tests need
 more than just cookies — they need fresh CSRF and session tokens too.
 
 **Test setup flow:**
-1. Ensure Chrome debug profile is running (port 9222) with active login
-2. `cli-web-<app> auth login --from-browser` — extracts cookies via CDP
+1. Ensure the user's Chrome is connected via autoConnect and they're logged in
+2. `cli-web-<app> auth login --from-chrome` — extracts cookies via CDP
 3. Auth module automatically fetches CSRF + session tokens via HTTP GET
 4. `cli-web-<app> auth status` — must show cookies, CSRF token, AND session ID
 5. If first API call gets 401, the client should auto-refresh tokens before failing
@@ -176,7 +177,7 @@ After all unit and E2E tests pass, the agent MUST run a final smoke test that
 simulates what a real end user would do. This catches issues that test mocks hide:
 
 1. `pip install -e .` (already done)
-2. `cli-web-<app> auth login` (Playwright) or `auth login --from-browser` (CDP)
+2. `cli-web-<app> auth login` (Playwright) or `auth login --from-chrome` (CDP)
 3. `cli-web-<app> auth status` — must show live validation OK
 4. `cli-web-<app> --json <resource> list` — must return real data from live API
 5. If any step fails, the pipeline is NOT complete
