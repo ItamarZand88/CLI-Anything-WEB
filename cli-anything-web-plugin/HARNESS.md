@@ -107,16 +107,31 @@ The plugin's `.mcp.json` configures chrome-devtools-mcp to connect on port 9222.
    - Response body schema
    - Authentication method (Bearer token, cookie, API key)
    - Rate limiting signals (429 responses, retry-after headers)
-4. Detect data model:
+4. **Identify RPC protocol type** — classify the API transport:
+
+   | Protocol | Detection Signal | Client Pattern |
+   |----------|-----------------|----------------|
+   | REST | Resource URLs (`/api/v1/boards/:id`), standard HTTP methods | `client.py` with method-per-endpoint |
+   | GraphQL | Single `/graphql` endpoint, `query`/`mutation` in body | `client.py` with query templates |
+   | gRPC-Web | `application/grpc-web` content type, binary payloads | Proto-based client |
+   | Google batchexecute | `batchexecute` in URL, `f.req=` body, `)]}'\n` prefix | `rpc/` subpackage (see `references/google-batchexecute.md`) |
+   | Custom RPC | Single endpoint, method name in body, proprietary encoding | Custom codec module |
+
+   This determines client architecture in Phase 4 — REST uses simple `client.py`,
+   non-REST protocols need a dedicated `rpc/` subpackage with encoder/decoder/types.
+5. Detect data model:
    - Entity types (boards, items, users, projects...)
    - Relationships (board has many items, item belongs to board)
    - ID formats (UUID, numeric, slug)
-5. Detect auth pattern:
+6. Detect auth pattern:
    - Cookie-based sessions
    - Bearer/JWT tokens
    - OAuth refresh flow
    - API key headers
-6. Write `<APP>.md` — software-specific SOP document
+   - Browser-delegated auth: tokens embedded in page JavaScript (e.g., `WIZ_global_data`),
+     not in HTTP headers. Requires CDP for initial cookies, HTTP for token extraction.
+     See `references/auth-strategies.md` "Browser-Delegated Auth" section.
+7. Write `<APP>.md` — software-specific SOP document
 
 **Output:** `<APP>.md` with API map, data model, auth scheme.
 
