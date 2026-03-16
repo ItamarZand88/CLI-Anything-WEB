@@ -512,6 +512,53 @@ Many modern apps use GraphQL. The CLI should abstract query
 complexity — users run `items list`, not write GraphQL queries.
 Map operations to human-friendly commands.
 
+### Lesson 7: Content Generation Requires Download
+Many web apps generate content asynchronously (Suno generates songs, NotebookLM
+generates audio overviews, Canva generates designs). The CLI MUST handle the full
+lifecycle: trigger generation → poll for completion → download the result.
+
+Pattern:
+1. **Trigger:** Send the create/generate request → get a job/task ID
+2. **Poll:** Check status endpoint repeatedly with backoff until `status == "complete"`
+3. **Download:** Fetch the binary content (audio, image, video, PDF) from the result URL
+4. **Save:** Write to local file with correct extension, print path and size
+
+The CLI command should handle all 4 steps in one call:
+```
+cli-web-suno generate --prompt "jazz piano" --output song.mp3
+# → Triggers generation
+# → Polls until complete (shows progress)
+# → Downloads MP3 to song.mp3
+# → Prints: Saved song.mp3 (4.2 MB, 3:24)
+```
+
+If the result URL requires authentication (signed URLs, cookies), the download
+must use the same auth session as the API calls. Some apps serve media from CDN
+domains (e.g., `cdn.suno.com`) — capture these domains during Phase 1 and include
+them in the cookie domain filter.
+
+### Lesson 8: CAPTCHAs Require Human Intervention
+Web apps may present CAPTCHAs at any time — during login, after repeated requests,
+or when they detect automated access. The CLI MUST handle this gracefully:
+
+1. **Detect:** Check for CAPTCHA signals in responses (403 with challenge page,
+   specific error codes, redirect to challenge URL, response body containing
+   "captcha", "challenge", "verify you're human")
+2. **Pause:** Do NOT retry. Do NOT skip. Do NOT crash.
+3. **Guide:** Tell the user exactly what to do:
+   ```
+   CAPTCHA detected. Please solve it manually:
+   1. Open your browser to: <url>
+   2. Complete the CAPTCHA challenge
+   3. Press ENTER here when done
+   ```
+4. **Resume:** After user confirms, retry the failed request
+
+This applies to ALL phases — traffic capture, auth, API calls, and testing.
+During Phase 1 recording, if a CAPTCHA appears in the browser, pause and ask
+the user to solve it before continuing. During CLI usage, catch CAPTCHA
+responses and prompt the user.
+
 ## Rules
 
 - **Auth credentials MUST be stored securely.** `chmod 600 auth.json`. Never hardcode
@@ -535,6 +582,13 @@ Map operations to human-friendly commands.
 - **Rate limits MUST be respected.** Never retry without backoff. Never hammer endpoints.
 - **Response bodies MUST be verified.** Never trust HTTP status alone. Always check
   that returned JSON contains expected fields.
+- **Content generation commands MUST download the result.** If the app generates
+  content (audio, images, video, documents), the CLI must handle the full lifecycle:
+  trigger → poll → download → save. Don't just return a URL — download the file.
+  Support `--output <path>` flag for specifying where to save.
+- **CAPTCHAs MUST pause and prompt, never crash or skip.** If a CAPTCHA is detected
+  in any response (403 challenge, "verify you're human", challenge redirect), stop
+  and tell the user to solve it in their browser. Wait for confirmation, then retry.
 
 ---
 

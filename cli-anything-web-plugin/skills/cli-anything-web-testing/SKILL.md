@@ -154,6 +154,8 @@ Include multi-step scenarios that simulate real user tasks:
 - **Paginated list**: page 1 → verify count → page 2 → verify no overlap
 - **Bulk operations**: create N → list all → verify count → delete all → verify empty
 - **Rate limit handling**: rapid requests → verify backoff behavior
+- **Content generation**: trigger generate → poll status → download result → verify file exists and size > 0
+- **CAPTCHA handling**: mock a CAPTCHA response → verify CLI pauses with user prompt (not crash/skip)
 
 ## Unit Test Pattern
 

@@ -121,6 +121,10 @@ Every `cli-web-<app>` CLI must follow this layout:
 
 These are non-negotiable standards:
 
+- **Content generation downloads the result** — if the app generates content (audio,
+  images, video), the CLI must trigger → poll → download → save. Support `--output`.
+- **CAPTCHAs pause and prompt** — never crash or skip. Detect, tell user to solve in
+  browser, wait for confirmation, retry.
 - **Auth stored securely** — `chmod 600 auth.json`, never hardcode tokens
 - **Tests fail without auth** — never skip, the CLI is useless without a live account
 - **Every command supports `--json`** — agents need structured output

@@ -111,3 +111,52 @@ Persistent connections for live data.
 - `<resource> watch` or `<resource> stream` commands
 - `--poll` fallback if WebSocket is too complex
 - Consider SSE (Server-Sent Events) alternatives
+
+## Async Content Generation
+
+Apps that generate content asynchronously (AI music, images, documents, audio).
+
+### Detection signals:
+- POST to create/generate endpoint returns a job/task ID, not the content
+- Subsequent GET/poll requests check status (`pending` → `processing` → `complete`)
+- Final response contains a download URL (often on a CDN domain)
+- Examples: Suno (music), Midjourney (images), NotebookLM (audio overviews), Canva (designs)
+
+### CLI mapping:
+- Single command handles full lifecycle: trigger → poll → download
+- `<resource> generate --prompt "..." --output file.mp3`
+- Show progress during polling (spinner or percentage)
+- Download binary content with correct extension
+- `--output` flag for save path, default to descriptive filename
+- `--wait/--no-wait` flag for async vs sync behavior
+- Include CDN domains in auth cookie filter if download requires auth
+
+### Traffic capture notes:
+- Capture BOTH the create request AND the polling requests
+- Note the status field name and completion value
+- Capture the download URL pattern (may be signed/temporary)
+- Check if download requires same auth cookies or is publicly accessible
+
+## CAPTCHA / Bot Detection
+
+Challenges that interrupt normal API flow.
+
+### Detection signals:
+- HTTP 403 with HTML challenge page (not JSON)
+- Response body contains: "captcha", "challenge", "verify", "robot", "human"
+- Redirect to challenge URL (e.g., `/challenge`, `/verify`)
+- Cloudflare challenge page (`cf-chl-bypass`, `__cf_bm` cookie)
+- reCAPTCHA or hCaptcha scripts in response
+
+### CLI handling:
+- Detect CAPTCHA response by checking status code + body content
+- Do NOT retry automatically — CAPTCHAs punish repeated attempts
+- Pause and prompt user:
+  ```
+  CAPTCHA detected. Please solve it:
+  1. Open: <url>
+  2. Complete the challenge
+  3. Press ENTER when done
+  ```
+- After user confirms, retry the original request once
+- If CAPTCHA persists, suggest reducing request frequency
