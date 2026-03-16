@@ -16,8 +16,8 @@ For the full methodology SOP, read `${CLAUDE_PLUGIN_ROOT}/HARNESS.md`.
 
 This is the #1 rule for web CLI testing. Before writing or running any E2E test:
 
-1. Ensure the user's Chrome is connected via autoConnect and they're logged in
-2. Run `cli-web-<app> auth login` (Playwright) or `auth login --from-chrome` (CDP)
+1. Ensure playwright-cli is available (`npx @playwright/cli@latest --version`)
+2. Run `cli-web-<app> auth login` (playwright-cli state-save)
 3. Run `cli-web-<app> auth status` — must show valid
 4. If auth fails, STOP and fix it. Do NOT write tests that catch auth errors.
 
@@ -34,8 +34,8 @@ For apps that use browser-delegated auth (Google batchexecute, etc.), tests need
 more than just cookies — they need fresh CSRF and session tokens too.
 
 **Test setup flow:**
-1. Ensure the user's Chrome is connected via autoConnect and they're logged in
-2. `cli-web-<app> auth login --from-chrome` — extracts cookies via CDP
+1. Ensure playwright-cli is available (`npx @playwright/cli@latest --version`)
+2. `cli-web-<app> auth login` — captures auth state via playwright-cli state-save
 3. Auth module automatically fetches CSRF + session tokens via HTTP GET
 4. `cli-web-<app> auth status` — must show cookies, CSRF token, AND session ID
 5. If first API call gets 401, the client should auto-refresh tokens before failing
@@ -179,7 +179,7 @@ After all unit and E2E tests pass, the agent MUST run a final smoke test that
 simulates what a real end user would do. This catches issues that test mocks hide:
 
 1. `pip install -e .` (already done)
-2. `cli-web-<app> auth login` (Playwright) or `auth login --from-chrome` (CDP)
+2. `cli-web-<app> auth login` (playwright-cli state-save)
 3. `cli-web-<app> auth status` — must show live validation OK
 4. `cli-web-<app> --json <resource> list` — must return real data from live API
 5. If any step fails, the pipeline is NOT complete

@@ -121,6 +121,8 @@ Every `cli-web-<app>` CLI must follow this layout:
 
 These are non-negotiable standards:
 
+- **playwright-cli is the primary browser tool** — verify with `npx @playwright/cli --version`
+
 - **Content generation downloads the result** — if the app generates content (audio,
   images, video), the CLI must trigger → poll → download → save. Support `--output`.
 - **CAPTCHAs pause and prompt** — never crash or skip. Detect, tell user to solve in

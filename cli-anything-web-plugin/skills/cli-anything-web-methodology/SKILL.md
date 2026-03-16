@@ -1,13 +1,13 @@
 ---
 name: cli-anything-web-methodology
-description: This skill should be used when the user asks to "create a CLI for a website", "generate API wrapper", "reverse engineer web API", "record web traffic", "make a web app agent-native", "build CLI from network traffic", or discusses turning closed-source web applications into agent-controllable command-line interfaces via HTTP traffic analysis and Chrome DevTools MCP.
+description: This skill should be used when the user asks to "create a CLI for a website", "generate API wrapper", "reverse engineer web API", "record web traffic", "make a web app agent-native", "build CLI from network traffic", or discusses turning closed-source web applications into agent-controllable command-line interfaces via HTTP traffic analysis and playwright-cli (or chrome-devtools-mcp as fallback).
 version: 0.1.0
 ---
 
 # CLI-Anything-Web Methodology
 
 Generate agent-native CLI interfaces for closed-source web applications
-by analyzing network traffic captured via Chrome DevTools MCP.
+by analyzing network traffic captured via playwright-cli (or chrome-devtools-mcp as fallback).
 
 ## Overview
 
@@ -26,7 +26,7 @@ a production-ready Python CLI.
 
 Eight phases:
 
-1. **Record** — Capture HTTP traffic via Chrome DevTools MCP
+1. **Record** — Capture HTTP traffic via playwright-cli (or chrome-devtools-mcp as fallback)
 2. **Analyze** — Map endpoints, schemas, auth patterns
 3. **Design** — Architect Click CLI command structure
 4. **Implement** — Generate Python package under `cli_web.<app>`
