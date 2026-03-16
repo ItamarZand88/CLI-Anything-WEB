@@ -1,7 +1,7 @@
 ---
 name: cli-anything-web:record
 description: Record network traffic from a web app without generating a CLI. Useful for initial exploration or adding more coverage data.
-argument-hint: <url> [--duration <minutes>]
+argument-hint: <url> [--recon-only] [--duration <minutes>]
 allowed-tools: Bash(*), Read, Write, mcp__chrome-devtools__*
 ---
 
@@ -30,6 +30,19 @@ Target URL: $ARGUMENTS
 - Use `mcp__chrome-devtools__*` tools
 
 ### NEVER use `mcp__claude-in-chrome__*` tools — blocked.
+
+## Reconnaissance (runs first)
+
+If `--recon-only` is specified, run ONLY the recon flow:
+1. Follow the `web-reconnaissance` skill's 5-step flow
+2. Output `<app>/agent-harness/RECON-REPORT.md`
+3. Done — no traffic capture
+
+If full recording (no `--recon-only`):
+1. Run recon first (Steps 1.1-1.5 from `web-reconnaissance` skill)
+2. Show RECON-REPORT.md to user
+3. Confirm recommended capture strategy
+4. Proceed with traffic capture using the recommended approach
 
 ## Process
 
