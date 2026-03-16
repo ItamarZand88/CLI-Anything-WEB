@@ -12,24 +12,20 @@
 
 ## Quick Start
 
-### Step 1: Launch debug Chrome and log in (one-time)
-
-```bash
-bash scripts/launch-chrome-debug.sh https://monday.com
-# Log into your account in the Chrome window (cookies persist)
-```
-
-### Step 2: Load the plugin
+### Step 1: Load the plugin
 
 ```bash
 claude --plugin-dir /path/to/cli-anything-web-plugin
 ```
 
-### Step 3: Generate a CLI
+### Step 2: Generate a CLI
 
 ```bash
 /cli-anything-web https://monday.com
 ```
+
+playwright-cli auto-launches a browser. Log in when prompted. The agent captures
+traffic, analyzes the API, and generates a complete CLI — all in one command.
 
 ## Commands
 
@@ -45,9 +41,8 @@ claude --plugin-dir /path/to/cli-anything-web-plugin
 ## Prerequisites
 
 - **Claude Code** with plugin support
-- **Chrome DevTools MCP** (auto-configured by plugin via `.mcp.json`)
+- **Node.js** (for playwright-cli via npx; chrome-devtools-mcp as fallback)
 - **Python 3.10+**
-- **Node.js** (for npx / Chrome DevTools MCP)
 
 ## Generated CLI Example
 

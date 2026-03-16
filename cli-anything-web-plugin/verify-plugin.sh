@@ -40,6 +40,9 @@ done
 # scripts/repl_skin.py
 check "scripts/repl_skin.py exists" "$([ -f "$SCRIPT_DIR/scripts/repl_skin.py" ] && echo true || echo false)"
 
+# scripts/parse-trace.py
+check "scripts/parse-trace.py exists" "$([ -f "$SCRIPT_DIR/scripts/parse-trace.py" ] && echo true || echo false)"
+
 # scripts/setup.sh executable
 if [ -f "$SCRIPT_DIR/scripts/setup.sh" ] && [ -x "$SCRIPT_DIR/scripts/setup.sh" ]; then
     check "scripts/setup.sh is executable" "true"

@@ -2,18 +2,13 @@
 
 **From zero to a working CLI in under 10 minutes.**
 
-## Step 1: Install the Plugin (30 seconds)
+## Step 1: Prerequisites (30 seconds)
 
+Verify Node.js is installed (needed for playwright-cli):
 ```bash
-# Copy plugin to Claude Code plugins directory
-cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
-
-# Reload plugins in Claude Code
-/reload-plugins
-
-# Verify installation
-/help cli-anything-web
+npx @playwright/cli@latest --version
 ```
+If this fails, install Node.js from https://nodejs.org/
 
 ## Step 2: Generate a CLI (5-10 minutes)
 

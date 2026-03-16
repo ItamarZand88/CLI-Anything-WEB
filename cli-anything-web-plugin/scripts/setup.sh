@@ -86,6 +86,15 @@ if [ ${#MISSING_PACKAGES[@]} -gt 0 ]; then
     echo -e "${YELLOW}Install with: pip install ${MISSING_PACKAGES[*]}${NC}"
 fi
 
+# Check playwright-cli
+echo ""
+echo "Checking playwright-cli..."
+if npx @playwright/cli@latest --version > /dev/null 2>&1; then
+    echo -e "  ${GREEN}playwright-cli: $(npx @playwright/cli@latest --version 2>&1)${NC}"
+else
+    echo -e "  ${YELLOW}playwright-cli: not cached (will download on first use via npx)${NC}"
+fi
+
 # Verify Chrome DevTools MCP is available
 echo ""
 echo "Testing chrome-devtools-mcp..."
