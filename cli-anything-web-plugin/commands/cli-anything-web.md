@@ -18,22 +18,31 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites Check
 
-**You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
+### CRITICAL: Do NOT use `mcp__claude-in-chrome__*` tools. NEVER. Not as a fallback, not as an alternative.
 
-**Step 1: Launch Chrome debug profile with the target URL:**
+The `claude-in-chrome` extension CANNOT capture full request/response bodies which
+are essential for Phase 1 traffic recording. If you use `claude-in-chrome`, the
+generated CLI will be broken because you won't have the API payload data.
+
+You MUST use `mcp__chrome-devtools__*` tools ONLY.
+
+**Step 1: Launch Chrome debug profile:**
 !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
-
 If first time, ask the user to log in. Wait for confirmation.
 
-**Step 2: Verify chrome-devtools MCP is connected.**
-Try calling any `mcp__chrome-devtools__*` tool (e.g., `list_pages`).
-If the tools are not available or return a connection error, tell the user:
+**Step 2: Check if `mcp__chrome-devtools__*` tools are available.**
+If they are NOT available — STOP. Do not proceed. Do not fall back to claude-in-chrome.
+Tell the user exactly this:
 
-"The chrome-devtools MCP is not connected. Please run `/mcp` in the chat,
-find `chrome-devtools` in the list, and click **Reconnect**. Then let me
-know when it's ready."
+"I need the chrome-devtools MCP to capture API traffic, but it's not connected.
+Please do these steps:
+1. Make sure the debug Chrome is running (check if the Chrome window opened)
+2. Type `/mcp` in the chat
+3. Find **chrome-devtools** in the list
+4. Click **Reconnect**
+5. Tell me when it's ready"
 
-Wait for the user to confirm before proceeding.
+Do NOT continue until the user confirms and `mcp__chrome-devtools__*` tools work.
 
 !`which npx && echo "npx: OK" || echo "npx: MISSING"`
 

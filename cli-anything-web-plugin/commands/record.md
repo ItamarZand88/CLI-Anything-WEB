@@ -18,15 +18,17 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites
 
-**You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
+### CRITICAL: Do NOT use `mcp__claude-in-chrome__*` tools. NEVER.
+
+You MUST use `mcp__chrome-devtools__*` tools ONLY.
 
 **Launch Chrome debug profile:**
 !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
 If first time, ask user to log in. Wait for confirmation.
 
-If `mcp__chrome-devtools__*` tools are not available, tell the user:
-"Run `/mcp`, find `chrome-devtools`, and click **Reconnect**."
-Wait for confirmation.
+If `mcp__chrome-devtools__*` tools are NOT available — STOP. Tell the user:
+"Type `/mcp`, find **chrome-devtools**, click **Reconnect**."
+Do NOT proceed until confirmed.
 
 ## Process
 
