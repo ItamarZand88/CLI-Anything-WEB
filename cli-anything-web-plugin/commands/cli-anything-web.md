@@ -2,7 +2,7 @@
 name: cli-anything-web
 description: Generate a complete agent-native CLI for any web app by recording and analyzing network traffic via Chrome DevTools MCP. Runs the full 8-phase pipeline.
 argument-hint: <url>
-allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
+allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*, mcp__chrome-devtools-auto__*
 ---
 
 ## CRITICAL: Read HARNESS.md First
@@ -18,17 +18,15 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites Check
 
-**You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
-chrome-devtools-mcp connects to a debug Chrome on port 9222.
+**Use `mcp__chrome-devtools-auto__*` or `mcp__chrome-devtools__*` tools — NOT `mcp__claude-in-chrome__*`.**
 
-**Step 1: Launch Chrome debug profile with the target URL:**
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
+**Connection strategy — try autoConnect first, fall back to debug profile:**
+1. Try `mcp__chrome-devtools-auto__list_pages` — if it works, use `mcp__chrome-devtools-auto__*` for all tools
+2. If it fails, launch the debug Chrome and use `mcp__chrome-devtools__*`:
+   !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
+   Ask the user to log in if first time. Wait for confirmation.
 
-**Step 2: If first time, ask the user to log in:**
-Tell the user: "Please log into your account in the Chrome window that just opened.
-Let me know when you're done." Wait for confirmation.
-
-**Step 3: Verify npx:**
+Verify npx:
 !`which npx && echo "npx: OK" || echo "npx: MISSING"`
 
 ## Execution Plan
@@ -38,9 +36,8 @@ Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` 
 
 ### Phase 1 — Record (Traffic Capture)
 
-1. Verify debug Chrome is running on port 9222 with user logged in.
-   Use **chrome-devtools-mcp** tools (`mcp__chrome-devtools__navigate_page`, etc.):
-   - Call `navigate_page` with the target URL
+1. Use whichever chrome-devtools MCP connected (auto or debug profile).
+   Call `navigate_page` with the target URL.
    - If login has expired — pause and ask user to re-authenticate
 
 2. Systematically explore the app:

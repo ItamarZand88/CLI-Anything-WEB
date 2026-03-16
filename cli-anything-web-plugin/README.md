@@ -12,14 +12,7 @@
 
 ## Quick Start
 
-### Step 1: Launch Chrome debug profile and log in (one-time)
-
-```bash
-bash scripts/launch-chrome-debug.sh https://monday.com
-# Log into your account in the Chrome window that opens (cookies persist)
-```
-
-### Step 2: Load the plugin
+### Step 1: Load the plugin
 
 ```bash
 # Option A: Load for this session only (development)
@@ -30,12 +23,15 @@ cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
 /reload-plugins
 ```
 
-### Step 3: Generate a CLI
+### Step 2: Generate a CLI
 
 ```bash
-# Debug Chrome must be running on port 9222
 /cli-anything-web https://monday.com
 ```
+
+The agent auto-detects the best Chrome connection:
+- **Chrome 144+ (Beta):** connects to your normal Chrome via `--autoConnect` — zero setup
+- **Older Chrome:** launches a debug profile — log in once, cookies persist
 
 ## Commands
 

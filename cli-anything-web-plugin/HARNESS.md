@@ -35,34 +35,29 @@ REPL mode, auth management, session state, and comprehensive tests.
 
 ### Prerequisites — Browser Connection
 
-Chrome DevTools MCP needs a Chrome instance with remote debugging enabled.
+The plugin configures **two** Chrome DevTools MCP servers. The agent tries both
+and uses whichever connects:
 
-**Current default: Debug profile (works on all Chrome versions)**
+| MCP Server | How it connects | Requires |
+|------------|----------------|----------|
+| `chrome-devtools-auto` | `--autoConnect` to user's regular Chrome | Chrome 144+ (Beta) |
+| `chrome-devtools` | `--browserUrl` to debug profile on port 9222 | Any Chrome version |
 
-Launch Chrome with a dedicated debug profile — your sessions persist across restarts:
-```bash
-# Windows
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="%USERPROFILE%\.chrome-debug-profile"
+**Agent connection strategy:**
+1. Try `mcp__chrome-devtools-auto__*` tools first (best UX — user's normal Chrome)
+2. If it fails ("Could not connect"), fall back to `mcp__chrome-devtools__*` tools
+3. If fallback also fails, tell the user to launch debug Chrome:
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
 
-# macOS
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-debug-profile"
+**Option A: autoConnect (Chrome 144+ / Chrome Beta)**
+- User opens the target web app in their normal Chrome
+- Chrome shows a one-time "Allow debugging?" dialog → click OK
+- No setup needed — user is already logged in
 
-# Linux
-google-chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-debug-profile"
-```
-Or use the helper script: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
-
-1. First time: log into the target web app in that Chrome window
-2. Close and relaunch — you're still logged in (cookies persist)
-3. The plugin's `.mcp.json` connects chrome-devtools-mcp to port 9222
-
-**Future: `--autoConnect` (Chrome 144+ — currently beta, stable ~mid 2026)**
-
-When Chrome 144 reaches stable, switch `.mcp.json` to `--autoConnect` to connect
-to the user's regular Chrome with no debug profile needed:
-```json
-"args": ["-y", "chrome-devtools-mcp@latest", "--autoConnect"]
-```
+**Option B: Debug profile (any Chrome version)**
+- Launch: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
+- First time: log into the target web app (cookies persist across restarts)
+- Relaunch with same command — already logged in
 
 ---
 

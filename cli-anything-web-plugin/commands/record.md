@@ -2,7 +2,7 @@
 name: cli-anything-web:record
 description: Record network traffic from a web app without generating a CLI. Useful for initial exploration or adding more coverage data.
 argument-hint: <url> [--duration <minutes>]
-allowed-tools: Bash(*), Read, Write, mcp__chrome-devtools__*
+allowed-tools: Bash(*), Read, Write, mcp__chrome-devtools__*, mcp__chrome-devtools-auto__*
 ---
 
 ## CRITICAL: Read HARNESS.md First
@@ -18,11 +18,10 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites
 
-**You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
+**Use `mcp__chrome-devtools-auto__*` or `mcp__chrome-devtools__*` — NOT `mcp__claude-in-chrome__*`.**
 
-**Launch Chrome debug profile:**
+Try `mcp__chrome-devtools-auto__list_pages` first. If it fails, launch debug Chrome:
 !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
-
 If first time, ask user to log in. Wait for confirmation.
 
 ## Process
