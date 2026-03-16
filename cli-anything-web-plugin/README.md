@@ -5,7 +5,7 @@
 ## How It Works
 
 1. You point CLI-Anything-Web at a web app URL
-2. Chrome DevTools MCP opens the app in your browser (with your login session)
+2. playwright-cli opens a browser, runs reconnaissance, and captures API traffic
 3. Claude systematically exercises the app, capturing all API traffic
 4. Claude analyzes the traffic, maps the API, and generates a complete CLI
 5. You get `cli-web-<app>` on your PATH — ready for agents

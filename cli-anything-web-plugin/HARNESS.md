@@ -443,9 +443,8 @@ other's output.
 **CRITICAL — Auth must be configured BEFORE running any E2E or subprocess tests:**
 
 Before writing or running any live test, you MUST ensure authentication is working:
-1. Ensure Chrome is connected via autoConnect and user is logged in
-2. Run `cli-web-<app> auth login --from-chrome` to extract cookies
-3. Run `cli-web-<app> auth status` — must show "All required cookies present" AND
+1. Run `cli-web-<app> auth login` to authenticate (opens browser via playwright-cli)
+2. Run `cli-web-<app> auth status` — must show "All required cookies present" AND
    live validation must succeed
 4. If auth status shows a failure (401, missing cookies), STOP and fix auth first.
    Do NOT write tests that catch auth errors and report "auth not configured" — that
@@ -486,8 +485,8 @@ Phase 7 **appends** results to the existing `TEST.md` (which already has Part 1 
 **Process:**
 1. **Verify auth is working FIRST:**
    ```bash
-   cli-web-<app> auth login --from-chrome     # extract cookies from connected Chrome
-   cli-web-<app> auth status                  # must show live validation: OK
+   cli-web-<app> auth login              # opens browser via playwright-cli
+   cli-web-<app> auth status             # must show live validation: OK
    ```
    If auth status fails, fix it before proceeding. Do NOT run tests without working auth.
 2. Run full test suite: `python3 -m pytest cli_web/<app>/tests/ -v --tb=short`
@@ -520,14 +519,13 @@ This is the most critical verification step. The agent MUST simulate what a real
 end user would do after `pip install cli-web-<app>`. If this fails, the pipeline
 is NOT complete — go back and fix the issue.
 
-5. **Authenticate using Playwright (NOT --from-chrome):**
+5. **Authenticate as an end user would:**
    ```bash
    cli-web-<app> auth login
    ```
-   This MUST use Playwright — it opens the user's regular browser (not the debug
-   Chrome). If this fails, the CLI is broken for end users. Do NOT fall back to
-   `--from-chrome` for the smoke test — that only proves it works with the debug
-   Chrome, which end users won't have.
+   This uses playwright-cli via subprocess — opens a browser, user logs in,
+   cookies saved. This is what end users will run. If this fails, the CLI is
+   broken for end users.
 6. **Verify auth status shows LIVE VALIDATION OK:**
    ```bash
    cli-web-<app> auth status
