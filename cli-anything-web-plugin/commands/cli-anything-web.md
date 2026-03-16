@@ -18,33 +18,19 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites Check
 
-### CRITICAL: Do NOT use `mcp__claude-in-chrome__*` tools. NEVER. Not as a fallback, not as an alternative.
+### Step 1: Check playwright-cli availability
+!`npx @playwright/cli@latest --version 2>&1 && echo "PLAYWRIGHT_OK" || echo "PLAYWRIGHT_FAIL"`
 
-The `claude-in-chrome` extension CANNOT capture full request/response bodies which
-are essential for Phase 1 traffic recording. If you use `claude-in-chrome`, the
-generated CLI will be broken because you won't have the API payload data.
+**If PLAYWRIGHT_OK** → use playwright-cli for all operations (primary path).
 
-You MUST use `mcp__chrome-devtools__*` tools ONLY.
+**If PLAYWRIGHT_FAIL** → fall back to chrome-devtools MCP:
+- Tell user: "playwright-cli not available. Falling back to chrome-devtools MCP."
+- Launch debug Chrome: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
+- If first time, ask user to log in. Wait for confirmation.
+- If MCP not connected: tell user "Type `/mcp`, find **chrome-devtools**, click **Reconnect**."
+- Use `mcp__chrome-devtools__*` tools for all operations.
 
-**Step 1: Launch Chrome debug profile:**
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
-If first time, ask the user to log in. Wait for confirmation.
-
-**Step 2: Check if `mcp__chrome-devtools__*` tools are available.**
-If they are NOT available — STOP. Do not proceed. Do not fall back to claude-in-chrome.
-Tell the user exactly this:
-
-"I need the chrome-devtools MCP to capture API traffic, but it's not connected.
-Please do these steps:
-1. Make sure the debug Chrome is running (check if the Chrome window opened)
-2. Type `/mcp` in the chat
-3. Find **chrome-devtools** in the list
-4. Click **Reconnect**
-5. Tell me when it's ready"
-
-Do NOT continue until the user confirms and `mcp__chrome-devtools__*` tools work.
-
-!`which npx && echo "npx: OK" || echo "npx: MISSING"`
+### NEVER use `mcp__claude-in-chrome__*` tools — blocked, cannot capture request bodies.
 
 ## Execution Plan
 
@@ -53,24 +39,20 @@ Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` 
 
 ### Phase 1 — Record (Traffic Capture)
 
-1. Verify debug Chrome is running on port 9222 with user logged in.
-   Use `mcp__chrome-devtools__*` tools:
-   - Call `navigate_page` with the target URL
-   - If login has expired — pause and ask user to re-authenticate
+**If playwright-cli available (primary):**
+1. Open browser: `npx @playwright/cli@latest -s=<app> open $ARGUMENTS --headed --persistent`
+2. If login needed — ask user to log in, wait for confirmation
+3. Start trace: `npx @playwright/cli@latest -s=<app> tracing-start`
+4. Systematically explore: use `snapshot`, `click`, `fill`, `screenshot` commands
+5. Stop trace: `npx @playwright/cli@latest -s=<app> tracing-stop`
+6. Save auth: `npx @playwright/cli@latest -s=<app> state-save <app>-auth.json`
+7. Parse: `python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --output <app>/traffic-capture/raw-traffic.json`
+8. Close: `npx @playwright/cli@latest -s=<app> close`
 
-2. Systematically explore the app:
-   - Navigate to each major section/page
-   - Perform CRUD operations (create, read, update, delete)
-   - Exercise search, filter, and export features
-   - After each action, call `list_network_requests` to capture traffic
-   - Use `get_network_request(id)` for full request/response details
-
-3. Filter captured traffic:
-   - KEEP: API calls (JSON responses, `/api/`, GraphQL, RPC)
-   - DISCARD: static assets, analytics, CDN, fonts, images
-   - KEEP: auth-related requests (login, token refresh, session)
-
-4. Save raw traffic to `<app>/traffic-capture/raw-traffic.json`
+**If MCP fallback:**
+1. Verify debug Chrome on port 9222
+2. Use `mcp__chrome-devtools__*` tools: `navigate_page`, `list_network_requests`, `get_network_request`
+3. Save to `<app>/traffic-capture/raw-traffic.json`
 
 ### Phase 2 — Analyze (API Discovery)
 
