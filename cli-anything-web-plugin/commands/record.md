@@ -18,17 +18,18 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites
 
-### CRITICAL: Do NOT use `mcp__claude-in-chrome__*` tools. NEVER.
+### Step 1: Check playwright-cli availability
+!`npx @playwright/cli@latest --version 2>&1 && echo "PLAYWRIGHT_OK" || echo "PLAYWRIGHT_FAIL"`
 
-You MUST use `mcp__chrome-devtools__*` tools ONLY.
+**If PLAYWRIGHT_OK** → use playwright-cli for recording.
 
-**Launch Chrome debug profile:**
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
-If first time, ask user to log in. Wait for confirmation.
+**If PLAYWRIGHT_FAIL** → fall back to chrome-devtools MCP:
+- Tell user: "playwright-cli not available. Falling back to chrome-devtools MCP."
+- Launch debug Chrome: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
+- If MCP not connected: tell user to `/mcp` → Reconnect
+- Use `mcp__chrome-devtools__*` tools
 
-If `mcp__chrome-devtools__*` tools are NOT available — STOP. Tell the user:
-"Type `/mcp`, find **chrome-devtools**, click **Reconnect**."
-Do NOT proceed until confirmed.
+### NEVER use `mcp__claude-in-chrome__*` tools — blocked.
 
 ## Process
 
@@ -38,13 +39,22 @@ Useful for:
 - Adding more traffic data before refining
 - Recording specific workflows
 
-1. Verify debug Chrome is running on port 9222. Call `navigate_page` with the target URL.
-2. If login required — ask user to authenticate manually
-3. Systematically exercise the app features
-4. Capture all API traffic via `list_network_requests` + `get_network_request`
-5. Filter: keep API calls, discard static assets
-6. Save to `<app>/traffic-capture/raw-traffic.json`
-7. Print summary: total requests captured, endpoints discovered, auth type detected
+**If playwright-cli available (primary):**
+1. Open browser: `npx @playwright/cli@latest -s=<app> open $ARGUMENTS --headed --persistent`
+2. If login needed — ask user to log in, wait for confirmation
+3. Start trace: `npx @playwright/cli@latest -s=<app> tracing-start`
+4. Systematically explore: use `snapshot`, `click`, `fill`, `screenshot`
+5. Stop trace: `npx @playwright/cli@latest -s=<app> tracing-stop`
+6. Save auth: `npx @playwright/cli@latest -s=<app> state-save <app>-auth.json`
+7. Parse: `python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --output <app>/traffic-capture/raw-traffic.json`
+8. Close: `npx @playwright/cli@latest -s=<app> close`
+9. Print summary: total requests captured, endpoints discovered
+
+**If MCP fallback:**
+1. Verify debug Chrome on port 9222
+2. `navigate_page` with target URL
+3. `list_network_requests` + `get_network_request` for traffic
+4. Save to `<app>/traffic-capture/raw-traffic.json`
 
 ## Interactive Mode
 
