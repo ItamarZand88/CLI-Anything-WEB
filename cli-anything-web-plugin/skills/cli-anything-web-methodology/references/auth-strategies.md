@@ -119,7 +119,27 @@ them — even with valid credentials. The browser is the only reliable login sur
 
 ### Two-phase pattern:
 
-**Phase A — Cookie extraction via CDP (one-time):**
+**Phase A — Session capture via playwright-cli (primary):**
+```python
+# During development (Phase 1 recording)
+# playwright-cli saves auth state automatically:
+# npx @playwright/cli@latest -s=<app> state-save <app>-auth.json
+
+# In generated CLI's auth login command:
+import subprocess
+subprocess.run(["npx", "@playwright/cli@latest", "-s=auth",
+                "open", app_url, "--headed", "--persistent"], check=True)
+input("Log in, then press ENTER...")
+subprocess.run(["npx", "@playwright/cli@latest", "-s=auth",
+                "state-save", str(auth_path)], check=True)
+subprocess.run(["npx", "@playwright/cli@latest", "-s=auth",
+                "close"], check=True)
+# Parse storage state → extract cookies for httpx
+state = json.loads(auth_path.read_text())
+cookies = {c["name"]: c["value"] for c in state.get("cookies", [])}
+```
+
+**Legacy fallback (chrome-devtools-mcp):**
 ```python
 # Option 1: autoConnect (Chrome 144+, no port needed)
 cookies = extract_cookies_via_cdp(auto_connect=True, domain=".google.com")
@@ -138,8 +158,8 @@ csrf = re.search(r'"SNlM0e":"([^"]+)"', resp.text).group(1)
 session_id = re.search(r'"FdrFJe":"([^"]+)"', resp.text).group(1)
 ```
 
-Key insight: CDP is only needed for initial cookie extraction. Token refresh
-uses plain HTTP with those cookies — no CDP required for subsequent refreshes.
+Key insight: playwright-cli state-save is only needed for initial cookie extraction.
+Token refresh uses plain HTTP with those cookies — no browser required for subsequent refreshes.
 
 ### Token refresh (on 401):
 ```python
@@ -161,9 +181,10 @@ def refresh_tokens(self):
 
 ### CLI commands:
 ```
-auth login --from-chrome    # Phase A: extract cookies via CDP
-auth status                 # Show cookies + token validity
-auth refresh                # Phase B: re-fetch tokens via HTTP
+auth login              # playwright-cli state-save (primary)
+auth login --cookies-json <file>  # manual import (fallback)
+auth status             # show cookies + token validity
+auth refresh            # re-fetch tokens via HTTP
 ```
 
 ## Config File Location
