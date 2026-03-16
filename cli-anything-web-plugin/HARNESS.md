@@ -31,12 +31,42 @@ REPL mode, auth management, session state, and comprehensive tests.
 
 ---
 
+## Two Chromes: Development vs End-User
+
+This is the most important architectural distinction in the pipeline:
+
+| | Development (Phases 1-8) | End-User (published CLI) |
+|--|--------------------------|--------------------------|
+| **Chrome** | Debug profile on port 9222 | User's regular Chrome (or no Chrome) |
+| **Purpose** | Traffic capture + cookie extraction | Not needed after install |
+| **Auth method** | `auth login --from-chrome` (CDP) | `auth login` (Playwright) |
+| **Who uses it** | The agent building the CLI | Anyone who `pip install`s the CLI |
+| **MCP** | chrome-devtools-mcp | None — CLI is standalone |
+
+**The generated CLI MUST work without the debug Chrome.** The debug Chrome is a
+development tool — it exists only during Phases 1-8. End users install the CLI
+with `pip install`, run `auth login` (Playwright opens their normal browser), and
+use the CLI standalone. If the CLI only works with the debug Chrome, it's broken.
+
+**During development:** use debug Chrome for traffic capture (Phase 1) and quick
+cookie extraction (Phase 4). This is fast and convenient.
+
+**For the generated CLI:** implement `auth login` with Playwright as the primary
+method. This opens the user's regular browser, they log in normally, Playwright
+saves the session. No debug Chrome, no port 9222, no technical setup.
+
+**Phase 8 smoke test verifies this separation:** the agent MUST test the CLI
+using `auth login` (Playwright), NOT `auth login --from-chrome`. If the smoke
+test only works with the debug Chrome, the pipeline is NOT complete.
+
+---
+
 ## 8-Phase Pipeline
 
-### Prerequisites — Chrome Debug Profile
+### Prerequisites — Chrome Debug Profile (Development Only)
 
-Chrome DevTools MCP connects to a debug Chrome on port 9222. This is used for
-**traffic capture only** (Phase 1). The generated CLI uses Playwright for auth.
+The debug Chrome is needed during Phases 1-8 for traffic capture and cookie
+extraction. End users of the generated CLI do NOT need this.
 
 **Setup (one-time):**
 1. Launch: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
@@ -439,13 +469,14 @@ This is the most critical verification step. The agent MUST simulate what a real
 end user would do after `pip install cli-web-<app>`. If this fails, the pipeline
 is NOT complete — go back and fix the issue.
 
-5. **Authenticate as an end user would:**
+5. **Authenticate using Playwright (NOT --from-chrome):**
    ```bash
-   # Primary method: Playwright (what end users will use)
    cli-web-<app> auth login
-   # If Playwright not available, fall back to CDP:
-   cli-web-<app> auth login --from-chrome
    ```
+   This MUST use Playwright — it opens the user's regular browser (not the debug
+   Chrome). If this fails, the CLI is broken for end users. Do NOT fall back to
+   `--from-chrome` for the smoke test — that only proves it works with the debug
+   Chrome, which end users won't have.
 6. **Verify auth status shows LIVE VALIDATION OK:**
    ```bash
    cli-web-<app> auth status
@@ -470,10 +501,10 @@ is NOT complete — go back and fix the issue.
 9. **Only after steps 5-8 pass, declare the pipeline complete.**
 
 **The pipeline is NOT done until:**
-- `auth login` works (Playwright or CDP)
+- `auth login` works with **Playwright** (the end-user method, NOT --from-chrome)
 - `auth status` shows valid
 - At least one real API call returns real data
-- The user can install and use the CLI standalone
+- The CLI works standalone — no debug Chrome, no port 9222, no MCP
 
 **Why namespace packages:**
 - Multiple `cli-web-*` CLIs coexist in the same Python environment without conflicts
