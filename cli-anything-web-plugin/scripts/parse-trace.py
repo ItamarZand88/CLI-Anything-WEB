@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Parse Playwright trace files into raw-traffic.json format.
+
+Reads .network files and resources/ from a playwright-cli trace directory
+and produces a filtered JSON array of API request/response entries.
+
+Usage:
+    python parse-trace.py <traces-dir> --output raw-traffic.json
+    python parse-trace.py .playwright-cli/traces/ --output suno/traffic-capture/raw-traffic.json
+    python parse-trace.py .playwright-cli/traces/ --output raw.json --include-static
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+STATIC_EXTENSIONS = (
+    ".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico",
+    ".woff", ".woff2", ".ttf", ".eot", ".map", ".webp", ".avif",
+)
+
+
+def parse_network_file(network_path: Path, resources_dir: Path, filter_static: bool = True) -> list[dict]:
+    """Parse a single .network trace file into request/response entries."""
+    entries = []
+    text = network_path.read_text(encoding="utf-8").strip()
+    if not text:
+        return entries
+
+    for line in text.split("\n"):
+        if not line.strip():
+            continue
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        if data.get("type") != "resource-snapshot":
+            continue
+
+        snap = data["snapshot"]
+        req = snap.get("request", {})
+        resp = snap.get("response", {})
+        url = req.get("url", "")
+
+        # Filter static assets
+        if filter_static:
+            url_path = url.split("?")[0].split("#")[0]
+            if any(url_path.endswith(ext) for ext in STATIC_EXTENSIONS):
+                continue
+
+        # Load response body from resources/
+        body = None
+        sha1 = resp.get("content", {}).get("_sha1")
+        if sha1 and resources_dir.exists():
+            body_file = resources_dir / sha1
+            if body_file.exists():
+                try:
+                    body = json.loads(body_file.read_text(encoding="utf-8"))
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    try:
+                        body = body_file.read_text(encoding="utf-8")[:3000]
+                    except Exception:
+                        body = "[binary content]"
+
+        entries.append({
+            "url": url,
+            "method": req.get("method", "GET"),
+            "request_headers": {
+                h["name"]: h["value"]
+                for h in req.get("headers", [])
+            },
+            "post_data": req.get("postData", {}).get("text") if isinstance(req.get("postData"), dict) else req.get("postData"),
+            "status": resp.get("status", 0),
+            "response_headers": {
+                h["name"]: h["value"]
+                for h in resp.get("headers", [])
+            },
+            "response_body": body,
+            "mime_type": resp.get("content", {}).get("mimeType", ""),
+            "time_ms": round(snap.get("time", 0), 1),
+        })
+
+    return entries
+
+
+def parse_traces(traces_dir: Path, filter_static: bool = True) -> list[dict]:
+    """Parse all .network files in a traces directory."""
+    traces_dir = Path(traces_dir)
+    resources_dir = traces_dir / "resources"
+
+    all_entries = []
+    for network_file in sorted(traces_dir.glob("*.network")):
+        entries = parse_network_file(network_file, resources_dir, filter_static)
+        all_entries.extend(entries)
+
+    return all_entries
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse Playwright trace files into raw-traffic.json"
+    )
+    parser.add_argument(
+        "traces_dir",
+        help="Path to .playwright-cli/traces/ directory",
+    )
+    parser.add_argument(
+        "--output", "-o",
+        default="raw-traffic.json",
+        help="Output file path (default: raw-traffic.json)",
+    )
+    parser.add_argument(
+        "--include-static",
+        action="store_true",
+        help="Include static assets (JS, CSS, images) — filtered by default",
+    )
+    args = parser.parse_args()
+
+    traces_dir = Path(args.traces_dir)
+    if not traces_dir.exists():
+        print(f"Error: traces directory not found: {traces_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    entries = parse_traces(traces_dir, filter_static=not args.include_static)
+
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(entries, indent=2, default=str), encoding="utf-8")
+
+    print(f"Parsed {len(entries)} API requests → {output_path}")
+
+
+if __name__ == "__main__":
+    main()
