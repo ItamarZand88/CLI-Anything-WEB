@@ -20,12 +20,12 @@ Target: $ARGUMENTS
 
 1. **Verify auth is working FIRST** — this is mandatory before any E2E test:
    ```
-   cli-web-<app> auth login                    # Playwright (recommended)
-   cli-web-<app> auth login --from-chrome      # or extract from connected Chrome
+   cli-web-<app> auth login              # playwright-cli (recommended)
+   cli-web-<app> auth login --cookies-json <file>  # manual fallback
    cli-web-<app> auth status
    ```
    Auth status MUST show live validation succeeded. If it fails:
-   - Ensure Chrome is connected via autoConnect and user is logged in
+   - Ensure playwright-cli is available (`npx @playwright/cli@latest --version`)
    - Fix auth before running any tests
    - Do NOT proceed with "auth not configured" — that is a broken test
 

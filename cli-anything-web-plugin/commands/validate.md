@@ -24,6 +24,10 @@ Target: $ARGUMENTS
 4. Print the report in the format shown at the bottom
 5. Exit with summary: PASS if all 50 checks pass, FAIL otherwise
 
+## Prerequisites
+
+- [ ] `npx @playwright/cli@latest --version` succeeds (playwright-cli available)
+
 ## Category 1: Directory Structure (6 checks)
 
 *(checked against `agent-harness/` root)*

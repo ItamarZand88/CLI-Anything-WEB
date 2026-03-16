@@ -26,7 +26,7 @@ Focus area: $2
    - If focus area specified, concentrate on that domain
    - If no focus, do broad gap analysis across all capabilities
 4. **Present gap report**: Show the user the gap analysis results and confirm which gaps to address before proceeding with any recording or implementation
-5. **Record new traffic**: Open Chrome DevTools, navigate to underexplored areas
+5. **Record new traffic**: Use playwright-cli (see HARNESS.md Phase 1) or chrome-devtools-mcp fallback
 6. **Analyze new endpoints**: Add to API map in `<APP>.md`
 7. **Implement new commands**: Add to existing command groups or create new ones
 8. **Update tests**: Add unit + E2E tests for new commands
