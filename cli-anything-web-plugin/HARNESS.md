@@ -31,47 +31,56 @@ REPL mode, auth management, session state, and comprehensive tests.
 
 ---
 
-## Two Chromes: Development vs End-User
+## Browser Automation: playwright-cli
 
-This is the most important architectural distinction in the pipeline:
+The plugin uses `npx @playwright/cli@latest` (playwright-cli) for all browser
+interaction and traffic capture. This is a CLI tool — the agent calls it via Bash,
+not through MCP. Data (snapshots, screenshots, traces) goes to files on disk,
+keeping context usage ~4x lower than MCP-based approaches.
+
+### Tool Hierarchy (strict priority)
+
+| Priority | Tool | When to use |
+|----------|------|-------------|
+| 1. PRIMARY | `npx @playwright/cli@latest` via Bash | Always try first |
+| 2. FALLBACK | `mcp__chrome-devtools__*` MCP tools | Only if playwright-cli unavailable |
+| 3. NEVER | `mcp__claude-in-chrome__*` | Blocked — cannot capture request bodies |
+
+### Development vs End-User
 
 | | Development (Phases 1-8) | End-User (published CLI) |
 |--|--------------------------|--------------------------|
-| **Chrome** | Debug profile on port 9222 | User's regular Chrome (or no Chrome) |
-| **Purpose** | Traffic capture + cookie extraction | Not needed after install |
-| **Auth method** | `auth login --from-chrome` (CDP) | `auth login` (Playwright) |
-| **Who uses it** | The agent building the CLI | Anyone who `pip install`s the CLI |
-| **MCP** | chrome-devtools-mcp | None — CLI is standalone |
+| **Browser** | playwright-cli manages its own | playwright-cli via subprocess (auth only) |
+| **Traffic capture** | `tracing-start` → browse → `tracing-stop` | N/A — CLI uses httpx |
+| **Auth** | `state-save` after user logs in | `auth login` → subprocess `state-save` → parse cookies |
+| **Runtime HTTP** | N/A | httpx — no browser needed |
+| **Dependencies** | Node.js + npx | click, httpx, Node.js + npx (auth only) |
 
-**The generated CLI MUST work without the debug Chrome.** The debug Chrome is a
-development tool — it exists only during Phases 1-8. End users install the CLI
-with `pip install`, run `auth login` (Playwright opens their normal browser), and
-use the CLI standalone. If the CLI only works with the debug Chrome, it's broken.
-
-**During development:** use debug Chrome for traffic capture (Phase 1) and quick
-cookie extraction (Phase 4). This is fast and convenient.
-
-**For the generated CLI:** implement `auth login` with Playwright as the primary
-method. This opens the user's regular browser, they log in normally, Playwright
-saves the session. No debug Chrome, no port 9222, no technical setup.
-
-**Phase 8 smoke test verifies this separation:** the agent MUST test the CLI
-using `auth login` (Playwright), NOT `auth login --from-chrome`. If the smoke
-test only works with the debug Chrome, the pipeline is NOT complete.
+**The generated CLI MUST work standalone.** playwright-cli is only needed during
+`auth login` — all regular commands use httpx. If the CLI requires a browser for
+normal operations, it's broken.
 
 ---
 
 ## 8-Phase Pipeline
 
-### Prerequisites — Chrome Debug Profile (Development Only)
+### Prerequisites
 
-The debug Chrome is needed during Phases 1-8 for traffic capture and cookie
-extraction. End users of the generated CLI do NOT need this.
+**Primary: playwright-cli (recommended)**
 
-**Setup (one-time):**
+playwright-cli auto-launches and manages its own browser. No manual setup needed.
+Just verify Node.js and npx are available:
+```bash
+npx @playwright/cli@latest --version
+```
+If this fails, install Node.js from https://nodejs.org/
+
+**Fallback: Chrome Debug Profile (if playwright-cli unavailable)**
+
+If playwright-cli cannot be used, fall back to chrome-devtools-mcp:
 1. Launch: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
-2. Log into the target web app in that Chrome window (cookies persist)
-3. Close and relaunch — you're still logged in
+2. Log into the target web app (cookies persist across restarts)
+3. Agent uses `mcp__chrome-devtools__*` tools instead
 
 ---
 
@@ -79,32 +88,53 @@ extraction. End users of the generated CLI do NOT need this.
 
 **Goal:** Capture comprehensive HTTP traffic from the target web app.
 
-**Process:**
-1. chrome-devtools-mcp auto-connects to the user's regular Chrome via --autoConnect.
-   The user should have the target web app open and be logged in.
-   - If Chrome shows a permission dialog, tell the user to click "Allow"
-   - If the user is not logged in, ask them to log in first in their normal Chrome
-2. Call `navigate_page` with the target URL
-3. If login has expired — pause and ask user to re-authenticate in Chrome
-4. Enable network monitoring (`list_network_requests`)
-5. Systematically exercise the app:
-   - Navigate all major sections
-   - Create, read, update, delete entities
-   - Use filters, search, export features
-   - Trigger edge cases (errors, empty states)
-6. For each user action, capture:
-   - The request: method, URL, headers, body
-   - The response: status, headers, body
-   - The timing and sequence context
-7. Use `get_network_request(id)` for full payload details
-8. Use `evaluate_script` for fetch/XHR interception if needed
-9. Store captured traffic in `<app>/traffic-capture/raw-traffic.json`
+**Primary method: playwright-cli**
 
-**Output:** `raw-traffic.json` — complete traffic dump.
+```bash
+# 1. Open browser with named session
+npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
 
-**Critical rules:**
+# 2. If login required — ask user to log in, wait for confirmation
+
+# 3. Start trace recording (captures ALL network with full bodies)
+npx @playwright/cli@latest -s=<app> tracing-start
+
+# 4. Systematically explore the app:
+npx @playwright/cli@latest -s=<app> snapshot          # Get element refs (YAML)
+npx @playwright/cli@latest -s=<app> click e15          # Navigate
+npx @playwright/cli@latest -s=<app> fill e8 "search"   # Fill forms
+npx @playwright/cli@latest -s=<app> screenshot          # Visual check (file on disk)
+
+# 5. Stop trace — saves .network + resources/ with full request/response bodies
+npx @playwright/cli@latest -s=<app> tracing-stop
+
+# 6. Save auth state for reuse
+npx @playwright/cli@latest -s=<app> state-save <app>-auth.json
+
+# 7. Parse trace → raw-traffic.json
+python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py \
+  .playwright-cli/traces/ \
+  --output <app>/traffic-capture/raw-traffic.json
+
+# 8. Close browser
+npx @playwright/cli@latest -s=<app> close
+```
+
+**Fallback method: chrome-devtools-mcp**
+
+If playwright-cli is not available, tell the user:
+"playwright-cli is not available. Falling back to chrome-devtools MCP.
+Please launch debug Chrome: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`"
+
+Then use `mcp__chrome-devtools__*` tools:
+- `navigate_page` with the target URL
+- `list_network_requests` to capture traffic
+- `get_network_request(id)` for full request/response details
+- Save to `<app>/traffic-capture/raw-traffic.json`
+
+**Critical rules (both methods):**
 - Filter OUT: static assets (.js, .css, .png, fonts, analytics, CDN)
-- Filter IN: API calls (typically `/api/`, GraphQL, RPC endpoints)
+- Filter IN: API calls (JSON responses, `/api/`, GraphQL, RPC endpoints)
 - Capture auth tokens/cookies for session management design
 - Record the user action that triggered each request group
 
@@ -228,36 +258,30 @@ extraction. End users of the generated CLI do NOT need this.
   - Automatic JSON parsing
   - Error handling with status code mapping
   - Rate limit respect (exponential backoff)
-- `auth.py` — handles token storage, refresh, expiry. MUST support 3 login methods:
-  1. **`auth login`** (default, for end users) — uses Playwright to open a browser.
-     User logs in manually, Playwright saves `storage_state.json` with full cookie
-     metadata (domain, secure, httpOnly attributes preserved). This is the most
-     reliable method across all web apps. Requires `pip install playwright` as an
-     optional dependency (`[browser]` extra).
+- `auth.py` — handles token storage, refresh, expiry. MUST support 2 login methods:
+  1. **`auth login`** (primary) — uses playwright-cli via subprocess to open browser.
+     User logs in manually, `state-save` captures cookies + localStorage.
+     No Playwright Python needed — just `npx @playwright/cli`.
      ```python
-     # auth.py — Playwright login
-     async def login_with_playwright(app_url: str, storage_path: Path):
-         from playwright.async_api import async_playwright
-         async with async_playwright() as p:
-             browser = await p.chromium.launch(headless=False)
-             context = await browser.new_context()
-             page = await context.new_page()
-             await page.goto(app_url)
-             input("Log in to the app, then press ENTER here...")
-             await context.storage_state(path=str(storage_path))
-             await browser.close()
+     # auth.py — playwright-cli login
+     def login(app_url, auth_path):
+         import subprocess
+         session = "auth-login"
+         subprocess.run(["npx", "@playwright/cli@latest", "-s=" + session,
+                         "open", app_url, "--headed", "--persistent"], check=True)
+         input("Log in, then press ENTER...")
+         subprocess.run(["npx", "@playwright/cli@latest", "-s=" + session,
+                         "state-save", str(auth_path)], check=True)
+         subprocess.run(["npx", "@playwright/cli@latest", "-s=" + session,
+                         "close"], check=True)
+         state = json.loads(auth_path.read_text())
+         cookies = {c["name"]: c["value"] for c in state.get("cookies", [])}
+         save_cookies(cookies)
      ```
-  2. **`auth login --from-chrome`** (for dev/pipeline) — extracts cookies from the
-     connected Chrome session via CDP (autoConnect). Fast when Chrome is already
-     connected during Phase 1 recording. Requires `pip install websockets`.
-     **Important:** Deduplicate cookies by name — prefer `.google.com` domain over
-     `accounts.google.com` to avoid CookieMismatch errors.
-  3. **`auth login --cookies-json <file>`** (manual fallback) — import from JSON file.
+  2. **`auth login --cookies-json <file>`** (manual fallback) — import from JSON file.
   - Store cookies at `~/.config/cli-web-<app>/auth.json` with chmod 600
-  - After saving cookies, automatically fetch session tokens (CSRF, session ID)
-    via HTTP GET to the app homepage. If this fails (anti-bot redirect), extract
-    tokens via CDP JavaScript evaluation as fallback.
-  - `setup.py` should declare Playwright as optional: `extras_require={"browser": ["playwright>=1.40.0"]}`
+  - No more `--from-chrome` or `--from-browser` flags
+  - `setup.py` should NOT include Playwright Python — only `click`, `httpx`
 - **Anti-bot resilient client construction** (when detected in Phase 2):
   - Extract session tokens via CDP first (cookies), then HTTP GET + HTML parsing (CSRF, session IDs)
   - **Never hardcode** build labels (`bl`), session IDs (`f.sid`), or CSRF tokens — extract dynamically at runtime
