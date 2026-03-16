@@ -75,15 +75,23 @@ Record the framework, SSR data embedding method, and any hydration markers.
 
 ---
 
-### Step 1.3: Network Traffic Analysis
+### Step 1.3: Network Traffic Analysis (Force SPA Navigation Trick)
 
-Start a trace, navigate through 3-4 representative pages, then stop and parse.
+**This is the most important recon step.** Many sites (especially SSR) show zero
+API calls on initial page load because data is embedded in the HTML. The trick:
+start tracing BEFORE clicking internal links — SPA client-side navigation reveals
+hidden API endpoints that the initial load hides.
+
+This works because: on first load, the server renders everything. But when you
+click a link, the SPA router takes over and fetches data via API instead of
+doing a full page reload. Those API calls are what we need for CLI generation.
 
 ```bash
-# Start tracing network traffic
+# Start tracing BEFORE navigation — this is critical
 npx @playwright/cli@latest -s=recon tracing-start
 
-# Click through representative internal links
+# Click through 3-4 representative internal links
+# SPA router will make client-side API fetches!
 npx @playwright/cli@latest -s=recon click "a[href*='/products']"
 npx @playwright/cli@latest -s=recon click "a[href*='/about']"
 npx @playwright/cli@latest -s=recon click "a[href*='/search']"
@@ -147,29 +155,47 @@ Compile all findings into a structured report using this template:
 
 ## Site Architecture
 
-- Type: SPA / SSR / Hybrid / Static
-- Framework: Next.js / Nuxt / Remix / SvelteKit / React / Vue / None
-- SSR Data: __NEXT_DATA__ / __NUXT__ / None
+| Aspect | Expected (pre-recon) | Confirmed (post-recon) |
+|--------|---------------------|----------------------|
+| Type | SPA / SSR / Hybrid | (fill after Step 1.1) |
+| Framework | Next.js / Nuxt / React / Vue / None | (fill after Step 1.2) |
+| SSR Data | __NEXT_DATA__ / __NUXT__ / None | (fill after Step 1.2) |
+
+**Always make predictions BEFORE running commands.** This helps you know
+what to look for and catches unexpected findings faster.
 
 ## API Surface
 
-- Protocol: REST / GraphQL / batchexecute / None
-- Endpoints discovered: (list)
-- Auth required: Yes/No (type)
+| Endpoint | Method | Auth? | Discovered in |
+|----------|--------|-------|---------------|
+| /api/... | GET | Yes | Step 1.3 trace |
+| ... | ... | ... | ... |
+
+- **Protocol:** REST / GraphQL / batchexecute / None
+- **Total endpoints found:** X
+- **Auth type:** cookies / Bearer JWT / API key / None
 
 ## Protections
 
-- Cloudflare: Yes/No
-- CAPTCHA: Yes/No
-- Rate limits: Detected/Not
-- Other WAF: None / Akamai / PerimeterX / DataDome
+| Protection | Expected | Confirmed |
+|-----------|----------|-----------|
+| Cloudflare | Yes/No | (fill after Step 1.4) |
+| CAPTCHA | Yes/No | (fill after Step 1.4) |
+| Rate limits | Yes/No | (fill after Step 1.4) |
+| WAF (other) | None / Akamai / PerimeterX | (fill after Step 1.4) |
+| robots.txt | Permissive / Restrictive | (fill after Step 1.4) |
 
 ## Recommended Strategy
 
-- Capture approach: API-first / SSR+API / Full trace / Protected-manual
-- Rationale: (why)
-- Warnings: (concerns)
+- **Capture approach:** API-first / SSR+API hybrid / Full trace / Protected-manual
+- **Rationale:** (explain why this strategy based on findings above)
+- **CLI generation impact:** (what kind of client.py — standard httpx / query templates / rpc codec)
+- **Warnings:** (rate limits, token expiry, protection concerns, viability risks)
 ```
+
+**Make predictions first, confirm after.** Fill the "Expected" column based on
+what you know about the site (e.g., "Suno is likely a React SPA with REST API").
+Then fill "Confirmed" after running each step. This catches surprises early.
 
 Save this report alongside the project. It drives all downstream capture and
 generation decisions.
