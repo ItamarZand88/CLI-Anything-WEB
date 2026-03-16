@@ -45,6 +45,7 @@ based on what you're doing:
 | **cli-anything-web-methodology** (this) | Building a new CLI from scratch, running the full pipeline |
 | **cli-anything-web-testing** | Writing tests, planning test coverage, debugging test failures |
 | **cli-anything-web-standards** | Checking quality, reviewing implementations, validating structure |
+| **web-reconnaissance** | Analyzing unfamiliar sites, detecting frameworks, choosing capture strategy |
 
 You don't need to invoke these manually — Claude picks the right one based on context.
 During the full pipeline, all three activate at the relevant phases.
@@ -55,3 +56,4 @@ During the full pipeline, all three activate at the relevant phases.
 - **`references/traffic-patterns.md`** — Common API patterns (REST, GraphQL, RPC)
 - **`references/auth-strategies.md`** — Auth implementation strategies
 - **`references/google-batchexecute.md`** — Google batchexecute RPC protocol spec (URL format, encoding, decoding, tokens)
+- **`references/ssr-patterns.md`** — SSR framework patterns and data extraction strategies

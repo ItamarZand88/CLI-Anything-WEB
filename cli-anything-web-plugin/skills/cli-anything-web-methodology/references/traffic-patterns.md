@@ -160,3 +160,23 @@ Challenges that interrupt normal API flow.
   ```
 - After user confirms, retry the original request once
 - If CAPTCHA persists, suggest reducing request frequency
+
+## SSR / Server-Rendered Sites
+
+Sites that render data server-side (Next.js, Nuxt, Remix, SvelteKit, Gatsby).
+
+### Detection signals:
+- HTML contains full page data on initial load (no XHR/fetch on first render)
+- Presence of `__NEXT_DATA__`, `__NUXT__`, `__remixContext`, or similar globals
+- SPA root element (`#__next`, `#__nuxt`) with pre-rendered content
+- `/_next/data/` or `/__data.json` endpoints in network trace
+
+### CLI mapping:
+- Initial data from SSR blobs → use for data models and read endpoints
+- Client-side navigation reveals hidden API endpoints (Force SPA Navigation trick)
+- Mutation endpoints (create/update/delete) usually go through standard API calls
+- Read endpoints may use SSR data routes (`/_next/data/`) or client-side API
+
+### Reference:
+See `references/ssr-patterns.md` for framework-specific extraction patterns
+and the Force SPA Navigation trick.

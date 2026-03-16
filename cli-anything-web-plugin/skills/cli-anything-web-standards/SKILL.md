@@ -127,6 +127,9 @@ These are non-negotiable standards:
   images, video), the CLI must trigger → poll → download → save. Support `--output`.
 - **CAPTCHAs pause and prompt** — never crash or skip. Detect, tell user to solve in
   browser, wait for confirmation, retry.
+- **Reconnaissance recommended for unfamiliar sites** — RECON-REPORT.md should exist
+  in `<app>/agent-harness/` for SSR or protected sites. Framework and capture strategy
+  documented in `<APP>.md`.
 - **Auth stored securely** — `chmod 600 auth.json`, never hardcode tokens
 - **Tests fail without auth** — never skip, the CLI is useless without a live account
 - **Every command supports `--json`** — agents need structured output
