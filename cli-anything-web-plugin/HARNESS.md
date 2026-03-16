@@ -33,31 +33,15 @@ REPL mode, auth management, session state, and comprehensive tests.
 
 ## 8-Phase Pipeline
 
-### Prerequisites — Browser Connection
+### Prerequisites — Chrome Debug Profile
 
-The plugin configures **two** Chrome DevTools MCP servers. The agent tries both
-and uses whichever connects:
+Chrome DevTools MCP connects to a debug Chrome on port 9222. This is used for
+**traffic capture only** (Phase 1). The generated CLI uses Playwright for auth.
 
-| MCP Server | How it connects | Requires |
-|------------|----------------|----------|
-| `chrome-devtools-auto` | `--autoConnect` to user's regular Chrome | Chrome 144+ (Beta) |
-| `chrome-devtools` | `--browserUrl` to debug profile on port 9222 | Any Chrome version |
-
-**Agent connection strategy:**
-1. Try `mcp__chrome-devtools-auto__*` tools first (best UX — user's normal Chrome)
-2. If it fails ("Could not connect"), fall back to `mcp__chrome-devtools__*` tools
-3. If fallback also fails, tell the user to launch debug Chrome:
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
-
-**Option A: autoConnect (Chrome 144+ / Chrome Beta)**
-- User opens the target web app in their normal Chrome
-- Chrome shows a one-time "Allow debugging?" dialog → click OK
-- No setup needed — user is already logged in
-
-**Option B: Debug profile (any Chrome version)**
-- Launch: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
-- First time: log into the target web app (cookies persist across restarts)
-- Relaunch with same command — already logged in
+**Setup (one-time):**
+1. Launch: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
+2. Log into the target web app in that Chrome window (cookies persist)
+3. Close and relaunch — you're still logged in
 
 ---
 

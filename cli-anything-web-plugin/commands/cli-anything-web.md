@@ -2,7 +2,7 @@
 name: cli-anything-web
 description: Generate a complete agent-native CLI for any web app by recording and analyzing network traffic via Chrome DevTools MCP. Runs the full 8-phase pipeline.
 argument-hint: <url>
-allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*, mcp__chrome-devtools-auto__*
+allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
 ---
 
 ## CRITICAL: Read HARNESS.md First
@@ -18,15 +18,23 @@ Target URL: $ARGUMENTS
 
 ## Prerequisites Check
 
-**Use `mcp__chrome-devtools-auto__*` or `mcp__chrome-devtools__*` tools — NOT `mcp__claude-in-chrome__*`.**
+**You MUST use `mcp__chrome-devtools__*` tools, NOT `mcp__claude-in-chrome__*`.**
 
-**Connection strategy — try autoConnect first, fall back to debug profile:**
-1. Try `mcp__chrome-devtools-auto__list_pages` — if it works, use `mcp__chrome-devtools-auto__*` for all tools
-2. If it fails, launch the debug Chrome and use `mcp__chrome-devtools__*`:
-   !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
-   Ask the user to log in if first time. Wait for confirmation.
+**Step 1: Launch Chrome debug profile with the target URL:**
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
 
-Verify npx:
+If first time, ask the user to log in. Wait for confirmation.
+
+**Step 2: Verify chrome-devtools MCP is connected.**
+Try calling any `mcp__chrome-devtools__*` tool (e.g., `list_pages`).
+If the tools are not available or return a connection error, tell the user:
+
+"The chrome-devtools MCP is not connected. Please run `/mcp` in the chat,
+find `chrome-devtools` in the list, and click **Reconnect**. Then let me
+know when it's ready."
+
+Wait for the user to confirm before proceeding.
+
 !`which npx && echo "npx: OK" || echo "npx: MISSING"`
 
 ## Execution Plan
@@ -36,8 +44,9 @@ Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` 
 
 ### Phase 1 — Record (Traffic Capture)
 
-1. Use whichever chrome-devtools MCP connected (auto or debug profile).
-   Call `navigate_page` with the target URL.
+1. Verify debug Chrome is running on port 9222 with user logged in.
+   Use `mcp__chrome-devtools__*` tools:
+   - Call `navigate_page` with the target URL
    - If login has expired — pause and ask user to re-authenticate
 
 2. Systematically explore the app:

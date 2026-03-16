@@ -12,26 +12,24 @@
 
 ## Quick Start
 
-### Step 1: Load the plugin
+### Step 1: Launch debug Chrome and log in (one-time)
 
 ```bash
-# Option A: Load for this session only (development)
-claude --plugin-dir /path/to/cli-anything-web-plugin
-
-# Option B: Install permanently
-cp -r /path/to/cli-anything-web-plugin ~/.claude/plugins/cli-anything-web
-/reload-plugins
+bash scripts/launch-chrome-debug.sh https://monday.com
+# Log into your account in the Chrome window (cookies persist)
 ```
 
-### Step 2: Generate a CLI
+### Step 2: Load the plugin
+
+```bash
+claude --plugin-dir /path/to/cli-anything-web-plugin
+```
+
+### Step 3: Generate a CLI
 
 ```bash
 /cli-anything-web https://monday.com
 ```
-
-The agent auto-detects the best Chrome connection:
-- **Chrome 144+ (Beta):** connects to your normal Chrome via `--autoConnect` — zero setup
-- **Older Chrome:** launches a debug profile — log in once, cookies persist
 
 ## Commands
 
