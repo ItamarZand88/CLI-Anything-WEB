@@ -84,6 +84,33 @@ If playwright-cli cannot be used, fall back to chrome-devtools-mcp:
 
 ---
 
+### Phase 1a — Reconnaissance (Optional but Recommended)
+
+Before capturing traffic, run reconnaissance to understand the site architecture.
+
+```bash
+/cli-anything-web:recon <url>
+# Or the agent runs recon automatically as the first step of /cli-anything-web
+```
+
+**When to run recon:**
+- Always for unfamiliar sites (first time targeting this web app)
+- Skip for known sites (e.g., running /cli-anything-web:refine on existing CLI)
+- Skip if user provides a RECON-REPORT.md from a previous run
+
+**What recon discovers:**
+- Site type: SPA / SSR / Hybrid
+- Framework: Next.js / Nuxt / Remix / SvelteKit / React / Vue
+- API protocol: REST / GraphQL / batchexecute / None
+- Protections: Cloudflare / CAPTCHA / Rate limits / WAF
+- Recommended capture strategy
+
+**Output:** `<app>/agent-harness/RECON-REPORT.md`
+
+See the `web-reconnaissance` skill for the full 5-step flow.
+
+---
+
 ### Phase 1 — Record (Traffic Capture)
 
 **Goal:** Capture comprehensive HTTP traffic from the target web app.
