@@ -179,13 +179,25 @@ After all unit and E2E tests pass, the agent MUST run a final smoke test that
 simulates what a real end user would do. This catches issues that test mocks hide:
 
 1. `pip install -e .` (already done)
-2. `cli-web-<app> auth login` (playwright-cli state-save)
+2. `cli-web-<app> auth login` — via playwright-cli subprocess
 3. `cli-web-<app> auth status` — must show live validation OK
-4. `cli-web-<app> --json <resource> list` — must return real data from live API
-5. If any step fails, the pipeline is NOT complete
+4. `cli-web-<app> --json <resource> list` — must return real data (**READ test**)
+5. **`cli-web-<app> --json <resource> create/generate` — must succeed (WRITE test)**
+6. If any step fails, the pipeline is NOT complete
+
+**Step 5 is the most critical and most commonly skipped.** Reading a list proves
+auth works. Writing/creating/generating proves the CLI actually does useful work.
+
+For generation apps (Suno, Midjourney): `generate --prompt "test" --wait` must
+return a real job ID and complete. For CRUD apps: create → verify in list → delete.
+
+**If the agent only tests reads and declares "done," the pipeline is broken.**
+This is the #1 failure mode — the agent runs `list` (GET with auth), sees data,
+declares success, but never tests the create/generate commands (which require
+correct POST bodies, CSRF tokens, request encoding).
 
 This is different from E2E tests — those run inside pytest with pre-configured auth.
-The smoke test verifies the full user journey: install → login → use.
+The smoke test verifies the full user journey: install → login → read → **write**.
 
 ## Failure Handling
 

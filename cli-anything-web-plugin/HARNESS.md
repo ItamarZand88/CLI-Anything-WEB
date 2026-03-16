@@ -508,27 +508,51 @@ is NOT complete — go back and fix the issue.
    Must show: cookies present, tokens valid. If it shows "expired", "redirect",
    or any auth failure — STOP. Fix auth before proceeding.
 
-7. **Run a real API call and verify the response:**
+7. **Run a READ operation and verify real data:**
    ```bash
    cli-web-<app> --json <first-resource> list
    ```
    This must return real data from the live API — NOT an error, NOT empty,
    NOT "auth not configured". Verify the JSON response contains expected fields.
 
-8. **Run a CRUD smoke test if the app supports it:**
+8. **Run a WRITE operation and verify it actually worked:**
+   This is the step the agent most commonly skips. Reading data is easy — the
+   real test is whether the CLI can CREATE, UPDATE, or GENERATE something.
+
    ```bash
+   # For CRUD apps (Monday, Notion, Jira):
    cli-web-<app> --json <resource> create --name "smoke-test-$(date +%s)"
    cli-web-<app> --json <resource> list   # verify the created item appears
    cli-web-<app> --json <resource> delete --id <id-from-create>
+
+   # For generation apps (Suno, Midjourney, NotebookLM audio):
+   cli-web-<app> --json <resource> generate --prompt "test" --wait
+   # Verify: JSON response contains a real ID, status=complete, not an error
+   # If the command has --output, verify the file was downloaded and size > 0
+
+   # For search/query apps:
+   cli-web-<app> --json search "test query"
+   # Verify: results array is non-empty
    ```
 
-9. **Only after steps 5-8 pass, declare the pipeline complete.**
+   **If ANY write/generate command fails, the pipeline is NOT complete.**
+   Reading a list of existing items only proves auth works — it does NOT prove
+   the CLI can actually do useful work. The whole point is to CREATE things,
+   not just read them.
+
+9. **Only after steps 5-8 ALL pass, declare the pipeline complete.**
 
 **The pipeline is NOT done until:**
-- `auth login` works with **Playwright** (the end-user method, NOT --from-chrome)
+- `auth login` works via playwright-cli subprocess
 - `auth status` shows valid
-- At least one real API call returns real data
+- At least one READ returns real data
+- **At least one WRITE/CREATE/GENERATE succeeds against the real API**
 - The CLI works standalone — no debug Chrome, no port 9222, no MCP
+
+**Common failure mode:** The agent runs `<resource> list` (which works because
+it's just a GET with auth), declares "all done," but never tests the
+create/generate commands (which require correct POST bodies, CSRF tokens,
+request encoding). This is the #1 gap to watch for.
 
 **Why namespace packages:**
 - Multiple `cli-web-*` CLIs coexist in the same Python environment without conflicts
