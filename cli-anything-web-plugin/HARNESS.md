@@ -117,70 +117,102 @@ See the `web-reconnaissance` skill for the full 5-step flow.
 
 **Primary method: playwright-cli**
 
+#### Step 1: Setup
+
 ```bash
-# 1. Open browser with named session
+# Create output directory
+mkdir -p <app>/traffic-capture
+
+# Open browser with named session
 npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
 
-# 2. If login required — ask user to log in, wait for confirmation
+# If login required — ask user to log in, wait for confirmation
 
-# 3. Start trace recording (captures ALL network with full bodies)
+# Save auth state BEFORE tracing (so you can restore later)
+npx @playwright/cli@latest -s=<app> state-save <app>/traffic-capture/<app>-auth.json
+```
+
+#### Step 2: Systematic Exploration (with trace)
+
+```bash
+# Start trace recording
 npx @playwright/cli@latest -s=<app> tracing-start
 
-# 4. Systematically explore the app:
-npx @playwright/cli@latest -s=<app> snapshot          # Get element refs (YAML)
-npx @playwright/cli@latest -s=<app> click e15          # Navigate
-npx @playwright/cli@latest -s=<app> fill e8 "search"   # Fill forms
-npx @playwright/cli@latest -s=<app> screenshot          # Visual check (file on disk)
+# === EXPLORATION CHECKLIST ===
+# For EACH resource/feature visible in the UI:
 
-# 5. Stop trace — saves .network + resources/ with full request/response bodies
+# A. READ operations (screenshot first to see what's there)
+npx @playwright/cli@latest -s=<app> screenshot
+npx @playwright/cli@latest -s=<app> snapshot
+# Navigate to list views, detail pages, dashboards
+# Click through pagination, filters, search
+
+# B. WRITE operations (this is what agents skip!)
+# Take a screenshot → find the Create/Generate/New button → click it
+# Fill forms → submit → capture the POST/PUT request
+# This is the MOST IMPORTANT part — read-only traces are useless
+
+# C. Other operations: settings, profile, export, delete
+```
+
+**Exploration checklist by app type:**
+
+| App Type | Must capture | Example |
+|----------|-------------|---------|
+| CRUD app | List, Get, Create, Update, Delete per resource | Monday: boards list, board create, item create |
+| Generation app | Create/Generate, Poll status, Download result | Suno: generate song, check status, download MP3 |
+| Search app | Search query, Results, Filters, Pagination | Futbin: player search, price history |
+| Chat/Query app | Send message, Receive response (streaming?), History | NotebookLM: ask question, get sources |
+
+**For each app, the trace MUST contain at least one WRITE operation before stopping.**
+If your trace only has GET requests, you haven't captured enough — go back and
+create/generate something.
+
+#### Step 3: Stop, save, parse
+
+```bash
+# Stop trace — saves .network + resources/ with full bodies
 npx @playwright/cli@latest -s=<app> tracing-stop
 
-# 6. Save auth state for reuse
-npx @playwright/cli@latest -s=<app> state-save <app>-auth.json
-
-# 7. Parse trace → raw-traffic.json
+# Parse trace → raw-traffic.json (only parses the LATEST trace files)
 python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py \
   .playwright-cli/traces/ \
   --output <app>/traffic-capture/raw-traffic.json
 
-# 8. Close browser
+# Verify: check that write operations were captured
+python -c "
+import json
+data = json.load(open('<app>/traffic-capture/raw-traffic.json'))
+posts = [r for r in data if r['method'] in ('POST','PUT','PATCH','DELETE')]
+print(f'Total: {len(data)} requests, {len(posts)} write operations')
+if not posts:
+    print('WARNING: No write operations captured! Go back and use Create/Generate features.')
+"
+```
+
+#### Step 4: Close browser
+
+```bash
 npx @playwright/cli@latest -s=<app> close
 ```
 
+**If an endpoint is missing from the trace — USE THE FEATURE:**
+
+When you see a button in the UI but its endpoint isn't in the trace:
+1. Start a NEW trace: `tracing-start`
+2. Screenshot → click the button → fill the form → submit
+3. Stop: `tracing-stop` → parse → the endpoint is now captured
+
+**Do NOT** grep through minified JS, read webpack chunks, or parse build manifests.
+The browser IS the API documentation. 60 seconds of UI interaction beats 30 minutes
+of JS analysis.
+
 **Fallback method: chrome-devtools-mcp**
 
-If playwright-cli is not available, tell the user:
-"playwright-cli is not available. Falling back to chrome-devtools MCP.
-Please launch debug Chrome: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`"
-
-Then use `mcp__chrome-devtools__*` tools:
-- `navigate_page` with the target URL
-- `list_network_requests` to capture traffic
-- `get_network_request(id)` for full request/response details
+If playwright-cli is not available:
+- Launch debug Chrome: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
+- Use `mcp__chrome-devtools__*` tools: `navigate_page`, `list_network_requests`, `get_network_request`
 - Save to `<app>/traffic-capture/raw-traffic.json`
-
-**Critical rules (both methods):**
-- Filter OUT: static assets (.js, .css, .png, fonts, analytics, CDN)
-- Filter IN: API calls (JSON responses, `/api/`, GraphQL, RPC endpoints)
-- Capture auth tokens/cookies for session management design
-- Record the user action that triggered each request group
-
-**If an endpoint is missing from the trace — USE THE FEATURE, don't reverse-engineer JS:**
-
-When you can see a feature in the UI (e.g., "Create Song" button) but don't see
-its API endpoint in the captured trace, the solution is simple:
-
-1. Start a NEW trace: `tracing-start`
-2. Take a screenshot to see the UI
-3. Use the feature: `click` the button, `fill` the form, submit
-4. Stop trace: `tracing-stop`
-5. Parse → the endpoint will now be in the trace
-
-**Do NOT:**
-- Grep through minified JavaScript bundles looking for API paths
-- Parse `performance.getEntries()` for endpoint URLs
-- Read webpack chunks or Next.js build manifests
-- Spend more than 2 minutes trying to find an endpoint without using the UI
 
 The browser IS the API documentation. If you can see it in the UI, you can
 capture it by using it. This is faster, more reliable, and always correct —
