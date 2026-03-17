@@ -28,6 +28,12 @@ Do NOT start unless:
 If raw-traffic.json is missing or has no WRITE operations, invoke the
 `cli-anything-web-capture` skill first.
 
+**Exception for read-only sites:** If the site is genuinely read-only (search engine,
+dashboard, analytics viewer with no create/update/delete), the trace may contain only
+GET requests. In this case, note "read-only site — no write operations" in `<APP>.md`
+and proceed. The generated CLI will have read-only commands (list, get, search) but
+no create/update/delete commands. This is valid.
+
 ---
 
 ## Phase 2: Analyze (API Discovery)
@@ -127,41 +133,9 @@ If raw-traffic.json is missing or has no WRITE operations, invoke the
 
 ### Package Structure
 
-```
-<app>/
-+-- agent-harness/
-    +-- <APP>.md                    # Software-specific SOP
-    +-- setup.py                    # PyPI config (find_namespace_packages)
-    +-- cli_web/                    # Namespace package (NO __init__.py)
-        +-- <app>/                  # Sub-package (HAS __init__.py)
-            +-- __init__.py
-            +-- __main__.py         # python -m cli_web.<app>
-            +-- <app>_cli.py        # Main CLI entry point
-            +-- core/
-            |   +-- __init__.py
-            |   +-- client.py       # HTTP client (requests/httpx)
-            |   +-- auth.py         # Auth management
-            |   +-- session.py      # State + undo/redo
-            |   +-- models.py       # Response models
-            |   +-- rpc/              # Optional: for non-REST protocols
-            |       +-- __init__.py
-            |       +-- types.py      # Method enum, URL constants
-            |       +-- encoder.py    # Request encoding
-            |       +-- decoder.py    # Response decoding
-            +-- commands/           # Click command groups
-            |   +-- __init__.py
-            |   +-- <resource>.py   # One file per API resource
-            +-- utils/
-            |   +-- __init__.py
-            |   +-- repl_skin.py    # Unified REPL (from plugin)
-            |   +-- output.py       # JSON/table formatting
-            |   +-- config.py       # Config file management
-            +-- tests/
-                +-- __init__.py
-                +-- TEST.md         # Test plan + results
-                +-- test_core.py    # Unit tests (mocked HTTP)
-                +-- test_e2e.py     # E2E tests (live API)
-```
+See HARNESS.md "Generated CLI Structure" for the complete package template.
+Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `__init__.py`),
+`core/`, `commands/`, `utils/`, `tests/` directories.
 
 ### Implementation Rules
 

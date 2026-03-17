@@ -30,83 +30,21 @@ Target: $ARGUMENTS
 
 - [ ] `npx @playwright/cli@latest --version` succeeds (playwright-cli available)
 
-## Category 1: Directory Structure (6 checks)
+## Validation Checklist
 
-*(checked against `agent-harness/` root)*
+Invoke the `cli-anything-web-standards` skill which defines the complete 50-check
+validation across 8 categories:
 
-- [ ] `agent-harness/cli_web/<app>/` exists
-- [ ] `agent-harness/<APP>.md` exists (software-specific SOP at harness root)
-- [ ] `cli_web/` has NO `__init__.py` (namespace package)
-- [ ] `<app>/` HAS `__init__.py`
-- [ ] `core/`, `commands/`, `utils/`, `tests/` all present inside `cli_web/<app>/` (one atomic check)
-- [ ] `setup.py` at `agent-harness/` root
+1. Directory Structure (6 checks)
+2. Required Files (13 checks)
+3. CLI Implementation Standards (6 checks)
+4. Core Module Standards (4 checks)
+5. Test Standards (8 checks)
+6. Documentation Standards (3 checks)
+7. PyPI Packaging Standards (5 checks)
+8. Code Quality (5 checks)
 
-## Category 2: Required Files (13 checks)
-
-*(checked against `cli_web/<app>/`)*
-
-- [ ] `README.md`
-- [ ] `<app>_cli.py`
-- [ ] `__main__.py`
-- [ ] `core/client.py`
-- [ ] `core/auth.py`
-- [ ] `core/session.py`
-- [ ] `core/models.py`
-- [ ] `utils/repl_skin.py`
-- [ ] `utils/output.py`
-- [ ] `utils/config.py`
-- [ ] `tests/TEST.md`
-- [ ] `tests/test_core.py`
-- [ ] `tests/test_e2e.py`
-
-## Category 3: CLI Implementation Standards (6 checks)
-
-- [ ] Uses Click framework with command groups (grep for `@click.group`)
-- [ ] `--json` flag on every command (grep for `--json`)
-- [ ] REPL mode — grep `<app>_cli.py` for `invoke_without_command=True`
-- [ ] `repl_skin.py` used for banner, prompt, messages (grep for `ReplSkin`)
-- [ ] `auth` command group with `login`, `status`, `refresh` subcommands
-- [ ] Global session state (`pass_context=True` or module-level session object)
-
-## Category 4: Core Module Standards (4 checks)
-
-- [ ] `client.py`: has centralized auth header injection, exponential backoff, JSON parsing
-- [ ] `auth.py`: has login, refresh, expiry check, secure storage
-- [ ] `session.py`: has Session class with undo/redo stack
-- [ ] `models.py`: has typed response models
-
-## Category 5: Test Standards (8 checks)
-
-- [ ] `TEST.md` has both plan (Part 1) and results (Part 2)
-- [ ] Unit tests use `unittest.mock.patch` for HTTP — no real network calls
-- [ ] E2E fixture tests replay captured responses from `tests/fixtures/`
-- [ ] E2E live tests require auth — FAIL (not skip) without it
-- [ ] `test_e2e.py` has `TestCLISubprocess` class
-- [ ] Uses `_resolve_cli("cli-web-<app>")` — no hardcoded paths
-- [ ] Subprocess `_run` does NOT set `cwd`
-- [ ] Supports `CLI_WEB_FORCE_INSTALLED=1`
-
-## Category 6: Documentation Standards (3 checks)
-
-- [ ] `README.md`: has installation, auth setup, command reference, examples
-- [ ] `<APP>.md`: has API map, data model, auth scheme, endpoint inventory
-- [ ] No `HARNESS.md` inside app package (it lives in plugin root)
-
-## Category 7: PyPI Packaging Standards (5 checks)
-
-- [ ] `find_namespace_packages(include=["cli_web.*"])` in setup.py
-- [ ] Package name: `cli-web-<app>`
-- [ ] Entry point: `cli-web-<app>=cli_web.<app>.<app>_cli:main`
-- [ ] All imports use `cli_web.<app>.*` prefix
-- [ ] `python_requires=">=3.10"`
-
-## Category 8: Code Quality (5 checks)
-
-- [ ] No syntax errors, no import errors (`python3 -c "import cli_web.<app>"`)
-- [ ] No hardcoded auth tokens or API keys in source
-- [ ] No hardcoded API base URLs or credential values in source
-- [ ] No bare `except:` blocks
-- [ ] Error messages include actionable guidance
+See the `cli-anything-web-standards` skill for the detailed checklist and report format.
 
 ## Report Format
 

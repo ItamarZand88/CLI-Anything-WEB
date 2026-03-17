@@ -136,35 +136,9 @@ The pipeline is NOT done until:
 
 ## Package Structure
 
-Every `cli-web-<app>` CLI must follow this layout:
-
-```
-<app-name>/
-+-- agent-harness/
-    +-- <APP>.md               # API map, data model, auth scheme
-    +-- setup.py               # PyPI config (find_namespace_packages)
-    +-- cli_web/               # Namespace package (NO __init__.py)
-        +-- <app>/             # Sub-package
-            +-- __init__.py    # Required -- marks as sub-package
-            +-- README.md
-            +-- <app>_cli.py   # Main CLI entry point
-            +-- __main__.py
-            +-- core/
-            |   +-- client.py      # HTTP client, auth injection, backoff
-            |   +-- auth.py        # Login, refresh, secure storage
-            |   +-- session.py     # State, undo/redo
-            |   +-- models.py      # Typed response models
-            +-- commands/          # Click command groups
-            +-- utils/
-            |   +-- repl_skin.py   # Copy from plugin scripts/
-            |   +-- output.py      # JSON/table formatting
-            |   +-- config.py      # Config file management
-            +-- tests/
-                +-- TEST.md        # Plan (Part 1) + Results (Part 2)
-                +-- fixtures/      # Captured API responses for replay
-                +-- test_core.py   # Unit tests (mocked HTTP)
-                +-- test_e2e.py    # E2E + subprocess tests
-```
+See HARNESS.md "Generated CLI Structure" for the complete package template.
+Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `__init__.py`),
+`core/`, `commands/`, `utils/`, `tests/` directories.
 
 ## 8-Category Checklist (50 checks)
 

@@ -161,6 +161,12 @@ npx @playwright/cli@latest -s=<app> snapshot
 
 **The trace MUST contain at least one WRITE operation before stopping.**
 
+**Exception for read-only sites:** If the site is genuinely read-only (search engine,
+dashboard, analytics viewer with no create/update/delete), the trace may contain only
+GET requests. In this case, note "read-only site — no write operations" in `<APP>.md`
+and proceed. The generated CLI will have read-only commands (list, get, search) but
+no create/update/delete commands. This is valid.
+
 ---
 
 ## Step 4: Stop, Save, Parse
