@@ -94,23 +94,8 @@ the user to run `auth login`, not silently skip or catch the error.
 
 ### Testing with Browser-Delegated Auth
 
-For apps that use browser-delegated auth (Google batchexecute, etc.), tests need
-more than just cookies -- they need fresh CSRF and session tokens too.
-
-**Test setup flow:**
-1. Ensure playwright-cli is available (`npx @playwright/cli@latest --version`)
-2. `cli-web-<app> auth login` -- captures auth state via playwright-cli state-save
-3. Auth module automatically fetches CSRF + session tokens via HTTP GET
-4. `cli-web-<app> auth status` -- must show cookies, CSRF token, AND session ID
-5. If first API call gets 401, the client should auto-refresh tokens before failing
-
-**Unit tests for RPC protocols:**
-When the app uses batchexecute or custom RPC, add unit tests for the codec:
-- Test `rpc/encoder.py`: verify triple-nested array format, URL encoding
-- Test `rpc/decoder.py`: verify anti-XSSI stripping, chunked parsing, double-JSON decode
-- Use captured response fixtures in `tests/fixtures/` for decoder tests
-- Test error response detection (`"er"` entries in batchexecute)
-- Test auth error detection and refresh trigger
+See `references/test-code-examples.md` for browser-delegated auth test setup flow
+and RPC codec unit test patterns.
 
 ### Four-Layer Testing Strategy
 
@@ -183,61 +168,16 @@ Tests that only create without reading back give false confidence.
 
 ### The `_resolve_cli` Pattern
 
-Every subprocess test must use this helper -- never hardcode paths:
-
-```python
-import os, sys, shutil, subprocess
-
-def _resolve_cli(name):
-    """Resolve installed CLI command; falls back to python -m for dev."""
-    force = os.environ.get("CLI_WEB_FORCE_INSTALLED", "").strip() == "1"
-    path = shutil.which(name)
-    if path:
-        print(f"[_resolve_cli] Using installed command: {path}")
-        return [path]
-    if force:
-        raise RuntimeError(f"{name} not found in PATH. Install with: pip install -e .")
-    module = name.replace("cli-web-", "cli_web.") + "." + name.split("-")[-1] + "_cli"
-    print(f"[_resolve_cli] Falling back to: {sys.executable} -m {module}")
-    return [sys.executable, "-m", module]
-
-
-class TestCLISubprocess:
-    CLI_BASE = _resolve_cli("cli-web-<app>")
-
-    def _run(self, args, check=True):
-        return subprocess.run(
-            self.CLI_BASE + args,
-            capture_output=True, text=True,
-            check=check,
-        )
-
-    def test_help(self):
-        result = self._run(["--help"])
-        assert result.returncode == 0
-```
-
-Key rules for subprocess tests:
+See `references/resolve-cli-pattern.md` for the complete helper function and
+`TestCLISubprocess` class. Key rules:
 - Always use `_resolve_cli("cli-web-<app>")` -- never hardcode module paths
 - Do NOT set `cwd` -- installed commands must work from any directory
-- Use `CLI_WEB_FORCE_INSTALLED=1` in CI to ensure the installed command is tested
-- After running, verify `[_resolve_cli] Using installed command:` appears in output
+- Use `CLI_WEB_FORCE_INSTALLED=1` in CI
 
 ### Unit Test Pattern
 
-```python
-from unittest.mock import patch, MagicMock
-
-def test_client_get_boards():
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"boards": [{"id": 1, "name": "Sprint"}]}
-
-    with patch("cli_web.<app>.core.client.httpx.get", return_value=mock_response):
-        result = get_boards()
-        assert len(result["boards"]) == 1
-        assert result["boards"][0]["name"] == "Sprint"
-```
+See `references/test-code-examples.md` for unit test patterns with `unittest.mock.patch`,
+RPC codec testing, and browser-delegated auth test flows.
 
 ---
 
@@ -304,6 +244,13 @@ When all tests pass, invoke the `cli-anything-web-standards` skill to
 publish and verify the CLI.
 
 Do NOT skip to publishing -- all tests must pass first.
+
+---
+
+## Reference Files
+
+- [_resolve_cli Pattern](references/resolve-cli-pattern.md) -- subprocess testing helper
+- [Test Code Examples](references/test-code-examples.md) -- unit test patterns, RPC testing
 
 ---
 
