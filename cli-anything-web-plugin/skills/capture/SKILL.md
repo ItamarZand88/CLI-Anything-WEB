@@ -24,6 +24,11 @@ Do NOT start unless:
 
 If playwright-cli fails, fall back to chrome-devtools-mcp (see HARNESS.md Tool Hierarchy).
 
+**IMPORTANT — Do NOT load the `playwright-cli` skill.** A global `playwright-cli` skill
+may exist in the environment, but loading it will restrict your tools to a single pattern
+and break this workflow. All playwright-cli commands in this skill run via
+`npx @playwright/cli@latest` in Bash — no separate skill needed.
+
 ---
 
 ## Step 1: Setup
@@ -31,6 +36,9 @@ If playwright-cli fails, fall back to chrome-devtools-mcp (see HARNESS.md Tool H
 ```bash
 # Create output directory
 mkdir -p <app>/traffic-capture
+
+# Clear any stale sessions first (important on Windows — avoids Chrome conflict)
+npx @playwright/cli@latest kill-all 2>/dev/null || true
 
 # Open browser with named session
 npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
@@ -40,6 +48,11 @@ npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
 # Save auth state BEFORE tracing
 npx @playwright/cli@latest -s=<app> state-save <app>/traffic-capture/<app>-auth.json
 ```
+
+> **Windows note:** If Chrome is already running when `open --persistent` is called,
+> playwright-cli may open a tab in the existing Chrome and immediately exit. The
+> `kill-all` above prevents this. If it still fails, close all Chrome windows manually
+> and retry, or add `--browser=msedge` to use Edge instead.
 
 ---
 
