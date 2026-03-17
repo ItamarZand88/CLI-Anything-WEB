@@ -60,15 +60,14 @@ phases and invokes the next when done. Hard gates prevent skipping.
 
 | Phase | Skill | What it does | Hard Gate |
 |-------|-------|-------------|-----------|
-| 1a (optional) | `web-reconnaissance` | Detect framework, APIs, protections | None (optional) |
-| 1 | `cli-anything-web-capture` | Trace traffic, explore app, save auth | Recon done or site known |
+| 1 | `cli-anything-web-capture` | Assess site + capture traffic + explore + save auth | playwright-cli available |
 | 2-4 | `cli-anything-web-methodology` | Analyze, design, implement CLI | raw-traffic.json has WRITE ops |
 | 5-7 | `cli-anything-web-testing` | Plan tests, write tests, document | Implementation complete |
 | 8 | `cli-anything-web-standards` | Publish, verify, smoke test | All tests pass |
 
 **Sequencing:**
 ```
-web-reconnaissance → cli-anything-web-capture → cli-anything-web-methodology
+cli-anything-web-capture → cli-anything-web-methodology
 → cli-anything-web-testing → cli-anything-web-standards → DONE
 ```
 
@@ -104,9 +103,13 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 
 | Reference | When to read | Used in |
 |-----------|-------------|---------|
-| `playwright-cli-tracing.md` | Phase 1 — understanding trace file format and parse-trace.py | Phase 1 |
-| `playwright-cli-sessions.md` | Phase 1 — named sessions, auth persistence, state-save format | Phase 1, 4 |
-| `playwright-cli-advanced.md` | Phase 1 — run-code, wait strategies, downloads, iframes | Phase 1, 1a |
+| `playwright-cli-tracing.md` | Understanding trace file format | Phase 1 |
+| `playwright-cli-sessions.md` | Named sessions, auth persistence | Phase 1 |
+| `playwright-cli-advanced.md` | run-code, wait strategies, downloads | Phase 1 |
+| `framework-detection.md` | Detecting SSR frameworks during capture | Phase 1 |
+| `protection-detection.md` | Checking anti-bot protections during capture | Phase 1 |
+| `api-discovery.md` | Finding API endpoints during capture | Phase 1 |
+| `strategy-selection.md` | Choosing capture strategy | Phase 1 |
 
 ### Methodology References (`skills/cli-anything-web-methodology/references/`)
 
@@ -115,16 +118,7 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 | `traffic-patterns.md` | Phase 2 — identifying API protocol (REST, GraphQL, SSR, batchexecute) | Phase 1-3 |
 | `auth-strategies.md` | Phase 4 — implementing auth module | Phase 4 |
 | `google-batchexecute.md` | Phase 2+4 — when target is a Google app | Phase 2, 4 |
-| `ssr-patterns.md` | Phase 1a+2 — when target uses SSR (Next.js, Nuxt, etc.) | Phase 1a, 2 |
-
-### Reconnaissance References (`skills/web-reconnaissance/references/`)
-
-| Reference | When to read | Used in |
-|-----------|-------------|---------|
-| `framework-detection.md` | Phase 1a — detecting SSR frameworks | Phase 1a |
-| `protection-detection.md` | Phase 1a — checking anti-bot protections | Phase 1a |
-| `api-discovery.md` | Phase 1a — finding API endpoints | Phase 1a |
-| `strategy-selection.md` | Phase 1a — choosing capture strategy | Phase 1a |
+| `ssr-patterns.md` | Phase 2 — when target uses SSR (Next.js, Nuxt, etc.) | Phase 2 |
 
 ---
 
