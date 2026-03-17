@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from grade_output import grade_output
+from grade_output import grade_output  # type: ignore[import-not-found]  # resolved via sys.path
 
 
 def load_skill_content(skill_dir: Path, skill_names: list[str]) -> str:
