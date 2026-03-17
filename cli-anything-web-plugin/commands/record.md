@@ -47,27 +47,16 @@ If full recording (no `--recon-only`):
 ## Process
 
 This command runs Phase 1 only — traffic recording without CLI generation.
-Useful for:
-- Initial exploration of an unfamiliar web app
-- Adding more traffic data before refining
-- Recording specific workflows
 
-**If playwright-cli available (primary):**
-1. Open browser: `npx @playwright/cli@latest -s=<app> open $ARGUMENTS --headed --persistent`
-2. If login needed — ask user to log in, wait for confirmation
-3. Start trace: `npx @playwright/cli@latest -s=<app> tracing-start`
-4. Systematically explore: use `snapshot`, `click`, `fill`, `screenshot`
-5. Stop trace: `npx @playwright/cli@latest -s=<app> tracing-stop`
-6. Save auth: `npx @playwright/cli@latest -s=<app> state-save <app>-auth.json`
-7. Parse: `python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --output <app>/traffic-capture/raw-traffic.json`
-8. Close: `npx @playwright/cli@latest -s=<app> close`
-9. Print summary: total requests captured, endpoints discovered
+**If `--recon-only`:** Run Phase 1a only → output RECON-REPORT.md → done.
 
-**If MCP fallback:**
-1. Verify debug Chrome on port 9222
-2. `navigate_page` with target URL
-3. `list_network_requests` + `get_network_request` for traffic
-4. Save to `<app>/traffic-capture/raw-traffic.json`
+**If full recording:**
+1. Run Phase 1a reconnaissance (if unfamiliar site)
+2. Follow HARNESS.md Phase 1 exactly — trace, explore, parse
+3. **Verify trace contains WRITE operations** before stopping
+4. Output: `<app>/traffic-capture/raw-traffic.json`
+
+See HARNESS.md Phase 1 for the complete exploration checklist and commands.
 
 ## Interactive Mode
 

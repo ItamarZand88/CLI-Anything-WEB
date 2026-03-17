@@ -39,80 +39,34 @@ Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` 
 
 ### Phase 1 — Record (Traffic Capture)
 
-**If playwright-cli available (primary):**
-1. Open browser: `npx @playwright/cli@latest -s=<app> open $ARGUMENTS --headed --persistent`
-2. If login needed — ask user to log in, wait for confirmation
-3. Start trace: `npx @playwright/cli@latest -s=<app> tracing-start`
-4. Systematically explore: use `snapshot`, `click`, `fill`, `screenshot` commands
-5. Stop trace: `npx @playwright/cli@latest -s=<app> tracing-stop`
-6. Save auth: `npx @playwright/cli@latest -s=<app> state-save <app>-auth.json`
-7. Parse: `python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --output <app>/traffic-capture/raw-traffic.json`
-8. Close: `npx @playwright/cli@latest -s=<app> close`
+Follow HARNESS.md Phase 1 exactly. Key steps:
+1. Check playwright-cli → MCP fallback if unavailable
+2. `tracing-start` → systematic exploration (READ + WRITE ops) → `tracing-stop`
+3. `parse-trace.py` → `raw-traffic.json`
+4. **Verify trace contains WRITE operations** before proceeding
 
-**If MCP fallback:**
-1. Verify debug Chrome on port 9222
-2. Use `mcp__chrome-devtools__*` tools: `navigate_page`, `list_network_requests`, `get_network_request`
-3. Save to `<app>/traffic-capture/raw-traffic.json`
+See HARNESS.md for the full exploration checklist and commands.
 
-### Phase 2 — Analyze (API Discovery)
+### Phase 2 — Analyze
+> Follow HARNESS.md Phase 2. Parse `raw-traffic.json`, identify protocol type, map endpoints.
 
-1. Parse the captured traffic
-2. Group by endpoint base path
-3. Identify: methods, URL patterns, params, body schemas, auth scheme
-4. Detect entity types and relationships
-5. Write `<app>/agent-harness/<APP>.md` — the software-specific SOP
+### Phase 3 — Design
+> Follow HARNESS.md Phase 3. Map endpoints → Click command groups. Design auth + REPL.
 
-### Phase 3 — Design (CLI Architecture)
+### Phase 4 — Implement
+> Follow HARNESS.md Phase 4. **Dispatch parallel subagents** for command modules.
 
-1. Map endpoint groups → Click command groups
-2. Map CRUD → subcommands (list, get, create, update, delete)
-3. Design auth management (login, status, refresh)
-4. Design session state and REPL
-5. Document architecture in `<APP>.md`
+### Phase 5 — Plan Tests
+> Follow HARNESS.md Phase 5. Write TEST.md Part 1 BEFORE any test code.
 
-### Phase 4 — Implement (Code Generation)
-
-1. Create the package structure under `<app>/agent-harness/cli_web/<app>/`
-2. **First (sequential):** Implement core modules — `client.py`, `auth.py`, `session.py`, `models.py`
-   These are the foundation that command files import.
-3. **Then (parallel subagents):** Dispatch one agent per command module — each is independent:
-   ```
-   Agent 1 → "Implement commands/notebooks.py"
-   Agent 2 → "Implement commands/sources.py"
-   Agent 3 → "Implement commands/chat.py"
-   # All run concurrently
-   ```
-   Each agent gets: the `<APP>.md` API spec, `client.py` interface, its resource endpoints.
-4. **Last (sequential):** Wire together — `<app>_cli.py`, `__main__.py`, `setup.py`, copy `repl_skin.py`
-
-### Phase 5 — Plan Tests (TEST.md Part 1)
-
-1. Write `tests/TEST.md` with test plan BEFORE writing test code
-2. Plan test inventory, unit tests per module, E2E scenarios
-3. Define realistic workflow scenarios (auth flow, CRUD round-trip, pagination)
-
-### Phase 6 — Test (Write Tests)
-
-1. **Parallel subagents** for independent test files:
-   ```
-   Agent 1 → "Write unit tests for client.py + auth.py in test_core.py"
-   Agent 2 → "Write E2E fixture replay + live CRUD tests in test_e2e.py"
-   ```
-2. Integrate, store response fixtures in `tests/fixtures/`
-3. Run all tests — ALL must pass with real auth
+### Phase 6 — Test
+> Follow HARNESS.md Phase 6. **Auth MUST be configured first.** Parallel subagents for test files.
 
 ### Phase 7 — Document
+> Follow HARNESS.md Phase 7. Append TEST.md Part 2 (results).
 
-1. Run tests: `cd <app>/agent-harness && python3 -m pytest cli_web/<app>/tests/ -v`
-2. Update TEST.md with results
-3. Write README.md with usage examples
-
-### Phase 8 — Publish
-
-1. Install: `cd <app>/agent-harness && pip install -e .`
-2. Verify: `which cli-web-<app>`
-3. Test: `cli-web-<app> --help`
-4. Test JSON: `cli-web-<app> --json <first-command> list`
+### Phase 8 — Publish and Verify
+> Follow HARNESS.md Phase 8. **Must include WRITE smoke test** — not just reads.
 
 ## Success Criteria
 
