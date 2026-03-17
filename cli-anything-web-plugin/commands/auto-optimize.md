@@ -1,7 +1,7 @@
 ---
 name: cli-anything-web:auto-optimize
 description: Run autonomous skill optimization loop. Iteratively modifies skills, runs evals, keeps improvements, discards regressions. Runs until interrupted.
-argument-hint: [--iterations N] [--target-score N]
+argument-hint: [--level 1|2|3] [--iterations N] [--target-score N]
 allowed-tools: Bash(*), Read, Write, Edit
 ---
 
@@ -31,6 +31,29 @@ Follow the auto-optimize skill's loop exactly:
    - If not: `git reset --hard HEAD~1`, log as "discard"
    - Append to results.tsv
    - Continue immediately — do NOT pause to ask the user
+
+## Levels
+
+- `--level 1` (default): Fast skill knowledge evals (~3 min/iteration)
+  - Runs: `python scripts/run-eval.py --evals evals/eval-suite.json`
+  - Optimizes: skill .md instructions
+
+- `--level 2`: Full pipeline integration eval (~20-30 min/iteration)
+  - Runs: `python scripts/run-integration-eval.py --suite evals/integration-suite.json`
+  - Tests: does the generated CLI actually work?
+  - Optimizes: HARNESS.md phases, command instructions
+
+- `--level 3`: Level 2 + transcript analysis (~30-40 min/iteration)
+  - Runs: Level 2 + `python scripts/analyze-transcript.py`
+  - Analyzes: time per phase, errors, dead ends, patterns
+  - Generates: specific HARNESS.md improvement proposals
+  - Optimizes: the pipeline itself
+
+**Recommended flow:**
+1. Run `--level 1` until 100% pass rate
+2. Run `--level 2` to verify CLIs actually work
+3. Run `--level 3` to find process improvements
+4. Apply Level 3 proposals, re-run `--level 1` to verify
 
 3. **Stopping conditions:**
    - User interrupts (Ctrl+C)
