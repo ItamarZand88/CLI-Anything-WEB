@@ -32,8 +32,8 @@ fi
 # HARNESS.md exists
 check "HARNESS.md exists" "$([ -f "$SCRIPT_DIR/HARNESS.md" ] && echo true || echo false)"
 
-# All 6 command files
-for cmd in cli-anything-web record refine test validate list; do
+# All 8 command files
+for cmd in cli-anything-web record recon refine test validate list auto-optimize; do
     check "commands/$cmd.md exists" "$([ -f "$SCRIPT_DIR/commands/$cmd.md" ] && echo true || echo false)"
 done
 
