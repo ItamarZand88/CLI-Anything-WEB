@@ -25,7 +25,7 @@ Target URL: $ARGUMENTS
 
 ## Process
 
-Invoke the `cli-anything-web-capture` skill for Phase 1 traffic recording.
+Invoke the `capture` skill for Phase 1 traffic recording.
 The capture skill handles everything: site assessment, setup, trace, explore, parse.
 
 ## Interactive Mode

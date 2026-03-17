@@ -1,5 +1,5 @@
 ---
-name: cli-anything-web-standards
+name: standards
 description: >
   Quality standards and Phase 8 publish/verify for cli-web-* CLIs. Covers the
   50-check quality checklist, package publishing (pip install -e .), end-user
@@ -25,7 +25,7 @@ Do NOT start unless:
 - [ ] TEST.md has both Part 1 (plan) and Part 2 (results)
 - [ ] All core modules are implemented and functional
 
-If tests are not passing, invoke the `cli-anything-web-testing` skill first.
+If tests are not passing, invoke the `testing` skill first.
 
 ---
 
@@ -245,7 +245,7 @@ These are non-negotiable standards:
 
 ## Related
 
-- **`cli-anything-web-testing`** skill -- Phases 5-7 test planning/writing/documentation
-- **`cli-anything-web-methodology`** skill -- Phases 2-4 analyze/design/implement
-- **`cli-anything-web-capture`** skill -- Phase 1 traffic recording
+- **`testing`** skill -- Phases 5-7 test planning/writing/documentation
+- **`methodology`** skill -- Phases 2-4 analyze/design/implement
+- **`capture`** skill -- Phase 1 traffic recording
 - **`/cli-anything-web:validate`** -- Command to run the full 50-check validation

@@ -18,7 +18,7 @@ Target: $ARGUMENTS
 
 ## Process
 
-> **Skills used:** `cli-anything-web-standards` (50-check validation)
+> **Skills used:** `standards` (50-check validation)
 
 1. Parse the target path to extract `<app>` name
 2. Resolve the `agent-harness/` root and `cli_web/<app>/` package path
@@ -32,7 +32,7 @@ Target: $ARGUMENTS
 
 ## Validation Checklist
 
-Invoke the `cli-anything-web-standards` skill which defines the complete 50-check
+Invoke the `standards` skill which defines the complete 50-check
 validation across 8 categories:
 
 1. Directory Structure (6 checks)
@@ -44,7 +44,7 @@ validation across 8 categories:
 7. PyPI Packaging Standards (5 checks)
 8. Code Quality (5 checks)
 
-See the `cli-anything-web-standards` skill for the detailed checklist and report format.
+See the `standards` skill for the detailed checklist and report format.
 
 ## Report Format
 

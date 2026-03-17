@@ -6,7 +6,7 @@
       "id": "recon-suno",
       "name": "Suno.com capture planning",
       "prompt": "Plan the complete traffic capture for https://suno.com. Include exact playwright-cli commands for site assessment (framework detection, protection checks, API probe), the full exploration checklist (READ + WRITE), and structured findings.",
-      "skills_to_load": ["cli-anything-web-capture"],
+      "skills_to_load": ["capture"],
       "assertions": [
         {"id": "A1", "text": "Uses npx @playwright/cli commands", "check": "programmatic", "pattern": "npx @playwright/cli"},
         {"id": "A2", "text": "Follows structured multi-step capture flow", "check": "llm"},
@@ -26,7 +26,7 @@
       "id": "recon-nextjs",
       "name": "Next.js SSR site capture",
       "prompt": "Plan traffic capture for https://vercel.com/dashboard (a Next.js app). Include __NEXT_DATA__ extraction, Force SPA Navigation trick, and SSR+API hybrid strategy.",
-      "skills_to_load": ["cli-anything-web-capture", "cli-anything-web-methodology"],
+      "skills_to_load": ["capture", "methodology"],
       "assertions": [
         {"id": "A1", "text": "Uses playwright-cli commands", "check": "programmatic", "pattern": "npx @playwright/cli"},
         {"id": "A2", "text": "Detects __NEXT_DATA__ with eval command", "check": "programmatic", "pattern": "__NEXT_DATA__"},
@@ -40,7 +40,7 @@
       "id": "recon-protected",
       "name": "Protected site capture (Futbin)",
       "prompt": "Plan traffic capture for https://www.futbin.com. Check for Cloudflare, rate limits, and recommend a capture strategy considering protections.",
-      "skills_to_load": ["cli-anything-web-capture"],
+      "skills_to_load": ["capture"],
       "assertions": [
         {"id": "A1", "text": "Uses playwright-cli commands", "check": "programmatic", "pattern": "npx @playwright/cli"},
         {"id": "A2", "text": "Includes protection detection eval script", "check": "programmatic", "pattern": "cloudflare|captcha|perimeterx"},
@@ -54,7 +54,7 @@
       "id": "pipeline-suno",
       "name": "Full pipeline planning for Suno",
       "prompt": "Plan the complete implementation of cli-web-suno for https://suno.com. Cover all phases: capture, analyze, design, implement with parallel subagents, test planning, test writing, documentation, publish with smoke test.",
-      "skills_to_load": ["cli-anything-web-capture", "cli-anything-web-methodology", "cli-anything-web-testing", "cli-anything-web-standards"],
+      "skills_to_load": ["capture", "methodology", "testing", "standards"],
       "assertions": [
         {"id": "A1", "text": "References multi-phase pipeline", "check": "programmatic", "pattern": "(?i)phase|capture.*methodology.*testing.*standards"},
         {"id": "A2", "text": "Uses playwright-cli for capture", "check": "programmatic", "pattern": "npx @playwright/cli|playwright-cli"},
@@ -72,7 +72,7 @@
       "id": "novel-graphql",
       "name": "Novel GraphQL site (Linear.app)",
       "prompt": "Plan the complete traffic capture and CLI implementation for https://linear.app — a project management tool. You have never seen this site before. Plan capture, analyze what protocol it likely uses, design the CLI, and explain how you'd handle the GraphQL API pattern if detected.",
-      "skills_to_load": ["cli-anything-web-capture", "cli-anything-web-methodology"],
+      "skills_to_load": ["capture", "methodology"],
       "assertions": [
         {"id": "A1", "text": "Uses playwright-cli commands for capture", "check": "programmatic", "pattern": "npx @playwright/cli"},
         {"id": "A2", "text": "Runs framework detection eval commands before full capture", "check": "programmatic", "pattern": "eval.*__NEXT_DATA__|eval.*__NUXT__|eval.*#app|eval.*#root"},
@@ -90,7 +90,7 @@
       "id": "novel-streaming",
       "name": "Novel streaming app (Perplexity.ai)",
       "prompt": "Plan the complete traffic capture and CLI implementation for https://www.perplexity.ai — an AI search engine with streaming responses. You have never seen this site before. How would you capture the streaming API? How would the generated CLI handle Server-Sent Events (SSE)? What about the search + follow-up conversation pattern?",
-      "skills_to_load": ["cli-anything-web-capture", "cli-anything-web-methodology", "cli-anything-web-testing"],
+      "skills_to_load": ["capture", "methodology", "testing"],
       "assertions": [
         {"id": "A1", "text": "Uses playwright-cli for capture", "check": "programmatic", "pattern": "npx @playwright/cli|playwright-cli"},
         {"id": "A2", "text": "Identifies or discusses SSE/streaming response pattern", "check": "programmatic", "pattern": "(?i)sse|server.sent|streaming|event.stream"},
@@ -108,7 +108,7 @@
       "id": "novel-readonly",
       "name": "Novel read-only site (Product Hunt)",
       "prompt": "Plan the traffic capture for https://www.producthunt.com — a product discovery site. Most features are read-only (browse products, view launches, search). The site may not have meaningful WRITE operations accessible to regular users. How do you handle the read-only escape hatch? Is this site CLI-suitable?",
-      "skills_to_load": ["cli-anything-web-capture", "cli-anything-web-methodology", "cli-anything-web-standards"],
+      "skills_to_load": ["capture", "methodology", "standards"],
       "assertions": [
         {"id": "A1", "text": "Uses playwright-cli for capture", "check": "programmatic", "pattern": "npx @playwright/cli|playwright-cli"},
         {"id": "A2", "text": "Acknowledges the site may be primarily read-only", "check": "programmatic", "pattern": "(?i)read.only|no.*write|limited.*write"},
@@ -126,7 +126,7 @@
       "id": "novel-google-app",
       "name": "Novel Google batchexecute app (Google Keep)",
       "prompt": "Plan the complete traffic capture and CLI for https://keep.google.com — Google's note-taking app. This uses the same batchexecute RPC protocol as NotebookLM. How would you detect it? What RPC codec structure would you build? How is auth different from REST APIs?",
-      "skills_to_load": ["cli-anything-web-capture", "cli-anything-web-methodology"],
+      "skills_to_load": ["capture", "methodology"],
       "assertions": [
         {"id": "A1", "text": "Uses playwright-cli for capture", "check": "programmatic", "pattern": "npx @playwright/cli|playwright-cli"},
         {"id": "A2", "text": "Detects or expects Google batchexecute protocol", "check": "programmatic", "pattern": "(?i)batchexecute|WIZ_global_data"},

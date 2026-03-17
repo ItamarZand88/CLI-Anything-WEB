@@ -7,7 +7,7 @@ allowed-tools: Bash(*), Read, Write, Edit
 
 # CLI-Anything-Web: Test Runner
 
-> **Skills used:** `cli-anything-web-testing` (Phases 5-7)
+> **Skills used:** `testing` (Phases 5-7)
 
 Read the methodology overview:
 @${CLAUDE_PLUGIN_ROOT}/HARNESS.md
@@ -16,7 +16,7 @@ Target: $ARGUMENTS
 
 ## Process
 
-This command invokes the `cli-anything-web-testing` skill for Phases 5-7.
+This command invokes the `testing` skill for Phases 5-7.
 
 1. **Verify auth is working FIRST** — this is mandatory before any E2E test:
    ```
@@ -47,8 +47,8 @@ This command invokes the `cli-anything-web-testing` skill for Phases 5-7.
 5. Update `TEST.md` with results in standard format
 6. If failures exist, analyze and suggest fixes
 
-See the `cli-anything-web-testing` skill for detailed testing patterns and the
-`cli-anything-web-standards` skill for quality checks.
+See the `testing` skill for detailed testing patterns and the
+`standards` skill for quality checks.
 
 ## TEST.md Format
 

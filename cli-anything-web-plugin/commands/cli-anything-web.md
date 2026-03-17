@@ -28,10 +28,10 @@ Target URL: $ARGUMENTS
 Run the full pipeline by invoking skills in sequence:
 
 1. Check playwright-cli availability (see Prerequisites above)
-2. Invoke `cli-anything-web-capture` skill -- Phase 1 site assessment + traffic recording
-3. Invoke `cli-anything-web-methodology` skill -- Phases 2-4 analyze/design/implement
-4. Invoke `cli-anything-web-testing` skill -- Phases 5-7 test planning/writing/documentation
-5. Invoke `cli-anything-web-standards` skill -- Phase 8 publish and verify
+2. Invoke `capture` skill -- Phase 1 site assessment + traffic recording
+3. Invoke `methodology` skill -- Phases 2-4 analyze/design/implement
+4. Invoke `testing` skill -- Phases 5-7 test planning/writing/documentation
+5. Invoke `standards` skill -- Phase 8 publish and verify
 
 Each skill handles its phases completely and invokes the next when done.
 See HARNESS.md for the pipeline overview and critical rules.

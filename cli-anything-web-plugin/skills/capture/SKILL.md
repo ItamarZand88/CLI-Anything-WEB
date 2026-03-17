@@ -1,5 +1,5 @@
 ---
-name: cli-anything-web-capture
+name: capture
 description: >
   Capture HTTP traffic from web apps using playwright-cli. Includes site assessment
   (framework detection, protection checks, API discovery) and full traffic recording
@@ -216,7 +216,7 @@ for chrome-devtools-mcp fallback instructions.
 ## Next Step
 
 When capture is complete and raw-traffic.json has WRITE operations, invoke
-`cli-anything-web-methodology` to analyze the traffic and build the CLI.
+`methodology` to analyze the traffic and build the CLI.
 
 ---
 

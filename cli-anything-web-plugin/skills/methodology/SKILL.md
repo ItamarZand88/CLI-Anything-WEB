@@ -1,5 +1,5 @@
 ---
-name: cli-anything-web-methodology
+name: methodology
 description: >
   Analyze captured HTTP traffic, design CLI architecture, and implement the Python
   CLI package. Covers Phases 2-4 of the pipeline: parse raw-traffic.json, identify
@@ -26,7 +26,7 @@ Do NOT start unless:
 - [ ] Auth state was captured during Phase 1
 
 If raw-traffic.json is missing or has no WRITE operations, invoke the
-`cli-anything-web-capture` skill first.
+`capture` skill first.
 
 **Exception for read-only sites:** If the site is genuinely read-only (search engine,
 dashboard, analytics viewer with no create/update/delete), the trace may contain only
@@ -232,7 +232,7 @@ Agent 4 -> "Implement commands/artifacts.py (list, create, get)"
 
 ## Next Step
 
-When implementation is complete, invoke the `cli-anything-web-testing` skill
+When implementation is complete, invoke the `testing` skill
 to plan and write tests.
 
 Do NOT skip testing -- every CLI must have comprehensive tests before publishing.
@@ -243,9 +243,9 @@ Do NOT skip testing -- every CLI must have comprehensive tests before publishing
 
 | Skill | When it activates |
 |-------|------------------|
-| `cli-anything-web-capture` | Phase 1 -- traffic recording (prerequisite for this skill) |
-| `cli-anything-web-testing` | Phases 5-7 -- test planning, writing, documentation |
-| `cli-anything-web-standards` | Phase 8 -- publish, verify, smoke test |
+| `capture` | Phase 1 -- traffic recording (prerequisite for this skill) |
+| `testing` | Phases 5-7 -- test planning, writing, documentation |
+| `standards` | Phase 8 -- publish, verify, smoke test |
 | `auto-optimize` | Meta -- autonomous skill optimization |
 
 ---

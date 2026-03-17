@@ -60,15 +60,15 @@ phases and invokes the next when done. Hard gates prevent skipping.
 
 | Phase | Skill | What it does | Hard Gate |
 |-------|-------|-------------|-----------|
-| 1 | `cli-anything-web-capture` | Assess site + capture traffic + explore + save auth | playwright-cli available |
-| 2-4 | `cli-anything-web-methodology` | Analyze, design, implement CLI | raw-traffic.json has WRITE ops |
-| 5-7 | `cli-anything-web-testing` | Plan tests, write tests, document | Implementation complete |
-| 8 | `cli-anything-web-standards` | Publish, verify, smoke test | All tests pass |
+| 1 | `capture` | Assess site + capture traffic + explore + save auth | playwright-cli available |
+| 2-4 | `methodology` | Analyze, design, implement CLI | raw-traffic.json has WRITE ops |
+| 5-7 | `testing` | Plan tests, write tests, document | Implementation complete |
+| 8 | `standards` | Publish, verify, smoke test | All tests pass |
 
 **Sequencing:**
 ```
-cli-anything-web-capture → cli-anything-web-methodology
-→ cli-anything-web-testing → cli-anything-web-standards → DONE
+capture → methodology
+→ testing → standards → DONE
 ```
 
 **Other skills:**
@@ -99,7 +99,7 @@ If playwright-cli cannot be used, fall back to chrome-devtools-mcp:
 These reference files provide detailed patterns for specific topics. They live
 under `skills/*/references/` and are loaded when the relevant skill activates.
 
-### Capture References (`skills/cli-anything-web-capture/references/`)
+### Capture References (`skills/capture/references/`)
 
 | Reference | When to read | Used in |
 |-----------|-------------|---------|
@@ -111,7 +111,7 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 | `api-discovery.md` | Finding API endpoints during capture | Phase 1 |
 | `strategy-selection.md` | Choosing capture strategy | Phase 1 |
 
-### Methodology References (`skills/cli-anything-web-methodology/references/`)
+### Methodology References (`skills/methodology/references/`)
 
 | Reference | When to read | Used in |
 |-----------|-------------|---------|

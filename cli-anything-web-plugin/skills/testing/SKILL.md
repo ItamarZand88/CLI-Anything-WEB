@@ -1,5 +1,5 @@
 ---
-name: cli-anything-web-testing
+name: testing
 description: >
   Plan, write, and document tests for cli-web-* CLIs. Covers Phases 5-7: write
   TEST.md Part 1 (test plan), implement test suite (unit + E2E + subprocess),
@@ -24,7 +24,7 @@ Do NOT start unless:
 - [ ] `pip install -e .` succeeds and `cli-web-<app>` is on PATH
 - [ ] `<APP>.md` exists with API map and auth scheme
 
-If implementation is incomplete, invoke the `cli-anything-web-methodology` skill first.
+If implementation is incomplete, invoke the `methodology` skill first.
 
 ---
 
@@ -240,7 +240,7 @@ When tests fail:
 
 ## Next Step
 
-When all tests pass, invoke the `cli-anything-web-standards` skill to
+When all tests pass, invoke the `standards` skill to
 publish and verify the CLI.
 
 Do NOT skip to publishing -- all tests must pass first.
@@ -256,7 +256,7 @@ Do NOT skip to publishing -- all tests must pass first.
 
 ## Related
 
-- **`cli-anything-web-capture`** skill -- Phase 1 traffic recording (prerequisite chain)
-- **`cli-anything-web-methodology`** skill -- Phases 2-4 analyze/design/implement
-- **`cli-anything-web-standards`** skill -- Phase 8 publish, verify, smoke test
+- **`capture`** skill -- Phase 1 traffic recording (prerequisite chain)
+- **`methodology`** skill -- Phases 2-4 analyze/design/implement
+- **`standards`** skill -- Phase 8 publish, verify, smoke test
 - **`/cli-anything-web:test`** -- Command to run tests and update TEST.md

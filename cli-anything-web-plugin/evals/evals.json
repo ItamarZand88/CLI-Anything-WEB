@@ -6,7 +6,7 @@
     {
       "id": 1,
       "name": "full-pipeline-planning",
-      "skill_tested": "cli-anything-web-methodology",
+      "skill_tested": "methodology",
       "prompt": "I want to create a CLI for Google NotebookLM (https://notebooklm.google.com/). I need to be able to create notebooks, add sources (PDFs, URLs, text), ask questions against my sources, and manage audio overviews. Plan out how you'd approach this using the /cli-anything-web pipeline.",
       "expected_output": "Should reference the 8-phase pipeline from HARNESS.md, mention Chrome DevTools MCP for traffic capture, discuss auth (Google OAuth), identify key API endpoints to capture (notebooks CRUD, sources CRUD, query/chat), and outline the CLI command structure.",
       "assertions": [
@@ -22,7 +22,7 @@
     {
       "id": 2,
       "name": "test-planning-for-notebooklm",
-      "skill_tested": "cli-anything-web-testing",
+      "skill_tested": "testing",
       "prompt": "I've already built a basic cli-web-notebooklm CLI with commands for notebooks (list, create, delete) and sources (add-url, add-pdf, list). Now I need to write the test suite. Help me plan the tests — what should go in TEST.md Part 1, what unit tests do I need, what E2E scenarios should I cover?",
       "expected_output": "Should produce a TEST.md Part 1 plan with test inventory, unit test plan per module (client.py, auth.py), E2E scenarios (fixture replay + live), realistic workflow scenarios (create notebook → add source → query → verify response), and subprocess test plan using _resolve_cli.",
       "assertions": [
@@ -38,7 +38,7 @@
     {
       "id": 3,
       "name": "standards-check-notebooklm",
-      "skill_tested": "cli-anything-web-standards",
+      "skill_tested": "standards",
       "prompt": "I just finished building cli-web-notebooklm. Before I ship it, can you check what I might be missing? Here's my current structure:\n\nnotebooklm/agent-harness/\n├── NOTEBOOKLM.md\n├── setup.py\n└── cli_web/\n    └── notebooklm/\n        ├── __init__.py\n        ├── notebooklm_cli.py\n        ├── core/\n        │   ├── client.py\n        │   └── auth.py\n        └── tests/\n            └── test_core.py\n\nWhat am I missing to pass validation?",
       "expected_output": "Should identify missing files against the 50-check checklist: __main__.py, core/session.py, core/models.py, utils/ directory (repl_skin.py, output.py, config.py), commands/ directory, tests/TEST.md, tests/test_e2e.py, README.md. Should reference the 8-category structure and give actionable fix suggestions.",
       "assertions": [
