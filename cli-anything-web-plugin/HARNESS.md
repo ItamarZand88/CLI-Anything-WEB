@@ -79,6 +79,31 @@ During the full pipeline, all five activate at the relevant phases.
 
 ---
 
+## Reference Materials
+
+These reference files provide detailed patterns for specific topics. They live
+under `skills/*/references/` and are loaded when the relevant skill activates.
+
+### Methodology References (`skills/cli-anything-web-methodology/references/`)
+
+| Reference | When to read | Used in |
+|-----------|-------------|---------|
+| `traffic-patterns.md` | Phase 2 — identifying API protocol (REST, GraphQL, SSR, batchexecute) | Phase 1-3 |
+| `auth-strategies.md` | Phase 4 — implementing auth module | Phase 4 |
+| `google-batchexecute.md` | Phase 2+4 — when target is a Google app | Phase 2, 4 |
+| `ssr-patterns.md` | Phase 1a+2 — when target uses SSR (Next.js, Nuxt, etc.) | Phase 1a, 2 |
+
+### Reconnaissance References (`skills/web-reconnaissance/references/`)
+
+| Reference | When to read | Used in |
+|-----------|-------------|---------|
+| `framework-detection.md` | Phase 1a — detecting SSR frameworks | Phase 1a |
+| `protection-detection.md` | Phase 1a — checking anti-bot protections | Phase 1a |
+| `api-discovery.md` | Phase 1a — finding API endpoints | Phase 1a |
+| `strategy-selection.md` | Phase 1a — choosing capture strategy | Phase 1a |
+
+---
+
 ## 8-Phase Pipeline
 
 ### Prerequisites
