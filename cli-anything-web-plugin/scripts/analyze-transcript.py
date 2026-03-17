@@ -20,14 +20,7 @@ from pathlib import Path
 def extract_phase_timing(transcript: str) -> list[dict]:
     """Extract phase start/end times and durations from transcript."""
     phases = []
-    # Look for phase progress markers like "Phase 1 │ DONE" or "Phase 1 │ ▶ START"
-    # Also look for "### Phase N" markers
-    phase_pattern = re.compile(
-        r'Phase\s+(\d+[a-z]?)\s*[│|]\s*(DONE|START|▶|\.\.\.)\s*[│|]\s*(.+?)(?:\s*[│|]|\s*$)',
-        re.MULTILINE
-    )
-
-    # Simpler: look for phase-related log lines with timestamps
+    # Look for phase-related log lines
     # The agent typically outputs "Phase X — Name" when starting each phase
     phase_start_pattern = re.compile(
         r'(?:Phase|###\s*Phase)\s+(\d+[a-z]?)\s*[—\-:]+\s*(.+)',
@@ -136,8 +129,9 @@ def extract_dead_ends(transcript: str) -> list[dict]:
     return dead_ends
 
 
-def generate_proposals(phases: list, errors: list, dead_ends: list, transcript: str) -> list[dict]:
+def generate_proposals(phases: list, errors: list, dead_ends: list, transcript: str) -> list[dict]:  # noqa: ARG001
     """Generate improvement proposals based on analysis. Uses claude -p if available."""
+    _ = phases  # Available for future phase-based proposals
     proposals = []
 
     # Rule-based proposals from dead ends
