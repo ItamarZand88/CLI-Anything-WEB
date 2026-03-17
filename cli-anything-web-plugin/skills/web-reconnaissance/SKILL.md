@@ -222,3 +222,12 @@ generation decisions.
 - [Protection Detection](references/protection-detection.md) — Anti-bot and WAF checks
 - [API Discovery](references/api-discovery.md) — API finding priority chain
 - [Strategy Selection](references/strategy-selection.md) — Decision tree for capture approach
+
+---
+
+## Next Step
+
+When reconnaissance is complete and the user confirms the recommended strategy,
+invoke the `cli-anything-web-capture` skill to start traffic recording.
+
+Do NOT skip to implementation — traffic must be captured first.

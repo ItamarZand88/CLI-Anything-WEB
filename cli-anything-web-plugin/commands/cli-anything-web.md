@@ -5,13 +5,9 @@ argument-hint: <url>
 allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
 ---
 
-## CRITICAL: Read HARNESS.md First
-
-**Before doing anything else, you MUST read `${CLAUDE_PLUGIN_ROOT}/HARNESS.md`.** It defines the complete methodology, all phases, and implementation standards. Every phase below follows HARNESS.md. Do not improvise — follow the harness specification.
-
 # CLI-Anything-Web: Full Pipeline
 
-Read the methodology SOP first:
+Read the methodology overview:
 @${CLAUDE_PLUGIN_ROOT}/HARNESS.md
 
 Target URL: $ARGUMENTS
@@ -34,39 +30,19 @@ Target URL: $ARGUMENTS
 
 ## Execution Plan
 
-Run ALL 8 phases in sequence for the target web app.
+Run the full pipeline by invoking skills in sequence:
+
+1. Check playwright-cli availability (see Prerequisites above)
+2. Invoke `web-reconnaissance` skill (optional, for unfamiliar sites)
+3. Invoke `cli-anything-web-capture` skill — Phase 1 traffic recording
+4. Invoke `cli-anything-web-methodology` skill — Phases 2-4 analyze/design/implement
+5. Invoke `cli-anything-web-testing` skill — Phases 5-7 test planning/writing/documentation
+6. Invoke `cli-anything-web-standards` skill — Phase 8 publish and verify
+
+Each skill handles its phases completely and invokes the next when done.
+See HARNESS.md for the pipeline overview and critical rules.
+
 Extract the app name from the URL (e.g., `monday.com` → `monday`, `notion.so` → `notion`).
-
-### Phase 1 — Record (Traffic Capture)
-
-Follow HARNESS.md Phase 1 exactly. Key steps:
-1. Check playwright-cli → MCP fallback if unavailable
-2. `tracing-start` → systematic exploration (READ + WRITE ops) → `tracing-stop`
-3. `parse-trace.py` → `raw-traffic.json`
-4. **Verify trace contains WRITE operations** before proceeding
-
-See HARNESS.md for the full exploration checklist and commands.
-
-### Phase 2 — Analyze
-> Follow HARNESS.md Phase 2. Parse `raw-traffic.json`, identify protocol type, map endpoints.
-
-### Phase 3 — Design
-> Follow HARNESS.md Phase 3. Map endpoints → Click command groups. Design auth + REPL.
-
-### Phase 4 — Implement
-> Follow HARNESS.md Phase 4. **Dispatch parallel subagents** for command modules.
-
-### Phase 5 — Plan Tests
-> Follow HARNESS.md Phase 5. Write TEST.md Part 1 BEFORE any test code.
-
-### Phase 6 — Test
-> Follow HARNESS.md Phase 6. **Auth MUST be configured first.** Parallel subagents for test files.
-
-### Phase 7 — Document
-> Follow HARNESS.md Phase 7. Append TEST.md Part 2 (results).
-
-### Phase 8 — Publish and Verify
-> Follow HARNESS.md Phase 8. **Must include WRITE smoke test** — not just reads.
 
 ## Success Criteria
 

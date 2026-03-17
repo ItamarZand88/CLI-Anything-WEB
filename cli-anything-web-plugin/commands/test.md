@@ -5,20 +5,18 @@ argument-hint: <app-path>
 allowed-tools: Bash(*), Read, Write, Edit
 ---
 
-## CRITICAL: Read HARNESS.md First
-
-**Before running tests, read `${CLAUDE_PLUGIN_ROOT}/HARNESS.md`.** It defines the test standards, expected structure, and what constitutes a passing test suite.
-
 # CLI-Anything-Web: Test Runner
 
-Read the methodology SOP:
+> **Skills used:** `cli-anything-web-testing` (Phases 5-7)
+
+Read the methodology overview:
 @${CLAUDE_PLUGIN_ROOT}/HARNESS.md
 
 Target: $ARGUMENTS
 
 ## Process
 
-> **Skills used:** `cli-anything-web-testing` (test patterns), `cli-anything-web-standards` (quality checks)
+This command invokes the `cli-anything-web-testing` skill for Phases 5-7.
 
 1. **Verify auth is working FIRST** — this is mandatory before any E2E test:
    ```
@@ -49,6 +47,9 @@ Target: $ARGUMENTS
 5. Update `TEST.md` with results in standard format
 6. If failures exist, analyze and suggest fixes
 
+See the `cli-anything-web-testing` skill for detailed testing patterns and the
+`cli-anything-web-standards` skill for quality checks.
+
 ## TEST.md Format
 
 ```markdown
@@ -56,8 +57,8 @@ Target: $ARGUMENTS
 
 ## Summary
 - **Total**: X tests
-- **Passed**: X ✅
-- **Failed**: X ❌
+- **Passed**: X
+- **Failed**: X
 - **Date**: YYYY-MM-DD
 
 ## Unit Tests (test_core.py)

@@ -58,7 +58,7 @@ else
 fi
 
 # All 3 skills
-for skill in cli-anything-web-methodology cli-anything-web-testing cli-anything-web-standards web-reconnaissance auto-optimize; do
+for skill in cli-anything-web-methodology cli-anything-web-capture cli-anything-web-testing cli-anything-web-standards web-reconnaissance auto-optimize; do
     check "skills/$skill/SKILL.md exists" \
         "$([ -f "$SCRIPT_DIR/skills/$skill/SKILL.md" ] && echo true || echo false)"
 done

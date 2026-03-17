@@ -5,13 +5,9 @@ argument-hint: <url> [--recon-only] [--duration <minutes>]
 allowed-tools: Bash(*), Read, Write, mcp__chrome-devtools__*
 ---
 
-## CRITICAL: Read HARNESS.md First
-
-**Before doing anything else, you MUST read `${CLAUDE_PLUGIN_ROOT}/HARNESS.md`.** Phase 1 of the methodology defines the complete recording process. Follow it exactly.
-
 # CLI-Anything-Web: Record Traffic Only
 
-Read the methodology SOP:
+Read the methodology overview:
 @${CLAUDE_PLUGIN_ROOT}/HARNESS.md
 
 Target URL: $ARGUMENTS
@@ -31,7 +27,14 @@ Target URL: $ARGUMENTS
 
 ### NEVER use `mcp__claude-in-chrome__*` tools — blocked.
 
-## Reconnaissance (runs first)
+## Process
+
+Invoke the `cli-anything-web-capture` skill for Phase 1 traffic recording.
+
+If `--recon-only`: invoke `web-reconnaissance` skill only → output RECON-REPORT.md.
+If full recording: capture skill handles everything (setup, trace, explore, parse).
+
+### Reconnaissance (runs first for unfamiliar sites)
 
 If `--recon-only` is specified, run ONLY the recon flow:
 1. Follow the `web-reconnaissance` skill's 5-step flow
@@ -39,24 +42,10 @@ If `--recon-only` is specified, run ONLY the recon flow:
 3. Done — no traffic capture
 
 If full recording (no `--recon-only`):
-1. Run recon first (Steps 1.1-1.5 from `web-reconnaissance` skill)
+1. Run recon first (invoke `web-reconnaissance` skill for unfamiliar sites)
 2. Show RECON-REPORT.md to user
 3. Confirm recommended capture strategy
-4. Proceed with traffic capture using the recommended approach
-
-## Process
-
-This command runs Phase 1 only — traffic recording without CLI generation.
-
-**If `--recon-only`:** Run Phase 1a only → output RECON-REPORT.md → done.
-
-**If full recording:**
-1. Run Phase 1a reconnaissance (if unfamiliar site)
-2. Follow HARNESS.md Phase 1 exactly — trace, explore, parse
-3. **Verify trace contains WRITE operations** before stopping
-4. Output: `<app>/traffic-capture/raw-traffic.json`
-
-See HARNESS.md Phase 1 for the complete exploration checklist and commands.
+4. Invoke `cli-anything-web-capture` skill for traffic recording
 
 ## Interactive Mode
 
