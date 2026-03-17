@@ -19,14 +19,9 @@ Target URL: $ARGUMENTS
 
 **If PLAYWRIGHT_OK** → use playwright-cli for all operations (primary path).
 
-**If PLAYWRIGHT_FAIL** → fall back to chrome-devtools MCP:
-- Tell user: "playwright-cli not available. Falling back to chrome-devtools MCP."
-- Launch debug Chrome: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh" $ARGUMENTS`
-- If first time, ask user to log in. Wait for confirmation.
-- If MCP not connected: tell user "Type `/mcp`, find **chrome-devtools**, click **Reconnect**."
-- Use `mcp__chrome-devtools__*` tools for all operations.
+**If PLAYWRIGHT_FAIL** → If playwright-cli is not available, see HARNESS.md for the MCP fallback path.
 
-### NEVER use `mcp__claude-in-chrome__*` tools — blocked, cannot capture request bodies.
+### NEVER use `mcp__claude-in-chrome__*` tools -- blocked, cannot capture request bodies.
 
 ## Execution Plan
 

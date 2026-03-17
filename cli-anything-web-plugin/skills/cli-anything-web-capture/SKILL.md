@@ -206,11 +206,10 @@ Don't grep JS bundles. Start a new trace -> screenshot -> click the button -> fi
 
 ---
 
-## Fallback: chrome-devtools-mcp
+## Fallback
 
-If playwright-cli unavailable:
-- `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
-- Use `mcp__chrome-devtools__*` tools
+**Fallback:** If playwright-cli is not available, see HARNESS.md Tool Hierarchy
+for chrome-devtools-mcp fallback instructions.
 
 ---
 
