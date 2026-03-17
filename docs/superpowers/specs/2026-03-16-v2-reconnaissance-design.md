@@ -190,7 +190,7 @@ Reconnaissance Complete
 
 ## New Reference: `ssr-patterns.md`
 
-**File:** `skills/cli-anything-web-methodology/references/ssr-patterns.md`
+**File:** `skills/methodology/references/ssr-patterns.md`
 
 Covers:
 - What SSR means for CLI generation (data is in HTML, not API)
@@ -245,7 +245,7 @@ Always do for unfamiliar sites.
 Output: `<app>/agent-harness/RECON-REPORT.md`
 ```
 
-### `skills/cli-anything-web-methodology/SKILL.md`
+### `skills/methodology/SKILL.md`
 
 Add `web-reconnaissance` to companion skills table:
 ```
@@ -262,7 +262,7 @@ Add new section "SSR / Server-Rendered Sites":
 - Force SPA Navigation trick
 - Reference to `ssr-patterns.md` for full patterns
 
-### `skills/cli-anything-web-standards/SKILL.md`
+### `skills/standards/SKILL.md`
 
 Add optional recon checks:
 - RECON-REPORT.md exists for unfamiliar sites

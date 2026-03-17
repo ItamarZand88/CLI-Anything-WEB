@@ -23,13 +23,13 @@
 | `skills/web-reconnaissance/references/protection-detection.md` | **CREATE** | Anti-bot detection eval script |
 | `skills/web-reconnaissance/references/api-discovery.md` | **CREATE** | API finding priority chain |
 | `skills/web-reconnaissance/references/strategy-selection.md` | **CREATE** | Decision tree from recon → strategy |
-| `skills/cli-anything-web-methodology/references/ssr-patterns.md` | **CREATE** | SSR data extraction patterns |
+| `skills/methodology/references/ssr-patterns.md` | **CREATE** | SSR data extraction patterns |
 | `commands/web-harness.md` | **POPULATE** | Recon command (currently empty) |
 | `commands/record.md` | **UPDATE** | Add `--recon-only`, recon-first flow |
 | `HARNESS.md` | **UPDATE** | Add Phase 1a Reconnaissance |
-| `skills/cli-anything-web-methodology/SKILL.md` | **UPDATE** | Add companion skill + reference |
+| `skills/methodology/SKILL.md` | **UPDATE** | Add companion skill + reference |
 | `references/traffic-patterns.md` | **UPDATE** | Add SSR section |
-| `skills/cli-anything-web-standards/SKILL.md` | **UPDATE** | Add recon checks |
+| `skills/standards/SKILL.md` | **UPDATE** | Add recon checks |
 | `verify-plugin.sh` | **UPDATE** | Add web-reconnaissance skill check |
 
 ---
@@ -166,7 +166,7 @@ git commit -m "docs: add strategy selection reference with decision tree"
 ### Task 6: Create ssr-patterns.md
 
 **Files:**
-- Create: `cli-anything-web-plugin/skills/cli-anything-web-methodology/references/ssr-patterns.md`
+- Create: `cli-anything-web-plugin/skills/methodology/references/ssr-patterns.md`
 
 - [ ] **Step 1: Write ssr-patterns.md**
 
@@ -182,7 +182,7 @@ Adapt from `reference-skills/web-scraper/strategies/hybrid-approaches.md`. Inclu
 - [ ] **Step 2: Commit**
 
 ```bash
-git add cli-anything-web-plugin/skills/cli-anything-web-methodology/references/ssr-patterns.md
+git add cli-anything-web-plugin/skills/methodology/references/ssr-patterns.md
 git commit -m "docs: add SSR patterns reference for server-rendered sites"
 ```
 
@@ -336,9 +336,9 @@ git commit -m "docs: add Phase 1a Reconnaissance to HARNESS.md pipeline"
 ### Task 10: Update remaining files (methodology, traffic-patterns, standards, verify)
 
 **Files:**
-- Modify: `cli-anything-web-plugin/skills/cli-anything-web-methodology/SKILL.md`
-- Modify: `cli-anything-web-plugin/skills/cli-anything-web-methodology/references/traffic-patterns.md`
-- Modify: `cli-anything-web-plugin/skills/cli-anything-web-standards/SKILL.md`
+- Modify: `cli-anything-web-plugin/skills/methodology/SKILL.md`
+- Modify: `cli-anything-web-plugin/skills/methodology/references/traffic-patterns.md`
+- Modify: `cli-anything-web-plugin/skills/standards/SKILL.md`
 - Modify: `cli-anything-web-plugin/verify-plugin.sh`
 
 - [ ] **Step 1: Update methodology SKILL.md**
@@ -393,7 +393,7 @@ Add to the Key Rules section or as optional checks:
 Add check for the new skill:
 ```bash
 # In the skills loop, add web-reconnaissance:
-for skill in cli-anything-web-methodology cli-anything-web-testing cli-anything-web-standards web-reconnaissance; do
+for skill in methodology testing standards web-reconnaissance; do
 ```
 
 - [ ] **Step 5: Run verify-plugin.sh to confirm all checks pass**
@@ -406,9 +406,9 @@ Expected: 18/18 checks pass (was 17, +1 for new skill).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add cli-anything-web-plugin/skills/cli-anything-web-methodology/SKILL.md \
-       cli-anything-web-plugin/skills/cli-anything-web-methodology/references/traffic-patterns.md \
-       cli-anything-web-plugin/skills/cli-anything-web-standards/SKILL.md \
+git add cli-anything-web-plugin/skills/methodology/SKILL.md \
+       cli-anything-web-plugin/skills/methodology/references/traffic-patterns.md \
+       cli-anything-web-plugin/skills/standards/SKILL.md \
        cli-anything-web-plugin/verify-plugin.sh
 git commit -m "docs: integrate reconnaissance into methodology, standards, and verification"
 ```
@@ -430,7 +430,7 @@ ls cli-anything-web-plugin/skills/web-reconnaissance/SKILL.md \
    cli-anything-web-plugin/skills/web-reconnaissance/references/protection-detection.md \
    cli-anything-web-plugin/skills/web-reconnaissance/references/api-discovery.md \
    cli-anything-web-plugin/skills/web-reconnaissance/references/strategy-selection.md \
-   cli-anything-web-plugin/skills/cli-anything-web-methodology/references/ssr-patterns.md
+   cli-anything-web-plugin/skills/methodology/references/ssr-patterns.md
 ```
 
 - [ ] **Step 3: Verify web-harness.md is no longer empty**

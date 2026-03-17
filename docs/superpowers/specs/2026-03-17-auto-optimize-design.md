@@ -180,7 +180,7 @@ Expanded eval definitions covering all 4 skills. Format:
       "id": "recon-nextjs",
       "name": "Next.js SSR site reconnaissance",
       "prompt": "Plan reconnaissance for https://vercel.com/dashboard (a Next.js app). Include __NEXT_DATA__ extraction, Force SPA Navigation trick, and SSR+API hybrid strategy.",
-      "skills_to_load": ["web-reconnaissance", "cli-anything-web-methodology"],
+      "skills_to_load": ["web-reconnaissance", "methodology"],
       "assertions": [
         {"id": "A1", "text": "Uses playwright-cli commands", "check": "programmatic", "pattern": "npx @playwright/cli"},
         {"id": "A2", "text": "Detects __NEXT_DATA__ with eval command", "check": "programmatic", "pattern": "__NEXT_DATA__"},
@@ -208,7 +208,7 @@ Expanded eval definitions covering all 4 skills. Format:
       "id": "pipeline-suno",
       "name": "Full pipeline planning for Suno",
       "prompt": "Plan the complete implementation of cli-web-suno for https://suno.com. Cover all 8 phases including reconnaissance, traffic capture, CLI design, parallel implementation, test planning, and end-user smoke test.",
-      "skills_to_load": ["cli-anything-web-methodology", "cli-anything-web-testing", "cli-anything-web-standards"],
+      "skills_to_load": ["methodology", "testing", "standards"],
       "assertions": [
         {"id": "A1", "text": "References 8-phase pipeline", "check": "programmatic", "pattern": "(?i)8.phase|phase.*[1-8]"},
         {"id": "A2", "text": "Uses playwright-cli for capture", "check": "programmatic", "pattern": "npx @playwright/cli|playwright-cli"},
@@ -247,7 +247,7 @@ c3d4e5f	34	34	100.0%	keep	added prediction emphasis	2026-03-17T10:30:00
 
 Add `auto-optimize` to the skills loop:
 ```bash
-for skill in cli-anything-web-methodology cli-anything-web-testing cli-anything-web-standards web-reconnaissance auto-optimize; do
+for skill in methodology testing standards web-reconnaissance auto-optimize; do
 ```
 
 ### `.gitignore`
@@ -257,7 +257,7 @@ Add:
 evals/results.tsv
 ```
 
-### `skills/cli-anything-web-methodology/SKILL.md`
+### `skills/methodology/SKILL.md`
 
 Add to companion skills table:
 ```

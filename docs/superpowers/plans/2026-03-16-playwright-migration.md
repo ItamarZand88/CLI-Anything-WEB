@@ -577,9 +577,9 @@ git commit -m "docs: update refine, test, validate commands for playwright-cli"
 ### Task 6: Update skills (methodology, testing, standards)
 
 **Files:**
-- Modify: `cli-anything-web-plugin/skills/cli-anything-web-methodology/SKILL.md`
-- Modify: `cli-anything-web-plugin/skills/cli-anything-web-testing/SKILL.md`
-- Modify: `cli-anything-web-plugin/skills/cli-anything-web-standards/SKILL.md`
+- Modify: `cli-anything-web-plugin/skills/methodology/SKILL.md`
+- Modify: `cli-anything-web-plugin/skills/testing/SKILL.md`
+- Modify: `cli-anything-web-plugin/skills/standards/SKILL.md`
 
 - [ ] **Step 1: Update methodology SKILL.md**
 
@@ -609,7 +609,7 @@ git commit -m "docs: update all 3 skills for playwright-cli"
 ### Task 7: Update auth-strategies.md
 
 **Files:**
-- Modify: `cli-anything-web-plugin/skills/cli-anything-web-methodology/references/auth-strategies.md`
+- Modify: `cli-anything-web-plugin/skills/methodology/references/auth-strategies.md`
 
 - [ ] **Step 1: Add playwright-cli state-save as primary pattern**
 
@@ -640,7 +640,7 @@ Keep the CDP option as "Legacy fallback" and the manual JSON import.
 - [ ] **Step 2: Commit**
 
 ```bash
-git add cli-anything-web-plugin/skills/cli-anything-web-methodology/references/auth-strategies.md
+git add cli-anything-web-plugin/skills/methodology/references/auth-strategies.md
 git commit -m "docs: add playwright-cli state-save as primary auth pattern"
 ```
 

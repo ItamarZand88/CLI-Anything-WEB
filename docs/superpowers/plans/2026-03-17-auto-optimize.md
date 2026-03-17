@@ -23,7 +23,7 @@
 | `commands/auto-optimize.md` | **CREATE** | Command entry point |
 | `verify-plugin.sh` | **UPDATE** | Add auto-optimize skill check |
 | `.gitignore` | **UPDATE** | Add evals/results.tsv |
-| `skills/cli-anything-web-methodology/SKILL.md` | **UPDATE** | Add companion skill |
+| `skills/methodology/SKILL.md` | **UPDATE** | Add companion skill |
 
 ---
 
@@ -469,7 +469,7 @@ git commit -m "feat: add auto-optimize command for skill optimization loop"
 **Files:**
 - Modify: `cli-anything-web-plugin/verify-plugin.sh`
 - Modify: `cli-anything-web-plugin/.gitignore` (create if missing inside plugin)
-- Modify: `cli-anything-web-plugin/skills/cli-anything-web-methodology/SKILL.md`
+- Modify: `cli-anything-web-plugin/skills/methodology/SKILL.md`
 
 - [ ] **Step 1: Update verify-plugin.sh skills loop**
 
@@ -499,7 +499,7 @@ Expected: 19/19 checks pass (was 18, +1 for auto-optimize skill).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add cli-anything-web-plugin/verify-plugin.sh cli-anything-web-plugin/skills/cli-anything-web-methodology/SKILL.md .gitignore
+git add cli-anything-web-plugin/verify-plugin.sh cli-anything-web-plugin/skills/methodology/SKILL.md .gitignore
 git commit -m "feat: integrate auto-optimize into plugin verification and methodology"
 ```
 

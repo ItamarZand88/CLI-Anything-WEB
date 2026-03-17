@@ -233,10 +233,10 @@ NEVER use mcp__claude-in-chrome__* — blocked, same as before
 | `commands/validate.md` | Minor update | Add `npx @playwright/cli --version` check |
 | `commands/list.md` | No change | No chrome-devtools references |
 | `commands/web-harness.md` | No change | Legacy file, no chrome-devtools references |
-| `skills/cli-anything-web-methodology/SKILL.md` | Minor update | Mention playwright-cli |
-| `skills/cli-anything-web-testing/SKILL.md` | Minor update | Update auth flow |
-| `skills/cli-anything-web-standards/SKILL.md` | Minor update | Add playwright-cli prerequisite |
-| `skills/cli-anything-web-methodology/references/auth-strategies.md` | Update | Add `state-save`/`state-load` as primary pattern |
+| `skills/methodology/SKILL.md` | Minor update | Mention playwright-cli |
+| `skills/testing/SKILL.md` | Minor update | Update auth flow |
+| `skills/standards/SKILL.md` | Minor update | Add playwright-cli prerequisite |
+| `skills/methodology/references/auth-strategies.md` | Update | Add `state-save`/`state-load` as primary pattern |
 | `scripts/parse-trace.py` | **NEW** | Parse trace `.network` + `resources/` → `raw-traffic.json` |
 | `scripts/launch-chrome-debug.sh` | Keep | For MCP fallback |
 | `scripts/extract-browser-cookies.py` | Keep | Legacy utility |

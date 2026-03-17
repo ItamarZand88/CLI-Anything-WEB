@@ -54,10 +54,10 @@ HARNESS.md becomes a high-level overview that:
 | Skill | Phases Owned | Lines (target) | Key Content |
 |-------|-------------|----------------|-------------|
 | `web-reconnaissance` | 1a | ~250 | 5-step recon flow, RECON-REPORT template (already exists, minor updates) |
-| `cli-anything-web-capture` | 1 | ~300 | **NEW** — setup, tracing, exploration checklist, parse-trace.py, auth save, WRITE verification |
-| `cli-anything-web-methodology` | 2, 3, 4 | ~400 | Analyze, Design, Implement with parallel dispatch. Absorbs Phase 2-4 from HARNESS |
-| `cli-anything-web-testing` | 5, 6, 7 | ~350 | Plan tests, write tests, document. Already mostly there, absorbs Phase 5-7 from HARNESS |
-| `cli-anything-web-standards` | 8 + validation | ~300 | Publish, smoke test (READ+WRITE), 50-check validation. Absorbs Phase 8 from HARNESS |
+| `capture` | 1 | ~300 | **NEW** — setup, tracing, exploration checklist, parse-trace.py, auth save, WRITE verification |
+| `methodology` | 2, 3, 4 | ~400 | Analyze, Design, Implement with parallel dispatch. Absorbs Phase 2-4 from HARNESS |
+| `testing` | 5, 6, 7 | ~350 | Plan tests, write tests, document. Already mostly there, absorbs Phase 5-7 from HARNESS |
+| `standards` | 8 + validation | ~300 | Publish, smoke test (READ+WRITE), 50-check validation. Absorbs Phase 8 from HARNESS |
 | `auto-optimize` | (meta) | ~200 | Unchanged — optimization loop methodology |
 
 ### Skill Sequencing (replaces HARNESS.md phases)
@@ -66,18 +66,18 @@ Each skill ends with a **Next Step** section that invokes the next skill:
 
 ```
 web-reconnaissance (Phase 1a)
-  → "Next: invoke cli-anything-web-capture to start recording"
+  → "Next: invoke capture to start recording"
 
-cli-anything-web-capture (Phase 1)
-  → "Next: invoke cli-anything-web-methodology to analyze traffic"
+capture (Phase 1)
+  → "Next: invoke methodology to analyze traffic"
 
-cli-anything-web-methodology (Phase 2-4)
-  → "Next: invoke cli-anything-web-testing to plan and write tests"
+methodology (Phase 2-4)
+  → "Next: invoke testing to plan and write tests"
 
-cli-anything-web-testing (Phase 5-7)
-  → "Next: invoke cli-anything-web-standards to publish and verify"
+testing (Phase 5-7)
+  → "Next: invoke standards to publish and verify"
 
-cli-anything-web-standards (Phase 8)
+standards (Phase 8)
   → "Pipeline complete. Verify all smoke tests pass."
 ```
 
@@ -97,13 +97,13 @@ If any prerequisite is missing, invoke the relevant earlier skill first.
 
 ---
 
-## New Skill: `cli-anything-web-capture`
+## New Skill: `capture`
 
 Currently Phase 1 content lives in HARNESS.md (108 lines). This becomes its own skill:
 
 ```yaml
 ---
-name: cli-anything-web-capture
+name: capture
 description: >
   Capture HTTP traffic from web apps using playwright-cli tracing. Handles browser
   setup, trace recording, systematic exploration (READ + WRITE operations), auth
@@ -121,19 +121,19 @@ version: 0.1.0
 - Post-capture verification script
 - "Use the feature, don't reverse-engineer JS" guidance
 - MCP fallback instructions
-- **Next Step:** "Invoke `cli-anything-web-methodology` to analyze the captured traffic"
+- **Next Step:** "Invoke `methodology` to analyze the captured traffic"
 - **Hard Gate at end:** "Do NOT proceed to Phase 2 until raw-traffic.json has WRITE operations"
 
 **References (from existing methodology references, MOVED here):**
-- `playwright-cli-tracing.md` → moves to `cli-anything-web-capture/references/`
-- `playwright-cli-sessions.md` → moves to `cli-anything-web-capture/references/`
-- `playwright-cli-advanced.md` → moves to `cli-anything-web-capture/references/`
+- `playwright-cli-tracing.md` → moves to `capture/references/`
+- `playwright-cli-sessions.md` → moves to `capture/references/`
+- `playwright-cli-advanced.md` → moves to `capture/references/`
 
 ---
 
 ## Updated Skills
 
-### `cli-anything-web-methodology` (Phases 2, 3, 4)
+### `methodology` (Phases 2, 3, 4)
 
 Currently 63 lines (just a pointer to HARNESS.md). Absorbs:
 - Phase 2: Analyze (parse raw-traffic.json, identify protocol, map endpoints) — from HARNESS.md:270-314
@@ -148,9 +148,9 @@ Currently 63 lines (just a pointer to HARNESS.md). Absorbs:
 
 **Sequencing:**
 - **Gate:** "Do NOT start unless raw-traffic.json exists"
-- **Next:** "Invoke `cli-anything-web-testing` to plan and write tests"
+- **Next:** "Invoke `testing` to plan and write tests"
 
-### `cli-anything-web-testing` (Phases 5, 6, 7)
+### `testing` (Phases 5, 6, 7)
 
 Currently 214 lines. Already mostly self-contained. Absorbs:
 - Phase 5: Plan tests (TEST.md Part 1) — from HARNESS.md:473-514
@@ -159,9 +159,9 @@ Currently 214 lines. Already mostly self-contained. Absorbs:
 
 **Sequencing:**
 - **Gate:** "Do NOT start unless Phase 4 implementation is complete"
-- **Next:** "Invoke `cli-anything-web-standards` to publish and verify"
+- **Next:** "Invoke `standards` to publish and verify"
 
-### `cli-anything-web-standards` (Phase 8 + validation)
+### `standards` (Phase 8 + validation)
 
 Currently 155 lines. Absorbs:
 - Phase 8: Publish and verify (install, smoke test READ+WRITE) — from HARNESS.md:616-690
@@ -173,7 +173,7 @@ Currently 155 lines. Absorbs:
 ### `web-reconnaissance` (Phase 1a)
 
 Currently 224 lines. Already self-contained. Only change:
-- Add explicit **Next Step:** "Invoke `cli-anything-web-capture` to start recording"
+- Add explicit **Next Step:** "Invoke `capture` to start recording"
 - Add **Hard Gate:** "Do NOT proceed to capture until RECON-REPORT.md strategy is confirmed"
 
 ### `auto-optimize` (meta)
@@ -201,10 +201,10 @@ New structure:
 | Phase | Skill | What it does |
 |-------|-------|-------------|
 | 1a (optional) | `web-reconnaissance` | Detect framework, APIs, protections |
-| 1 | `cli-anything-web-capture` | Trace traffic, explore app, save auth |
-| 2-4 | `cli-anything-web-methodology` | Analyze, design, implement CLI |
-| 5-7 | `cli-anything-web-testing` | Plan tests, write tests, document |
-| 8 | `cli-anything-web-standards` | Publish, verify, smoke test |
+| 1 | `capture` | Trace traffic, explore app, save auth |
+| 2-4 | `methodology` | Analyze, design, implement CLI |
+| 5-7 | `testing` | Plan tests, write tests, document |
+| 8 | `standards` | Publish, verify, smoke test |
 
 Each skill invokes the next when done. Hard gates prevent skipping.
 
@@ -236,10 +236,10 @@ All commands become thin invocations of skills:
 Run the full pipeline by invoking skills in sequence:
 
 1. `/cli-anything-web:recon <url>` (optional for unfamiliar sites)
-2. Invoke `cli-anything-web-capture` skill for Phase 1
-3. Invoke `cli-anything-web-methodology` skill for Phases 2-4
-4. Invoke `cli-anything-web-testing` skill for Phases 5-7
-5. Invoke `cli-anything-web-standards` skill for Phase 8
+2. Invoke `capture` skill for Phase 1
+3. Invoke `methodology` skill for Phases 2-4
+4. Invoke `testing` skill for Phases 5-7
+5. Invoke `standards` skill for Phase 8
 
 Each skill handles its phases and invokes the next when done.
 See HARNESS.md for the pipeline overview and critical rules.
@@ -248,7 +248,7 @@ See HARNESS.md for the pipeline overview and critical rules.
 ### `record.md`
 
 ```markdown
-Invoke the `cli-anything-web-capture` skill for Phase 1 traffic recording.
+Invoke the `capture` skill for Phase 1 traffic recording.
 If --recon-only: invoke `web-reconnaissance` skill instead.
 ```
 
@@ -259,18 +259,18 @@ If --recon-only: invoke `web-reconnaissance` skill instead.
 ### New files:
 | File | Lines | Content |
 |------|-------|---------|
-| `skills/cli-anything-web-capture/SKILL.md` | ~300 | Phase 1 methodology (from HARNESS.md:161-269) |
-| `skills/cli-anything-web-capture/references/playwright-cli-tracing.md` | 129 | MOVED from methodology refs |
-| `skills/cli-anything-web-capture/references/playwright-cli-sessions.md` | 218 | MOVED from methodology refs |
-| `skills/cli-anything-web-capture/references/playwright-cli-advanced.md` | 211 | MOVED from methodology refs |
+| `skills/capture/SKILL.md` | ~300 | Phase 1 methodology (from HARNESS.md:161-269) |
+| `skills/capture/references/playwright-cli-tracing.md` | 129 | MOVED from methodology refs |
+| `skills/capture/references/playwright-cli-sessions.md` | 218 | MOVED from methodology refs |
+| `skills/capture/references/playwright-cli-advanced.md` | 211 | MOVED from methodology refs |
 
 ### Major rewrites:
 | File | From | To | Change |
 |------|------|------|--------|
 | `HARNESS.md` | 856 lines | ~200 lines | Strip phases → lean orchestrator |
-| `cli-anything-web-methodology/SKILL.md` | 63 lines | ~400 lines | Absorb Phases 2-4 from HARNESS |
-| `cli-anything-web-testing/SKILL.md` | 214 lines | ~350 lines | Absorb Phases 5-7 from HARNESS |
-| `cli-anything-web-standards/SKILL.md` | 155 lines | ~300 lines | Absorb Phase 8 from HARNESS |
+| `methodology/SKILL.md` | 63 lines | ~400 lines | Absorb Phases 2-4 from HARNESS |
+| `testing/SKILL.md` | 214 lines | ~350 lines | Absorb Phases 5-7 from HARNESS |
+| `standards/SKILL.md` | 155 lines | ~300 lines | Absorb Phase 8 from HARNESS |
 
 ### Minor updates:
 | File | Change |
@@ -280,7 +280,7 @@ If --recon-only: invoke `web-reconnaissance` skill instead.
 | `commands/record.md` | Thin wrapper invoking capture skill |
 | `commands/test.md` | Thin wrapper invoking testing skill |
 | `commands/validate.md` | Thin wrapper invoking standards skill |
-| `verify-plugin.sh` | Add `cli-anything-web-capture` skill check |
+| `verify-plugin.sh` | Add `capture` skill check |
 
 ### Moved (not deleted):
 | From | To |
