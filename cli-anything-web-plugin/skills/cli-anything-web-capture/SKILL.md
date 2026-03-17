@@ -1,33 +1,28 @@
 ---
 name: cli-anything-web-capture
 description: >
-  Capture HTTP traffic from web apps using playwright-cli tracing. Handles browser
-  setup, trace recording, systematic exploration (READ + WRITE operations), auth
-  state persistence, and trace parsing. Use when recording traffic, starting Phase 1,
-  or when the agent needs to capture API calls from a web app. Trigger phrases:
-  "traffic capture", "recording", "tracing", "Phase 1", "playwright-cli", "record traffic"
-version: 0.1.0
+  Capture HTTP traffic from web apps using playwright-cli. Includes site assessment
+  (framework detection, protection checks, API discovery) and full traffic recording
+  with tracing. Use when recording traffic, starting Phase 1, capturing API calls,
+  analyzing a web app's architecture, or detecting frameworks and protections.
+version: 0.2.0
 ---
 
-# CLI-Anything-Web Capture
+# Traffic Capture (Phase 1)
 
-Phase 1 of the cli-anything-web pipeline: capture comprehensive HTTP traffic
-from the target web app using playwright-cli tracing (or chrome-devtools-mcp
-as fallback).
+Assess the site, then capture comprehensive HTTP traffic. This skill combines
+site assessment (formerly separate "recon") with full traffic recording in a
+single browser session.
 
 ---
 
 ## Prerequisites (Hard Gate)
 
 Do NOT start unless:
-- [ ] RECON-REPORT.md exists (from Phase 1a) OR site is already known
 - [ ] playwright-cli is available (`npx @playwright/cli@latest --version`)
+- [ ] Target URL is known
 
-If RECON-REPORT.md is missing and the site is unfamiliar, invoke the
-`web-reconnaissance` skill first.
-
-If playwright-cli is not available, fall back to chrome-devtools MCP
-(see Fallback section below).
+If playwright-cli fails, fall back to chrome-devtools-mcp (see HARNESS.md Tool Hierarchy).
 
 ---
 
@@ -42,75 +37,155 @@ npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
 
 # If login required -- ask user to log in, wait for confirmation
 
-# Save auth state BEFORE tracing (so you can restore later)
+# Save auth state BEFORE tracing
 npx @playwright/cli@latest -s=<app> state-save <app>/traffic-capture/<app>-auth.json
 ```
 
 ---
 
-## Step 2: Systematic Exploration (with trace)
+## Step 2: Quick Site Assessment
+
+Before full capture, run a quick assessment to guide the capture strategy.
+This takes ~60 seconds and prevents wasted effort.
+
+### 2a. Framework Detection
 
 ```bash
-# Start trace recording
+# Next.js Pages Router
+npx @playwright/cli@latest -s=<app> eval "document.getElementById('__NEXT_DATA__')?.textContent?.substring(0, 200)"
+
+# Next.js App Router (RSC)
+npx @playwright/cli@latest -s=<app> eval "typeof self !== 'undefined' && document.querySelector('script[src*=\"_next\"]')?.src || 'no-next-app'"
+
+# Nuxt
+npx @playwright/cli@latest -s=<app> eval "typeof window.__NUXT__ !== 'undefined' ? 'nuxt' : 'not-nuxt'"
+
+# Google batchexecute
+npx @playwright/cli@latest -s=<app> eval "typeof WIZ_global_data !== 'undefined' ? 'google-batchexecute' : 'not-google'"
+
+# Generic SPA root
+npx @playwright/cli@latest -s=<app> eval "document.querySelector('#app, #root, #__next, #__nuxt')?.id || 'no-spa-root'"
+```
+
+See `references/framework-detection.md` for the complete detection command set.
+
+### 2b. Protection Check
+
+```bash
+npx @playwright/cli@latest -s=<app> eval "(() => {
+  const body = document.body.textContent.toLowerCase();
+  const html = document.documentElement.outerHTML;
+  const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
+  return {
+    cloudflare: body.includes('cloudflare') || html.includes('cf-ray') || html.includes('__cf_bm'),
+    captcha: !!document.querySelector('.g-recaptcha, #px-captcha, .h-captcha'),
+    akamai: scripts.some(s => s.includes('akamai')),
+    datadome: scripts.some(s => s.includes('datadome')),
+    perimeterx: scripts.some(s => s.includes('perimeterx') || s.includes('px-')),
+    rateLimit: html.includes('429') || body.includes('too many requests')
+  };
+})()"
+```
+
+Also check robots.txt:
+```bash
+npx @playwright/cli@latest -s=<app> goto <url>/robots.txt
+npx @playwright/cli@latest -s=<app> snapshot
+```
+
+See `references/protection-detection.md` for detailed checks.
+
+### 2c. Quick API Probe (Force SPA Navigation Trick)
+
+Start a SHORT trace, click 3-4 internal links, stop. This reveals hidden API
+endpoints that SSR hides on initial page load.
+
+```bash
+npx @playwright/cli@latest -s=<app> tracing-start
+npx @playwright/cli@latest -s=<app> click <internal-link-1>
+npx @playwright/cli@latest -s=<app> click <internal-link-2>
+npx @playwright/cli@latest -s=<app> click <internal-link-3>
+npx @playwright/cli@latest -s=<app> tracing-stop
+
+# Quick parse to see what endpoints appeared
+python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --latest --output /tmp/probe.json
+```
+
+Check the probe results -- what API patterns did you find?
+See `references/api-discovery.md` for the priority chain.
+See `references/strategy-selection.md` for the decision tree.
+
+### 2d. Log findings and choose strategy
+
+Based on Steps 2a-2c, determine the capture strategy:
+- **SPA + REST API found** -- standard full trace capture
+- **SSR + __NEXT_DATA__** -- focus on client-side navigations
+- **Google batchexecute** -- trace + eval WIZ_global_data for tokens
+- **Cloudflare/protected** -- add delays, note rate limits
+- **No API found** -- try more internal navigation, or site may not be CLI-suitable
+
+Log findings to terminal. No separate RECON-REPORT.md needed.
+
+---
+
+## Step 3: Full Traffic Capture
+
+Now do the comprehensive capture based on what Step 2 revealed.
+
+```bash
+# Start fresh trace for full capture
 npx @playwright/cli@latest -s=<app> tracing-start
 
 # === EXPLORATION CHECKLIST ===
 # For EACH resource/feature visible in the UI:
 
-# A. READ operations (screenshot first to see what's there)
+# A. READ operations
 npx @playwright/cli@latest -s=<app> screenshot
 npx @playwright/cli@latest -s=<app> snapshot
 # Navigate to list views, detail pages, dashboards
-# Click through pagination, filters, search
 
-# B. WRITE operations (this is what agents skip!)
-# Take a screenshot -> find the Create/Generate/New button -> click it
-# Fill forms -> submit -> capture the POST/PUT request
-# This is the MOST IMPORTANT part -- read-only traces are useless
+# B. WRITE operations (MOST IMPORTANT -- don't skip!)
+# Screenshot -> find Create/Generate button -> click it -> fill forms -> submit
 
-# C. Other operations: settings, profile, export, delete
+# C. Other: settings, profile, export, delete
 ```
 
-### Exploration Checklist by App Type
+**Exploration checklist by app type:**
 
 | App Type | Must capture | Example |
 |----------|-------------|---------|
-| CRUD app | List, Get, Create, Update, Delete per resource | Monday: boards list, board create, item create |
-| Generation app | Create/Generate, Poll status, Download result | Suno: generate song, check status, download MP3 |
-| Search app | Search query, Results, Filters, Pagination | Futbin: player search, price history |
-| Chat/Query app | Send message, Receive response (streaming?), History | NotebookLM: ask question, get sources |
+| CRUD app | List, Get, Create, Update, Delete per resource | Monday: boards list, board create |
+| Generation app | Create/Generate, Poll status, Download result | Suno: generate song, download MP3 |
+| Search app | Search query, Results, Filters, Pagination | Futbin: player search, prices |
+| Chat/Query app | Send message, Receive response, History | NotebookLM: ask, get sources |
 
-**For each app, the trace MUST contain at least one WRITE operation before stopping.**
-If your trace only has GET requests, you haven't captured enough -- go back and
-create/generate something.
+**The trace MUST contain at least one WRITE operation before stopping.**
 
 ---
 
-## Step 3: Stop, Save, Parse
+## Step 4: Stop, Save, Parse
 
 ```bash
-# Stop trace -- saves .network + resources/ with full bodies
 npx @playwright/cli@latest -s=<app> tracing-stop
 
-# Parse trace -> raw-traffic.json (only parses the LATEST trace files)
 python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py \
-  .playwright-cli/traces/ \
+  .playwright-cli/traces/ --latest \
   --output <app>/traffic-capture/raw-traffic.json
 
-# Verify: check that write operations were captured
+# Verify WRITE operations captured
 python -c "
 import json
 data = json.load(open('<app>/traffic-capture/raw-traffic.json'))
 posts = [r for r in data if r['method'] in ('POST','PUT','PATCH','DELETE')]
 print(f'Total: {len(data)} requests, {len(posts)} write operations')
 if not posts:
-    print('WARNING: No write operations captured! Go back and use Create/Generate features.')
+    print('WARNING: No write operations! Go use Create/Generate features.')
 "
 ```
 
 ---
 
-## Step 4: Close Browser
+## Step 5: Close
 
 ```bash
 npx @playwright/cli@latest -s=<app> close
@@ -118,68 +193,34 @@ npx @playwright/cli@latest -s=<app> close
 
 ---
 
-## Use the Feature, Don't Reverse-Engineer JS
+## If an endpoint is missing -- USE THE FEATURE
 
-When you see a button in the UI but its endpoint isn't in the trace:
-1. Start a NEW trace: `tracing-start`
-2. Screenshot -> click the button -> fill the form -> submit
-3. Stop: `tracing-stop` -> parse -> the endpoint is now captured
-
-**Do NOT** grep through minified JS, read webpack chunks, or parse build manifests.
-The browser IS the API documentation. 60 seconds of UI interaction beats 30 minutes
-of JS analysis.
-
-If an endpoint is missing from the trace -- USE THE FEATURE. The browser IS the
-API documentation. If you can see it in the UI, you can capture it by using it.
-This is faster, more reliable, and always correct -- JS analysis gives you guesses,
-trace capture gives you facts.
+Don't grep JS bundles. Start a new trace -> screenshot -> click the button -> fill
+-> submit -> stop -> parse. The browser IS the API documentation.
 
 ---
 
-## MCP Fallback (chrome-devtools)
+## Fallback: chrome-devtools-mcp
 
-If playwright-cli is not available, fall back to chrome-devtools MCP:
-
-1. Launch debug Chrome: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
-2. If first time, ask user to log in. Wait for confirmation.
-3. If MCP not connected: tell user "Type `/mcp`, find **chrome-devtools**, click **Reconnect**."
-4. Use `mcp__chrome-devtools__*` tools: `navigate_page`, `list_network_requests`,
-   `get_network_request`
-5. Save to `<app>/traffic-capture/raw-traffic.json`
-
-**NEVER use `mcp__claude-in-chrome__*` tools** -- blocked, cannot capture request bodies.
-
----
-
-## WRITE Operations Verification
-
-Before declaring capture complete, verify the trace contains WRITE operations:
-
-```python
-import json
-data = json.load(open('<app>/traffic-capture/raw-traffic.json'))
-posts = [r for r in data if r['method'] in ('POST', 'PUT', 'PATCH', 'DELETE')]
-if not posts:
-    raise SystemExit("No write operations captured. Go back and use Create/Generate features.")
-print(f"Capture complete: {len(data)} requests, {len(posts)} write operations")
-```
-
-If zero WRITE operations: do NOT proceed. Go back to Step 2 and use the
-Create/Generate/Submit features in the UI.
+If playwright-cli unavailable:
+- `bash ${CLAUDE_PLUGIN_ROOT}/scripts/launch-chrome-debug.sh <url>`
+- Use `mcp__chrome-devtools__*` tools
 
 ---
 
 ## Next Step
 
-When capture is complete and raw-traffic.json has WRITE operations,
-invoke the `cli-anything-web-methodology` skill to analyze the captured traffic.
-
-Do NOT skip to implementation -- traffic must be analyzed first.
+When capture is complete and raw-traffic.json has WRITE operations, invoke
+`cli-anything-web-methodology` to analyze the traffic and build the CLI.
 
 ---
 
-## References
+## Reference Files
 
-- [Playwright CLI Tracing](references/playwright-cli-tracing.md) -- Trace file format, `.network` structure, how parse-trace.py works
-- [Playwright CLI Sessions](references/playwright-cli-sessions.md) -- Named sessions, state-save/load, auth JSON format
-- [Playwright CLI Advanced](references/playwright-cli-advanced.md) -- run-code, wait strategies, downloads, iframe handling
+- [Tracing format](references/playwright-cli-tracing.md) -- trace file structure, .network format
+- [Sessions & auth](references/playwright-cli-sessions.md) -- named sessions, state-save format
+- [Advanced commands](references/playwright-cli-advanced.md) -- run-code, waits, downloads
+- [Framework detection](references/framework-detection.md) -- SSR framework eval commands
+- [Protection detection](references/protection-detection.md) -- anti-bot checks
+- [API discovery](references/api-discovery.md) -- API finding priority chain
+- [Strategy selection](references/strategy-selection.md) -- decision tree for capture approach
