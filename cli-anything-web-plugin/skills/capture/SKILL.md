@@ -24,11 +24,6 @@ Do NOT start unless:
 
 If playwright-cli fails, fall back to chrome-devtools-mcp (see HARNESS.md Tool Hierarchy).
 
-**IMPORTANT — Do NOT load the `playwright-cli` skill.** A global `playwright-cli` skill
-may exist in the environment, but loading it will restrict your tools to a single pattern
-and break this workflow. All playwright-cli commands in this skill run via
-`npx @playwright/cli@latest` in Bash — no separate skill needed.
-
 ---
 
 ## Step 1: Setup
