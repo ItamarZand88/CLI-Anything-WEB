@@ -127,7 +127,7 @@ Implementation notes:
 - Timeout per agent: 120 seconds
 - If agent crashes or times out: count as FAIL for all assertions
 
-### 3. `scripts/grade-output.py`
+### 3. `scripts/grade_output.py`
 
 Standalone grader for a single eval output.
 
@@ -136,8 +136,8 @@ Standalone grader for a single eval output.
 Grade a single eval output against binary assertions.
 
 Usage:
-  python grade-output.py --output response.md --assertions assertions.json
-  python grade-output.py --output response.md --assertions assertions.json --grader claude
+  python grade_output.py --output response.md --assertions assertions.json
+  python grade_output.py --output response.md --assertions assertions.json --grader claude
 """
 ```
 
