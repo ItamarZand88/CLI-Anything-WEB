@@ -5,12 +5,12 @@
     {
       "id": "recon-suno",
       "name": "Suno.com reconnaissance",
-      "prompt": "Plan reconnaissance for https://suno.com. Include exact playwright-cli commands for all 5 recon steps, framework detection, protection assessment, and a RECON-REPORT.md with Expected/Confirmed columns.",
+      "prompt": "Plan reconnaissance for https://suno.com. Include exact playwright-cli commands for all 5 recon steps, framework detection, protection assessment, and structured findings covering architecture, API surface, protections, and strategy.",
       "skills_to_load": ["cli-anything-web-capture"],
       "assertions": [
         {"id": "A1", "text": "Uses npx @playwright/cli commands (not MCP, not curl)", "check": "programmatic", "pattern": "npx @playwright/cli"},
         {"id": "A2", "text": "Follows structured 5-step recon flow", "check": "llm"},
-        {"id": "A3", "text": "Produces RECON-REPORT.md with Expected/Confirmed columns", "check": "llm"},
+        {"id": "A3", "text": "Produces structured findings (architecture, API surface, protections, strategy)", "check": "llm"},
         {"id": "A4", "text": "Has specific eval commands for framework detection", "check": "programmatic", "pattern": "eval.*__NEXT_DATA__|eval.*__NUXT__"},
         {"id": "A5", "text": "Mentions Force SPA Navigation trick by name and explains why", "check": "programmatic", "pattern": "(?i)force.*spa.*navigation"},
         {"id": "A6", "text": "Includes protection detection eval script", "check": "programmatic", "pattern": "cloudflare.*captcha|captcha.*cloudflare"},

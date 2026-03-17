@@ -1,3 +1,6 @@
+> **Note:** Commands below use `playwright-cli` as shorthand for `npx @playwright/cli@latest`.
+> Always run via npx: `npx @playwright/cli@latest -s=<app> <command>`
+
 # Playwright-CLI Advanced: run-code, Waits, and Downloads
 
 Advanced playwright-cli commands for scenarios not covered by basic click/fill/snapshot -- wait strategies, iframe handling, file downloads, and page information extraction.

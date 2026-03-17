@@ -190,4 +190,4 @@ Protected site?          --> Protected-manual
 No APIs at all?          --> Assess viability, may not be CLI-suitable
 ```
 
-Always record the chosen strategy and rationale in the capture findings.
+Always record the chosen strategy and rationale in the app's `<APP>.md`.

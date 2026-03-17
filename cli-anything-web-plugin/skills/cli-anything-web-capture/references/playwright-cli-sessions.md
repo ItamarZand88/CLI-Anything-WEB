@@ -1,3 +1,6 @@
+> **Note:** Commands below use `playwright-cli` as shorthand for `npx @playwright/cli@latest`.
+> Always run via npx: `npx @playwright/cli@latest -s=<app> <command>`
+
 # Playwright-CLI Sessions and Auth State
 
 Manage named browser sessions with isolated state, and persist/restore authentication for CLI generation workflows.

@@ -1,3 +1,6 @@
+> **Note:** Commands below use `playwright-cli` as shorthand for `npx @playwright/cli@latest`.
+> Always run via npx: `npx @playwright/cli@latest -s=<app> <command>`
+
 # Playwright-CLI Tracing for Traffic Capture
 
 Capture detailed execution traces containing full HTTP request/response bodies, DOM snapshots, screenshots, and timing data. This is the primary input for CLI generation.

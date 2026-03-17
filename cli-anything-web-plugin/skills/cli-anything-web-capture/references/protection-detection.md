@@ -146,7 +146,7 @@ Cloudflare's managed challenge — less intrusive but still blocks bots.
   in the auth flow where the user manually solves the CAPTCHA in the browser
 - If CAPTCHA gates data pages: the site may not be CLI-suitable without
   manual intervention
-- Document the CAPTCHA type in the capture findings so users know what to expect
+- Document the CAPTCHA type in the app's `<APP>.md` so users know what to expect
 
 ---
 
@@ -217,7 +217,7 @@ WAFs significantly increase the difficulty of automated access:
 | PerimeterX | High | Often triggers CAPTCHA — pause-and-prompt flow |
 | DataDome | Medium-High | Fingerprint detection — add delays, rotate sessions |
 
-For any detected WAF, note it prominently in the the capture findings Warnings section.
+For any detected WAF, note it prominently in the app's `<APP>.md` Warnings section.
 
 ---
 

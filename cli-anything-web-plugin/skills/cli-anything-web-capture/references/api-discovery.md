@@ -110,7 +110,7 @@ GET /__api/v1/feed
 ```
 
 These are not officially documented but show up in traces. They may change
-without notice — note this risk in the capture findings.
+without notice — note this risk in the app's `<APP>.md`.
 
 ---
 
@@ -182,7 +182,7 @@ Check captured request headers in the trace for:
 - The generated CLI needs a login/auth command
 - Store tokens/cookies securely (keyring or config file)
 - Handle token refresh for OAuth flows
-- Note the auth type in capture findings.md
+- Note the auth type in the app's `<APP>.md`
 
 **If no auth headers are present:**
 - The API is publicly accessible — simplest case

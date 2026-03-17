@@ -25,7 +25,7 @@ class CookieAuth:
 ### CLI commands:
 ```
 auth login --email <e> --password <p>
-auth login --browser  # opens Chrome for manual login, captures cookies
+auth login              # opens browser for manual login, captures cookies
 auth status
 auth logout
 ```
