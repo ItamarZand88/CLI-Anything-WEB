@@ -1,14 +1,14 @@
 # Framework Detection Reference
 
 Eval commands for identifying SSR frameworks, SPA roots, and client-side state.
-Every command uses `npx @playwright/cli@latest -s=recon eval`.
+Every command uses `npx @playwright/cli@latest -s=<app> eval`.
 
 ---
 
 ## 1. Next.js Pages Router
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "document.getElementById('__NEXT_DATA__')?.textContent?.substring(0, 200)"
+npx @playwright/cli@latest -s=<app> eval "document.getElementById('__NEXT_DATA__')?.textContent?.substring(0, 200)"
 ```
 
 | Return value | Meaning |
@@ -28,7 +28,7 @@ App Router does not embed a single `__NEXT_DATA__` blob. Instead look for:
 
 ```bash
 # Check for RSC streaming markers in page source
-npx @playwright/cli@latest -s=recon eval "document.documentElement.outerHTML.includes('self.__next_f.push') ? 'next-app-router' : 'not-app-router'"
+npx @playwright/cli@latest -s=<app> eval "document.documentElement.outerHTML.includes('self.__next_f.push') ? 'next-app-router' : 'not-app-router'"
 ```
 
 Also verify by checking the trace (Step 1.3) for `_next/data/` fetch requests
@@ -43,7 +43,7 @@ data you need.
 ## 3. Nuxt 2 / Nuxt 3
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "typeof window.__NUXT__ !== 'undefined' ? JSON.stringify(Object.keys(window.__NUXT__)) : 'not-nuxt'"
+npx @playwright/cli@latest -s=<app> eval "typeof window.__NUXT__ !== 'undefined' ? JSON.stringify(Object.keys(window.__NUXT__)) : 'not-nuxt'"
 ```
 
 | Return value | Meaning |
@@ -61,7 +61,7 @@ server routes call.
 ## 4. Remix
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "typeof window.__remixContext !== 'undefined' ? 'remix' : 'not-remix'"
+npx @playwright/cli@latest -s=<app> eval "typeof window.__remixContext !== 'undefined' ? 'remix' : 'not-remix'"
 ```
 
 | Return value | Meaning |
@@ -77,7 +77,7 @@ when the `_data` search param is present. Capture loader URLs from the trace.
 ## 5. SvelteKit
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "typeof window.__sveltekit_data !== 'undefined' ? 'sveltekit' : document.querySelector('script[data-sveltekit-hydrate]') ? 'sveltekit-hydrate' : 'not-sveltekit'"
+npx @playwright/cli@latest -s=<app> eval "typeof window.__sveltekit_data !== 'undefined' ? 'sveltekit' : document.querySelector('script[data-sveltekit-hydrate]') ? 'sveltekit-hydrate' : 'not-sveltekit'"
 ```
 
 | Return value | Meaning |
@@ -94,7 +94,7 @@ each route. These return structured JSON and are the primary capture target.
 ## 6. Gatsby
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "typeof window.___gatsby !== 'undefined' ? 'gatsby' : 'not-gatsby'"
+npx @playwright/cli@latest -s=<app> eval "typeof window.___gatsby !== 'undefined' ? 'gatsby' : 'not-gatsby'"
 ```
 
 | Return value | Meaning |
@@ -111,7 +111,7 @@ the GraphQL query results.
 ## 7. Google batchexecute
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "typeof WIZ_global_data !== 'undefined' ? 'google-batchexecute' : 'not-google'"
+npx @playwright/cli@latest -s=<app> eval "typeof WIZ_global_data !== 'undefined' ? 'google-batchexecute' : 'not-google'"
 ```
 
 | Return value | Meaning |
@@ -128,7 +128,7 @@ encodes/decodes batchexecute payloads. See the trace for request IDs (rpcids).
 ## 8. Generic SPA Root
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "document.querySelector('#app, #root, #__next, #__nuxt, #__sveltekit')?.id || 'no-spa-root'"
+npx @playwright/cli@latest -s=<app> eval "document.querySelector('#app, #root, #__next, #__nuxt, #__sveltekit')?.id || 'no-spa-root'"
 ```
 
 | Return value | Meaning |
@@ -145,7 +145,7 @@ npx @playwright/cli@latest -s=recon eval "document.querySelector('#app, #root, #
 ## 9. Redux / Vuex / Preloaded State
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "typeof window.__INITIAL_STATE__ !== 'undefined' ? 'has-state' : typeof window.__PRELOADED_STATE__ !== 'undefined' ? 'has-preloaded' : 'no-state'"
+npx @playwright/cli@latest -s=<app> eval "typeof window.__INITIAL_STATE__ !== 'undefined' ? 'has-state' : typeof window.__PRELOADED_STATE__ !== 'undefined' ? 'has-preloaded' : 'no-state'"
 ```
 
 | Return value | Meaning |
@@ -166,15 +166,15 @@ embedded via SSR), force client-side navigations to reveal hidden API endpoints:
 
 ```bash
 # Start tracing before navigating
-npx @playwright/cli@latest -s=recon tracing-start
+npx @playwright/cli@latest -s=<app> tracing-start
 
 # Click internal links to trigger client-side data fetches
-npx @playwright/cli@latest -s=recon click <internal-link-1>
-npx @playwright/cli@latest -s=recon click <internal-link-2>
-npx @playwright/cli@latest -s=recon click <internal-link-3>
+npx @playwright/cli@latest -s=<app> click <internal-link-1>
+npx @playwright/cli@latest -s=<app> click <internal-link-2>
+npx @playwright/cli@latest -s=<app> click <internal-link-3>
 
 # Stop tracing
-npx @playwright/cli@latest -s=recon tracing-stop
+npx @playwright/cli@latest -s=<app> tracing-stop
 
 # Parse the trace for newly discovered endpoints
 python scripts/parse-trace.py .playwright-cli/traces/ --output recon-traffic.json

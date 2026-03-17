@@ -76,15 +76,15 @@ For CLI generation, **always use tracing** -- we need full request/response bodi
 
 ## How It Connects to Our Pipeline
 
-### Phase 1a (Recon)
+### Phase 1 Step 2 (Site Assessment — quick probe)
 ```bash
-playwright-cli -s=recon tracing-start
-# Quick exploration: 3-4 clicks only
-playwright-cli -s=recon tracing-stop
-# parse-trace.py extracts endpoints for the recon report
+playwright-cli -s=<app> tracing-start
+# Quick exploration: 3-4 clicks to discover API patterns
+playwright-cli -s=<app> tracing-stop
+# parse-trace.py --latest extracts endpoints for strategy selection
 ```
 
-### Phase 1 (Record)
+### Phase 1 Step 3 (Full Capture)
 ```bash
 playwright-cli -s=<app> tracing-start
 # Full user flow: login, browse, create, download

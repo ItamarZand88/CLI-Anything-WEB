@@ -1,7 +1,7 @@
 # Protection Detection Reference
 
-Anti-bot, WAF, and rate limit detection patterns for reconnaissance.
-All commands use `npx @playwright/cli@latest -s=recon`.
+Anti-bot, WAF, and rate limit detection patterns for site assessment.
+All commands use `npx @playwright/cli@latest -s=<app>`.
 
 ---
 
@@ -10,7 +10,7 @@ All commands use `npx @playwright/cli@latest -s=recon`.
 Run this single eval to check for all common protections at once:
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "(() => {
+npx @playwright/cli@latest -s=<app> eval "(() => {
   const body = document.body.textContent.toLowerCase();
   const html = document.documentElement.outerHTML;
   const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
@@ -42,7 +42,7 @@ Interpret the result object — any `true` value means that protection is presen
 ### Detailed Check
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "(() => {
+npx @playwright/cli@latest -s=<app> eval "(() => {
   const cookies = document.cookie;
   const html = document.documentElement.outerHTML;
   return {
@@ -73,7 +73,7 @@ Rate limits show up in the trace as 429 responses. Check headers:
 
 ```bash
 # After running a trace (Step 1.3), inspect responses for rate limit signals
-npx @playwright/cli@latest -s=recon eval "(() => {
+npx @playwright/cli@latest -s=<app> eval "(() => {
   const body = document.body.textContent.toLowerCase();
   return {
     is429: document.title.includes('429') || body.includes('429'),
@@ -108,7 +108,7 @@ npx @playwright/cli@latest -s=recon eval "(() => {
 ### reCAPTCHA v2 (Checkbox)
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "!!document.querySelector('.g-recaptcha, iframe[src*=\"recaptcha\"]') ? 'recaptcha-v2' : 'no-recaptcha-v2'"
+npx @playwright/cli@latest -s=<app> eval "!!document.querySelector('.g-recaptcha, iframe[src*=\"recaptcha\"]') ? 'recaptcha-v2' : 'no-recaptcha-v2'"
 ```
 
 Visible checkbox challenge. Blocks automated flows entirely.
@@ -116,7 +116,7 @@ Visible checkbox challenge. Blocks automated flows entirely.
 ### reCAPTCHA v3 (Invisible)
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "(() => {
+npx @playwright/cli@latest -s=<app> eval "(() => {
   const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
   return scripts.some(s => s.includes('recaptcha') && s.includes('v3')) ? 'recaptcha-v3' : 'no-recaptcha-v3';
 })()"
@@ -127,7 +127,7 @@ Invisible scoring — may silently block requests that look automated.
 ### hCaptcha
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "!!document.querySelector('.h-captcha, iframe[src*=\"hcaptcha\"]') ? 'hcaptcha' : 'no-hcaptcha'"
+npx @playwright/cli@latest -s=<app> eval "!!document.querySelector('.h-captcha, iframe[src*=\"hcaptcha\"]') ? 'hcaptcha' : 'no-hcaptcha'"
 ```
 
 Similar to reCAPTCHA v2 but used by Cloudflare and others.
@@ -135,7 +135,7 @@ Similar to reCAPTCHA v2 but used by Cloudflare and others.
 ### Cloudflare Turnstile
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "!!document.querySelector('.cf-turnstile, iframe[src*=\"challenges.cloudflare.com\"]') ? 'turnstile' : 'no-turnstile'"
+npx @playwright/cli@latest -s=<app> eval "!!document.querySelector('.cf-turnstile, iframe[src*=\"challenges.cloudflare.com\"]') ? 'turnstile' : 'no-turnstile'"
 ```
 
 Cloudflare's managed challenge — less intrusive but still blocks bots.
@@ -146,7 +146,7 @@ Cloudflare's managed challenge — less intrusive but still blocks bots.
   in the auth flow where the user manually solves the CAPTCHA in the browser
 - If CAPTCHA gates data pages: the site may not be CLI-suitable without
   manual intervention
-- Document the CAPTCHA type in RECON-REPORT.md so users know what to expect
+- Document the CAPTCHA type in the capture findings so users know what to expect
 
 ---
 
@@ -155,7 +155,7 @@ Cloudflare's managed challenge — less intrusive but still blocks bots.
 ### Akamai Bot Manager
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "(() => {
+npx @playwright/cli@latest -s=<app> eval "(() => {
   const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
   const cookies = document.cookie;
   return {
@@ -169,7 +169,7 @@ npx @playwright/cli@latest -s=recon eval "(() => {
 ### Imperva / Incapsula
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "(() => {
+npx @playwright/cli@latest -s=<app> eval "(() => {
   const cookies = document.cookie;
   const html = document.documentElement.outerHTML;
   return {
@@ -182,7 +182,7 @@ npx @playwright/cli@latest -s=recon eval "(() => {
 ### PerimeterX
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "(() => {
+npx @playwright/cli@latest -s=<app> eval "(() => {
   const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
   const cookies = document.cookie;
   return {
@@ -196,7 +196,7 @@ npx @playwright/cli@latest -s=recon eval "(() => {
 ### DataDome
 
 ```bash
-npx @playwright/cli@latest -s=recon eval "(() => {
+npx @playwright/cli@latest -s=<app> eval "(() => {
   const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
   const cookies = document.cookie;
   return {
@@ -217,7 +217,7 @@ WAFs significantly increase the difficulty of automated access:
 | PerimeterX | High | Often triggers CAPTCHA — pause-and-prompt flow |
 | DataDome | Medium-High | Fingerprint detection — add delays, rotate sessions |
 
-For any detected WAF, note it prominently in the RECON-REPORT.md Warnings section.
+For any detected WAF, note it prominently in the the capture findings Warnings section.
 
 ---
 
@@ -226,8 +226,8 @@ For any detected WAF, note it prominently in the RECON-REPORT.md Warnings sectio
 Always check robots.txt for crawl directives and sitemap references:
 
 ```bash
-npx @playwright/cli@latest -s=recon open "https://target-site.com/robots.txt"
-npx @playwright/cli@latest -s=recon snapshot
+npx @playwright/cli@latest -s=<app> open "https://target-site.com/robots.txt"
+npx @playwright/cli@latest -s=<app> snapshot
 ```
 
 **What to look for:**

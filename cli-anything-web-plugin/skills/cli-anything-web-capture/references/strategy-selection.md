@@ -1,7 +1,7 @@
 # Strategy Selection Reference
 
 Decision tree and strategy comparison for choosing the right capture approach
-after reconnaissance is complete.
+after site assessment is complete.
 
 ---
 
@@ -190,4 +190,4 @@ Protected site?          --> Protected-manual
 No APIs at all?          --> Assess viability, may not be CLI-suitable
 ```
 
-Always record the chosen strategy and rationale in RECON-REPORT.md.
+Always record the chosen strategy and rationale in the capture findings.

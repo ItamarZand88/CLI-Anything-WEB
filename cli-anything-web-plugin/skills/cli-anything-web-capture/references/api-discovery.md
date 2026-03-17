@@ -1,6 +1,6 @@
 # API Discovery Reference
 
-How to find and prioritize APIs during reconnaissance. APIs produce clean
+How to find and prioritize APIs during site assessment. APIs produce clean
 structured data and are always preferred over HTML scraping for CLI generation.
 
 ---
@@ -110,7 +110,7 @@ GET /__api/v1/feed
 ```
 
 These are not officially documented but show up in traces. They may change
-without notice — note this risk in the RECON-REPORT.
+without notice — note this risk in the capture findings.
 
 ---
 
@@ -133,11 +133,11 @@ When the initial page load embeds all data via SSR and the trace shows zero
 API calls:
 
 ```bash
-npx @playwright/cli@latest -s=recon tracing-start
-npx @playwright/cli@latest -s=recon click <internal-link-1>
-npx @playwright/cli@latest -s=recon click <internal-link-2>
-npx @playwright/cli@latest -s=recon click <internal-link-3>
-npx @playwright/cli@latest -s=recon tracing-stop
+npx @playwright/cli@latest -s=<app> tracing-start
+npx @playwright/cli@latest -s=<app> click <internal-link-1>
+npx @playwright/cli@latest -s=<app> click <internal-link-2>
+npx @playwright/cli@latest -s=<app> click <internal-link-3>
+npx @playwright/cli@latest -s=<app> tracing-stop
 python scripts/parse-trace.py .playwright-cli/traces/ --output recon-traffic.json
 ```
 
@@ -182,7 +182,7 @@ Check captured request headers in the trace for:
 - The generated CLI needs a login/auth command
 - Store tokens/cookies securely (keyring or config file)
 - Handle token refresh for OAuth flows
-- Note the auth type in RECON-REPORT.md
+- Note the auth type in capture findings.md
 
 **If no auth headers are present:**
 - The API is publicly accessible — simplest case
@@ -192,7 +192,7 @@ Check captured request headers in the trace for:
 
 ## API Discovery Checklist
 
-After completing reconnaissance, you should know:
+After completing site assessment, you should know:
 
 - [ ] Which API pattern the site uses (REST, GraphQL, SSR data, etc.)
 - [ ] The base URL and specific endpoints discovered

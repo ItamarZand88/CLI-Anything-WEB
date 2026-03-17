@@ -1,6 +1,6 @@
 ---
 name: cli-anything-web
-description: Generate a complete agent-native CLI for any web app by recording and analyzing network traffic via playwright-cli. Runs the full 8-phase pipeline with optional reconnaissance.
+description: Generate a complete agent-native CLI for any web app by recording and analyzing network traffic via playwright-cli. Runs the full pipeline with site assessment, capture, implementation, testing, and verification.
 argument-hint: <url>
 allowed-tools: Bash(*), Read, Write, Edit, mcp__chrome-devtools__*
 ---

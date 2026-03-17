@@ -32,7 +32,7 @@ Sessions are fully isolated from each other:
 | Browsing history | Yes |
 | Open tabs | Yes |
 
-This means `-s=recon` and `-s=suno` can visit the same site with completely different auth states.
+This means `-s=suno` and `-s=futbin` can visit the same site with completely different auth states.
 
 ### Session Management Commands
 
@@ -55,15 +55,14 @@ playwright-cli -s=suno delete-data
 
 ## Why Sessions Matter for Our Pipeline
 
-| Pipeline phase | Session name | Purpose |
+| Pipeline step | Session name | Purpose |
 |---------------|-------------|---------|
-| Phase 1a (Recon) | `-s=recon` | Disposable session for quick exploration |
-| Phase 1 (Record) | `-s=<app>` | Main session with persistent auth |
+| Phase 1 Step 2 (Site assessment) | `-s=<app>` | Quick probe — same session as full capture |
+| Phase 1 Step 3 (Full capture) | `-s=<app>` | Main session with persistent auth |
 | Subsequent runs | `-s=<app>` | Reuse auth via `state-load` |
 
-- **Phase 1a** uses `-s=recon` -- a separate, disposable session for quick 3-4 click exploration. Throw it away after.
-- **Phase 1** uses `-s=<app>` (e.g., `-s=suno`) -- the main session where the user logs in and performs the full recording flow.
-- Auth state from `-s=<app>` persists via `state-save` so future sessions can skip login.
+- **Phase 1** uses a single `-s=<app>` session (e.g., `-s=suno`) for everything: site assessment (Step 2), full capture (Step 3), and auth persistence.
+- Auth state persists via `state-save` so future sessions can skip login.
 
 ## State Save / Load (Auth Persistence)
 
@@ -211,7 +210,7 @@ Auth state files contain session tokens, cookies, and potentially JWTs. Delete t
 ```bash
 # Good: clear purpose
 playwright-cli -s=suno open https://suno.com
-playwright-cli -s=recon open https://suno.com
+playwright-cli -s=futbin open https://futbin.com
 
 # Avoid: generic names
 playwright-cli -s=s1 open https://suno.com

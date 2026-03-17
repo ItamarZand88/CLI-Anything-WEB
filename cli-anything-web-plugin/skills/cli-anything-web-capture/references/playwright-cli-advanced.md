@@ -152,7 +152,7 @@ playwright-cli -s=<app> run-code "async page => {
 
 ## Page Information Extraction
 
-Useful during Phase 1a (Recon) and Phase 2 (Analyze) for understanding the app structure.
+Useful during Phase 1 (Capture) and Phase 2 (Analyze) for understanding the app structure.
 
 ### Get All Links
 
@@ -197,11 +197,11 @@ playwright-cli -s=<app> eval "(() => {
 
 ## How It Connects to Our Pipeline
 
-### Phase 1a (Recon)
+### Phase 1 Step 2 (Site Assessment)
 - `eval` for framework detection and quick DOM queries
 - `run-code` for wait-then-check patterns on slow-loading pages
 
-### Phase 1 (Record)
+### Phase 1 Step 3 (Full Capture)
 - `run-code` for download handling -- triggering downloads to capture the download URL
 - `run-code` for iframe interaction when the app uses embedded editors
 - Wait strategies to ensure all API calls complete before `tracing-stop`

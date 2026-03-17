@@ -5,7 +5,7 @@
 ## How It Works
 
 1. You point CLI-Anything-Web at a web app URL
-2. playwright-cli opens a browser, runs reconnaissance, and captures API traffic
+2. playwright-cli opens a browser, assesses the site, and captures API traffic
 3. Claude systematically exercises the app, capturing all API traffic
 4. Claude analyzes the traffic, maps the API, and generates a complete CLI
 5. You get `cli-web-<app>` on your PATH — ready for agents
