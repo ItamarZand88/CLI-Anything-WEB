@@ -92,6 +92,9 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 | `auth-strategies.md` | Phase 4 — implementing auth module | Phase 4 |
 | `google-batchexecute.md` | Phase 2+4 — when target is a Google app | Phase 2, 4 |
 | `ssr-patterns.md` | Phase 1a+2 — when target uses SSR (Next.js, Nuxt, etc.) | Phase 1a, 2 |
+| `playwright-cli-tracing.md` | Phase 1 — understanding trace file format and parse-trace.py | Phase 1 |
+| `playwright-cli-sessions.md` | Phase 1 — named sessions, auth persistence, state-save format | Phase 1, 4 |
+| `playwright-cli-advanced.md` | Phase 1 — run-code, wait strategies, downloads, iframes | Phase 1, 1a |
 
 ### Reconnaissance References (`skills/web-reconnaissance/references/`)
 

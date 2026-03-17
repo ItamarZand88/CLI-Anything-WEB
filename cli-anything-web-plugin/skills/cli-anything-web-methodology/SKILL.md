@@ -58,3 +58,6 @@ During the full pipeline, all three activate at the relevant phases.
 - **`references/auth-strategies.md`** — Auth implementation strategies
 - **`references/google-batchexecute.md`** — Google batchexecute RPC protocol spec (URL format, encoding, decoding, tokens)
 - **`references/ssr-patterns.md`** — SSR framework patterns and data extraction strategies
+- **`references/playwright-cli-tracing.md`** — Trace file format, `.network` structure, how parse-trace.py works
+- **`references/playwright-cli-sessions.md`** — Named sessions, state-save/load, auth JSON format
+- **`references/playwright-cli-advanced.md`** — run-code, wait strategies, downloads, iframe handling
