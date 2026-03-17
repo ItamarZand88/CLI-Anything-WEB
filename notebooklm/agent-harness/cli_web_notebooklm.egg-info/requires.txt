@@ -1,7 +1,9 @@
 click>=8.0
-requests>=2.28
+httpx>=0.24
+
+[browser]
+playwright>=1.40.0
 
 [dev]
 pytest>=7.0
-pytest-mock>=3.10
-responses>=0.23
+pytest-mock

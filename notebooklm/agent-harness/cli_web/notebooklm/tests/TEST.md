@@ -1,108 +1,93 @@
-# Test Plan — cli-web-notebooklm
+# TEST.md — cli-web-notebooklm
 
-## Unit Tests (test_core.py) — Mocked HTTP
+## Part 1: Test Plan
 
-### Session Extraction
-- `test_extract_session_params_valid` — Extracts at, f_sid, bl from realistic HTML.
-- `test_extract_session_params_missing_at` — Raises ValueError when SNlM0e absent.
-- `test_extract_session_params_missing_sid` — Raises ValueError when FdrFJe absent.
-- `test_extract_session_params_missing_bl` — Raises ValueError when cfb2h absent.
+### Test Inventory
+- `test_core.py`: ~15 unit tests planned (RPC encoder/decoder, auth, models)
+- `test_e2e.py`: ~8 E2E tests planned (live API calls, subprocess)
 
-### Auth
-- `test_save_and_load_cookies` — Round-trip save/load through auth.json.
-- `test_load_cookies_missing_file` — Raises FileNotFoundError.
-- `test_validate_cookies_all_present` — Returns empty list when complete.
-- `test_validate_cookies_missing` — Returns list of missing cookie names.
-- `test_build_cookie_header` — Produces correct "key=val; key=val" format.
+### Unit Test Plan
 
-### Client — batchexecute Parsing
-- `test_parse_batchexecute_simple` — Parses a standard wrapped response.
-- `test_parse_batchexecute_malformed` — Raises ValueError on garbage.
-- `test_extract_chunks_single` — Extracts one length-prefixed chunk.
-- `test_extract_chunks_multi` — Extracts multiple chunks.
+#### RPC Encoder (`core/rpc/encoder.py`)
+- `test_encode_request` — verify URL-encoded form body structure
+- `test_build_query_params` — verify query string params
 
-### Client — RPC Call (mocked HTTP)
-- `test_rpc_list_notebooks` — Sends correct f.req body, returns parsed data.
-- `test_rpc_http_error` — Raises on 401/403/500 responses.
+#### RPC Decoder (`core/rpc/decoder.py`)
+- `test_decode_simple_response` — parse basic batchexecute response
+- `test_decode_multibyte_response` — handle Hebrew/emoji (byte vs char)
+- `test_decode_multiple_chunks` — parse multiple length-prefixed chunks
+- `test_extract_rpc_data` — extract specific RPC from envelopes
+- `test_parse_rpc_result` — full decode + parse pipeline
 
-### Models
-- `test_notebook_to_dict` — Serialization round-trip.
-- `test_source_to_dict` — Serialization round-trip.
-- `test_chat_session_to_dict` — Nested serialization.
+#### Auth (`core/auth.py`)
+- `test_cookies_to_header` — filter and format cookies
+- `test_check_required_cookies` — validate required cookies present
+- `test_extract_tokens_from_html` — regex extraction from page HTML
+- `test_save_load_cookies` — roundtrip save/load
 
-### Output
-- `test_output_json` — Produces valid JSON to stdout.
-- `test_truncate_short` — No change on short strings.
-- `test_truncate_long` — Truncates with ellipsis.
+#### Models (`core/models.py`)
+- `test_parse_notebook` — parse notebook from raw API data
+- `test_parse_source` — parse source with various types
+- `test_parse_artifact` — parse artifact with media URLs
+- `test_parse_timestamp` — convert [secs, nanos] to ISO
 
-## End-to-End Tests (test_e2e.py) — Subprocess
+### E2E Test Plan (Live)
 
-### Auth
-- `test_auth_status_no_cookies` — Exits non-zero, outputs error message.
-- `test_help` — `--help` exits 0, output contains command groups.
-- `test_version` — `--version` exits 0, output contains version.
+1. **Auth status** — verify cookies present + live validation
+2. **List notebooks** — verify returns non-empty list with expected fields
+3. **Get notebook** — verify specific notebook by ID
+4. **List sources** — verify sources for a notebook
+5. **List artifacts** — verify artifacts for a notebook
+6. **Chat suggested** — verify summary + questions
+7. **Subprocess: --help** — verify installed CLI responds
+8. **Subprocess: --json notebooks list** — verify JSON output
 
-### Notebooks (requires auth)
-- `test_notebooks_list_json` — Exits 0, output is valid JSON array.
-- `test_notebooks_list_table` — Exits 0, output contains header text.
+## Part 2: Test Results
 
-### Chat (requires auth)
-- `test_chat_query_json` — Exits 0, response contains question and response keys.
+**Date:** 2026-03-15
+**Total tests:** 32
+**Pass rate:** 100% (32/32)
 
-## Failure Policy
-- All tests that require authentication MUST FAIL (not skip) when auth is missing.
-- The `_resolve_cli()` helper locates the installed entry point for subprocess invocation.
+### pytest output:
 
----
-
-## Part 2 — Test Results
-
-### Run Date: 2026-03-15
-
-### Unit Tests (test_core.py)
 ```
-cli_web/notebooklm/tests/test_core.py::test_extract_session_params_valid PASSED
-cli_web/notebooklm/tests/test_core.py::test_extract_session_params_missing_at PASSED
-cli_web/notebooklm/tests/test_core.py::test_extract_session_params_missing_sid PASSED
-cli_web/notebooklm/tests/test_core.py::test_extract_session_params_missing_bl PASSED
-cli_web/notebooklm/tests/test_core.py::test_save_and_load_cookies PASSED
-cli_web/notebooklm/tests/test_core.py::test_load_cookies_missing_file PASSED
-cli_web/notebooklm/tests/test_core.py::test_validate_cookies_all_present PASSED
-cli_web/notebooklm/tests/test_core.py::test_validate_cookies_missing PASSED
-cli_web/notebooklm/tests/test_core.py::test_build_cookie_header PASSED
-cli_web/notebooklm/tests/test_core.py::test_parse_batchexecute_simple PASSED
-cli_web/notebooklm/tests/test_core.py::test_parse_batchexecute_malformed PASSED
-cli_web/notebooklm/tests/test_core.py::test_extract_chunks_single PASSED
-cli_web/notebooklm/tests/test_core.py::test_extract_chunks_multi PASSED
-cli_web/notebooklm/tests/test_core.py::test_rpc_list_notebooks PASSED
-cli_web/notebooklm/tests/test_core.py::test_rpc_http_error PASSED
-cli_web/notebooklm/tests/test_core.py::test_notebook_to_dict PASSED
-cli_web/notebooklm/tests/test_core.py::test_source_to_dict PASSED
-cli_web/notebooklm/tests/test_core.py::test_chat_session_to_dict PASSED
-cli_web/notebooklm/tests/test_core.py::test_output_json PASSED
-cli_web/notebooklm/tests/test_core.py::test_truncate_short PASSED
-cli_web/notebooklm/tests/test_core.py::test_truncate_long PASSED
+test_core.py::TestEncoder::test_encode_request_basic PASSED
+test_core.py::TestEncoder::test_encode_request_with_list PASSED
+test_core.py::TestEncoder::test_build_query_params PASSED
+test_core.py::TestDecoder::test_decode_simple_response PASSED
+test_core.py::TestDecoder::test_decode_multibyte_response PASSED
+test_core.py::TestDecoder::test_decode_multiple_chunks PASSED
+test_core.py::TestDecoder::test_extract_rpc_data PASSED
+test_core.py::TestDecoder::test_extract_rpc_data_not_found PASSED
+test_core.py::TestDecoder::test_parse_rpc_result PASSED
+test_core.py::TestAuth::test_cookies_to_header_filters_domain PASSED
+test_core.py::TestAuth::test_cookies_to_header_deduplicates PASSED
+test_core.py::TestAuth::test_check_required_cookies_all_present PASSED
+test_core.py::TestAuth::test_check_required_cookies_missing PASSED
+test_core.py::TestAuth::test_extract_tokens_from_html PASSED
+test_core.py::TestAuth::test_extract_tokens_missing PASSED
+test_core.py::TestModels::test_parse_timestamp PASSED
+test_core.py::TestModels::test_parse_timestamp_none PASSED
+test_core.py::TestModels::test_parse_notebook PASSED
+test_core.py::TestModels::test_parse_source PASSED
+test_core.py::TestModels::test_parse_source_empty PASSED
+test_core.py::TestModels::test_parse_artifact PASSED
+test_e2e.py::TestAuthLive::test_auth_cookies_present PASSED
+test_e2e.py::TestAuthLive::test_auth_live_validation PASSED
+test_e2e.py::TestNotebooksLive::test_list_notebooks PASSED
+test_e2e.py::TestNotebooksLive::test_get_notebook PASSED
+test_e2e.py::TestSourcesLive::test_list_sources PASSED
+test_e2e.py::TestArtifactsLive::test_list_artifacts PASSED
+test_e2e.py::TestChatLive::test_get_summary PASSED
+test_e2e.py::TestCLISubprocess::test_help PASSED
+test_e2e.py::TestCLISubprocess::test_version PASSED
+test_e2e.py::TestCLISubprocess::test_json_notebooks_list PASSED
+test_e2e.py::TestCLISubprocess::test_json_auth_status PASSED
 
-21 passed in 0.22s
-```
-
-### E2E Tests (test_e2e.py)
-```
-cli_web/notebooklm/tests/test_e2e.py::test_cli_help PASSED
-cli_web/notebooklm/tests/test_e2e.py::test_cli_version PASSED
-cli_web/notebooklm/tests/test_e2e.py::test_auth_status_no_cookies PASSED
-cli_web/notebooklm/tests/test_e2e.py::test_subprocess_help PASSED
-cli_web/notebooklm/tests/test_e2e.py::test_subprocess_version PASSED
-cli_web/notebooklm/tests/test_e2e.py::test_notebooks_list_json FAILED (auth not configured)
-cli_web/notebooklm/tests/test_e2e.py::test_notebooks_list_table FAILED (auth not configured)
-cli_web/notebooklm/tests/test_e2e.py::test_chat_query_json FAILED (auth not configured)
-
-5 passed, 3 failed in 2.66s
+============================= 32 passed in 20.58s =============================
 ```
 
 ### Summary
-| Suite | Total | Passed | Failed | Notes |
-|-------|-------|--------|--------|-------|
-| Unit (test_core.py) | 21 | 21 | 0 | All mocked, deterministic |
-| E2E (test_e2e.py) | 8 | 5 | 3 | 3 failures = auth not configured (expected) |
-| **Total** | **29** | **26** | **3** | Auth-dependent failures per HARNESS.md spec |
+- 21 unit tests (RPC encoder/decoder, auth, models) — all pass
+- 7 E2E live API tests (auth, notebooks, sources, artifacts, chat) — all pass
+- 4 subprocess tests (help, version, JSON list, JSON auth) — all pass

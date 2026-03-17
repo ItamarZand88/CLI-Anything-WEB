@@ -1,27 +1,18 @@
-"""Output formatting helpers — JSON and human-readable."""
-
-from __future__ import annotations
+"""Output formatting for NotebookLM CLI."""
 
 import json
 import sys
-from typing import Any
-
-import click
 
 
-def output_json(data: Any) -> None:
-    """Print data as formatted JSON to stdout."""
-    click.echo(json.dumps(data, indent=2, default=str))
+def output_json(data, file=None):
+    """Print data as formatted JSON."""
+    print(json.dumps(data, indent=2, ensure_ascii=False, default=str), file=file or sys.stdout)
 
 
-def output_error(message: str) -> None:
-    """Print an error message to stderr."""
-    click.echo(f"Error: {message}", err=True)
-
-
-def output_table(headers: list[str], rows: list[list[str]]) -> None:
-    """Print a simple ASCII table."""
-    if not headers:
+def output_table(headers: list[str], rows: list[list[str]]):
+    """Print a simple text table."""
+    if not rows:
+        print("  (no results)")
         return
 
     col_widths = [len(h) for h in headers]
@@ -30,25 +21,18 @@ def output_table(headers: list[str], rows: list[list[str]]) -> None:
             if i < len(col_widths):
                 col_widths[i] = max(col_widths[i], len(str(cell)))
 
-    # Header
-    header_line = "  ".join(
-        str(h).ljust(col_widths[i]) for i, h in enumerate(headers)
-    )
-    click.echo(header_line)
-    click.echo("  ".join("-" * w for w in col_widths))
+    # Cap widths
+    col_widths = [min(w, 50) for w in col_widths]
 
-    # Rows
+    def pad(text, width):
+        t = str(text)[:width]
+        return t + " " * (width - len(t))
+
+    header_line = " | ".join(pad(h, col_widths[i]) for i, h in enumerate(headers))
+    sep_line = "-+-".join("-" * w for w in col_widths)
+
+    print(f"  {header_line}")
+    print(f"  {sep_line}")
     for row in rows:
-        line = "  ".join(
-            str(cell).ljust(col_widths[i])
-            for i, cell in enumerate(row)
-            if i < len(col_widths)
-        )
-        click.echo(line)
-
-
-def truncate(text: str, max_len: int = 60) -> str:
-    """Truncate text with ellipsis if it exceeds max_len."""
-    if len(text) <= max_len:
-        return text
-    return text[: max_len - 3] + "..."
+        cells = [pad(row[i] if i < len(row) else "", col_widths[i]) for i in range(len(headers))]
+        print(f"  {' | '.join(cells)}")

@@ -49,6 +49,7 @@ _ACCENT_COLORS = {
     "airtable":  "\033[38;5;35m",    # green (Airtable brand)
     "asana":     "\033[38;5;196m",   # red (Asana brand)
     "trello":    "\033[38;5;39m",    # blue (Trello brand)
+    "notebooklm": "\033[38;5;117m",  # light blue (Google NotebookLM brand)
 }
 _DEFAULT_ACCENT = "\033[38;5;75m"      # default sky blue
 

@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: cli-web-suno
+Version: 0.1.0
+Summary: Agent-native CLI for Suno AI Music Generator
+Requires-Python: >=3.10
+Requires-Dist: click>=8.0
+Requires-Dist: httpx>=0.24.0
+Requires-Dist: websockets>=12.0
+Provides-Extra: browser
+Requires-Dist: playwright>=1.40.0; extra == "browser"
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

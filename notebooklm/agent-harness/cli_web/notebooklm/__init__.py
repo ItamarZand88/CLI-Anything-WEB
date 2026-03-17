@@ -1,3 +1,3 @@
-"""cli-web-notebooklm — CLI harness for Google NotebookLM."""
+"""cli-web-notebooklm — Agent-native CLI for Google NotebookLM."""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"

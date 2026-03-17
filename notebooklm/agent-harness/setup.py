@@ -1,20 +1,21 @@
-"""Setup for cli-web-notebooklm — CLI harness for Google NotebookLM."""
+"""Setup for cli-web-notebooklm."""
 
 from setuptools import setup, find_namespace_packages
 
 setup(
     name="cli-web-notebooklm",
-    version="0.1.0",
-    description="CLI harness for Google NotebookLM via cli-anything-web",
-    author="Itamar Zand",
-    python_requires=">=3.10",
+    version="1.0.0",
+    description="Agent-native CLI for Google NotebookLM",
+    author="CLI-Anything-Web",
     packages=find_namespace_packages(include=["cli_web.*"]),
+    python_requires=">=3.10",
     install_requires=[
         "click>=8.0",
-        "requests>=2.28",
+        "httpx>=0.24",
     ],
     extras_require={
-        "dev": ["pytest>=7.0", "pytest-mock>=3.10", "responses>=0.23"],
+        "browser": ["playwright>=1.40.0"],
+        "dev": ["pytest>=7.0", "pytest-mock"],
     },
     entry_points={
         "console_scripts": [

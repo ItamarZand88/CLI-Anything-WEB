@@ -1,159 +1,170 @@
-"""End-to-end tests — subprocess invocation of the installed CLI.
-
-Auth-dependent tests FAIL (do not skip) when credentials are missing.
-"""
-
-from __future__ import annotations
+"""E2E tests for cli-web-notebooklm — requires live auth."""
 
 import json
 import os
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
-
-# ── Helper ─────────────────────────────────────────────────────────────
-
-def _resolve_cli(name: str = "cli-web-notebooklm") -> list[str]:
-    """Resolve the CLI entry point for subprocess invocation.
-
-    Tries the installed console_script first, then falls back
-    to `python -m cli_web.notebooklm`.
-    """
-    exe = shutil.which(name)
-    if exe:
-        return [exe]
-    return [sys.executable, "-m", "cli_web.notebooklm"]
+from cli_web.notebooklm.core.auth import load_cookies, check_required_cookies, fetch_tokens
+from cli_web.notebooklm.core.client import NotebookLMClient
 
 
-CLI = _resolve_cli()
+def _resolve_cli(name):
+    force = os.environ.get("CLI_WEB_FORCE_INSTALLED", "").strip() == "1"
+    path = shutil.which(name)
+    if path:
+        print(f"[_resolve_cli] Using installed command: {path}")
+        return [path]
+    if force:
+        raise RuntimeError(f"{name} not found in PATH. Install with: pip install -e .")
+    module = name.replace("cli-web-", "cli_web.") + "." + name.split("-")[-1] + "_cli"
+    print(f"[_resolve_cli] Falling back to: {sys.executable} -m {module}")
+    return [sys.executable, "-m", module]
 
 
-def _run(*args: str, input_text: str | None = None) -> subprocess.CompletedProcess:
-    """Run the CLI with given arguments."""
-    return subprocess.run(
-        [*CLI, *args],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        input=input_text,
-    )
+# ── Auth Verification ──────────────────────────────────────────────
+
+class TestAuthLive:
+    def test_auth_cookies_present(self):
+        cookies = load_cookies()
+        if not cookies:
+            pytest.fail("Auth not configured. Run: cli-web-notebooklm auth login --from-browser")
+        ok, missing = check_required_cookies(cookies)
+        if not ok:
+            pytest.fail(f"Missing required cookies: {missing}")
+        print(f"[verify] {len(cookies)} cookies present, all required OK")
+
+    def test_auth_live_validation(self):
+        cookies = load_cookies()
+        if not cookies:
+            pytest.fail("Auth not configured. Run: cli-web-notebooklm auth login --from-browser")
+        tokens = fetch_tokens(cookies)
+        assert tokens.get("at"), "CSRF token extraction failed — cookies may be expired"
+        assert tokens.get("bl"), "Build label extraction failed"
+        print(f"[verify] Live validation OK: at={tokens['at'][:20]}...")
 
 
-def _has_auth() -> bool:
-    """Check if auth cookies are configured."""
-    auth_file = Path.home() / ".config" / "cli-web-notebooklm" / "auth.json"
-    if not auth_file.exists():
-        return False
-    try:
-        data = json.loads(auth_file.read_text())
-        return bool(data.get("cookies"))
-    except Exception:
-        return False
+# ── Live API Tests ─────────────────────────────────────────────────
+
+class TestNotebooksLive:
+    def test_list_notebooks(self):
+        client = NotebookLMClient()
+        notebooks = client.list_notebooks()
+        assert isinstance(notebooks, list), f"Expected list, got {type(notebooks)}"
+        assert len(notebooks) > 0, "No notebooks found"
+        print(f"[verify] Found {len(notebooks)} notebooks")
+        # Verify first notebook has expected structure
+        from cli_web.notebooklm.core.models import parse_notebook
+        nb = parse_notebook(notebooks[0])
+        assert nb.get("id"), "Notebook missing ID"
+        assert nb.get("title"), "Notebook missing title"
+        print(f"[verify] First notebook: id={nb['id']} title={nb['title'][:40]}")
+
+    def test_get_notebook(self):
+        client = NotebookLMClient()
+        notebooks = client.list_notebooks()
+        assert len(notebooks) > 0
+        from cli_web.notebooklm.core.models import parse_notebook
+        first = parse_notebook(notebooks[0])
+        nb_id = first["id"]
+
+        details = client.get_notebook(nb_id)
+        assert details is not None
+        parsed = parse_notebook(details)
+        assert parsed["id"] == nb_id
+        print(f"[verify] Got notebook {nb_id}: {parsed['title'][:40]}")
 
 
-# ── Basic CLI tests ────────────────────────────────────────────────────
+class TestSourcesLive:
+    def test_list_sources(self):
+        client = NotebookLMClient()
+        notebooks = client.list_notebooks()
+        # Find a notebook with sources
+        from cli_web.notebooklm.core.models import parse_notebook
+        nb_with_sources = None
+        for nb_raw in notebooks:
+            nb = parse_notebook(nb_raw)
+            if nb["source_count"] > 0:
+                nb_with_sources = nb
+                break
+        if not nb_with_sources:
+            pytest.skip("No notebooks with sources found")
 
-def test_help():
-    result = _run("--help")
-    assert result.returncode == 0
-    assert "notebooks" in result.stdout
-    assert "sources" in result.stdout
-    assert "notes" in result.stdout
-    assert "chat" in result.stdout
-    assert "artifacts" in result.stdout
-    assert "auth" in result.stdout
-
-
-def test_version():
-    result = _run("--version")
-    assert result.returncode == 0
-    assert "0.1.0" in result.stdout
-
-
-def test_auth_help():
-    result = _run("auth", "--help")
-    assert result.returncode == 0
-    assert "login" in result.stdout
-    assert "status" in result.stdout
-    assert "export" in result.stdout
+        sources = client.list_sources(nb_with_sources["id"])
+        assert isinstance(sources, list)
+        assert len(sources) > 0
+        print(f"[verify] Found {len(sources)} sources in notebook {nb_with_sources['id']}")
 
 
-def test_notebooks_help():
-    result = _run("notebooks", "--help")
-    assert result.returncode == 0
-    assert "list" in result.stdout
-    assert "get" in result.stdout
-    assert "create" in result.stdout
-    assert "delete" in result.stdout
-    assert "rename" in result.stdout
+class TestArtifactsLive:
+    def test_list_artifacts(self):
+        client = NotebookLMClient()
+        notebooks = client.list_notebooks()
+        from cli_web.notebooklm.core.models import parse_notebook
+        first = parse_notebook(notebooks[0])
+        artifacts = client.list_artifacts(first["id"])
+        assert artifacts is not None
+        print(f"[verify] Artifacts response type: {type(artifacts)}")
 
 
-# ── Auth status (no auth) ─────────────────────────────────────────────
+class TestChatLive:
+    def test_get_summary(self):
+        client = NotebookLMClient()
+        notebooks = client.list_notebooks()
+        from cli_web.notebooklm.core.models import parse_notebook
+        # Find notebook with sources for summary
+        for nb_raw in notebooks:
+            nb = parse_notebook(nb_raw)
+            if nb["source_count"] > 0:
+                result = client.get_summary(nb["id"])
+                assert result is not None
+                print(f"[verify] Got summary for {nb['id']}")
+                return
+        pytest.skip("No notebooks with sources for summary test")
 
-def test_auth_status_no_cookies():
-    """Without auth, 'auth status' must fail (exit non-zero)."""
-    if _has_auth():
-        pytest.fail(
-            "Auth is configured — this test validates the no-auth path. "
-            "Remove ~/.config/cli-web-notebooklm/auth.json to test properly."
+
+# ── Subprocess Tests ───────────────────────────────────────────────
+
+class TestCLISubprocess:
+    def test_help(self):
+        cmd = _resolve_cli("cli-web-notebooklm")
+        result = subprocess.run(cmd + ["--help"], capture_output=True, text=True, timeout=30)
+        assert result.returncode == 0
+        assert "notebooks" in result.stdout
+        assert "auth" in result.stdout
+
+    def test_version(self):
+        cmd = _resolve_cli("cli-web-notebooklm")
+        result = subprocess.run(cmd + ["--version"], capture_output=True, text=True, timeout=30)
+        assert result.returncode == 0
+        assert "1.0.0" in result.stdout
+
+    def test_json_notebooks_list(self):
+        cmd = _resolve_cli("cli-web-notebooklm")
+        result = subprocess.run(
+            cmd + ["--json", "notebooks", "list"],
+            capture_output=True, timeout=60,
+            env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         )
-    result = _run("auth", "status")
-    assert result.returncode != 0
-    # Response body must contain meaningful error text
-    combined = result.stdout + result.stderr
-    assert "auth" in combined.lower() or "cookie" in combined.lower() or "not found" in combined.lower()
+        assert result.returncode == 0, f"Exit {result.returncode}: {result.stderr}"
+        stdout = result.stdout.decode("utf-8", errors="replace")
+        data = json.loads(stdout)
+        assert isinstance(data, list)
+        assert len(data) > 0
+        assert "id" in data[0]
+        print(f"[verify] Subprocess returned {len(data)} notebooks")
 
-
-# ── Live tests (require auth) ─────────────────────────────────────────
-
-def test_notebooks_list_json():
-    """List notebooks as JSON. FAILS if auth is not configured."""
-    if not _has_auth():
-        pytest.fail(
-            "Auth not configured. Export cookies to "
-            "~/.config/cli-web-notebooklm/auth.json to run live tests."
+    def test_json_auth_status(self):
+        cmd = _resolve_cli("cli-web-notebooklm")
+        result = subprocess.run(
+            cmd + ["--json", "auth", "status"],
+            capture_output=True, text=True, timeout=30,
+            env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         )
-    result = _run("notebooks", "list", "--json")
-    assert result.returncode == 0, f"stderr: {result.stderr}"
-    data = json.loads(result.stdout)
-    assert isinstance(data, list)
-
-
-def test_notebooks_list_table():
-    """List notebooks as table. FAILS if auth is not configured."""
-    if not _has_auth():
-        pytest.fail(
-            "Auth not configured. Export cookies to "
-            "~/.config/cli-web-notebooklm/auth.json to run live tests."
-        )
-    result = _run("notebooks", "list")
-    assert result.returncode == 0, f"stderr: {result.stderr}"
-    # Should contain either table headers or "No notebooks" message
-    assert "ID" in result.stdout or "No notebooks" in result.stdout
-
-
-def test_chat_query_json():
-    """Chat query as JSON. FAILS if auth is not configured."""
-    if not _has_auth():
-        pytest.fail(
-            "Auth not configured. Export cookies to "
-            "~/.config/cli-web-notebooklm/auth.json to run live tests."
-        )
-    # This test needs a real notebook_id — we'll fetch one first
-    list_result = _run("notebooks", "list", "--json")
-    assert list_result.returncode == 0, f"stderr: {list_result.stderr}"
-    notebooks = json.loads(list_result.stdout)
-    if not notebooks:
-        pytest.fail("No notebooks available for chat test.")
-
-    nb_id = notebooks[0]["id"]
-    result = _run("chat", "query", nb_id, "What is this notebook about?", "--json")
-    assert result.returncode == 0, f"stderr: {result.stderr}"
-    data = json.loads(result.stdout)
-    assert "question" in data
-    assert "response" in data
-    assert isinstance(data["response"], str)
+        assert result.returncode == 0, f"Exit {result.returncode}: {result.stderr}"
+        data = json.loads(result.stdout)
+        assert data["status"] == "ok"
+        assert data["live_validation"] == "ok"

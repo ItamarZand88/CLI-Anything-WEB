@@ -1,87 +1,107 @@
-"""Chat / query commands."""
-
-from __future__ import annotations
-
-from typing import Any
+import sys
 
 import click
 
 from cli_web.notebooklm.core.client import NotebookLMClient
-from cli_web.notebooklm.core.models import ChatMessage, ChatSession
-from cli_web.notebooklm.utils.config import RPC_CHAT_SESSIONS
-from cli_web.notebooklm.utils.output import output_json, output_error, truncate
+from cli_web.notebooklm.core.models import parse_chat_message
+from cli_web.notebooklm.utils.output import output_json, output_table
 
 
-@click.group("chat")
-def chat_group():
-    """Query notebooks and view chat history."""
+@click.group()
+def chat():
+    """NotebookLM chat operations."""
     pass
 
 
-@chat_group.command("query")
-@click.argument("notebook_id")
-@click.argument("question")
-@click.option("--source", "source_ids", multiple=True, help="Scope to specific source IDs.")
-@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
-def query(notebook_id: str, question: str, source_ids: tuple[str, ...], as_json: bool):
-    """Send a question to a notebook and get a streaming response."""
+@chat.command()
+@click.option("--notebook-id", required=True, help="The notebook ID.")
+@click.pass_context
+def history(ctx, notebook_id):
+    """Get chat history for a notebook."""
+    json_mode = ctx.obj["json"]
+    client = NotebookLMClient()
+    try:
+        threads_response = client.get_chat_threads(notebook_id)
+        thread_id = threads_response[0][0][0]
+        result = client.get_chat_history(thread_id)
+        messages_array = result[0]
+        parsed = [parse_chat_message(msg) for msg in messages_array]
+
+        if json_mode:
+            output_json(parsed)
+        else:
+            headers = ["Timestamp", "Text"]
+            rows = [[m["timestamp"], m["text"]] for m in parsed]
+            output_table(headers, rows)
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+
+
+@chat.command()
+@click.option("--notebook-id", required=True, help="The notebook ID.")
+@click.pass_context
+def suggested(ctx, notebook_id):
+    """Get suggested questions."""
+    json_mode = ctx.obj["json"]
+    client = NotebookLMClient()
+    try:
+        result = client.get_summary(notebook_id)
+        # Response: [[summary_list], [questions_list], ...], context_id
+        data_list = result[0] if isinstance(result[0], list) else result
+        summary = ""
+        if data_list and isinstance(data_list[0], list) and data_list[0]:
+            summary = data_list[0][0] if data_list[0] else ""
+        questions_outer = data_list[1] if len(data_list) > 1 and isinstance(data_list[1], list) else []
+        # questions_outer is [[q1, q2, ...]] — unwrap
+        questions_raw = questions_outer[0] if questions_outer and isinstance(questions_outer[0], list) else questions_outer
+
+        data = {
+            "summary": summary,
+            "questions": [
+                {"question": q[0], "prompt": q[1] if len(q) > 1 else ""}
+                for q in questions_raw if isinstance(q, list) and q
+            ],
+        }
+
+        if json_mode:
+            output_json(data)
+        else:
+            click.echo(f"Summary: {summary}\n")
+            headers = ["Question"]
+            rows = [[q["question"]] for q in data["questions"]]
+            output_table(headers, rows)
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+
+
+@chat.command()
+@click.option("--notebook-id", required=True, help="The notebook ID.")
+@click.option("--question", required=True, help="The question to ask.")
+@click.pass_context
+def ask(ctx, notebook_id, question):
+    """Send a question to a notebook's chat."""
+    json_mode = ctx.obj.get("json", False)
     try:
         client = NotebookLMClient()
-        result = client.query_stream(
-            notebook_id=notebook_id,
-            query=question,
-            source_ids=list(source_ids) if source_ids else None,
-        )
-    except Exception as e:
-        output_error(str(e))
-        raise SystemExit(1)
+        threads_response = client.get_chat_threads(notebook_id)
+        thread_id = threads_response[0][0][0]
 
-    if as_json:
-        output_json({
-            "notebook_id": notebook_id,
-            "question": question,
-            "response": result,
-        })
-        return
+        raw_sources = client.list_sources(notebook_id)
+        source_ids = [s[0][0] for s in raw_sources if isinstance(s[0], list)]
 
-    click.echo(result)
+        # The streaming API may fail with multiple sources — the server
+        # expects a specific source selection format. Send all and retry
+        # with individual sources if needed.
+        try:
+            result = client.ask_question(notebook_id, question, source_ids, thread_id)
+        except RuntimeError:
+            # Retry with just the first source
+            result = client.ask_question(notebook_id, question, source_ids[:1], thread_id)
 
-
-@chat_group.command("history")
-@click.argument("notebook_id")
-@click.option("--limit", default=20, help="Maximum number of messages to fetch.")
-@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
-def history(notebook_id: str, limit: int, as_json: bool):
-    """View chat history for a notebook."""
-    try:
-        client = NotebookLMClient()
-        data = client.rpc(RPC_CHAT_SESSIONS, [[], None, notebook_id, limit])
-    except Exception as e:
-        output_error(str(e))
-        raise SystemExit(1)
-
-    messages = []
-    if isinstance(data, list):
-        for entry in data:
-            if isinstance(entry, list) and len(entry) >= 2:
-                role = "user" if entry[0] == 1 else "assistant"
-                content = entry[1] if isinstance(entry[1], str) else str(entry[1])
-                timestamp = str(entry[2]) if len(entry) > 2 else ""
-                messages.append(ChatMessage(
-                    role=role, content=content, timestamp=timestamp,
-                ))
-
-    session = ChatSession(notebook_id=notebook_id, messages=messages)
-
-    if as_json:
-        output_json(session.to_dict())
-        return
-
-    if not messages:
-        click.echo("No chat history found.")
-        return
-
-    for msg in messages:
-        prefix = "You" if msg.role == "user" else "AI"
-        click.echo(f"[{prefix}] {truncate(msg.content, 200)}")
-        click.echo()
+        if json_mode:
+            output_json(result)
+        else:
+            click.echo(result.get("text", ""))
+    except RuntimeError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
