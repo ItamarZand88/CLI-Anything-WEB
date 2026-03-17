@@ -103,6 +103,8 @@ If playwright-cli cannot be used, fall back to chrome-devtools-mcp:
 
 ### Phase 1a — Reconnaissance (Optional but Recommended)
 
+> **Skill:** `web-reconnaissance` | **References:** `framework-detection.md`, `protection-detection.md`, `api-discovery.md`, `strategy-selection.md`
+
 Before capturing traffic, run reconnaissance to understand the site architecture.
 
 ```bash
@@ -129,6 +131,8 @@ See the `web-reconnaissance` skill for the full 5-step flow.
 ---
 
 ### Phase 1 — Record (Traffic Capture)
+
+> **Skill:** *(no dedicated skill — HARNESS.md is the guide)* | **References:** `traffic-patterns.md`
 
 **Goal:** Capture comprehensive HTTP traffic from the target web app.
 
@@ -237,6 +241,8 @@ JS analysis gives you guesses, trace capture gives you facts.
 
 ### Phase 2 — Analyze (API Discovery)
 
+> **Skill:** `cli-anything-web-methodology` | **References:** `traffic-patterns.md`, `google-batchexecute.md`, `ssr-patterns.md`
+
 **Goal:** Map raw traffic to a structured API model.
 
 **Process:**
@@ -280,6 +286,8 @@ JS analysis gives you guesses, trace capture gives you facts.
 
 ### Phase 3 — Design (CLI Architecture)
 
+> **Skill:** `cli-anything-web-methodology` | **References:** `traffic-patterns.md`
+
 **Goal:** Design the CLI command structure.
 
 **Process:**
@@ -309,6 +317,8 @@ JS analysis gives you guesses, trace capture gives you facts.
 **Output:** Architecture spec in `<APP>.md`.
 
 ### Phase 4 — Implement (Code Generation)
+
+> **Skill:** `cli-anything-web-methodology` + `cli-anything-web-standards` | **References:** `auth-strategies.md`, `google-batchexecute.md`
 
 **Goal:** Generate the complete Python CLI package.
 
@@ -434,6 +444,8 @@ Agent 4 → "Implement commands/artifacts.py (list, create, get)"
 
 ### Phase 5 — Plan Tests (TEST.md Part 1)
 
+> **Skill:** `cli-anything-web-testing`
+
 **Goal:** Write the test plan BEFORE writing any test code.
 
 **BEFORE writing any test code**, create `tests/TEST.md` in the app package.
@@ -473,6 +485,8 @@ This file serves as the test plan and MUST contain:
 This planning document ensures comprehensive test coverage before writing code.
 
 ### Phase 6 — Test (Write Tests)
+
+> **Skill:** `cli-anything-web-testing` + `cli-anything-web-standards`
 
 **Goal:** Comprehensive test suite.
 
@@ -548,6 +562,8 @@ false confidence.
 
 ### Phase 7 — Document (Update TEST.md)
 
+> **Skill:** `cli-anything-web-testing`
+
 **Goal:** Append test results to TEST.md (Part 2).
 
 Phase 7 **appends** results to the existing `TEST.md` (which already has Part 1 from Phase 5). It does NOT write TEST.md from scratch.
@@ -570,6 +586,8 @@ Phase 7 **appends** results to the existing `TEST.md` (which already has Part 1 
 6. Include example CLI usage in README.md
 
 ### Phase 8 — Publish and Verify (Install to PATH)
+
+> **Skill:** `cli-anything-web-standards`
 
 **Goal:** Make CLI installable AND verify it works end-to-end as a real user would use it.
 
