@@ -62,6 +62,23 @@ normal operations, it's broken.
 
 ---
 
+## Companion Skills
+
+This plugin includes five skills that work together automatically:
+
+| Skill | Auto-activates when... |
+|-------|----------------------|
+| **cli-anything-web-methodology** | Building a new CLI from scratch, running the full pipeline |
+| **cli-anything-web-testing** | Writing tests, planning test coverage, debugging test failures |
+| **cli-anything-web-standards** | Checking quality, reviewing implementations, validating structure |
+| **web-reconnaissance** | Analyzing unfamiliar sites, detecting frameworks, choosing capture strategy |
+| **auto-optimize** | Autonomous skill optimization — run evals, improve instructions, keep winners |
+
+You don't need to invoke these manually — Claude picks the right one based on context.
+During the full pipeline, all five activate at the relevant phases.
+
+---
+
 ## 8-Phase Pipeline
 
 ### Prerequisites
