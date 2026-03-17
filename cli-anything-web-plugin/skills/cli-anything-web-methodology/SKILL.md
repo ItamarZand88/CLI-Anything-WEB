@@ -46,6 +46,7 @@ based on what you're doing:
 | **cli-anything-web-testing** | Writing tests, planning test coverage, debugging test failures |
 | **cli-anything-web-standards** | Checking quality, reviewing implementations, validating structure |
 | **web-reconnaissance** | Analyzing unfamiliar sites, detecting frameworks, choosing capture strategy |
+| **auto-optimize** | Autonomous skill optimization — run evals, improve instructions, keep winners |
 
 You don't need to invoke these manually — Claude picks the right one based on context.
 During the full pipeline, all three activate at the relevant phases.
