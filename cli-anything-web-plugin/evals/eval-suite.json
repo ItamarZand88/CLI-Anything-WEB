@@ -6,7 +6,7 @@
       "id": "recon-suno",
       "name": "Suno.com reconnaissance",
       "prompt": "Plan reconnaissance for https://suno.com. Include exact playwright-cli commands for all 5 recon steps, framework detection, protection assessment, and a RECON-REPORT.md with Expected/Confirmed columns.",
-      "skills_to_load": ["web-reconnaissance"],
+      "skills_to_load": ["cli-anything-web-capture"],
       "assertions": [
         {"id": "A1", "text": "Uses npx @playwright/cli commands (not MCP, not curl)", "check": "programmatic", "pattern": "npx @playwright/cli"},
         {"id": "A2", "text": "Follows structured 5-step recon flow", "check": "llm"},
@@ -26,7 +26,7 @@
       "id": "recon-nextjs",
       "name": "Next.js SSR site reconnaissance",
       "prompt": "Plan reconnaissance for https://vercel.com/dashboard (a Next.js app). Include __NEXT_DATA__ extraction, Force SPA Navigation trick, and SSR+API hybrid strategy.",
-      "skills_to_load": ["web-reconnaissance", "cli-anything-web-methodology"],
+      "skills_to_load": ["cli-anything-web-capture", "cli-anything-web-methodology"],
       "assertions": [
         {"id": "A1", "text": "Uses playwright-cli commands", "check": "programmatic", "pattern": "npx @playwright/cli"},
         {"id": "A2", "text": "Detects __NEXT_DATA__ with eval command", "check": "programmatic", "pattern": "__NEXT_DATA__"},
@@ -40,7 +40,7 @@
       "id": "recon-protected",
       "name": "Protected site reconnaissance (Futbin)",
       "prompt": "Plan reconnaissance for https://www.futbin.com. Check for Cloudflare, rate limits, and recommend a capture strategy considering protections.",
-      "skills_to_load": ["web-reconnaissance"],
+      "skills_to_load": ["cli-anything-web-capture"],
       "assertions": [
         {"id": "A1", "text": "Uses playwright-cli commands", "check": "programmatic", "pattern": "npx @playwright/cli"},
         {"id": "A2", "text": "Includes protection detection eval script", "check": "programmatic", "pattern": "cloudflare|captcha|perimeterx"},
