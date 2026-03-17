@@ -165,6 +165,16 @@ the `open` command waits for load by default.
 **Right:** Build retry logic and backoff into the generated `client.py`.
 Handle 429, 403, 500, and timeout errors gracefully.
 
+### Reverse-engineering JS instead of using the feature
+
+**Wrong:** Grep through minified webpack bundles, parse `performance.getEntries()`,
+read Next.js build manifests, or decode obfuscated JavaScript to find API endpoints.
+This wastes 10-30 minutes and gives unreliable results.
+
+**Right:** Take a screenshot, click the button, fill the form, submit — then check
+the trace. If you can see the feature in the UI, you can capture its API call in
+under 60 seconds by using it. The browser IS the API documentation.
+
 ---
 
 ## Quick Reference: Recon to Strategy

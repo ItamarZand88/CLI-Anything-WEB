@@ -165,6 +165,27 @@ Then use `mcp__chrome-devtools__*` tools:
 - Capture auth tokens/cookies for session management design
 - Record the user action that triggered each request group
 
+**If an endpoint is missing from the trace — USE THE FEATURE, don't reverse-engineer JS:**
+
+When you can see a feature in the UI (e.g., "Create Song" button) but don't see
+its API endpoint in the captured trace, the solution is simple:
+
+1. Start a NEW trace: `tracing-start`
+2. Take a screenshot to see the UI
+3. Use the feature: `click` the button, `fill` the form, submit
+4. Stop trace: `tracing-stop`
+5. Parse → the endpoint will now be in the trace
+
+**Do NOT:**
+- Grep through minified JavaScript bundles looking for API paths
+- Parse `performance.getEntries()` for endpoint URLs
+- Read webpack chunks or Next.js build manifests
+- Spend more than 2 minutes trying to find an endpoint without using the UI
+
+The browser IS the API documentation. If you can see it in the UI, you can
+capture it by using it. This is faster, more reliable, and always correct —
+JS analysis gives you guesses, trace capture gives you facts.
+
 ### Phase 2 — Analyze (API Discovery)
 
 **Goal:** Map raw traffic to a structured API model.

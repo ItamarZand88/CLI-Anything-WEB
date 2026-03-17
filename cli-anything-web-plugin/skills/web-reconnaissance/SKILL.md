@@ -110,6 +110,20 @@ Inspect `recon-traffic.json` for:
 - SSR data routes (`/_next/data/`, `/__data.json`)
 - Internal/undocumented APIs (`/_api/`, `/internal/`)
 
+**Missing an endpoint? Use the feature, don't reverse-engineer JS.**
+
+If you see a button or feature in the UI (e.g., "Create", "Generate", "Submit")
+but its API endpoint doesn't appear in the trace, it means you didn't trigger
+that feature during the trace. The fix:
+
+1. Start a new trace: `tracing-start`
+2. Take a screenshot to see the UI: `screenshot`
+3. Use the feature: `click` the button, `fill` the form, submit
+4. Stop: `tracing-stop` → parse → the endpoint is now captured
+
+Never spend more than 2 minutes searching for an endpoint. If you can see it
+in the UI, capture it by using it. The browser IS the API documentation.
+
 ---
 
 ### Step 1.4: Protection Assessment
