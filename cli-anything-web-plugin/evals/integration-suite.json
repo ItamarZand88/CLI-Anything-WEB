@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "evals": [
+    {
+      "id": "e2e-suno",
+      "target_url": "https://suno.com",
+      "timeout_minutes": 30,
+      "post_checks": [
+        {"id": "P1", "name": "CLI installed", "cmd": "which cli-web-suno", "expect": "exit_code_0"},
+        {"id": "P2", "name": "Help works", "cmd": "cli-web-suno --help", "expect": "exit_code_0"},
+        {"id": "P3", "name": "Auth login works", "cmd": "cli-web-suno auth login", "expect": "exit_code_0", "interactive": true},
+        {"id": "P4", "name": "Auth status valid", "cmd": "cli-web-suno auth status", "expect": "contains:authenticated"},
+        {"id": "P5", "name": "READ returns data", "cmd": "cli-web-suno --json songs list --limit 1", "expect": "valid_json"},
+        {"id": "P6", "name": "WRITE succeeds", "cmd": "cli-web-suno --json songs generate --prompt 'test jazz' --wait", "expect": "valid_json_with_field:status", "timeout": 120},
+        {"id": "P7", "name": "REPL mode works", "cmd": "echo help | cli-web-suno", "expect": "contains:commands"},
+        {"id": "P8", "name": "Package importable", "cmd": "python -c \"import cli_web.suno\"", "expect": "exit_code_0"},
+        {"id": "P9", "name": "Tests pass", "cmd": "cd suno/agent-harness && python -m pytest cli_web/suno/tests/ -v --tb=short", "expect": "contains:passed", "timeout": 120}
+      ]
+    },
+    {
+      "id": "e2e-futbin",
+      "target_url": "https://www.futbin.com",
+      "timeout_minutes": 30,
+      "post_checks": [
+        {"id": "P1", "name": "CLI installed", "cmd": "which cli-web-futbin", "expect": "exit_code_0"},
+        {"id": "P2", "name": "Help works", "cmd": "cli-web-futbin --help", "expect": "exit_code_0"},
+        {"id": "P3", "name": "READ returns data", "cmd": "cli-web-futbin --json players search --query Messi", "expect": "valid_json"},
+        {"id": "P4", "name": "Package importable", "cmd": "python -c \"import cli_web.futbin\"", "expect": "exit_code_0"},
+        {"id": "P5", "name": "Tests pass", "cmd": "cd futbin/agent-harness && python -m pytest cli_web/futbin/tests/ -v --tb=short", "expect": "contains:passed", "timeout": 120}
+      ]
+    }
+  ]
+}
