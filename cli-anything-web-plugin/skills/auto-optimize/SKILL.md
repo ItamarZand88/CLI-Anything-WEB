@@ -154,3 +154,50 @@ These are the optimization targets. Every iteration modifies exactly one of thes
   `prepare.py`. Changing the test while optimizing the code is cheating.
 - `scripts/*.py` — the measurement tools must remain constant for results to be
   comparable across iterations.
+
+---
+
+## Level 2: Integration Evals
+
+For deeper testing, run the full `/cli-anything-web` pipeline on a real site and
+verify the generated CLI works end-to-end.
+
+```bash
+python scripts/run-integration-eval.py \
+  --suite evals/integration-suite.json \
+  --plugin-dir . \
+  --output evals/integration/
+```
+
+This spawns a real Claude session with the plugin loaded, runs the full 8-phase
+pipeline, then checks: CLI installs, auth works, READ returns data, WRITE succeeds,
+tests pass.
+
+Use Level 2 after Level 1 achieves 100% — it validates that skill quality
+translates to actual working CLIs.
+
+---
+
+## Level 3: Process Analysis
+
+After a Level 2 run, analyze the transcript to find process improvements:
+
+```bash
+python scripts/analyze-transcript.py \
+  --transcript evals/integration/suno/transcript.log \
+  --output evals/integration/suno/analysis.json
+```
+
+This extracts:
+- **Phase timing** — which phases take longest?
+- **Errors** — what failed and how was it recovered?
+- **Dead ends** — where did the agent waste time?
+- **Improvement proposals** — specific HARNESS.md changes with rationale
+
+Level 3 proposals feed back into the Level 1 optimization loop:
+1. Run Level 2 integration eval
+2. Run Level 3 analysis on the transcript
+3. Read the proposals
+4. Apply the best ones as Level 1 skill changes
+5. Re-run Level 1 to verify the changes improve knowledge evals
+6. Re-run Level 2 to verify the changes improve integration
