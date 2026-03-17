@@ -19,6 +19,8 @@ Focus area: $2
 
 ## Process
 
+> **Skills used:** `cli-anything-web-methodology` (pipeline), `web-reconnaissance` (if re-recording)
+
 1. **Read existing SOP**: Load `<app>/agent-harness/<APP>.md`
 2. **Read existing CLI**: Scan implemented commands in `cli_web/<app>/commands/`
 3. **Gap analysis**:

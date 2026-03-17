@@ -18,6 +18,8 @@ Target: $ARGUMENTS
 
 ## Process
 
+> **Skills used:** `cli-anything-web-testing` (test patterns), `cli-anything-web-standards` (quality checks)
+
 1. **Verify auth is working FIRST** — this is mandatory before any E2E test:
    ```
    cli-web-<app> auth login              # playwright-cli (recommended)

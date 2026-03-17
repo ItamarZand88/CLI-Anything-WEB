@@ -13,6 +13,8 @@ allowed-tools: Bash(*), Read, Write, Edit
 
 ## Process
 
+> **Skills used:** `auto-optimize` (optimization loop methodology)
+
 Follow the auto-optimize skill's loop exactly:
 
 1. **Setup:**

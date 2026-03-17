@@ -18,6 +18,8 @@ Target: $ARGUMENTS
 
 ## Process
 
+> **Skills used:** `cli-anything-web-standards` (50-check validation)
+
 1. Parse the target path to extract `<app>` name
 2. Resolve the `agent-harness/` root and `cli_web/<app>/` package path
 3. Run all 8 categories of checks below
