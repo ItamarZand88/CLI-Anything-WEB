@@ -272,7 +272,6 @@ Do NOT skip testing -- every CLI must have comprehensive tests before publishing
 | `cli-anything-web-capture` | Phase 1 -- traffic recording (prerequisite for this skill) |
 | `cli-anything-web-testing` | Phases 5-7 -- test planning, writing, documentation |
 | `cli-anything-web-standards` | Phase 8 -- publish, verify, smoke test |
-| `web-reconnaissance` | Phase 1a -- site analysis before capture |
 | `auto-optimize` | Meta -- autonomous skill optimization |
 
 ---
