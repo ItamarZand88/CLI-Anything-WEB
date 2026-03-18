@@ -38,6 +38,8 @@ npx @playwright/cli@latest kill-all 2>/dev/null || true
 # Open browser — auto-select msedge on Windows if Chrome is already running
 BROWSER_FLAG=$(tasklist 2>/dev/null | grep -iq "chrome.exe" && echo "--browser=msedge" || echo "")
 npx @playwright/cli@latest -s=<app> open <url> --headed --persistent $BROWSER_FLAG
+# Note: heavy SPAs (Next.js, React) may show "TimeoutError: page._snapshotForAI" on open.
+# This is non-fatal — verify with: npx @playwright/cli@latest list
 
 # If login required -- ask user to log in, wait for confirmation
 
