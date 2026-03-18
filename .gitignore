@@ -24,12 +24,12 @@ Thumbs.db
 .env.*
 *.credentials.json
 
-# Generated CLI outputs (local dev only)
-futbin/
-suno/
-notebooklm/
+# Eval results (keep suite definitions, ignore outputs)
+evals/results.tsv
 
-# Internal dev
+# Reference skills (local dev only)
+reference-skills/
+
+# Internal dev workspace and planning docs
 cli-anything-web-plugin-workspace/
 docs/
-reference-skills/

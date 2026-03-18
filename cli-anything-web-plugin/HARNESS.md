@@ -71,6 +71,9 @@ capture → methodology
 → testing → standards → DONE
 ```
 
+**Other skills:**
+- `auto-optimize` — Autonomous skill optimization (meta, not part of pipeline)
+
 ### Prerequisites
 
 **Primary: playwright-cli (recommended)**

@@ -1,0 +1,9 @@
+click>=8.0
+httpx>=0.24
+
+[browser]
+playwright>=1.40.0
+
+[dev]
+pytest>=7.0
+pytest-mock

@@ -33,7 +33,7 @@ fi
 check "HARNESS.md exists" "$([ -f "$SCRIPT_DIR/HARNESS.md" ] && echo true || echo false)"
 
 # All 8 command files
-for cmd in cli-anything-web record refine test validate list; do
+for cmd in cli-anything-web record refine test validate list auto-optimize; do
     check "commands/$cmd.md exists" "$([ -f "$SCRIPT_DIR/commands/$cmd.md" ] && echo true || echo false)"
 done
 
@@ -58,7 +58,7 @@ else
 fi
 
 # All 3 skills
-for skill in methodology capture testing standards; do
+for skill in methodology capture testing standards auto-optimize; do
     check "skills/$skill/SKILL.md exists" \
         "$([ -f "$SCRIPT_DIR/skills/$skill/SKILL.md" ] && echo true || echo false)"
 done
