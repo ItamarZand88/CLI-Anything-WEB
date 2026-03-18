@@ -29,3 +29,7 @@ evals/results.tsv
 
 # Reference skills (local dev only)
 reference-skills/
+
+# Internal dev workspace and planning docs
+cli-anything-web-plugin-workspace/
+docs/
