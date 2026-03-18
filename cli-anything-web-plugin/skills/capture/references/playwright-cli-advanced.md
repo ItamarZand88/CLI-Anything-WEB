@@ -189,13 +189,8 @@ playwright-cli -s=<app> run-code "async page => {
 ### Detect Frontend Framework
 
 ```bash
-playwright-cli -s=<app> eval "(() => {
-  if (window.__NEXT_DATA__) return 'Next.js';
-  if (window.__NUXT__) return 'Nuxt';
-  if (document.querySelector('[ng-version]')) return 'Angular';
-  if (document.querySelector('[data-reactroot]')) return 'React';
-  return 'Unknown';
-})()"
+# Use run-code for multi-branch detection — eval doesn't support IIFE block bodies
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { if (window.__NEXT_DATA__) return 'Next.js Pages Router'; if (document.documentElement.outerHTML.includes('self.__next_f.push')) return 'Next.js App Router'; if (window.__NUXT__) return 'Nuxt'; if (window.__remixContext) return 'Remix'; if (document.querySelector('[ng-version]')) return 'Angular'; if (document.querySelector('[data-reactroot]')) return 'React'; return 'Unknown'; }); }"
 ```
 
 ## How It Connects to Our Pipeline

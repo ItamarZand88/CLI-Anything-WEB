@@ -32,11 +32,12 @@ If playwright-cli fails, fall back to chrome-devtools-mcp (see HARNESS.md Tool H
 # Create output directory
 mkdir -p <app>/traffic-capture
 
-# Clear any stale sessions first (important on Windows — avoids Chrome conflict)
+# Clear any stale sessions
 npx @playwright/cli@latest kill-all 2>/dev/null || true
 
-# Open browser with named session
-npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
+# Open browser — auto-select msedge on Windows if Chrome is already running
+BROWSER_FLAG=$(tasklist 2>/dev/null | grep -iq "chrome.exe" && echo "--browser=msedge" || echo "")
+npx @playwright/cli@latest -s=<app> open <url> --headed --persistent $BROWSER_FLAG
 
 # If login required -- ask user to log in, wait for confirmation
 
@@ -44,10 +45,16 @@ npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
 npx @playwright/cli@latest -s=<app> state-save <app>/traffic-capture/<app>-auth.json
 ```
 
-> **Windows note:** If Chrome is already running when `open --persistent` is called,
-> playwright-cli may open a tab in the existing Chrome and immediately exit. The
-> `kill-all` above prevents this. If it still fails, close all Chrome windows manually
-> and retry, or add `--browser=msedge` to use Edge instead.
+> **Already logged in Chrome?**
+> 1. Fully close Chrome (all windows — it must not be running)
+> 2. Replace the `open` command above with:
+>    `npx @playwright/cli@latest -s=<app> open <url> --headed --persistent --profile="C:\Users\<username>\AppData\Local\Google\Chrome\User Data"`
+> 3. Chrome opens under playwright-cli control using your existing profile — already logged in.
+>
+> **Why not just use Chrome directly?** Playwright-cli cannot attach to a running Chrome.
+> When Chrome is already open, `open` opens a tab there and exits immediately — no daemon
+> control, no `snapshot`/`eval` commands work. Closing Chrome first gives playwright-cli
+> full control. On Mac: `~/Library/Application Support/Google/Chrome`. On Linux: `~/.config/google-chrome`.
 
 ---
 
@@ -79,20 +86,10 @@ See `references/framework-detection.md` for the complete detection command set.
 
 ### 2b. Protection Check
 
+Use `run-code` (not `eval`) — multi-line JS and comma-selectors break `eval` serialization:
+
 ```bash
-npx @playwright/cli@latest -s=<app> eval "(() => {
-  const body = document.body.textContent.toLowerCase();
-  const html = document.documentElement.outerHTML;
-  const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
-  return {
-    cloudflare: body.includes('cloudflare') || html.includes('cf-ray') || html.includes('__cf_bm'),
-    captcha: !!document.querySelector('.g-recaptcha, #px-captcha, .h-captcha'),
-    akamai: scripts.some(s => s.includes('akamai')),
-    datadome: scripts.some(s => s.includes('datadome')),
-    perimeterx: scripts.some(s => s.includes('perimeterx') || s.includes('px-')),
-    rateLimit: html.includes('429') || body.includes('too many requests')
-  };
-})()"
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const body = document.body.textContent.toLowerCase(); const html = document.documentElement.outerHTML; const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); return { cloudflare: body.includes('cloudflare') || html.includes('cf-ray') || html.includes('__cf_bm'), captcha: !!(document.querySelector('.g-recaptcha') || document.querySelector('#px-captcha') || document.querySelector('.h-captcha')), akamai: scripts.some(s => s.includes('akamai')), datadome: scripts.some(s => s.includes('datadome')), perimeterx: scripts.some(s => s.includes('perimeterx') || s.includes('/px/')), rateLimit: html.includes('429') || body.includes('too many requests') }; }); }"
 ```
 
 Also check robots.txt:
@@ -100,6 +97,11 @@ Also check robots.txt:
 npx @playwright/cli@latest -s=<app> goto <url>/robots.txt
 npx @playwright/cli@latest -s=<app> snapshot
 ```
+
+> **SPA navigation note:** `goto` has a 5s snapshot timeout and may fail on SPAs.
+> If it times out, use `run-code` instead:
+> `npx @playwright/cli@latest -s=<app> run-code "async page => { await page.goto('<url>'); await page.waitForLoadState('networkidle'); }"`
+> For internal links (e.g. clicking nav items), prefer `click` over `goto`.
 
 See `references/protection-detection.md` for detailed checks.
 

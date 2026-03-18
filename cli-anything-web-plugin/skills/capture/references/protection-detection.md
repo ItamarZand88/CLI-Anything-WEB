@@ -7,23 +7,11 @@ All commands use `npx @playwright/cli@latest -s=<app>`.
 
 ## All-in-One Detection Script
 
-Run this single eval to check for all common protections at once:
+> **Important:** Use `run-code` not `eval` for this check. Multi-line expressions and
+> comma-separated CSS selectors break `eval`'s function serialization.
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "(() => {
-  const body = document.body.textContent.toLowerCase();
-  const html = document.documentElement.outerHTML;
-  const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
-  return {
-    cloudflare: body.includes('cloudflare') || html.includes('cf-ray') || html.includes('__cf_bm'),
-    captcha: !!document.querySelector('.g-recaptcha, #px-captcha, .h-captcha'),
-    akamai: scripts.some(s => s.includes('akamai')),
-    datadome: scripts.some(s => s.includes('datadome')),
-    perimeterx: scripts.some(s => s.includes('perimeterx') || s.includes('px-')),
-    rateLimit: html.includes('429') || body.includes('too many requests'),
-    fingerprinting: scripts.some(s => s.includes('fingerprint') || s.includes('fp-'))
-  };
-})()"
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const body = document.body.textContent.toLowerCase(); const html = document.documentElement.outerHTML; const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); return { cloudflare: body.includes('cloudflare') || html.includes('cf-ray') || html.includes('__cf_bm'), captcha: !!(document.querySelector('.g-recaptcha') || document.querySelector('#px-captcha') || document.querySelector('.h-captcha')), akamai: scripts.some(s => s.includes('akamai')), datadome: scripts.some(s => s.includes('datadome')), perimeterx: scripts.some(s => s.includes('perimeterx') || s.includes('/px/')), rateLimit: html.includes('429') || body.includes('too many requests'), fingerprinting: scripts.some(s => s.includes('fingerprint') || s.includes('fp-')) }; }); }"
 ```
 
 Interpret the result object — any `true` value means that protection is present.
@@ -42,17 +30,7 @@ Interpret the result object — any `true` value means that protection is presen
 ### Detailed Check
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "(() => {
-  const cookies = document.cookie;
-  const html = document.documentElement.outerHTML;
-  return {
-    cfBmCookie: cookies.includes('__cf_bm'),
-    cfClearance: cookies.includes('cf_clearance'),
-    cfRay: html.includes('cf-ray'),
-    challengePage: document.body.textContent.includes('Checking your browser'),
-    turnstile: !!document.querySelector('.cf-turnstile, [data-sitekey]')
-  };
-})()"
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const cookies = document.cookie; const html = document.documentElement.outerHTML; return { cfBmCookie: cookies.includes('__cf_bm'), cfClearance: cookies.includes('cf_clearance'), cfRay: html.includes('cf-ray'), challengePage: document.body.textContent.includes('Checking your browser'), turnstile: !!(document.querySelector('.cf-turnstile') || document.querySelector('[data-sitekey]')) }; }); }"
 ```
 
 ### Impact on CLI Generation
@@ -73,15 +51,7 @@ Rate limits show up in the trace as 429 responses. Check headers:
 
 ```bash
 # After running a trace (Step 1.3), inspect responses for rate limit signals
-npx @playwright/cli@latest -s=<app> eval "(() => {
-  const body = document.body.textContent.toLowerCase();
-  return {
-    is429: document.title.includes('429') || body.includes('429'),
-    tooManyRequests: body.includes('too many requests'),
-    retryAfter: body.includes('retry-after'),
-    rateLimitHit: body.includes('rate limit')
-  };
-})()"
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const body = document.body.textContent.toLowerCase(); return { is429: document.title.includes('429') || body.includes('429'), tooManyRequests: body.includes('too many requests'), retryAfter: body.includes('retry-after'), rateLimitHit: body.includes('rate limit') }; }); }"
 ```
 
 ### Common Rate Limit Headers (found in trace)
@@ -108,7 +78,7 @@ npx @playwright/cli@latest -s=<app> eval "(() => {
 ### reCAPTCHA v2 (Checkbox)
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "!!document.querySelector('.g-recaptcha, iframe[src*=\"recaptcha\"]') ? 'recaptcha-v2' : 'no-recaptcha-v2'"
+npx @playwright/cli@latest -s=<app> eval "!!(document.querySelector('.g-recaptcha') || document.querySelector('iframe[src*=\"recaptcha\"]')) ? 'recaptcha-v2' : 'no-recaptcha-v2'"
 ```
 
 Visible checkbox challenge. Blocks automated flows entirely.
@@ -116,10 +86,7 @@ Visible checkbox challenge. Blocks automated flows entirely.
 ### reCAPTCHA v3 (Invisible)
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "(() => {
-  const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
-  return scripts.some(s => s.includes('recaptcha') && s.includes('v3')) ? 'recaptcha-v3' : 'no-recaptcha-v3';
-})()"
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); return scripts.some(s => s.includes('recaptcha') && s.includes('v3')) ? 'recaptcha-v3' : 'no-recaptcha-v3'; }); }"
 ```
 
 Invisible scoring — may silently block requests that look automated.
@@ -127,7 +94,7 @@ Invisible scoring — may silently block requests that look automated.
 ### hCaptcha
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "!!document.querySelector('.h-captcha, iframe[src*=\"hcaptcha\"]') ? 'hcaptcha' : 'no-hcaptcha'"
+npx @playwright/cli@latest -s=<app> eval "!!(document.querySelector('.h-captcha') || document.querySelector('iframe[src*=\"hcaptcha\"]')) ? 'hcaptcha' : 'no-hcaptcha'"
 ```
 
 Similar to reCAPTCHA v2 but used by Cloudflare and others.
@@ -135,7 +102,7 @@ Similar to reCAPTCHA v2 but used by Cloudflare and others.
 ### Cloudflare Turnstile
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "!!document.querySelector('.cf-turnstile, iframe[src*=\"challenges.cloudflare.com\"]') ? 'turnstile' : 'no-turnstile'"
+npx @playwright/cli@latest -s=<app> eval "!!(document.querySelector('.cf-turnstile') || document.querySelector('iframe[src*=\"challenges.cloudflare.com\"]')) ? 'turnstile' : 'no-turnstile'"
 ```
 
 Cloudflare's managed challenge — less intrusive but still blocks bots.
@@ -155,55 +122,25 @@ Cloudflare's managed challenge — less intrusive but still blocks bots.
 ### Akamai Bot Manager
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "(() => {
-  const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
-  const cookies = document.cookie;
-  return {
-    akamaiScript: scripts.some(s => s.includes('akamai') || s.includes('akam')),
-    akamaiCookie: cookies.includes('_abck') || cookies.includes('ak_bmsc'),
-    sensorData: scripts.some(s => s.includes('sec_cpt'))
-  };
-})()"
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); const cookies = document.cookie; return { akamaiScript: scripts.some(s => s.includes('akamai') || s.includes('akam')), akamaiCookie: cookies.includes('_abck') || cookies.includes('ak_bmsc'), sensorData: scripts.some(s => s.includes('sec_cpt')) }; }); }"
 ```
 
 ### Imperva / Incapsula
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "(() => {
-  const cookies = document.cookie;
-  const html = document.documentElement.outerHTML;
-  return {
-    incapCookie: cookies.includes('incap_ses') || cookies.includes('visid_incap'),
-    impervaScript: html.includes('imperva') || html.includes('incapsula')
-  };
-})()"
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const cookies = document.cookie; const html = document.documentElement.outerHTML; return { incapCookie: cookies.includes('incap_ses') || cookies.includes('visid_incap'), impervaScript: html.includes('imperva') || html.includes('incapsula') }; }); }"
 ```
 
 ### PerimeterX
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "(() => {
-  const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
-  const cookies = document.cookie;
-  return {
-    pxScript: scripts.some(s => s.includes('perimeterx') || s.includes('/px/')),
-    pxCaptcha: !!document.querySelector('#px-captcha'),
-    pxCookie: cookies.includes('_px')
-  };
-})()"
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); const cookies = document.cookie; return { pxScript: scripts.some(s => s.includes('perimeterx') || s.includes('/px/')), pxCaptcha: !!document.querySelector('#px-captcha'), pxCookie: cookies.includes('_px') }; }); }"
 ```
 
 ### DataDome
 
 ```bash
-npx @playwright/cli@latest -s=<app> eval "(() => {
-  const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
-  const cookies = document.cookie;
-  return {
-    datadomeScript: scripts.some(s => s.includes('datadome')),
-    datadomeCookie: cookies.includes('datadome')
-  };
-})()"
+npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); const cookies = document.cookie; return { datadomeScript: scripts.some(s => s.includes('datadome')), datadomeCookie: cookies.includes('datadome') }; }); }"
 ```
 
 ### Impact on CLI Generation
