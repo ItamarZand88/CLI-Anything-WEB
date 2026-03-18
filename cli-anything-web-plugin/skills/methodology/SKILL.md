@@ -113,11 +113,47 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 
 ### Implementation Rules
 
-- **`client.py`** -- thin HTTP wrapper using `httpx` or `requests`
-  - Centralized auth header injection
-  - Automatic JSON parsing
-  - Error handling with status code mapping
-  - Rate limit respect (exponential backoff)
+- **`exceptions.py`** -- domain-specific exception hierarchy (MUST implement first):
+  ```python
+  # core/exceptions.py — generated for every CLI
+  class AppError(Exception):
+      """Base for all <app> CLI errors."""
+
+  class AuthError(AppError):
+      """Auth failed — expired cookies, invalid tokens."""
+      def __init__(self, message: str, recoverable: bool = True):
+          self.recoverable = recoverable
+          super().__init__(message)
+
+  class RateLimitError(AppError):
+      """429 — retry with backoff."""
+      def __init__(self, message: str, retry_after: float | None = None):
+          self.retry_after = retry_after
+          super().__init__(message)
+
+  class NetworkError(AppError):
+      """Connection/DNS/timeout errors."""
+
+  class ServerError(AppError):
+      """5xx responses."""
+      def __init__(self, message: str, status_code: int = 500):
+          self.status_code = status_code
+          super().__init__(message)
+
+  class NotFoundError(AppError):
+      """404 — resource not found."""
+  ```
+  Extend with domain-specific errors as needed. All other modules import from here.
+  See `references/exception-hierarchy-example.py` for a complete example.
+
+- **`client.py`** -- HTTP client with exception mapping and auth retry:
+  - Centralized auth header/cookie injection
+  - Automatic JSON parsing with response body verification
+  - **Status code → exception mapping**: 401/403→`AuthError`, 404→`NotFoundError`, 429→`RateLimitError`, 5xx→`ServerError`
+  - **Auth retry**: On `AuthError(recoverable=True)`, refresh tokens and retry once
+  - Exponential backoff for rate limits (see `references/polling-backoff-example.py`)
+  - For apps with 3+ resource types: split into namespaced sub-clients (`client.notebooks.list()`, `client.sources.add()`)
+  - See `references/client-architecture-example.py` for the full pattern
 
 - **`auth.py`** -- handles token storage, refresh, expiry. MUST support 2 login methods:
   1. **`auth login`** (primary) -- uses playwright-cli via subprocess to open browser.
@@ -143,6 +179,14 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
   - Store cookies at `~/.config/cli-web-<app>/auth.json` with chmod 600
   - No more `--from-chrome` or `--from-browser` flags
   - `setup.py` should NOT include Playwright Python -- only `click`, `httpx`
+  - **Environment variable auth**: Support `CLI_WEB_<APP>_AUTH_JSON` for CI/CD
+    ```python
+    env_auth = os.environ.get(f"CLI_WEB_{APP_UPPER}_AUTH_JSON")
+    if env_auth:
+        return json.loads(env_auth)
+    ```
+  - **Context commands** (for apps with persistent context like notebooks/projects):
+    `use <id>` to set context, `status` to show current. Store in `context.json`.
 
 - **Anti-bot resilient client construction** (when detected in Phase 2):
   - Extract session tokens via CDP first (cookies), then HTTP GET + HTML parsing (CSRF, session IDs)
@@ -158,10 +202,62 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
   - `decoder.py` -- response decoding (strip prefix, parse chunks, extract results)
   The `client.py` still exists but delegates encoding/decoding to `rpc/`.
 
+- **Progress feedback** -- Use `rich` spinners for operations >2s when not in `--json` mode:
+  ```python
+  from rich.console import Console
+  console = Console()
+  with console.status("Generating...") as spinner:
+      result = poll_until_complete(check_fn)
+  ```
+  Add `rich>=13.0` to `setup.py` dependencies.
+
+- **JSON error output** -- When `--json` is active, errors MUST also be JSON:
+  ```python
+  # utils/output.py
+  def json_error(code: str, message: str, **extra) -> str:
+      return json.dumps({"error": True, "code": code, "message": message, **extra})
+
+  # In commands: catch exceptions, output json_error()
+  ```
+  Standard error codes: `AUTH_EXPIRED`, `RATE_LIMITED`, `NOT_FOUND`, `SERVER_ERROR`, `NETWORK_ERROR`
+
 - Every command: `--json` flag, proper error messages
+
+- **All commands MUST use `handle_errors()` context manager** — not manual try/except.
+  This centralizes error handling, exit codes (1=user, 2=system, 130=interrupt),
+  and JSON error output:
+  ```python
+  @notebooks.command("list")
+  @click.option("--json", "use_json", is_flag=True)
+  def list_notebooks(use_json):
+      with handle_errors(json_mode=use_json):
+          client = AppClient()
+          nbs = client.list_notebooks()
+  ```
+
+- **Generation commands MUST support `--wait`, `--retry`, `--output`:**
+  ```python
+  @artifacts.command("generate")
+  @click.option("--wait", is_flag=True, help="Wait for completion.")
+  @click.option("--retry", type=int, default=3, help="Max retries on rate limit.")
+  @click.option("--output", "-o", type=click.Path(), help="Save to file.")
+  def generate(notebook, artifact_type, wait, retry, output, use_json):
+      with handle_errors(json_mode=use_json):
+          nb_id = require_notebook(notebook)
+          result = retry_on_rate_limit(lambda: client.generate(...), max_retries=retry)
+  ```
+
 - Entry point: `cli-web-<app>` via setup.py console_scripts
 - Namespace: `cli_web.*`
 - Copy `repl_skin.py` from plugin for consistent REPL experience
+- **`utils/helpers.py`** -- shared CLI helpers (generate for every CLI):
+  - `resolve_partial_id(partial, items)` — prefix-match UUIDs for get/rename/delete
+  - `handle_errors(json_mode)` — context manager replacing try/except in all commands
+  - `require_notebook(notebook_arg)` — gets notebook ID from arg or persistent context
+  - `sanitize_filename(name)` — safe filenames from artifact titles
+  - `poll_until_complete(check_fn)` — exponential backoff polling
+  - `get_context_value(key)` / `set_context_value(key, value)` — persistent context.json
+  See `references/helpers-module-example.py` for the complete module.
 
 ### REPL Implementation Rules (Critical)
 
@@ -259,11 +355,11 @@ dispatch parallel subagents -- one per command module. Each agent gets:
 
 **Implementation order:**
 
-1. **First (sequential):** `core/client.py`, `core/auth.py`, `core/session.py`, `core/models.py`
+1. **First (sequential):** `core/exceptions.py`, `core/client.py`, `core/auth.py`, `core/session.py`, `core/models.py`
    -- these are the foundation that everything else imports
 2. **Then (parallel subagents):** all `commands/*.py` files + `rpc/encoder.py` + `rpc/decoder.py`
    -- each is independent once the core exists
-3. **Last (sequential):** `<app>_cli.py`, `__main__.py`, `setup.py`, copy `repl_skin.py`
+3. **Last (sequential):** `utils/helpers.py`, `<app>_cli.py`, `__main__.py`, `setup.py`, copy `repl_skin.py`
    -- these wire everything together
 
 > **Start tests early:** Once `core/client.py`, `core/auth.py`, and `core/models.py` are
@@ -310,3 +406,7 @@ Do NOT skip testing -- every CLI must have comprehensive tests before publishing
 - **`references/auth-strategies.md`** -- Auth implementation strategies
 - **`references/google-batchexecute.md`** -- Google batchexecute RPC protocol spec
 - **`references/ssr-patterns.md`** -- SSR framework patterns and data extraction strategies
+- **`references/exception-hierarchy-example.py`** -- Complete exception hierarchy with HTTP status mapping
+- **`references/client-architecture-example.py`** -- Namespaced sub-client pattern with auth retry
+- **`references/polling-backoff-example.py`** -- Exponential backoff polling and rate-limit retry
+- **`references/rich-output-example.py`** -- Rich progress bars, JSON error responses, table formatting

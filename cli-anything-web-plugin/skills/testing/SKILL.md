@@ -62,6 +62,7 @@ The standard two-layer suite is: **unit tests (mocked HTTP)** + **live E2E tests
 | Unit | `test_core.py` | Core functions with mocked HTTP. No network. Fast. |
 | E2E live | `test_e2e.py` | Real API calls. Require auth — FAIL (not skip) without it. |
 | CLI subprocess | `test_e2e.py` | Installed `cli-web-<app>` via `_resolve_cli()`. Full end-to-end. |
+| Integration (VCR) | `test_integration.py` | Recorded HTTP cassettes via VCR.py. Reproducible, no network. Recommended for RPC protocols. |
 
 **Optional — fixture replay layer:** Only add this if the site has complex HTML
 parsing or non-trivial response transformations worth preserving. For straightforward
@@ -105,6 +106,52 @@ Agents must NOT depend on each other's output.
 - **HTML scrapers:** unit test fixtures must use the real CSS class names the parser targets, not generic simplified markup. If the fixture doesn't have the classes, it's not testing the parser. See `references/test-code-examples.md`.
 - **List/search assertions:** `assert isinstance(results, list)` doesn't catch broken parsers. When results have fields (name, id, price), assert on at least one field of the first result. Apply when the endpoint is HTML-scraped; JSON APIs that deserialize cleanly need less scrutiny. See `references/test-code-examples.md`.
 
+### VCR.py Integration Tests (Recommended)
+
+For apps with complex protocols (batchexecute, GraphQL, custom RPC), add a VCR.py
+integration test layer between unit and live E2E:
+
+**Setup:**
+```bash
+pip install vcrpy pytest-recording
+```
+
+**Recording cassettes:**
+```python
+# test_integration.py
+import pytest
+
+@pytest.mark.vcr
+def test_list_notebooks(authenticated_client):
+    """Recorded against live API, replayed from cassette."""
+    notebooks = authenticated_client.notebooks.list()
+    assert len(notebooks) > 0
+    assert notebooks[0].id
+    assert notebooks[0].title
+```
+
+**Recording new cassettes:**
+```bash
+# Record mode — makes real API calls, saves responses
+CLI_WEB_VCR_RECORD=1 pytest tests/test_integration.py -m vcr -v
+
+# Normal mode — replays from cassettes (no network)
+pytest tests/test_integration.py -m vcr -v
+```
+
+**Cassette storage:** `tests/cassettes/<test_name>.yaml`
+
+**When to use VCR vs unit mocks:**
+- VCR: complex response parsing, RPC protocols, multi-step API flows
+- Unit mocks: simple JSON APIs, testing error handling paths, testing retry logic
+
+**Marker convention:**
+```python
+@pytest.mark.vcr       # Replays from cassette
+@pytest.mark.e2e       # Requires live API + auth
+@pytest.mark.unit      # No network, fast
+```
+
 ### Fixture Realism (for HTML scrapers)
 
 If the CLI uses HTML scraping (BeautifulSoup, lxml), unit test fixtures must mirror
@@ -135,6 +182,76 @@ Never trust status 200 alone. For every API response:
 Print entity IDs for manual verification:
 ```python
 print(f"[verify] Created board id={data['id']} name={data['name']}")
+```
+
+### Exception Testing
+
+Unit tests MUST verify that the client raises the correct typed exceptions:
+
+```python
+# test_core.py
+def test_auth_error_on_401(mock_client):
+    """Client raises AuthError on 401, not generic exception."""
+    with pytest.raises(AuthError) as exc_info:
+        mock_client.notebooks.list()  # mocked to return 401
+    assert exc_info.value.recoverable is True
+
+def test_rate_limit_error_on_429(mock_client):
+    """Client raises RateLimitError with retry_after on 429."""
+    with pytest.raises(RateLimitError) as exc_info:
+        mock_client.notebooks.list()  # mocked to return 429
+    assert exc_info.value.retry_after == 60
+
+def test_json_error_output(cli_runner):
+    """--json mode outputs structured error, not plain text."""
+    result = cli_runner.invoke(cli, ["--json", "notebooks", "get", "nonexistent"])
+    data = json.loads(result.output)
+    assert data["error"] is True
+    assert "code" in data
+```
+
+### Helper Function Testing
+
+Unit tests MUST cover the shared helpers in `utils/helpers.py`:
+
+```python
+# test_core.py — partial ID resolution
+def test_partial_id_unique_prefix():
+    """Short unique prefix resolves to single match."""
+    items = [FakeItem("abc123-uuid"), FakeItem("xyz789-uuid")]
+    result = resolve_partial_id("abc", items)
+    assert result.id == "abc123-uuid"
+
+def test_partial_id_ambiguous_raises():
+    """Ambiguous prefix raises BadParameter."""
+    items = [FakeItem("abc123"), FakeItem("abc456")]
+    with pytest.raises(click.BadParameter):
+        resolve_partial_id("abc", items)
+
+# test_core.py — filename sanitization
+def test_sanitize_invalid_chars():
+    assert sanitize_filename('test/file:name*') == "test_file_name_"
+    assert sanitize_filename("") == "untitled"
+
+# test_core.py — persistent context
+def test_context_set_and_get(tmp_path):
+    """Context persists to JSON file."""
+    with patch("...helpers.CONTEXT_FILE", tmp_path / "context.json"):
+        set_context_value("notebook_id", "test-123")
+        assert get_context_value("notebook_id") == "test-123"
+
+# test_core.py — handle_errors exit codes
+def test_handle_errors_auth_exits_1():
+    with pytest.raises(SystemExit) as exc:
+        with handle_errors():
+            raise AuthError("expired")
+    assert exc.value.code == 1
+
+def test_handle_errors_unknown_exits_2():
+    with pytest.raises(SystemExit) as exc:
+        with handle_errors():
+            raise ValueError("bug")
+    assert exc.value.code == 2
 ```
 
 ### Round-Trip Test Requirement
@@ -227,6 +344,7 @@ Do NOT skip to publishing — all tests must pass first.
 
 - [_resolve_cli Pattern](references/resolve-cli-pattern.md) — subprocess testing helper
 - [Test Code Examples](references/test-code-examples.md) — unit test patterns, RPC testing
+- [Exception Testing Examples](references/exception-testing-examples.md) — typed exception assertions, JSON error output testing
 
 ---
 

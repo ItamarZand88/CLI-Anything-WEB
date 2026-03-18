@@ -1,65 +1,47 @@
-"""SBC (Squad Building Challenge) commands for cli-web-futbin."""
+"""SBC commands: list, get."""
 import click
-
-from cli_web.futbin.core.client import FutbinClient
-from cli_web.futbin.utils.output import print_json, print_table, print_error, coins_display
+from ..core.client import FutbinClient
+from ..utils.output import print_json, print_table, print_sbc_detail
+from ..utils.helpers import handle_errors, require_year
 
 
 @click.group()
 def sbc():
-    """Squad Building Challenges — list and view SBCs."""
+    """Squad Building Challenges."""
+    pass
 
 
 @sbc.command("list")
-@click.option("--category", "-c", default=None,
-              help="Category filter (Players, Upgrades, Challenges, Icons, etc.)")
-@click.option("--year", "-y", default=26, show_default=True, help="Game year")
-@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
-def list_sbcs(category, year, as_json):
-    """List all Squad Building Challenges."""
-    with FutbinClient() as client:
-        try:
-            sbcs = client.list_sbcs(category=category, year=year)
-        except Exception as e:
-            print_error(str(e))
-            return
-
-    if as_json:
-        print_json([s.to_dict() for s in sbcs])
-    else:
-        if not sbcs:
-            click.echo("No SBCs found.")
-            return
-        rows = [
-            {
-                "id": s.id,
-                "name": s.name[:40],
-                "cost_ps": coins_display(s.cost_ps),
-                "expires": s.expires,
-                "repeatable": "Yes" if s.repeatable else "No",
-            }
-            for s in sbcs
-        ]
-        print_table(rows, ["id", "name", "cost_ps", "expires", "repeatable"])
+@click.option("--category", default=None, help="Filter by SBC category.")
+@click.option("--year", type=int, default=None, help="Game year.")
+@click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
+def list_sbcs(category, year, use_json):
+    """List available SBCs."""
+    with handle_errors(json_mode=use_json):
+        yr = require_year(year)
+        with FutbinClient() as client:
+            sbcs = client.list_sbcs(category=category, year=yr)
+        if use_json:
+            print_json([s.to_dict() for s in sbcs])
+        else:
+            if not sbcs:
+                click.echo("No SBCs found.")
+            else:
+                print_table(
+                    sbcs,
+                    headers=["ID", "Name", "Category", "Reward", "Expires"],
+                    keys=["id", "name", "category", "reward", "expires"],
+                )
 
 
 @sbc.command("get")
-@click.option("--id", "sbc_id", required=True, type=int, help="SBC ID")
-@click.option("--year", "-y", default=26, show_default=True, help="Game year")
-@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
-def get_sbc(sbc_id, year, as_json):
-    """Get SBC details and requirements."""
-    with FutbinClient() as client:
-        try:
-            detail = client.get_sbc(sbc_id, year=year)
-        except Exception as e:
-            print_error(str(e))
-            return
-
-    if as_json:
-        print_json(detail)
-    else:
-        click.echo(f"\nSBC: {detail['name']}")
-        click.echo(f"URL: {detail['url']}")
-        click.echo(f"\n--- Details ---")
-        click.echo(detail.get("raw_text", "")[:1000])
+@click.argument("sbc_id")
+@click.option("--year", type=int, default=None, help="Game year.")
+@click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
+def get_sbc(sbc_id, year, use_json):
+    """Get structured SBC details (requirements, rewards)."""
+    with handle_errors(json_mode=use_json):
+        yr = require_year(year)
+        with FutbinClient() as client:
+            detail = client.get_sbc_detail(sbc_id, year=yr)
+        print_sbc_detail(detail, json_mode=use_json)

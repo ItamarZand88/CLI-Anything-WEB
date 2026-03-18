@@ -10,6 +10,10 @@ import httpx
 from bs4 import BeautifulSoup
 
 from cli_web.futbin.core.models import Player, SBC, Evolution, MarketItem
+from .exceptions import (
+    FutbinError, NetworkError, RateLimitError, ServerError,
+    NotFoundError, ParsingError, InvalidInputError,
+)
 
 BASE_URL = "https://www.futbin.com"
 DEFAULT_YEAR = 26
@@ -50,19 +54,41 @@ class FutbinClient:
         )
         self._last_request = 0.0
 
+    BASE_URL = BASE_URL
+
     def _get(self, path: str, params: Optional[dict] = None) -> httpx.Response:
         """Rate-limited GET request."""
         elapsed = time.time() - self._last_request
         if elapsed < REQUEST_DELAY:
             time.sleep(REQUEST_DELAY - elapsed)
-        resp = self._client.get(path, params=params)
+        try:
+            resp = self._client.get(path, params=params)
+        except httpx.ConnectError as exc:
+            raise NetworkError(f"Connection failed: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            raise NetworkError(f"Request timed out: {exc}") from exc
+        except httpx.RequestError as exc:
+            raise NetworkError(f"Request error: {exc}") from exc
         self._last_request = time.time()
+        if resp.status_code == 429:
+            retry_after = resp.headers.get("Retry-After")
+            raise RateLimitError(
+                "Rate limited by FUTBIN",
+                retry_after=float(retry_after) if retry_after else None,
+            )
+        if resp.status_code == 404:
+            raise NotFoundError(f"Not found: {path}")
+        if resp.status_code >= 500:
+            raise ServerError(f"Server error {resp.status_code}: {path}", status_code=resp.status_code)
         resp.raise_for_status()
         return resp
 
     def _soup(self, path: str, params: Optional[dict] = None) -> BeautifulSoup:
         resp = self._get(path, params)
-        return BeautifulSoup(resp.text, "html.parser")
+        soup = BeautifulSoup(resp.text, "html.parser")
+        if not soup.body and not soup.find():
+            raise ParsingError(f"Empty or unparseable response from {path}")
+        return soup
 
     # ──────────────────────────────────────────────
     # Player Search (JSON API)
@@ -115,21 +141,30 @@ class FutbinClient:
     # ──────────────────────────────────────────────
 
     def get_player(self, player_id: int, year: int = DEFAULT_YEAR) -> Optional[Player]:
-        """Fetch full player detail including stats and prices."""
-        # First search to get the slug
-        results = self.search_players(str(player_id), year=year)
-        if not results:
-            return None
-        player = results[0]
-        if player.id != player_id:
-            # Try direct URL
-            slug = str(player_id)
-        else:
-            slug = player.url.split("/")[-1] if player.url else str(player_id)
+        """Fetch full player detail including stats and prices.
 
-        url = f"/{year}/player/{player_id}/{slug}"
-        soup = self._soup(url)
-        return self._parse_player_detail(soup, player_id, year, player.url)
+        FUTBIN requires the slug in the URL (/{year}/player/{id}/{slug}).
+        We search first to find the slug, then scrape the detail page.
+        If search doesn't find the exact ID, we try a common slug pattern.
+        """
+        # Search to find the player and get the canonical slug URL
+        results = self.search_players(str(player_id), year=year)
+        player = next((p for p in results if p.id == player_id), None)
+
+        if player and player.url:
+            # Got slug from search — use it
+            path = player.url if player.url.startswith("/") else f"/{player.url}"
+            soup = self._soup(path)
+            return self._parse_player_detail(soup, player_id, year, player.url)
+
+        # Search didn't find exact ID — try direct URL with placeholder slug
+        # FUTBIN sometimes works with any slug if the ID is valid
+        try:
+            soup = self._soup(f"/{year}/player/{player_id}/player")
+            return self._parse_player_detail(soup, player_id, year,
+                                             f"{BASE_URL}/{year}/player/{player_id}")
+        except (NotFoundError, ParsingError):
+            return None
 
     def _parse_player_detail(
         self, soup: BeautifulSoup, player_id: int, year: int, url: str
@@ -232,9 +267,14 @@ class FutbinClient:
         league: Optional[int] = None,
         nation: Optional[int] = None,
         club: Optional[int] = None,
-    ) -> list[Player]:
-        """List players from database with optional filters."""
+    ) -> tuple[list[Player], bool]:
+        """List players from database with optional filters.
+
+        Returns (players, has_next_page).
+        """
         params: dict[str, Any] = {}
+        if page > 1:
+            params["page"] = str(page)
         if name:
             params["name"] = name
         if min_price is not None or max_price is not None:
@@ -269,7 +309,21 @@ class FutbinClient:
             params["club"] = str(club)
 
         soup = self._soup("/players", params)
-        return self._parse_player_table(soup, year)
+        players = self._parse_player_table(soup, year)
+        # Check for pagination "next" link
+        has_next_page = False
+        next_link = soup.find("a", attrs={"rel": "next"})
+        if not next_link:
+            # Also check for next page item in pagination
+            page_items = soup.find_all("li", class_="page-item")
+            for item in page_items:
+                link = item.find("a")
+                if link and ("next" in link.get("rel", []) or "next" in link.get("aria-label", "").lower() or "»" in link.get_text()):
+                    has_next_page = True
+                    break
+        else:
+            has_next_page = True
+        return (players, has_next_page)
 
     def _parse_player_table(self, soup: BeautifulSoup, year: int) -> list[Player]:
         """Parse the players table from /players page."""
@@ -580,6 +634,99 @@ class FutbinClient:
             "url": f"{BASE_URL}/evolutions/{evo_id}",
             "raw_text": text[:3000],
         }
+
+    def compare_players(self, id1: int, id2: int, year: int = DEFAULT_YEAR) -> "PlayerComparison":
+        """Compare two players side-by-side."""
+        from .models import PlayerComparison
+        p1 = self.get_player(id1, year=year)
+        p2 = self.get_player(id2, year=year)
+        if not p1:
+            raise NotFoundError(f"Player {id1} not found")
+        if not p2:
+            raise NotFoundError(f"Player {id2} not found")
+
+        diffs = {}
+        stats1 = p1.stats or {}
+        stats2 = p2.stats or {}
+        all_stats = set(list(stats1.keys()) + list(stats2.keys()))
+        for stat in sorted(all_stats):
+            v1 = stats1.get(stat, 0)
+            v2 = stats2.get(stat, 0)
+            if isinstance(v1, (int, float)) and isinstance(v2, (int, float)):
+                diffs[stat] = {"player1": v1, "player2": v2, "diff": v1 - v2}
+
+        return PlayerComparison(player1=p1, player2=p2, stat_diffs=diffs)
+
+    def get_sbc_detail(self, sbc_id: str, year: int = DEFAULT_YEAR) -> "SBCDetail":
+        """Get structured SBC details (requirements, rewards, description)."""
+        from .models import SBCDetail
+        url = f"/{year}/squad-building-challenge/{sbc_id}"
+        soup = self._soup(url)
+        if not soup:
+            raise NotFoundError(f"SBC {sbc_id} not found")
+
+        name = ""
+        title_el = soup.find("h1") or soup.find(class_="sbc_name")
+        if title_el:
+            name = title_el.get_text(strip=True)
+
+        # Extract description
+        desc_el = soup.find(class_="sbc-desc") or soup.find(class_="sbc_desc")
+        description = desc_el.get_text(strip=True) if desc_el else ""
+
+        # Extract requirements from requirement cards
+        requirements = []
+        req_sections = soup.find_all(class_=lambda c: c and ("requirement" in c.lower() if isinstance(c, str) else any("requirement" in x.lower() for x in c)))
+        for section in req_sections[:10]:  # Limit to avoid noise
+            text = section.get_text(" ", strip=True)
+            if text and len(text) > 5:
+                requirements.append({"text": text[:200]})
+
+        # Extract reward
+        reward = ""
+        reward_el = soup.find(class_=lambda c: c and ("reward" in str(c).lower()))
+        if reward_el:
+            reward = reward_el.get_text(strip=True)[:200]
+
+        return SBCDetail(
+            id=sbc_id, name=name, year=year, description=description,
+            requirements=requirements, reward=reward,
+            url=f"{self.BASE_URL}{url}",
+        )
+
+    def get_evolution_detail(self, evo_id: str) -> "EvolutionDetail":
+        """Get structured evolution details (requirements, upgrades)."""
+        from .models import EvolutionDetail
+        url = f"/evolutions/{evo_id}"
+        soup = self._soup(url)
+        if not soup:
+            raise NotFoundError(f"Evolution {evo_id} not found")
+
+        name = ""
+        title_el = soup.find("h1")
+        if title_el:
+            name = title_el.get_text(strip=True)
+
+        # Extract requirements
+        requirements = []
+        req_els = soup.find_all(class_=lambda c: c and ("req" in str(c).lower()))
+        for el in req_els[:10]:
+            text = el.get_text(" ", strip=True)
+            if text and len(text) > 3:
+                requirements.append({"text": text[:200]})
+
+        # Extract upgrades/boosts
+        upgrades = []
+        upgrade_els = soup.find_all(class_=lambda c: c and ("upgrade" in str(c).lower() or "boost" in str(c).lower()))
+        for el in upgrade_els[:10]:
+            text = el.get_text(" ", strip=True)
+            if text and len(text) > 3:
+                upgrades.append({"text": text[:200]})
+
+        return EvolutionDetail(
+            id=evo_id, name=name, requirements=requirements,
+            upgrades=upgrades, url=f"{self.BASE_URL}{url}",
+        )
 
     def close(self):
         self._client.close()

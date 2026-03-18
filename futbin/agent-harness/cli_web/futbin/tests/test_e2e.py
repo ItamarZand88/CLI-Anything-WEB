@@ -172,34 +172,38 @@ def test_list_players_position_filter():
     """Verify position filter is passed to FUTBIN and returns results."""
     from cli_web.futbin.core.client import FutbinClient
     with FutbinClient() as client:
-        results = client.list_players(position="GK", sort="overall", order="desc")
+        results, has_next = client.list_players(position="GK", sort="overall", order="desc")
     assert isinstance(results, list)
+    assert isinstance(has_next, bool)
 
 
 def test_list_players_rating_filter():
     """Verify rating range filter returns results."""
     from cli_web.futbin.core.client import FutbinClient
     with FutbinClient() as client:
-        results = client.list_players(rating_min=90, rating_max=99, sort="overall", order="desc")
+        results, has_next = client.list_players(rating_min=90, rating_max=99, sort="overall", order="desc")
     assert isinstance(results, list)
+    assert isinstance(has_next, bool)
 
 
 def test_list_players_version_filter():
     """Verify version filter returns results."""
     from cli_web.futbin.core.client import FutbinClient
     with FutbinClient() as client:
-        results = client.list_players(version="toty", sort="overall", order="desc")
+        results, has_next = client.list_players(version="toty", sort="overall", order="desc")
     assert isinstance(results, list)
+    assert isinstance(has_next, bool)
 
 
 def test_list_players_cheapest():
     """Verify cheapest flag (sort=ps_price asc) returns results."""
     from cli_web.futbin.core.client import FutbinClient
     with FutbinClient() as client:
-        results = client.list_players(
+        results, has_next = client.list_players(
             position="ST", version="gold_rare", sort="ps_price", order="asc"
         )
     assert isinstance(results, list)
+    assert isinstance(has_next, bool)
 
 
 def test_cli_list_players_filters_json():

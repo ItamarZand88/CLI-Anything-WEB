@@ -2,7 +2,7 @@
 name: standards
 description: >
   Quality standards and Phase 8 publish/verify for cli-web-* CLIs. Covers the
-  50-check quality checklist, package publishing (pip install -e .), end-user
+  68-check quality checklist, package publishing (pip install -e .), end-user
   smoke testing (READ + WRITE), and final pipeline verification. Use when building,
   reviewing, or checking quality of a cli-web-* CLI package, during implementation
   (Phase 4), validation, code review, Phase 8 publish and verify, or when checking
@@ -13,7 +13,7 @@ version: 0.1.0
 # CLI-Anything-Web Standards (Phase 8 + Quality)
 
 Quality standards, publishing, and final verification for cli-web-* CLIs.
-This skill owns the 50-check quality checklist and Phase 8 of the pipeline:
+This skill owns the 68-check quality checklist and Phase 8 of the pipeline:
 publish the CLI and verify it works end-to-end as a real user would.
 
 ---
@@ -258,7 +258,7 @@ See HARNESS.md "Generated CLI Structure" for the complete package template.
 Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `__init__.py`),
 `core/`, `commands/`, `utils/`, `tests/` directories.
 
-## 8-Category Checklist (50 checks)
+## 8-Category Checklist (59 checks)
 
 ### 1. Directory Structure (6 checks)
 
@@ -277,7 +277,7 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 
 `README.md`, `<app>_cli.py`, `__main__.py`,
 `core/client.py`, `core/auth.py`, `core/session.py`, `core/models.py`,
-`utils/repl_skin.py`, `utils/output.py`, `utils/config.py`,
+`utils/repl_skin.py`, `utils/output.py`, `utils/config.py`, `utils/helpers.py`,
 `tests/TEST.md`, `tests/test_core.py`, `tests/test_e2e.py`
 
 ### 3. CLI Implementation (6 checks)
@@ -288,6 +288,9 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 - `ReplSkin` used for banner, prompt, messages
 - `auth` group with `login`, `status`, `refresh`
 - Global session state (`pass_context=True`)
+- Commands use `handle_errors(json_mode)` context manager — no manual try/except blocks
+- Resource get/rename/delete use `@click.argument` (positional ID), not `@click.option("--id")`
+- `--notebook` is optional on notebook-scoped commands (falls back to persistent context via `require_notebook()`)
 
 ### 4. Core Modules (4 checks)
 
@@ -296,6 +299,9 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 - `session.py`: Session class with undo/redo stack
 - `models.py`: typed response models
 - If protocol is non-REST: `core/rpc/` exists with `types.py`, `encoder.py`, `decoder.py`
+- `core/exceptions.py`: domain-specific exception hierarchy (AuthError, RateLimitError, NetworkError, ServerError, NotFoundError)
+- `client.py` maps HTTP status codes to typed exceptions (401→AuthError, 404→NotFoundError, 429→RateLimitError, 5xx→ServerError)
+- Auth retry: client retries once on recoverable AuthError with token refresh
 
 ### 5. Test Standards (8 checks)
 
@@ -350,6 +356,24 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 - REPL dispatches with `cli.main(args=repl_args, standalone_mode=False)` — never `**ctx.params`
 - Primary resource commands use `@click.argument` for positional params (not `--required-option`)
 
+### 10. Error Handling & Resilience (6 checks)
+
+- `core/exceptions.py` exists with typed hierarchy (not generic RuntimeError)
+- Client maps HTTP status codes to domain exceptions
+- Auth module supports `CLI_WEB_<APP>_AUTH_JSON` environment variable
+- Polling operations use exponential backoff (not fixed `time.sleep()`)
+- `--json` mode outputs structured error JSON (`{"error": true, "code": "...", "message": "..."}`)
+- Long operations (>2s) show progress feedback when not in `--json` mode
+- Generation commands support `--wait` (poll until complete) and `--retry N` (rate-limit retry)
+- `--output <path>` flag on generation commands saves content to file
+
+### 11. UX Patterns (4 checks)
+
+- Partial ID resolution: get/rename/delete accept short prefixes (not full UUIDs only)
+- Persistent context: `use <id>` saves to `context.json`, `status` shows current context
+- `--notebook` optional when context is set (via `require_notebook()`)
+- Regional Google cookie domains supported (60+ ccTLDs, not just `.google.com`)
+
 ## Key Rules
 
 These are non-negotiable standards:
@@ -385,4 +409,4 @@ These are non-negotiable standards:
 - **`testing`** skill -- Phases 5-7 test planning/writing/documentation
 - **`methodology`** skill -- Phases 2-4 analyze/design/implement
 - **`capture`** skill -- Phase 1 traffic recording
-- **`/cli-anything-web:validate`** -- Command to run the full 50-check validation
+- **`/cli-anything-web:validate`** -- Command to run the full 68-check validation

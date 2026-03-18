@@ -1,52 +1,33 @@
-"""Session state for FUTBIN CLI."""
-from __future__ import annotations
+"""Session state management for cli-web-futbin.
 
-from typing import Any, Optional
-
-from cli_web.futbin.utils.config import load_config, save_config
-
-DEFAULT_YEAR = 26
+Loads persistent config from ~/.config/cli-web-futbin/config.json.
+Used by commands to get default year/platform without explicit flags.
+"""
+from ..utils.helpers import get_config_value, set_config_value
 
 
 class FutbinSession:
-    """Tracks CLI session state: current year, platform, output preferences."""
-
-    def __init__(self):
-        self._config = load_config()
+    """Runtime session with persistent config backing."""
 
     @property
     def year(self) -> int:
-        return int(self._config.get("year", DEFAULT_YEAR))
-
-    @year.setter
-    def year(self, value: int) -> None:
-        self._config["year"] = value
-        self._save()
+        val = get_config_value("year")
+        return int(val) if val is not None else 26
 
     @property
     def platform(self) -> str:
-        """ps or xbox."""
-        return self._config.get("platform", "ps")
+        val = get_config_value("platform")
+        return str(val) if val else "ps"
 
-    @platform.setter
-    def platform(self, value: str) -> None:
-        if value not in ("ps", "xbox"):
-            raise ValueError("Platform must be 'ps' or 'xbox'")
-        self._config["platform"] = value
-        self._save()
+    def set_year(self, year: int) -> None:
+        set_config_value("year", year)
 
-    def get(self, key: str, default: Any = None) -> Any:
-        return self._config.get(key, default)
+    def set_platform(self, platform: str) -> None:
+        set_config_value("platform", platform)
 
-    def set(self, key: str, value: Any) -> None:
-        self._config[key] = value
-        self._save()
 
-    def _save(self) -> None:
-        save_config(self._config)
+_session = FutbinSession()
 
-    def to_dict(self) -> dict:
-        return {
-            "year": self.year,
-            "platform": self.platform,
-        }
+
+def get_session() -> FutbinSession:
+    return _session

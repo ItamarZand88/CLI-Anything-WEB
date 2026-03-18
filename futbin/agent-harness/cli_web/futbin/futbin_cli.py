@@ -16,6 +16,7 @@ from cli_web.futbin.commands.players import players
 from cli_web.futbin.commands.market import market
 from cli_web.futbin.commands.sbc import sbc
 from cli_web.futbin.commands.evolutions import evolutions
+from cli_web.futbin.commands.config_cmd import config
 from cli_web.futbin.core.auth import get_status, login, logout
 from cli_web.futbin.utils.repl_skin import ReplSkin
 
@@ -76,23 +77,34 @@ def _run_repl():
 
 def _print_repl_help():
     _skin.info("Available commands:")
-    print("  players search --name <query>                     Search players by name")
-    print("  players get --id <id>                             Player details + prices")
-    print("  players list [OPTIONS]                            Browse with filters:")
-    print("    --position <GK|CB|LB|RB|CM|CAM|CDM|ST|RW|LW>  Filter by position")
-    print("    --rating-min <N> --rating-max <N>               Rating range (40-99)")
-    print("    --version <gold_rare|toty|fut_birthday|...>     Card type")
-    print("    --min-price <N> --max-price <N>                 Price range (coins)")
-    print("    --cheapest                                      Sort cheapest first")
-    print("    --min-skills <1-5> --min-wf <1-5>              Skill/weak foot stars")
-    print("    --sort <ps_price|overall|name> --order asc|desc Sort order")
-    print("  market index                                      EA FC market index")
-    print("  sbc list [--category <cat>]                       List Squad Building Challenges")
-    print("  sbc get --id <id>                                 SBC details")
-    print("  evolutions list [--expiring]                      List player evolutions")
-    print("  evolutions get --id <id>                          Evolution details")
-    print("  auth status                                       Check auth status")
-    print("  quit                                              Exit REPL")
+    print()
+    print("  Players:")
+    print("    players search --name <name>                  Search by name")
+    print("    players get <player_id>                       Get player details")
+    print("    players list [OPTIONS]                        List with filters")
+    print("      --position ST --rating-min 90 --cheapest --page 2")
+    print("    players compare <id1> <id2>                   Compare two players")
+    print()
+    print("  Market:")
+    print("    market index                                  Price trends")
+    print()
+    print("  SBCs:")
+    print("    sbc list [--category <cat>]                   List SBCs")
+    print("    sbc get <sbc_id>                              Get SBC details")
+    print()
+    print("  Evolutions:")
+    print("    evolutions list [--expiring]                  List evolutions")
+    print("    evolutions get <evo_id>                       Get evolution details")
+    print()
+    print("  Config:")
+    print("    config set year 25                            Set default year")
+    print("    config set platform pc                        Set default platform")
+    print("    config show                                   Show current config")
+    print("    config reset                                  Reset to defaults")
+    print()
+    print("  Account:")
+    print("    auth status                                   Check auth status")
+    print("    quit                                          Exit REPL")
 
 
 # ── Command groups ────────────────────────────────────────────────────────────
@@ -101,6 +113,7 @@ cli.add_command(players)
 cli.add_command(market)
 cli.add_command(sbc)
 cli.add_command(evolutions)
+cli.add_command(config)
 
 
 # ── Auth commands ─────────────────────────────────────────────────────────────
