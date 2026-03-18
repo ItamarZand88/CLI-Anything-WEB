@@ -35,28 +35,19 @@ mkdir -p <app>/traffic-capture
 # Clear any stale sessions
 npx @playwright/cli@latest kill-all 2>/dev/null || true
 
-# Open browser — auto-select msedge on Windows if Chrome is already running
-BROWSER_FLAG=$(tasklist 2>/dev/null | grep -iq "chrome.exe" && echo "--browser=msedge" || echo "")
-npx @playwright/cli@latest -s=<app> open <url> --headed --persistent $BROWSER_FLAG
+npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
 # Note: heavy SPAs (Next.js, React) may show "TimeoutError: page._snapshotForAI" on open.
 # This is non-fatal — verify with: npx @playwright/cli@latest list
+#
+# IMPORTANT — "Browser opened with pid..." in command output means the daemon
+# RE-ATTACHED to the existing browser, NOT that a new session was created.
+# Do NOT re-navigate or restart when you see this. The session is still open.
 
 # If login required -- ask user to log in, wait for confirmation
 
 # Save auth state BEFORE tracing
 npx @playwright/cli@latest -s=<app> state-save <app>/traffic-capture/<app>-auth.json
 ```
-
-> **Already logged in Chrome?**
-> 1. Fully close Chrome (all windows — it must not be running)
-> 2. Replace the `open` command above with:
->    `npx @playwright/cli@latest -s=<app> open <url> --headed --persistent --profile="C:\Users\<username>\AppData\Local\Google\Chrome\User Data"`
-> 3. Chrome opens under playwright-cli control using your existing profile — already logged in.
->
-> **Why not just use Chrome directly?** Playwright-cli cannot attach to a running Chrome.
-> When Chrome is already open, `open` opens a tab there and exits immediately — no daemon
-> control, no `snapshot`/`eval` commands work. Closing Chrome first gives playwright-cli
-> full control. On Mac: `~/Library/Application Support/Google/Chrome`. On Linux: `~/.config/google-chrome`.
 
 ---
 
@@ -157,7 +148,15 @@ npx @playwright/cli@latest -s=<app> snapshot
 # Navigate to list views, detail pages, dashboards
 
 # B. WRITE operations (MOST IMPORTANT -- don't skip!)
-# Screenshot -> find Create/Generate button -> click it -> fill forms -> submit
+# Screenshot -> snapshot -> find Create/Generate button ref -> click ref -> fill -> submit
+#
+# Clicking by ref (from snapshot) is most reliable:
+#   snapshot -> note ref like e1088 -> click e1088
+# Clicking by text as fallback:
+#   click "Create song"   (exact visible text)
+# If both fail, use run-code:
+#   run-code "async page => { await page.locator('button:has-text(\"Create\")').last().click(); }"
+# IMPORTANT: refs go stale — always take a fresh snapshot before clicking
 
 # C. Other: settings, profile, export, delete
 ```
@@ -185,6 +184,9 @@ no create/update/delete commands. This is valid.
 
 ```bash
 npx @playwright/cli@latest -s=<app> tracing-stop
+# If you get "Cannot read properties of undefined (reading 'tracesDir')" — the session
+# reconnected and lost track of the active trace. Just run tracing-start again and
+# re-do the actions that were lost. Don't restart the whole capture.
 
 python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py \
   .playwright-cli/traces/ --latest \

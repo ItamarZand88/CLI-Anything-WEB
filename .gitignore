@@ -1,2 +1,31 @@
-reference-skills/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Playwright CLI artifacts
+.playwright-cli/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+*.credentials.json
+
+# Eval results (keep suite definitions, ignore outputs)
 evals/results.tsv
+
+# Reference skills (local dev only)
+reference-skills/
