@@ -90,6 +90,9 @@ def get_jwt() -> Optional[str]:
 
 def refresh_jwt_from_cookies(cookies: list) -> Optional[str]:
     """Refresh JWT by calling Clerk's client endpoint with session cookie."""
+    if not cookies or not all(isinstance(c, dict) for c in cookies):
+        return None
+
     session_cookie = None
     for c in cookies:
         if c.get("name") == "__session":

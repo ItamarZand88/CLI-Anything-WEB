@@ -7,6 +7,7 @@ automatic JSON parsing, error handling, and rate limit respect.
 import time
 from typing import Any, Optional
 
+import click
 import httpx
 
 from cli_web.suno.core.auth import get_auth_headers, refresh_jwt_from_cookies, load_auth, save_auth
@@ -65,7 +66,10 @@ class SunoClient:
     ) -> Any:
         """Make an authenticated request to the Suno API."""
         url = f"{self.base_url}{path}"
-        headers = get_auth_headers()
+        try:
+            headers = get_auth_headers()
+        except RuntimeError as e:
+            raise click.ClickException(str(e))
 
         resp = self.client.request(
             method,
