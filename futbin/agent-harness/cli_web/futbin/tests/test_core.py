@@ -1,0 +1,245 @@
+"""Unit tests for cli-web-futbin core — mocked HTTP, no network."""
+import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from cli_web.futbin.core.client import FutbinClient, _coin_str_to_int
+from cli_web.futbin.core.models import Player, MarketItem
+
+
+# ── Coin string parsing ───────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("value,expected", [
+    ("150K", 150_000),
+    ("1.2M", 1_200_000),
+    ("1,234", 1_234),
+    ("500", 500),
+    ("", None),
+    (None, None),
+    ("N/A", None),
+])
+def test_coin_str_to_int(value, expected):
+    assert _coin_str_to_int(value) == expected
+
+
+# ── Player search JSON parsing ────────────────────────────────────────────────
+
+PLAYER_SEARCH_JSON = [
+    {
+        "id": 40,
+        "name": "Kylian Mbappé",
+        "position": "ST",
+        "version": "Normal",
+        "location": {"type": "futbin.frontenddata.Location.LocationDontUseThisDirectly",
+                     "url": "/26/player/40/kylian-mbappe"},
+        "clubImage": {"fixed": {"type": "...", "name": "Real Madrid", "url": {}}},
+        "nationImage": {"fixed": {"type": "...", "name": "France", "url": {}}},
+        "playerImage": {"fixed": {"url": {}}},
+        "ratingSquare": {"type": "...", "rating": "91", "color": "#gold"},
+    }
+]
+
+
+def _mock_response(json_data=None, text="", status_code=200):
+    resp = MagicMock()
+    resp.status_code = status_code
+    resp.text = text
+    if json_data is not None:
+        resp.json.return_value = json_data
+    resp.raise_for_status = MagicMock()
+    return resp
+
+
+@patch("cli_web.futbin.core.client.httpx.Client")
+def test_parse_player_search(mock_httpx_class):
+    mock_client = MagicMock()
+    mock_httpx_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+    mock_httpx_class.return_value.__exit__ = MagicMock(return_value=False)
+    mock_client.get.return_value = _mock_response(json_data=PLAYER_SEARCH_JSON)
+
+    client = FutbinClient()
+    client._client = mock_client
+
+    results = client.search_players("Mbappe", year=26)
+
+    assert len(results) == 1
+    p = results[0]
+    assert p.id == 40
+    assert "Mbapp" in p.name
+    assert p.position == "ST"
+    assert p.version == "Normal"
+    assert p.rating == 91
+    assert p.club == "Real Madrid"
+    assert p.nation == "France"
+    assert p.year == 26
+    assert "kylian-mbappe" in p.url
+
+
+@patch("cli_web.futbin.core.client.httpx.Client")
+def test_parse_player_search_empty(mock_httpx_class):
+    mock_client = MagicMock()
+    mock_httpx_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+    mock_httpx_class.return_value.__exit__ = MagicMock(return_value=False)
+    mock_client.get.return_value = _mock_response(json_data=[])
+
+    client = FutbinClient()
+    client._client = mock_client
+
+    results = client.search_players("xyznotaplayer")
+    assert results == []
+
+
+# ── Market index HTML parsing ─────────────────────────────────────────────────
+
+MARKET_INDEX_HTML = """
+<table>
+  <thead><tr><th>Name</th><th>Last</th><th>Change %</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><a href="/market">Gold Players</a></td>
+      <td>150K</td>
+      <td>+2.5%</td>
+    </tr>
+    <tr>
+      <td><a href="/market">Silver Players</a></td>
+      <td>5K</td>
+      <td>-1.0%</td>
+    </tr>
+  </tbody>
+</table>
+"""
+
+
+@patch("cli_web.futbin.core.client.httpx.Client")
+def test_parse_market_index(mock_httpx_class):
+    mock_client = MagicMock()
+    mock_httpx_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+    mock_httpx_class.return_value.__exit__ = MagicMock(return_value=False)
+    mock_client.get.return_value = _mock_response(text=MARKET_INDEX_HTML)
+
+    client = FutbinClient()
+    client._client = mock_client
+
+    items = client.get_market_index()
+    assert len(items) >= 1
+    first = items[0]
+    assert isinstance(first, MarketItem)
+    assert first.name != ""
+    assert first.last != ""
+
+
+# ── SBC list HTML parsing ─────────────────────────────────────────────────────
+
+SBC_LIST_HTML = """
+<html><body>
+<div class="og-card-wrapper border-box s-column sbc-card-wrapper">
+  <a class="s-column" href="/26/squad-building-challenge/665">
+    <div class="og-card-wrapper-top flex space-between align-center">
+      <div class="text-ellipsis bold xs-row">
+        <div class="text-ellipsis">Kingsley Coman</div>
+        <div class="sbc-badge positive">New</div>
+      </div>
+    </div>
+  </a>
+  <span class="sbc-rewards-area">Coman 88</span>
+  <span>Expires 6 days Repeatable Completed 0 / 2 62.6K 67.7K</span>
+</div>
+<div class="og-card-wrapper border-box s-column sbc-card-wrapper">
+  <a class="s-column" href="/26/squad-building-challenge/666">
+    <div class="og-card-wrapper-top flex space-between align-center">
+      <div class="text-ellipsis bold xs-row">
+        <div class="text-ellipsis">Generic SBC</div>
+      </div>
+    </div>
+  </a>
+  <span>Expires 3 days</span>
+</div>
+</body></html>
+"""
+
+
+@patch("cli_web.futbin.core.client.httpx.Client")
+def test_parse_sbc_list(mock_httpx_class):
+    mock_client = MagicMock()
+    mock_httpx_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+    mock_httpx_class.return_value.__exit__ = MagicMock(return_value=False)
+    mock_client.get.return_value = _mock_response(text=SBC_LIST_HTML)
+
+    client = FutbinClient()
+    client._client = mock_client
+
+    sbcs = client.list_sbcs()
+    assert len(sbcs) >= 1
+    assert sbcs[0].id == 665
+
+
+# ── Evolution list HTML parsing ───────────────────────────────────────────────
+
+EVOLUTIONS_HTML = """
+<html><body>
+<div class="evolutions-overview-wrapper s-column m-border-radius relative border-box" data-filter-search-key="ucl specialist">
+  <a class="evolutions-card-top row space-between" href="/evolutions/666/ucl-specialist">
+    <div class="xs-row align-center">
+      <div class="xs-font text-center">UCL Specialist</div>
+    </div>
+    <div class="xs-row justify-end flex-wrap">
+      <div class="evolution-badge xxs-font uppercase">Evolutions</div>
+      <div class="evolution-badge bold positive xxs-font uppercase">New</div>
+    </div>
+  </a>
+  <span>EXPIRES 2 Weeks UNLOCK 1 Weeks Free Repeatable 2</span>
+</div>
+<div class="evolutions-overview-wrapper s-column m-border-radius relative border-box" data-filter-search-key="sprint master">
+  <a class="evolutions-card-top row space-between" href="/evolutions/667/sprint-master">
+    <div class="xs-row align-center">
+      <div class="xs-font text-center">Sprint Master</div>
+    </div>
+    <div class="xs-row justify-end flex-wrap">
+      <div class="evolution-badge xxs-font uppercase">Rewards</div>
+    </div>
+  </a>
+  <span>EXPIRES 5 days</span>
+</div>
+</body></html>
+"""
+
+
+@patch("cli_web.futbin.core.client.httpx.Client")
+def test_parse_evolution_list(mock_httpx_class):
+    mock_client = MagicMock()
+    mock_httpx_class.return_value.__enter__ = MagicMock(return_value=mock_client)
+    mock_httpx_class.return_value.__exit__ = MagicMock(return_value=False)
+    mock_client.get.return_value = _mock_response(text=EVOLUTIONS_HTML)
+
+    client = FutbinClient()
+    client._client = mock_client
+
+    evos = client.list_evolutions()
+    assert len(evos) >= 1
+    assert evos[0].id == 666
+    assert "UCL" in evos[0].name or "Ucl" in evos[0].name
+
+
+# ── Model serialization ───────────────────────────────────────────────────────
+
+def test_player_to_dict():
+    p = Player(
+        id=40,
+        name="Test Player",
+        position="ST",
+        version="Normal",
+        rating=85,
+        club="Test FC",
+        nation="England",
+        year=26,
+        url="/26/player/40/test-player",
+        ps_price=100_000,
+        xbox_price=95_000,
+        stats={"pac": 90, "sho": 85},
+    )
+    d = p.to_dict()
+    assert d["id"] == 40
+    assert d["ps_price"] == 100_000
+    assert d["stats"]["pac"] == 90
+    assert "futbin.com" in d["url"]

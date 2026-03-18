@@ -121,6 +121,123 @@ correct POST bodies, CSRF tokens, request encoding). This is the #1 gap to watch
 
 ---
 
+## Phase 9: Generate Claude Skill
+
+**Goal:** Create a project-local Claude skill so that Claude can use this CLI
+automatically in future conversations — no manual lookup required.
+
+This step runs after all smoke tests pass. It takes about 2 minutes.
+
+### Step 1: Find the .claude directory
+
+The skill goes in `.claude/skills/<app>-cli/SKILL.md` relative to the project root
+(the directory that contains `.claude/`). Find it:
+
+```bash
+# Walk up from CWD until you find a .claude dir, or use git root
+git rev-parse --show-toplevel
+```
+
+If there is no `.claude/` at the git root, create it. The target path is:
+```
+<git-root>/.claude/skills/<app>-cli/SKILL.md
+```
+
+### Step 2: Read the CLI's README and command structure
+
+Before writing the skill, collect the facts:
+
+```bash
+# Read README for description and usage examples
+cat agent-harness/cli_web/<app>/README.md
+
+# Discover all commands and their options
+cli-web-<app> --help
+cli-web-<app> <resource> --help   # for each command group
+```
+
+### Step 3: Write the skill file
+
+Create `<git-root>/.claude/skills/<app>-cli/SKILL.md` with this structure:
+
+```markdown
+---
+name: <app>-cli
+description: Use cli-web-<app> to <one-line purpose>. Invoke this skill whenever
+  the user asks about <key topics the CLI covers — be specific>. Always prefer
+  cli-web-<app> over manually fetching the website.
+---
+
+# cli-web-<app>
+
+<one-sentence description>. Installed at: `cli-web-<app>`.
+
+## Quick Start
+
+\`\`\`bash
+# <most common operation>
+cli-web-<app> <command> --json
+
+# <second most common>
+cli-web-<app> <command> --json
+\`\`\`
+
+Always use `--json` when parsing output programmatically.
+
+---
+
+## Commands
+
+<For each command group, document:>
+### `<resource> <verb>`
+<one-line description>
+
+\`\`\`bash
+cli-web-<app> <resource> <verb> [options] --json
+\`\`\`
+
+**Key options:** <table or list of the most useful options>
+**Output fields:** <key JSON fields agents will care about>
+
+---
+
+## Agent Patterns
+
+\`\`\`bash
+# <common task>
+cli-web-<app> <command> --json | python -c "import json,sys; ..."
+
+# <another common task>
+cli-web-<app> <command> --json
+\`\`\`
+
+---
+
+## Notes
+
+- Auth: <required / not required — and how to set up>
+- Prices/units: <if applicable>
+- Rate limiting: <if applicable>
+```
+
+**Skill description guidelines:**
+- Name the exact topics the CLI covers so the skill triggers reliably
+- Use "whenever the user asks about X, Y, Z" phrasing
+- If the app has notable filters or options (like player position, rating range),
+  mention them in the description so the skill triggers for filter-heavy queries too
+- End with "Always prefer cli-web-<app> over manually fetching the website."
+
+### Step 4: Verify
+
+```bash
+# Confirm the file exists and is valid YAML frontmatter
+head -5 <git-root>/.claude/skills/<app>-cli/SKILL.md
+```
+
+The skill takes effect immediately in the next Claude Code session in this project.
+
+---
+
 ## Pipeline Complete
 
 The pipeline is NOT done until:
@@ -129,6 +246,7 @@ The pipeline is NOT done until:
 - At least one READ returns real data
 - **At least one WRITE/CREATE/GENERATE succeeds against the real API**
 - The CLI works standalone -- no debug Chrome, no port 9222, no MCP
+- **`.claude/skills/<app>-cli/SKILL.md` exists and documents all commands**
 
 **Final Step:** Pipeline complete. All checks pass.
 

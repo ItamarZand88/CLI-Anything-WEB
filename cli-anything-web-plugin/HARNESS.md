@@ -61,14 +61,13 @@ phases and invokes the next when done. Hard gates prevent skipping.
 | Phase | Skill | What it does | Hard Gate |
 |-------|-------|-------------|-----------|
 | 1 | `capture` | Assess site + capture traffic + explore + save auth | playwright-cli available |
-| 2-4 | `methodology` | Analyze, design, implement CLI | raw-traffic.json has WRITE ops |
-| 5-7 | `testing` | Plan tests, write tests, document | Implementation complete |
-| 8 | `standards` | Publish, verify, smoke test | All tests pass |
+| 2 | `methodology` | Analyze + Design + Implement CLI | raw-traffic.json exists |
+| 3 | `testing` | Write tests + document results | Implementation complete |
+| 4 | `standards` | Publish, verify, smoke test, generate Claude skill | All tests pass |
 
 **Sequencing:**
 ```
-capture → methodology
-→ testing → standards → DONE
+capture → methodology → testing → standards → DONE
 ```
 
 ### Prerequisites
@@ -105,8 +104,7 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 | `playwright-cli-advanced.md` | run-code, wait strategies, downloads | Phase 1 |
 | `framework-detection.md` | Detecting SSR frameworks during capture | Phase 1 |
 | `protection-detection.md` | Checking anti-bot protections during capture | Phase 1 |
-| `api-discovery.md` | Finding API endpoints during capture | Phase 1 |
-| `strategy-selection.md` | Choosing capture strategy | Phase 1 |
+| `api-discovery.md` | Finding API endpoints, decision tree, strategy details | Phase 1 |
 
 ### Methodology References (`skills/methodology/references/`)
 
@@ -221,11 +219,11 @@ Every generated CLI follows this package structure:
 
 ## Testing Strategy
 
-Four test layers with complementary purposes:
+Standard three-layer suite (fixture replay is optional):
 
 | Layer | File | What it tests |
 |-------|------|--------------|
 | Unit tests | `test_core.py` | Core functions with mocked HTTP. No real network. Fast, deterministic. |
-| E2E fixture tests | `test_e2e.py` | Full command flow replaying captured responses from `tests/fixtures/`. |
 | E2E live tests | `test_e2e.py` | Real API calls. Require auth — FAIL without it. CRUD round-trip. |
 | CLI subprocess | `test_e2e.py` | Installed `cli-web-<app>` via `_resolve_cli()`. Full end-to-end. |
+| E2E fixture tests *(optional)* | `test_e2e.py` | Replay captured responses from `tests/fixtures/`. Only add for complex HTML parsing. |

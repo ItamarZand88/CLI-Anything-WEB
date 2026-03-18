@@ -31,9 +31,10 @@ Focus area: $2
 5. **Record new traffic**: Use playwright-cli (see HARNESS.md Phase 1) or chrome-devtools-mcp fallback
 6. **Analyze new endpoints**: Add to API map in `<APP>.md`
 7. **Implement new commands**: Add to existing command groups or create new ones
-8. **Update tests**: Add unit + E2E tests for new commands
-9. **Run full test suite**: Ensure no regressions
-10. **Update TEST.md**: Document new coverage
+8. **Update REPL help**: Edit `_print_repl_help()` in `<app>_cli.py` to reflect every new command and option added. The REPL help must stay in sync with the actual command surface — users typing `help` in the REPL must see all available filters and options.
+9. **Update tests**: Add unit + E2E tests for new commands
+10. **Run full test suite**: Ensure no regressions
+11. **Update TEST.md**: Document new coverage
 
 ## Rules
 
@@ -42,6 +43,7 @@ Focus area: $2
 - ADD new commands and options only
 - Run full test suite after changes
 - Update `<APP>.md` with new endpoints
+- **Always update `_print_repl_help()` to match the actual command surface**
 
 ## Success Criteria
 
@@ -51,6 +53,7 @@ Focus area: $2
 - Full test suite passes (including new tests)
 - TEST.md updated with new test coverage
 - `<APP>.md` updated with new endpoints
+- **REPL `help` output reflects all new commands and key options**
 
 ## Notes
 

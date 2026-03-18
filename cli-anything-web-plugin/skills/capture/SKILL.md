@@ -115,8 +115,7 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --la
 ```
 
 Check the probe results -- what API patterns did you find?
-See `references/api-discovery.md` for the priority chain.
-See `references/strategy-selection.md` for the decision tree.
+See `references/api-discovery.md` for the priority chain and decision tree.
 
 ### 2d. Log findings and choose strategy
 
@@ -241,5 +240,4 @@ When capture is complete and raw-traffic.json has WRITE operations, invoke
 - [Advanced commands](references/playwright-cli-advanced.md) -- run-code, waits, downloads
 - [Framework detection](references/framework-detection.md) -- SSR framework eval commands
 - [Protection detection](references/protection-detection.md) -- anti-bot checks
-- [API discovery](references/api-discovery.md) -- API finding priority chain
-- [Strategy selection](references/strategy-selection.md) -- decision tree for capture approach
+- [API discovery](references/api-discovery.md) -- API priority chain, decision tree, strategy details

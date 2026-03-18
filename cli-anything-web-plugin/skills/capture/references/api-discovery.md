@@ -1,23 +1,7 @@
-# API Discovery Reference
+# API Discovery & Strategy Selection Reference
 
-How to find and prioritize APIs during site assessment. APIs produce clean
-structured data and are always preferred over HTML scraping for CLI generation.
-
----
-
-## Why APIs Over Scraping
-
-| Aspect | API | HTML Scraping |
-|---|---|---|
-| Speed | Fast (JSON only) | Slow (full page render) |
-| Reliability | Stable structure | Breaks when HTML changes |
-| Data quality | Clean, structured JSON | Messy, requires parsing |
-| Bandwidth | Low (data only) | High (images, CSS, JS) |
-| CLI maintenance | Low (stable contracts) | High (fragile selectors) |
-| CLI suitability | Excellent | Poor — last resort |
-
-**Bottom line:** A CLI built on an API endpoint is 10-100x faster and far more
-maintainable than one built on HTML scraping.
+How to find APIs during site assessment and choose the right capture strategy.
+APIs produce clean structured data and are always preferred over HTML scraping.
 
 ---
 
@@ -40,77 +24,44 @@ Priority  Pattern                                   Notes
 
 ---
 
-## Common API URL Patterns
+## Decision Tree
 
-### REST APIs
-
-```
-GET  /api/v1/products
-GET  /api/v1/products/{id}
-GET  /api/v2/search?q={query}&page={n}
-POST /api/v1/auth/login
-```
-
-Found in the trace as XHR/Fetch requests returning `Content-Type: application/json`.
-
-### GraphQL
+Use this tree to map recon findings to a capture strategy:
 
 ```
-POST /graphql
-POST /api/graphql
-POST /gql
+Reconnaissance Complete
+├── API endpoints found in trace?
+│   ├── YES (many) ──> API-first: Standard trace capture
+│   │   └── Generates: standard client.py with httpx
+│   ├── YES (few, mutations only) ──> Check for SSR data blobs
+│   │   ├── __NEXT_DATA__/__NUXT__ found ──> SSR+API hybrid
+│   │   └── No blobs ──> Force SPA trick, re-check
+│   └── YES (GraphQL) ──> GraphQL capture
+│       └── Generates: client.py with query templates
+├── No API endpoints found?
+│   ├── Google WIZ_global_data ──> batchexecute protocol
+│   │   └── Generates: rpc/ subpackage
+│   ├── Pure SSR, no client fetches ──> May not be CLI-suitable
+│   └── APIs blocked by protection ──> Protected-manual strategy
+└── Protection detected?
+    ├── Cloudflare ──> Add delays, respect limits
+    ├── Rate limits ──> Build backoff into client.py
+    └── CAPTCHA ──> Add pause-and-prompt to auth flow
 ```
 
-Request body contains `{ "query": "...", "variables": {...} }`. Response is
-always `{ "data": {...} }`.
-
-### Next.js Data Routes
-
+Quick reference:
 ```
-GET /_next/data/{buildId}/products.json
-GET /_next/data/{buildId}/products/{slug}.json
-```
-
-The `buildId` changes on each deployment. Capture it from the trace or from
-`__NEXT_DATA__.buildId` in the page source.
-
-### WordPress REST API
-
-```
-GET /wp-json/wp/v2/posts?per_page=100&page=1
-GET /wp-json/wp/v2/pages
-GET /wp-json/wp/v2/categories
-GET /wp-json/wc/v3/products  (WooCommerce)
+Found REST API?          --> API-first
+Found GraphQL?           --> GraphQL capture
+Found SSR blob + API?    --> SSR+API hybrid
+Found batchexecute?      --> rpc/ subpackage
+Found WordPress?         --> wp-json API-first
+Found Shopify?           --> Shopify JSON API-first
+Protected site?          --> Protected-manual
+No APIs at all?          --> Assess viability, may not be CLI-suitable
 ```
 
-### Shopify
-
-```
-GET /products.json
-GET /collections.json
-GET /products/{handle}.json
-GET /collections/{handle}/products.json
-```
-
-### Google batchexecute
-
-```
-POST /_/ServiceName/data/batchexecute
-```
-
-Uses a specific wire format with `f.req` form field containing nested arrays.
-See the trace for `rpcids` values that identify specific RPC methods.
-
-### Internal / Undocumented
-
-```
-GET /_api/items
-GET /internal/data
-GET /__api/v1/feed
-```
-
-These are not officially documented but show up in traces. They may change
-without notice — note this risk in the app's `<APP>.md`.
+Always record the chosen strategy and rationale in the app's `<APP>.md`.
 
 ---
 
@@ -120,7 +71,7 @@ After running Step 1.3 (Network Traffic Analysis) and parsing the trace:
 
 1. **Filter for JSON responses** — any request returning `application/json`
    is likely an API
-2. **Look at URL paths** — match against the patterns above
+2. **Look at URL paths** — match against the priority chain above
 3. **Check request methods** — GET for reads, POST for mutations/GraphQL
 4. **Note query parameters** — these reveal pagination, filtering, and sorting
 5. **Check response structure** — arrays of objects usually mean list endpoints
@@ -147,57 +98,110 @@ reveals endpoints that are invisible on the first load. See
 
 ---
 
-## Identifying Pagination
+## Strategy Details
 
-Look for these patterns in traced API requests:
+### API-First (Standard Trace)
 
-| Pattern | Example | Type |
-|---|---|---|
-| Page number | `?page=2&per_page=20` | Offset-based |
-| Offset | `?offset=20&limit=20` | Offset-based |
-| Cursor | `?cursor=eyJpZCI6MTAwfQ==` | Cursor-based |
-| After/Before | `?after=abc123&first=20` | GraphQL relay-style |
-| Token | `?pageToken=NEXT_TOKEN` | Token-based |
+**When:** Clean REST or internal API endpoints found in trace.
 
-**How to detect:**
-- Make two page navigations and compare the API request parameters
-- Check if the response includes `hasMore`, `nextPage`, `cursor`, or `total` fields
-- Cursor-based pagination is harder to parallelize but more reliable
+**Capture flow:**
+1. Record a trace of the user workflow
+2. Extract API endpoints, parameters, and response shapes
+3. Generate `client.py` with httpx calls for each endpoint
+
+**Pros:** Fast, reliable, clean data. This is the ideal case.
+
+### GraphQL Capture
+
+**When:** Single `/graphql` endpoint found with structured queries.
+
+**Capture flow:**
+1. Record trace to capture query strings and variables
+2. Extract unique queries and their variable shapes
+3. Generate `client.py` with query templates and variable builders
+
+**Pros:** Single endpoint, flexible queries.
+**Cons:** Query complexity can be high; need to handle pagination in variables.
+
+### SSR+API Hybrid
+
+**When:** SSR data blob found (`__NEXT_DATA__`, `__NUXT__`) but client-side
+navigations also hit APIs.
+
+**Capture flow:**
+1. Extract SSR blob for initial data models
+2. Use Force SPA Navigation trick to reveal client-side API endpoints
+3. Generate `client.py` that can use either SSR extraction or API calls
+
+**Pros:** Two data sources for resilience.
+**Cons:** More complex generation; buildId may change on deploy (Next.js).
+
+### batchexecute (Google Apps)
+
+**When:** `WIZ_global_data` detected; trace shows `batchexecute` POST requests.
+
+**Capture flow:**
+1. Trace to capture batchexecute payloads
+2. Decode `f.req` wire format to identify rpcids and parameters
+3. Generate `rpc/` subpackage with encode/decode functions
+
+**Pros:** Gives full programmatic access to Google app data.
+**Cons:** Wire format is complex and undocumented; may break on updates.
+
+### Protected-Manual
+
+**When:** WAF, CAPTCHA, or aggressive Cloudflare blocks automated access.
+
+**Capture flow:**
+1. User manually browses the site in the headed browser
+2. Trace captures the requests made during manual browsing
+3. Generate `client.py` with cookie/session persistence
+4. Add `pause-and-prompt` auth step for CAPTCHA flows
+
+**Pros:** Works despite protections.
+**Cons:** Requires manual intervention; cookies may expire.
+
+### Not CLI-Suitable
+
+**When:** Pure SSR with no client-side API calls, no data blobs, and no
+discoverable endpoints.
+
+**Indicators:**
+- Force SPA trick reveals zero API calls
+- No `__NEXT_DATA__`, `__NUXT__`, or similar globals
+- All data is rendered into HTML with no structured source
+
+**Action:** Report to the user that the site does not expose a programmatic
+data layer. Suggest alternatives (official API, data exports, etc.).
 
 ---
 
-## Detecting Auth Requirements
+## Anti-Patterns
 
-Check captured request headers in the trace for:
+### Reverse-engineering JS instead of using the feature
 
-| Header | Auth Type |
-|---|---|
-| `Authorization: Bearer <token>` | JWT / OAuth token |
-| `Authorization: Basic <base64>` | Basic auth |
-| `Cookie: session=<value>` | Session cookie |
-| `X-API-Key: <key>` | API key |
-| `X-CSRF-Token: <token>` | CSRF protection (needs browser session) |
+**Wrong:** Grep through minified webpack bundles, parse `performance.getEntries()`,
+read Next.js build manifests, or decode obfuscated JavaScript to find API endpoints.
+This wastes 10-30 minutes and gives unreliable results.
 
-**If auth is required:**
-- The generated CLI needs a login/auth command
-- Store tokens/cookies securely (keyring or config file)
-- Handle token refresh for OAuth flows
-- Note the auth type in the app's `<APP>.md`
+**Right:** Take a screenshot, click the button, fill the form, submit — then check
+the trace. If you can see the feature in the UI, you can capture its API call in
+under 60 seconds by using it. **The browser IS the API documentation.**
 
-**If no auth headers are present:**
-- The API is publicly accessible — simplest case
-- Still respect rate limits
+### Scraping HTML when an API exists
 
----
+**Wrong:** Parse HTML with selectors when `/api/v1/products` returns clean JSON.
+**Right:** Always check the API priority chain. APIs are 10-100x faster and
+far more maintainable.
 
-## API Discovery Checklist
+### Jumping to implementation without recon
 
-After completing site assessment, you should know:
+**Wrong:** Start writing a scraper immediately based on assumptions.
+**Right:** Run the 5-step recon flow first. Five minutes of recon saves hours
+of wrong-approach debugging.
 
-- [ ] Which API pattern the site uses (REST, GraphQL, SSR data, etc.)
-- [ ] The base URL and specific endpoints discovered
-- [ ] Pagination mechanism and parameters
-- [ ] Whether authentication is required (and what type)
-- [ ] Response structure for each endpoint
-- [ ] Rate limit behavior (from protection detection)
-- [ ] Whether the API covers all the data the user needs
+### No error handling for API calls
+
+**Wrong:** Assume every request succeeds.
+**Right:** Build retry logic and backoff into the generated `client.py`.
+Handle 429, 403, 500, and timeout errors gracefully.

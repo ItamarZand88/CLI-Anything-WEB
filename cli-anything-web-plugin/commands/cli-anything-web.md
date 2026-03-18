@@ -29,9 +29,9 @@ Run the full pipeline by invoking skills in sequence:
 
 1. Check playwright-cli availability (see Prerequisites above)
 2. Invoke `capture` skill -- Phase 1 site assessment + traffic recording
-3. Invoke `methodology` skill -- Phases 2-4 analyze/design/implement
-4. Invoke `testing` skill -- Phases 5-7 test planning/writing/documentation
-5. Invoke `standards` skill -- Phase 8 publish and verify
+3. Invoke `methodology` skill -- Phases 2-3 analyze/design/implement
+4. Invoke `testing` skill -- Phase 3 test writing/documentation
+5. Invoke `standards` skill -- Phase 4 publish and verify + generate Claude skill
 
 Each skill handles its phases completely and invokes the next when done.
 See HARNESS.md for the pipeline overview and critical rules.
@@ -50,6 +50,7 @@ The command succeeds when:
 7. README.md documents installation and usage
 8. `setup.py` is created and local installation works
 9. CLI is available in PATH as `cli-web-<app>`
+10. `.claude/skills/<app>-cli/SKILL.md` exists at the project root
 
 ## Output Structure
 
@@ -87,13 +88,9 @@ After each phase, report status in this format:
 ┌─────────┬────────┬────────────────────────────────────────────┐
 │ Phase   │ Status │ Description                                │
 ├─────────┼────────┼────────────────────────────────────────────┤
-│ Phase 1 │ ...    │ Record — Traffic Capture                   │
-│ Phase 2 │ ...    │ Analyze — API Discovery                    │
-│ Phase 3 │ ...    │ Design — CLI Architecture                  │
-│ Phase 4 │ ...    │ Implement — Code Generation                │
-│ Phase 5 │ ...    │ Plan Tests — TEST.md Part 1                │
-│ Phase 6 │ ...    │ Test — Write Tests                         │
-│ Phase 7 │ ...    │ Document — Update TEST.md                  │
-│ Phase 8 │ ...    │ Publish — Install to PATH                  │
+│ Phase 1 │ ...    │ Capture — Traffic Capture + Auth           │
+│ Phase 2 │ ...    │ Methodology — Analyze + Design + Implement │
+│ Phase 3 │ ...    │ Test — Write Tests + Document Results      │
+│ Phase 4 │ ...    │ Standards — Publish + Smoke Test + Skill   │
 └─────────┴────────┴────────────────────────────────────────────┘
 ```

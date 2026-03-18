@@ -2,16 +2,16 @@
 name: methodology
 description: >
   Analyze captured HTTP traffic, design CLI architecture, and implement the Python
-  CLI package. Covers Phases 2-4 of the pipeline: parse raw-traffic.json, identify
+  CLI package. Covers Phases 2-3 of the pipeline: parse raw-traffic.json, identify
   protocol type, map endpoints, design Click command groups, implement with parallel
   subagents. Use when the user asks to "create a CLI for a website", "generate API
   wrapper", "reverse engineer web API", "analyze traffic", "design CLI", "implement CLI",
   "build CLI from network traffic", or discusses turning closed-source web applications
   into agent-controllable command-line interfaces.
-version: 0.1.0
+version: 0.2.0
 ---
 
-# CLI-Anything-Web Methodology (Phases 2-4)
+# CLI-Anything-Web Methodology (Phases 2-3)
 
 Analyze captured traffic, design the CLI command structure, and implement the
 complete Python CLI package. This skill owns the core transformation from raw
@@ -88,46 +88,20 @@ no create/update/delete commands. This is valid.
 
 ---
 
-## Phase 3: Design (CLI Architecture)
+## Phase 3: Implement (Code Generation)
 
-**Goal:** Design the CLI command structure.
+### Design Before You Code
 
-**Process:**
+Before writing any code, note the command structure in `<APP>.md` (10 minutes max):
 
-1. Map each API endpoint group to a Click command group:
-   - `/api/v1/boards/*` -> `boards` command group
-   - `/api/v1/items/*` -> `items` command group
-
-2. Map CRUD operations to subcommands:
-   - GET (list) -> `boards list`
-   - GET (single) -> `boards get --id <id>`
-   - POST -> `boards create --name <name>`
-   - PUT/PATCH -> `boards update --id <id> --name <name>`
-   - DELETE -> `boards delete --id <id>`
-
-3. Design auth management:
-   - `auth login` -- interactive login flow
-   - `auth status` -- show current session
-   - `auth refresh` -- refresh token if applicable
-   - Store credentials in `~/.config/cli-web-<app>/auth.json`
-
-4. Design session state:
-   - Current workspace/project context
-   - Undo/redo stack for mutating operations
-   - Output format preferences
-
-5. Design REPL commands:
-   - Bare command -> enters REPL
-   - Branded banner via `repl_skin.py`
-   - Context-aware prompt showing current entity
-
-**Output:** Architecture spec in `<APP>.md`.
-
-**References:** `traffic-patterns.md`
-
----
-
-## Phase 4: Implement (Code Generation)
+- Map each API endpoint group to a Click command group:
+  - `/api/v1/boards/*` → `boards` command group
+  - `/api/v1/items/*` → `items` command group
+- Map CRUD operations to subcommands (GET list → `list`, GET single → `get`,
+  POST → `create`, PUT/PATCH → `update`, DELETE → `delete`)
+- Note auth design: `auth login`, `auth status`, `auth refresh`; credentials at
+  `~/.config/cli-web-<app>/auth.json`
+- Note REPL design: bare command enters REPL, branded banner via `repl_skin.py`
 
 **Goal:** Generate the complete Python CLI package.
 
@@ -217,6 +191,28 @@ cli.main(args=repl_args, standalone_mode=False)
 cli.main(args=args, standalone_mode=False, **ctx.params)
 ```
 
+**4. Keep `_print_repl_help()` in sync with the actual command surface**
+
+The `_print_repl_help()` function in `<app>_cli.py` is the user's first discovery surface — it's what they see when they type `help` in the REPL. It must mirror the real commands, including all key options. A REPL that shows outdated or incomplete help is confusing and makes the CLI feel broken.
+
+```python
+# ✓ Correct — help lists actual options users can pass
+def _print_repl_help():
+    _skin.info("Available commands:")
+    print("  players list [OPTIONS]")
+    print("    --position <GK|ST|CM|...>    Filter by position")
+    print("    --rating-min N --rating-max N  Rating range")
+    print("    --cheapest                   Sort cheapest first")
+
+# ✗ Wrong — stale help doesn't mention new --position, --rating-min, etc.
+def _print_repl_help():
+    print("  players list [--min-price N]   List players with filters")
+```
+
+Rule: **every time you add options to a command, update `_print_repl_help()` in the same commit**.
+
+---
+
 **3. Use `@click.argument` for positional REPL params, not `@click.option("--x", required=True)`**
 
 REPL commands show `players search <query>` in help. If `query` is a `--query` option,
@@ -270,6 +266,10 @@ dispatch parallel subagents -- one per command module. Each agent gets:
 3. **Last (sequential):** `<app>_cli.py`, `__main__.py`, `setup.py`, copy `repl_skin.py`
    -- these wire everything together
 
+> **Start tests early:** Once `core/client.py`, `core/auth.py`, and `core/models.py` are
+> implemented, spawn a test-writing subagent immediately — don't wait for all command modules
+> to finish. The unit tests for core modules are independent of the command implementations.
+
 Example dispatch for a Google app with 4 command groups:
 ```
 # After core/ modules are written:
@@ -298,8 +298,8 @@ Do NOT skip testing -- every CLI must have comprehensive tests before publishing
 | Skill | When it activates |
 |-------|------------------|
 | `capture` | Phase 1 -- traffic recording (prerequisite for this skill) |
-| `testing` | Phases 5-7 -- test planning, writing, documentation |
-| `standards` | Phase 8 -- publish, verify, smoke test |
+| `testing` | Phase 3 -- test writing, documentation |
+| `standards` | Phase 4 -- publish, verify, smoke test |
 | `auto-optimize` | Meta -- autonomous skill optimization |
 
 ---
