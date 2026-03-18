@@ -189,6 +189,60 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 - Namespace: `cli_web.*`
 - Copy `repl_skin.py` from plugin for consistent REPL experience
 
+### REPL Implementation Rules (Critical)
+
+These three bugs appear in almost every generated REPL. Get them right the first time:
+
+**1. Use `shlex.split()`, never `line.split()`**
+
+```python
+# ✓ Correct — handles quoted args: players search "messi" -> ['players', 'search', 'messi']
+import shlex
+args = shlex.split(line)
+
+# ✗ Wrong — produces: ['players', 'search', '"messi"'] — quotes become part of the value
+args = line.split()
+```
+
+**2. Never pass `**ctx.params` to `cli.main()` in REPL dispatch**
+
+```python
+# ✓ Correct — preserve --json flag by prepending to args
+repl_args = ["--json"] + args if ctx.obj.get("json") else args
+cli.main(args=repl_args, standalone_mode=False)
+
+# ✗ Wrong — ctx.params = {"json_mode": False} gets passed to Context.__init__()
+# which doesn't accept it → TypeError: Context.__init__() got an unexpected
+# keyword argument 'json_mode'
+cli.main(args=args, standalone_mode=False, **ctx.params)
+```
+
+**3. Use `@click.argument` for positional REPL params, not `@click.option("--x", required=True)`**
+
+REPL commands show `players search <query>` in help. If `query` is a `--query` option,
+users typing `players search messi` get "Error: Missing option '--query'".
+Use positional arguments for natural command-line style:
+
+```python
+# ✓ Correct — users type: players search messi  OR  players get 21610
+@players.command()
+@click.argument("query")
+def search(query): ...
+
+@players.command()
+@click.argument("player_id", type=int)
+def get(player_id): ...
+
+# ✗ Wrong — users get an error unless they type: players search --query messi
+@players.command()
+@click.option("--query", required=True)
+def search(query): ...
+```
+
+Rule of thumb: if a command takes a single required value that would be a positional arg
+in a shell command (`git checkout main`, `grep pattern`), use `@click.argument`.
+Use `@click.option` only for optional or named parameters (`--rating-min`, `--platform`).
+
 ### Parallel Implementation (dispatch independent modules as subagents)
 
 When the CLI has 3+ command groups (e.g., notebooks, sources, chat, artifacts),

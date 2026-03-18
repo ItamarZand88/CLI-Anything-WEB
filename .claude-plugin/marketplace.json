@@ -1,0 +1,20 @@
+{
+  "name": "cli-anything-web",
+  "owner": {
+    "name": "Itamar Zand"
+  },
+  "metadata": {
+    "description": "Generate agent-native Python CLIs for closed-source web apps via live HTTP traffic capture."
+  },
+  "plugins": [
+    {
+      "name": "cli-anything-web",
+      "source": "./cli-anything-web-plugin",
+      "description": "Generate agent-native Python CLIs for closed-source web apps via live HTTP traffic capture.",
+      "author": {
+        "name": "Itamar Zand"
+      },
+      "category": "development"
+    }
+  ]
+}

@@ -226,6 +226,12 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 - No bare `except:` blocks
 - Error messages include actionable guidance
 
+### 9. REPL Quality (3 checks)
+
+- REPL uses `shlex.split(line)` — not `line.split()` (quoted args must parse correctly)
+- REPL dispatches with `cli.main(args=repl_args, standalone_mode=False)` — never `**ctx.params`
+- Primary resource commands use `@click.argument` for positional params (not `--required-option`)
+
 ## Key Rules
 
 These are non-negotiable standards:
