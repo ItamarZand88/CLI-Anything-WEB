@@ -177,7 +177,7 @@ npx @playwright/cli@latest -s=<app> click <internal-link-3>
 npx @playwright/cli@latest -s=<app> tracing-stop
 
 # Parse the trace for newly discovered endpoints
-python scripts/parse-trace.py .playwright-cli/traces/ --output recon-traffic.json
+python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --output recon-traffic.json
 ```
 
 **Why this works:** SSR frameworks embed data on the first load but fetch from

@@ -109,7 +109,7 @@ npx @playwright/cli@latest -s=<app> click <internal-link-2>
 npx @playwright/cli@latest -s=<app> tracing-stop
 
 # 4. Parse the trace to extract discovered endpoints
-python scripts/parse-trace.py .playwright-cli/traces/ --output recon-traffic.json
+python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --output recon-traffic.json
 ```
 
 This trick works because:

@@ -38,7 +38,7 @@ Before starting the optimization loop:
    optimization work from the main branch.
 2. **Run baseline evals** — Execute the full eval suite to establish the starting score:
    ```
-   python scripts/run-eval.py --evals evals/eval-suite.json --skill-dir skills/ --output evals/baseline.json
+   python ${CLAUDE_PLUGIN_ROOT}/scripts/run-eval.py --evals ${CLAUDE_PLUGIN_ROOT}/evals/eval-suite.json --skill-dir ${CLAUDE_PLUGIN_ROOT}/skills/ --output ${CLAUDE_PLUGIN_ROOT}/evals/baseline.json
    ```
 3. **Initialize results.tsv** — Create `evals/results.tsv` with the header row and
    baseline entry:
@@ -55,7 +55,7 @@ LOOP FOREVER:
   2. Read the skill file responsible for that assertion
   3. Propose ONE targeted change (clarify, add example, simplify, etc.)
   4. git commit the change
-  5. Run: python scripts/run-eval.py --evals evals/eval-suite.json --skill-dir skills/
+  5. Run: python ${CLAUDE_PLUGIN_ROOT}/scripts/run-eval.py --evals ${CLAUDE_PLUGIN_ROOT}/evals/eval-suite.json --skill-dir ${CLAUDE_PLUGIN_ROOT}/skills/
   6. Extract score from output
   7. If score > baseline: KEEP commit, update baseline
   8. If score <= baseline: git reset --hard HEAD~1, DISCARD
@@ -163,10 +163,10 @@ For deeper testing, run the full `/cli-anything-web` pipeline on a real site and
 verify the generated CLI works end-to-end.
 
 ```bash
-python scripts/run-integration-eval.py \
-  --suite evals/integration-suite.json \
-  --plugin-dir . \
-  --output evals/integration/
+python ${CLAUDE_PLUGIN_ROOT}/scripts/run-integration-eval.py \
+  --suite ${CLAUDE_PLUGIN_ROOT}/evals/integration-suite.json \
+  --plugin-dir ${CLAUDE_PLUGIN_ROOT} \
+  --output ${CLAUDE_PLUGIN_ROOT}/evals/integration/
 ```
 
 This spawns a real Claude session with the plugin loaded, runs the full 8-phase
@@ -183,9 +183,9 @@ translates to actual working CLIs.
 After a Level 2 run, analyze the transcript to find process improvements:
 
 ```bash
-python scripts/analyze-transcript.py \
-  --transcript evals/integration/suno/transcript.log \
-  --output evals/integration/suno/analysis.json
+python ${CLAUDE_PLUGIN_ROOT}/scripts/analyze-transcript.py \
+  --transcript ${CLAUDE_PLUGIN_ROOT}/evals/integration/suno/transcript.log \
+  --output ${CLAUDE_PLUGIN_ROOT}/evals/integration/suno/analysis.json
 ```
 
 This extracts:

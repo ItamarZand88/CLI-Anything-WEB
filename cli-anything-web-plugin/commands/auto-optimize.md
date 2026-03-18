@@ -37,16 +37,16 @@ Follow the auto-optimize skill's loop exactly:
 ## Levels
 
 - `--level 1` (default): Fast skill knowledge evals (~3 min/iteration)
-  - Runs: `python scripts/run-eval.py --evals evals/eval-suite.json`
+  - Runs: `python ${CLAUDE_PLUGIN_ROOT}/scripts/run-eval.py --evals ${CLAUDE_PLUGIN_ROOT}/evals/eval-suite.json`
   - Optimizes: skill .md instructions
 
 - `--level 2`: Full pipeline integration eval (~20-30 min/iteration)
-  - Runs: `python scripts/run-integration-eval.py --suite evals/integration-suite.json`
+  - Runs: `python ${CLAUDE_PLUGIN_ROOT}/scripts/run-integration-eval.py --suite ${CLAUDE_PLUGIN_ROOT}/evals/integration-suite.json`
   - Tests: does the generated CLI actually work?
   - Optimizes: HARNESS.md phases, command instructions
 
 - `--level 3`: Level 2 + transcript analysis (~30-40 min/iteration)
-  - Runs: Level 2 + `python scripts/analyze-transcript.py`
+  - Runs: Level 2 + `python ${CLAUDE_PLUGIN_ROOT}/scripts/analyze-transcript.py`
   - Analyzes: time per phase, errors, dead ends, patterns
   - Generates: specific HARNESS.md improvement proposals
   - Optimizes: the pipeline itself

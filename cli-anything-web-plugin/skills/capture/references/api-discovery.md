@@ -138,7 +138,7 @@ npx @playwright/cli@latest -s=<app> click <internal-link-1>
 npx @playwright/cli@latest -s=<app> click <internal-link-2>
 npx @playwright/cli@latest -s=<app> click <internal-link-3>
 npx @playwright/cli@latest -s=<app> tracing-stop
-python scripts/parse-trace.py .playwright-cli/traces/ --output recon-traffic.json
+python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --output recon-traffic.json
 ```
 
 Client-side navigations bypass SSR and fetch data from APIs directly. This
