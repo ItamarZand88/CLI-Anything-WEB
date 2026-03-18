@@ -1,0 +1,3 @@
+{
+  "plugins": ["./cli-anything-web-plugin"]
+}

@@ -24,6 +24,10 @@ Thumbs.db
 .env.*
 *.credentials.json
 
+# Claude Code local state (settings.json is committed)
+.claude/*.local.md
+.claude/*.local.json
+
 # Internal dev
 cli-anything-web-plugin-workspace/
 docs/
