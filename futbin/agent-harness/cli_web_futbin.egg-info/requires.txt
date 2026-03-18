@@ -1,9 +1,0 @@
-click>=8.0
-httpx>=0.24.0
-beautifulsoup4>=4.12.0
-
-[browser]
-playwright>=1.40.0
-
-[repl]
-prompt_toolkit>=3.0.0
