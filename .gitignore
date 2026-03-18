@@ -24,12 +24,7 @@ Thumbs.db
 .env.*
 *.credentials.json
 
-# Eval results (keep suite definitions, ignore outputs)
-evals/results.tsv
-
-# Reference skills (local dev only)
-reference-skills/
-
-# Internal dev workspace and planning docs
+# Internal dev
 cli-anything-web-plugin-workspace/
 docs/
+reference-skills/

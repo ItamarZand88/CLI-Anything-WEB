@@ -1,2 +1,0 @@
-[console_scripts]
-cli-web-suno = cli_web.suno.suno_cli:cli

@@ -1,2 +1,0 @@
-[console_scripts]
-cli-web-notebooklm = cli_web.notebooklm.notebooklm_cli:cli

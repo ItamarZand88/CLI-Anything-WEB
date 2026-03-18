@@ -1,2 +1,0 @@
-[console_scripts]
-cli-web-futbin = cli_web.futbin.futbin_cli:main

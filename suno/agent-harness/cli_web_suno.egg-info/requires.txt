@@ -1,6 +1,0 @@
-click>=8.0
-httpx>=0.24.0
-websockets>=12.0
-
-[browser]
-playwright>=1.40.0
