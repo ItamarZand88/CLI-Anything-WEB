@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="banner.png" alt="CLI Anything Web" width="700">
+</p>
+
 # CLI-Anything-Web
 
 **A Claude Code plugin that generates production-grade Python CLIs for any web application by capturing its live HTTP traffic.**
