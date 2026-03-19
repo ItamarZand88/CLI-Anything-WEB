@@ -361,15 +361,14 @@ Do NOT skip to publishing — all tests must pass first.
 |-------------|-------|
 | **Preceded by** | `methodology` (Phase 2) |
 | **Followed by** | `standards` (Phase 4) |
-| **References** | `resolve-cli-pattern.md`, `test-code-examples.md`, `exception-testing-examples.md` |
+| **References** | `resolve-cli-pattern.md`, `test-code-examples.md` |
 
 ---
 
 ## Reference Files
 
 - [_resolve_cli Pattern](references/resolve-cli-pattern.md) — subprocess testing helper
-- [Test Code Examples](references/test-code-examples.md) — unit test patterns, RPC testing
-- [Exception Testing Examples](references/exception-testing-examples.md) — typed exception assertions, JSON error output testing
+- [Test Code Examples](references/test-code-examples.md) — unit test patterns, RPC testing, exception assertions
 
 ---
 

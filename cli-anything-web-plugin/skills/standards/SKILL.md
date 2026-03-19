@@ -42,7 +42,7 @@ Mark inapplicable checks as "N/A — [reason]" rather than creating dead-code st
 
 ---
 
-## Phase 8: Publish and Verify (Phase 4)
+## Phase 4: Publish and Verify
 
 **Goal:** Make CLI installable AND verify it works end-to-end as a real user would use it.
 

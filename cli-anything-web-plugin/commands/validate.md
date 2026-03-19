@@ -36,18 +36,18 @@ Invoke the `standards` skill which defines the complete 75-check
 validation across 11 categories:
 
 1. Directory Structure (6 checks)
-2. Required Files (14 checks)
-3. CLI Implementation Standards (9 checks)
-4. Core Module Standards (7 checks)
+2. Required Files (13 checks)
+3. CLI Implementation (9 checks)
+4. Core Modules (8 checks)
 5. Test Standards (8 checks)
-6. Documentation Standards (3 checks)
-7. PyPI Packaging Standards (5 checks)
-8. Code Quality (5 checks)
+6. Documentation (3 checks)
+7. PyPI Packaging (5 checks)
+8. Code Quality (8 checks)
 9. REPL Quality (3 checks)
 10. Error Handling & Resilience (8 checks)
 11. UX Patterns (4 checks)
 
-See the `standards` skill for the detailed checklist and report format.
+See `standards/references/quality-checklist.md` for the detailed checklist.
 
 ## Report Format
 
@@ -59,13 +59,13 @@ App: <app>
 Path: <path>/agent-harness/cli_web/<app>
 
 Directory Structure   (X/6 checks passed)
-Required Files        (X/14 files present)
-CLI Standards         (X/9 standards met)
-Core Modules          (X/7 standards met)
+Required Files        (X/13 files present)
+CLI Implementation    (X/9 standards met)
+Core Modules          (X/8 standards met)
 Test Standards        (X/8 standards met)
 Documentation         (X/3 standards met)
 PyPI Packaging        (X/5 standards met)
-Code Quality          (X/5 checks passed)
+Code Quality          (X/8 checks passed)
 REPL Quality          (X/3 checks passed)
 Error Handling        (X/8 checks passed)
 UX Patterns           (X/4 checks passed)
