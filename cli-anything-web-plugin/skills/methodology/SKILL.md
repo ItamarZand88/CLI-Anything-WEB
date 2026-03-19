@@ -367,28 +367,44 @@ dispatch parallel subagents -- one per command module. Each agent gets:
 | `client.py` and `commands/*` | **No** -- commands depend on client |
 | `<app>_cli.py` (entry point) | **Last** -- imports all commands, write after they're done |
 
-**Implementation order:**
+**Implementation order (with maximum parallelism):**
 
-1. **First (sequential):** `core/exceptions.py`, `core/client.py`, `core/auth.py` (if auth required),
-   `core/session.py` (if stateful context needed), `core/models.py`
-   -- these are the foundation that everything else imports
-2. **Then (parallel subagents):** all `commands/*.py` files + `rpc/encoder.py` + `rpc/decoder.py`
-   -- each is independent once the core exists
-3. **Last (sequential):** `utils/helpers.py`, `<app>_cli.py`, `__main__.py`, `setup.py`, copy `repl_skin.py`
-   -- these wire everything together
+```
+Phase A (sequential): Write core foundation
+  exceptions.py → client.py → auth.py (if needed) → models.py
 
-> **Start tests early:** Once `core/client.py`, `core/auth.py`, and `core/models.py` are
-> implemented, spawn a test-writing subagent immediately — don't wait for all command modules
-> to finish. The unit tests for core modules are independent of the command implementations.
+Phase B (parallel): Dispatch ALL independent work simultaneously
+  ┌─ Agent 1: commands/notebooks.py
+  ├─ Agent 2: commands/sources.py
+  ├─ Agent 3: commands/chat.py
+  ├─ Agent 4: commands/artifacts.py
+  ├─ Agent 5: rpc/encoder.py + rpc/decoder.py (if non-REST)
+  └─ Agent 6 (background): test_core.py (unit tests for core modules)
+  All run concurrently — each only depends on Phase A modules
+
+Phase C (sequential): Wire everything together
+  utils/helpers.py → <app>_cli.py → __main__.py → setup.py → copy repl_skin.py
+```
+
+**Key parallelism rules:**
+- Use `run_in_background: true` for the test-writing agent — it doesn't block Phase B
+- Launch ALL Phase B agents in a **single message** with multiple Agent tool calls
+- Each agent gets: the `<APP>.md` spec, the `client.py` interface, and a clear scope
+- Phase C starts only after ALL Phase B agents complete
+
+**Why start tests in Phase B?** Core module tests (mocking HTTP, testing parsers,
+exception hierarchy) don't depend on command modules. By the time Phase C finishes
+and `pip install -e .` runs, unit tests are already written and ready to execute.
 
 Example dispatch for a Google app with 4 command groups:
 ```
-# After core/ modules are written:
-Agent 1 -> "Implement commands/notebooks.py (list, get, create, delete, rename)"
-Agent 2 -> "Implement commands/sources.py (add-url, add-pdf, add-text, list, delete)"
-Agent 3 -> "Implement commands/chat.py (ask, history)"
-Agent 4 -> "Implement commands/artifacts.py (list, create, get)"
-# All 4 run concurrently, then integrate
+# After core/ modules are written — launch ALL in one message:
+Agent 1 (foreground): "Implement commands/notebooks.py (list, get, create, delete, rename)"
+Agent 2 (foreground): "Implement commands/sources.py (add-url, add-pdf, add-text, list, delete)"
+Agent 3 (foreground): "Implement commands/chat.py (ask, history)"
+Agent 4 (foreground): "Implement commands/artifacts.py (list, create, get)"
+Agent 5 (background): "Write unit tests for core/client.py, core/auth.py, core/models.py"
+# All 5 run concurrently, then integrate
 ```
 
 **References:** `auth-strategies.md`, `google-batchexecute.md`

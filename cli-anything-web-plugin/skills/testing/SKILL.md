@@ -88,13 +88,17 @@ Test files are independent and can be written in parallel:
 | `test_e2e.py` — live tests | Real API calls | Depends on auth working |
 | `test_e2e.py` — subprocess tests | `_resolve_cli()` | Depends on `pip install -e .` |
 
-Dispatch strategy:
+Dispatch strategy — launch ALL in one message:
 ```
-Agent 1 -> "Write unit tests for core/client.py and core/auth.py in test_core.py"
-Agent 2 -> "Write RPC encoder/decoder unit tests (if applicable) in test_core.py"
-Agent 3 -> "Write live E2E CRUD tests and subprocess tests in test_e2e.py"
-# After all return, integrate into final test files and run
+Agent 1 (foreground): "Write unit tests for core/client.py and core/auth.py in test_core.py"
+Agent 2 (foreground): "Write live E2E tests and subprocess tests in test_e2e.py"
+# Both run concurrently, then integrate into final test files and run
 ```
+
+**Optimal timing:** If possible, start unit test writing during Phase 2 (methodology)
+as a background agent while command modules are still being implemented. Unit tests
+for core modules (client, auth, models, exceptions) don't depend on commands. By the
+time `pip install -e .` runs, unit tests are already written.
 
 Each agent receives: the module it's testing, and sample API responses if available.
 Agents must NOT depend on each other's output.

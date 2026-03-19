@@ -138,12 +138,21 @@ correct POST bodies, CSRF tokens, request encoding). This is the #1 gap to watch
 
 ---
 
-## Generate Claude Skill (Post-Pipeline)
+## Post-Smoke-Test: Generate Skill + Update README (Parallel)
+
+After smoke tests pass, three tasks remain — all independent, dispatch in parallel:
+
+```
+┌─ Agent 1: Generate Claude Skill (.claude/skills/<app>-cli/SKILL.md)
+├─ Agent 2: Update repository README.md (add CLI to examples table)
+└─ Agent 3: Write/update cli_web/<app>/README.md (package docs)
+All 3 are independent — launch in one message with run_in_background: true
+```
+
+### Generate Claude Skill
 
 **Goal:** Create a project-local Claude skill so that Claude can use this CLI
 automatically in future conversations — no manual lookup required.
-
-This step runs after all smoke tests pass. It takes about 2 minutes.
 
 ### Step 1: Find the .claude directory
 
@@ -255,6 +264,48 @@ The skill takes effect immediately in the next Claude Code session in this proje
 
 ---
 
+## Update Repository README
+
+After generating the Claude skill, update the main `README.md` at the git root
+to include the new CLI in the examples table.
+
+### Step 1: Read the current README
+
+```bash
+cat <git-root>/README.md
+```
+
+### Step 2: Add the new CLI to the examples table
+
+Find the table that lists existing CLIs (look for `| CLI | Website | Protocol | Auth | Description |`)
+and add a new row:
+
+```markdown
+| [`cli-web-<app>`](<app>/) | <Website Name> | <protocol> | <auth type> | <one-line description> |
+```
+
+**Protocol** should match what was detected in Phase 1: `HTML scraping`, `REST API`,
+`batchexecute RPC`, `GraphQL`, `HTML scraping (curl_cffi)` for Cloudflare sites, etc.
+
+**Auth** should be: `None`, `Google SSO`, `API key`, `OAuth`, etc.
+
+### Step 3: Add to "Try Them" section (if it exists)
+
+Add a quick-start example for the new CLI:
+
+```bash
+# <App Name> — <auth note>
+cd <app>/agent-harness && pip install -e .
+cli-web-<app> <main-command> --json
+```
+
+### Step 4: Add to Supported Protocols (if new protocol)
+
+If the CLI uses a protocol not already listed in the "Supported Protocols" table,
+add a new row for it.
+
+---
+
 ## Pipeline Complete
 
 The pipeline is NOT done until:
@@ -264,6 +315,7 @@ The pipeline is NOT done until:
 - **At least one WRITE/CREATE/GENERATE succeeds** (or N/A for read-only sites)
 - The CLI works standalone -- no debug Chrome, no port 9222, no MCP
 - **`.claude/skills/<app>-cli/SKILL.md` exists and documents all commands**
+- **Repository README.md updated** with new CLI in examples table
 
 **Final Step:** Pipeline complete. All checks pass.
 

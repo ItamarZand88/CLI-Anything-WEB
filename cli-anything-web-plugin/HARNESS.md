@@ -113,6 +113,36 @@ phases and invokes the next when done. Hard gates prevent skipping.
 capture → methodology → testing → standards → DONE
 ```
 
+### Parallelism Strategy
+
+Phases are sequential (each depends on the previous), but WITHIN each phase there
+are significant parallelism opportunities. Use the `Agent` tool with multiple
+concurrent calls to maximize throughput.
+
+```
+Phase 1 (Capture): Sequential — single browser session
+  framework detection → protection check → API probe → full capture
+
+Phase 2 (Methodology): Fork-join pattern
+  Sequential: exceptions.py → client.py → auth.py → models.py
+  Parallel:   commands/*.py (one agent per file) + test_core.py (background)
+  Sequential: cli entry point, __main__.py, setup.py
+
+Phase 3 (Testing): Parallel test execution
+  Parallel:   test_core.py (if not started in Phase 2) + test_e2e.py
+  Sequential: run tests → update TEST.md
+
+Phase 4 (Standards): Parallel post-pipeline tasks
+  Sequential: pip install → smoke test
+  Parallel:   Claude skill + repo README update + package README
+```
+
+**Key rules for parallel dispatch:**
+- Launch ALL independent agents in a **single message** with multiple `Agent` tool calls
+- Use `run_in_background: true` for agents whose results you don't need immediately
+- Each agent gets: a clear scope, the files it depends on, and where to write output
+- Never parallelize agents that write to the **same file**
+
 ### Prerequisites
 
 **Primary: playwright-cli (recommended)**
