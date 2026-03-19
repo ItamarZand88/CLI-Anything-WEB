@@ -394,7 +394,7 @@ media downloads.
 8. **CAPTCHAs Require Human Intervention** — Detect, pause, guide, resume.
 9. **Cross-Reference RPC IDs** — Obfuscated method IDs (batchexecute) can be
    mislabeled during traffic analysis. Always cross-reference with known-good
-   implementations or open-source clients before hardcoding IDs. A single wrong
+   implementations (check existing CLIs in this repo — `futbin/`, `notebooklm/`). A single wrong
    ID (e.g., using CREATE_NOTE instead of CREATE_ARTIFACT) causes silent failures.
 10. **Force UTF-8 on Windows** — Player names, Hebrew text, and emoji break on
     Windows without explicit encoding. Add this at the top of `<app>_cli.py`:
