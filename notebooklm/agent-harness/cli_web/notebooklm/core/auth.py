@@ -62,11 +62,12 @@ def login_browser(headed: bool = True):
     state_file = AUTH_DIR / "playwright-state.json"
     npx = _npx()
 
-    print(f"Opening browser for NotebookLM login...")
-    subprocess.run(
+    print("Opening browser for NotebookLM login...")
+    # Use Popen so the browser opens in background — subprocess.run() would block
+    # until the browser is closed, making input() unreachable.
+    proc = subprocess.Popen(
         [npx, "@playwright/cli@latest", f"-s={session}", "open", BASE_URL,
          "--headed", "--persistent"],
-        check=False,  # Browser stays open
     )
 
     input("Log in to Google in the browser, then press ENTER here to continue...")
@@ -151,8 +152,10 @@ def _extract_cookies(raw_cookies: list) -> dict:
     """Filter to Google auth cookies from relevant domains.
 
     Supports .google.com and 60+ regional Google domains for international users.
+    Prioritizes .google.com values over regional duplicates (e.g., .google.co.il).
     """
     result = {}
+    result_domains: dict[str, str] = {}
     # Build allowed domain set: base domains + regional variants with dots
     allowed = {
         ".google.com", "google.com",
@@ -167,8 +170,13 @@ def _extract_cookies(raw_cookies: list) -> dict:
     for c in raw_cookies:
         domain = c.get("domain", "")
         name = c.get("name", "")
-        if domain in allowed and name:
+        if domain not in allowed or not name:
+            continue
+        # Prefer .google.com over regional domains — don't overwrite a
+        # .google.com cookie with the same name from a regional domain.
+        if name not in result or domain == ".google.com":
             result[name] = c.get("value", "")
+            result_domains[name] = domain
     return result
 
 
@@ -207,6 +215,11 @@ def load_cookies() -> dict:
         cookies = data.get("cookies", {})
         if not cookies:
             raise AuthError("No cookies found. Run: cli-web-notebooklm auth login")
+        # Handle raw playwright state-save format: cookies is a list of objects
+        if isinstance(cookies, list):
+            cookies = _extract_cookies(cookies)
+            if not cookies:
+                raise AuthError("No Google cookies found. Run: cli-web-notebooklm auth login")
         return cookies
     except (json.JSONDecodeError, KeyError) as e:
         raise AuthError(f"Corrupted auth file: {e}. Run: cli-web-notebooklm auth login")
