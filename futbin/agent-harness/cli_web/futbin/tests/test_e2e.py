@@ -53,14 +53,6 @@ def test_cli_version():
     assert "0.1.0" in result.stdout
 
 
-def test_cli_auth_status_json():
-    result = _run("auth", "status", "--json")
-    assert result.returncode == 0
-    data = json.loads(result.stdout)
-    assert "authenticated" in data
-    assert data["authenticated"] is True
-
-
 def test_cli_players_search_json():
     result = _run("players", "search", "--name", "Mbappe", "--json")
     assert result.returncode == 0

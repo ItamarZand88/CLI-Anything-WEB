@@ -80,6 +80,9 @@ The command succeeds when:
                 └── test_e2e.py
 ```
 
+**No-auth sites:** Remove `core/auth.py`, `core/session.py`, and auth commands
+from the structure above. Only create what the CLI actually needs.
+
 ## Progress Tracking
 
 After each phase, report status in this format:

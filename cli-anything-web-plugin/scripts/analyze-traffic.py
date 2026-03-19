@@ -29,18 +29,52 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs, unquote
 
 
+def _is_noise_url(url: str) -> bool:
+    """Check if a URL is analytics/tracking/CDN noise — not a real API call."""
+    NOISE = [
+        "google-analytics", "analytics.google.com", "googletagmanager.com",
+        "cdn-cgi/", "cloudflareinsights", "static.cloudflareinsights",
+        "facebook.com/tr", "twitter.com", "analytics.twitter.com",
+        "doubleclick.net", "googlesyndication", "google.com/ads", "google.co.",
+        "gstatic.com", "googleapis.com/css", "fonts.googleapis.com",
+        "datadoghq.com", "browser-intake-datadoghq", "cookiebot.com",
+        "segment.prod", "bidr.io", "cnv.event.prod", "liftdsp.com",
+        "statcounter.com", "play.google.com/log", "signaler-pa.clients6",
+        "/manifest.json", "avatars.githubusercontent.com", "collector.github.com",
+        "api.github.com/_private", "/beacon", "/pixel", "/rum",
+        "slinksuggestion.com", "drainpaste.com",
+        "e.producthunt.com", "t.producthunt.com",
+        "accounts.google.com/gsi", "apis.google.com",
+    ]
+    return any(x in url for x in NOISE)
+
+
 def detect_protocol(entries: list[dict]) -> dict:
-    """Detect the API protocol type from traffic patterns."""
+    """Detect the API protocol type from traffic patterns.
+
+    Filters out analytics/tracking noise before scoring to avoid
+    false signals from POST-heavy tracking endpoints.
+    """
     signals = {
         "graphql": 0,
         "batchexecute": 0,
         "rest": 0,
         "grpc_web": 0,
         "ssr_html": 0,
+        "websocket": 0,
+        "sse": 0,
+        "json_rpc": 0,
+        "trpc": 0,
+        "firebase": 0,
     }
 
     graphql_ops = []
     batchexecute_methods = []
+    websocket_urls = []
+    sse_urls = []
+    json_rpc_methods = []
+    trpc_procedures = []
+    firebase_paths = []
 
     for e in entries:
         url = e.get("url", "")
@@ -48,12 +82,15 @@ def detect_protocol(entries: list[dict]) -> dict:
         mime = e.get("mime_type", "")
         body = e.get("post_data", "") or ""
         headers = e.get("request_headers", {})
+        resp_headers = e.get("response_headers", {})
         content_type = headers.get("content-type", headers.get("Content-Type", ""))
 
-        # GraphQL detection
-        if "/graphql" in url.lower():
-            signals["graphql"] += 3
-            # Extract operation name
+        # Skip noise for protocol detection (analytics, tracking, CDN)
+        is_noise = _is_noise_url(url)
+
+        # --- GraphQL ---
+        if "/graphql" in url.lower() and not is_noise:
+            signals["graphql"] += 5
             if method == "GET" and "operationName=" in url:
                 parsed = urlparse(url)
                 params = parse_qs(parsed.query)
@@ -65,15 +102,15 @@ def detect_protocol(entries: list[dict]) -> dict:
                     parsed_body = json.loads(body)
                     op = parsed_body.get("operationName", "")
                     query = parsed_body.get("query", "")
-                    op_type = "mutation" if "mutation" in query[:50].lower() else "query"
+                    op_type = "mutation" if query and "mutation" in query[:50].lower() else "query"
                     if op:
                         graphql_ops.append({"name": op, "type": op_type, "method": "POST"})
                 except (json.JSONDecodeError, TypeError):
                     pass
 
-        # batchexecute detection
-        if "batchexecute" in url:
-            signals["batchexecute"] += 3
+        # --- Google batchexecute ---
+        if "batchexecute" in url and not is_noise:
+            signals["batchexecute"] += 5
             if "rpcids=" in url:
                 parsed = urlparse(url)
                 params = parse_qs(parsed.query)
@@ -81,45 +118,117 @@ def detect_protocol(entries: list[dict]) -> dict:
                 if rpcid:
                     batchexecute_methods.append(rpcid)
 
-        # gRPC-Web detection
-        if "application/grpc" in content_type:
-            signals["grpc_web"] += 3
+        # --- gRPC-Web ---
+        if "application/grpc" in content_type and not is_noise:
+            signals["grpc_web"] += 5
 
-        # REST detection — resource-style URLs with standard methods
-        if re.match(r".*/api/v\d+/", url) or "/api/" in url:
-            signals["rest"] += 1
+        # --- WebSocket ---
+        if url.startswith("wss://") or url.startswith("ws://"):
+            signals["websocket"] += 5
+            websocket_urls.append(url)
+        upgrade = headers.get("upgrade", headers.get("Upgrade", ""))
+        if upgrade.lower() == "websocket":
+            signals["websocket"] += 5
+            websocket_urls.append(url)
 
-        # SSR/HTML detection
-        if "text/html" in mime and method == "GET":
-            signals["ssr_html"] += 0.5
+        # --- Server-Sent Events (SSE) ---
+        resp_ct = resp_headers.get("content-type", resp_headers.get("Content-Type", ""))
+        if "text/event-stream" in resp_ct:
+            signals["sse"] += 5
+            sse_urls.append(url)
+        accept = headers.get("accept", headers.get("Accept", ""))
+        if "text/event-stream" in accept:
+            signals["sse"] += 3
+            sse_urls.append(url)
+
+        # --- JSON-RPC ---
+        if body and not is_noise:
+            try:
+                parsed_body = json.loads(body)
+                if isinstance(parsed_body, dict):
+                    if "jsonrpc" in parsed_body and "method" in parsed_body:
+                        signals["json_rpc"] += 5
+                        json_rpc_methods.append(parsed_body["method"])
+                elif isinstance(parsed_body, list) and parsed_body:
+                    if "jsonrpc" in parsed_body[0] and "method" in parsed_body[0]:
+                        signals["json_rpc"] += 5
+                        for item in parsed_body:
+                            if isinstance(item, dict) and "method" in item:
+                                json_rpc_methods.append(item["method"])
+            except (json.JSONDecodeError, TypeError, IndexError):
+                pass
+
+        # --- tRPC ---
+        if "/api/trpc/" in url or "/trpc/" in url and not is_noise:
+            signals["trpc"] += 5
+            # Extract procedure name from URL: /api/trpc/post.list
+            parsed = urlparse(url)
+            path = parsed.path
+            trpc_match = re.search(r"/trpc/(.+?)(?:\?|$)", path)
+            if trpc_match:
+                trpc_procedures.append(trpc_match.group(1))
+
+        # --- Firebase Realtime Database ---
+        if "firebaseio.com" in url and not is_noise:
+            signals["firebase"] += 5
+            parsed = urlparse(url)
+            firebase_paths.append(parsed.path)
+
+        # --- REST --- resource-style URLs
+        if not is_noise and (re.match(r".*/api/v\d+/", url) or "/api/" in url):
+            # Don't count if already matched a specific protocol above
+            if signals["graphql"] == 0 and signals["trpc"] == 0:
+                signals["rest"] += 2
+
+        # --- SSR/HTML ---
+        if "text/html" in mime and method == "GET" and not is_noise:
+            signals["ssr_html"] += 2
 
     # Determine primary protocol
     if not entries:
-        return {"protocol": "unknown", "confidence": 0, "signals": signals}
+        return {"protocol": "unknown", "confidence": 0, "signals": {}}
 
-    max_signal = max(signals, key=signals.get)
-    max_value = signals[max_signal]
-    total = sum(signals.values()) or 1
+    # Remove zero signals
+    active_signals = {k: v for k, v in signals.items() if v > 0}
 
-    # If no strong signal, check if it's mostly HTML
-    if max_value == 0:
-        protocol = "unknown"
-        confidence = 0
-    elif max_signal == "ssr_html" and signals["ssr_html"] > 0 and signals["rest"] == 0 and signals["graphql"] == 0:
-        protocol = "ssr_html"
-        confidence = min(signals["ssr_html"] / total * 100, 95)
-    else:
-        protocol = max_signal
-        confidence = min(max_value / total * 100, 99)
+    if not active_signals:
+        return {"protocol": "unknown", "confidence": 0, "signals": {}}
+
+    # When a specific API protocol is detected (graphql, batchexecute, grpc_web,
+    # json_rpc, trpc, firebase), SSR HTML pages are just navigation — not a
+    # competing protocol. Remove ssr_html from competition.
+    specific_protocols = {"graphql", "batchexecute", "grpc_web", "json_rpc", "trpc", "firebase", "websocket", "sse"}
+    has_specific = any(active_signals.get(p, 0) > 0 for p in specific_protocols)
+    if has_specific and "ssr_html" in active_signals:
+        del active_signals["ssr_html"]
+    # Similarly, if specific protocol found, generic "rest" is probably just /api/ URL noise
+    if has_specific and "rest" in active_signals:
+        specific_score = max(active_signals.get(p, 0) for p in specific_protocols)
+        if specific_score > active_signals.get("rest", 0):
+            del active_signals["rest"]
+
+    if not active_signals:
+        return {"protocol": "unknown", "confidence": 0, "signals": {}}
+
+    max_signal = max(active_signals, key=active_signals.get)
+    max_value = active_signals[max_signal]
+    total = sum(active_signals.values()) or 1
+    confidence = round(max_value / total * 100, 1)
+
+    # Boost confidence when the signal is dominant
+    runner_up = sorted(active_signals.values(), reverse=True)
+    if len(runner_up) >= 2 and runner_up[0] > runner_up[1] * 2:
+        confidence = min(confidence + 15, 100)
+    if len(runner_up) == 1 or (len(runner_up) >= 2 and runner_up[1] == 0):
+        confidence = 100.0
 
     result = {
-        "protocol": protocol,
-        "confidence": round(confidence, 1),
-        "signals": {k: round(v, 1) for k, v in signals.items() if v > 0},
+        "protocol": max_signal,
+        "confidence": min(confidence, 100.0),
+        "signals": {k: round(v, 1) for k, v in active_signals.items()},
     }
 
     if graphql_ops:
-        # Deduplicate
         seen = set()
         unique_ops = []
         for op in graphql_ops:
@@ -130,7 +239,22 @@ def detect_protocol(entries: list[dict]) -> dict:
         result["graphql_operations"] = unique_ops
 
     if batchexecute_methods:
-        result["batchexecute_rpc_ids"] = list(set(batchexecute_methods))
+        result["batchexecute_rpc_ids"] = sorted(set(batchexecute_methods))
+
+    if websocket_urls:
+        result["websocket_urls"] = sorted(set(websocket_urls))[:10]
+
+    if sse_urls:
+        result["sse_urls"] = sorted(set(sse_urls))[:10]
+
+    if json_rpc_methods:
+        result["json_rpc_methods"] = sorted(set(json_rpc_methods))
+
+    if trpc_procedures:
+        result["trpc_procedures"] = sorted(set(trpc_procedures))
+
+    if firebase_paths:
+        result["firebase_paths"] = sorted(set(firebase_paths))[:10]
 
     return result
 

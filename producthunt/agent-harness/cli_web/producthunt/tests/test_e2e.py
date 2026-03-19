@@ -140,13 +140,6 @@ class TestCLISubprocess(unittest.TestCase):
         self.assertIsInstance(data, dict)
         self.assertIn("Product Hunt", data.get("name", ""))
 
-    def test_auth_status_json(self):
-        """auth status --json reports no auth required."""
-        result = self._run("auth", "status", "--json")
-        data = json.loads(result.stdout)
-        self.assertIsInstance(data, dict)
-        self.assertIn("No auth required", data.get("message", ""))
-
     def test_version(self):
         """--version exits 0 and prints version string."""
         result = self._run("--version")

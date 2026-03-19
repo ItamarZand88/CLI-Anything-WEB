@@ -178,8 +178,11 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 
 - **`auth.py`** -- handles token storage, refresh, expiry. Implementation depends on auth type:
 
-  **For no-auth or API-key sites:** `auth.py` is optional. If the site uses API key auth,
-  implement a simple `login(api_key)` / `inject_auth(headers)` module — no browser needed.
+  **For no-auth sites:** DO NOT create `auth.py`, `session.py`, or auth command groups.
+  These files are dead code for public APIs and confuse users. The CLI should have
+  NO auth-related files or commands. The only exception is if the site has optional
+  auth (e.g., API key for write operations) — in that case, implement a minimal
+  auth module.
 
   **For browser-delegated auth (Google, Microsoft, etc.):** Full playwright-cli login flow
   with cookie domain priority for international users.

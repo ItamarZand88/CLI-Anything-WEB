@@ -7,7 +7,6 @@ Usage:
     cli-web-producthunt posts get some-product
     cli-web-producthunt posts leaderboard --period weekly
     cli-web-producthunt users get rrhoover
-    cli-web-producthunt auth status
 """
 import sys
 
@@ -29,7 +28,6 @@ import click
 
 from cli_web.producthunt.commands.posts import posts
 from cli_web.producthunt.commands.users import users
-from cli_web.producthunt.commands.auth_cmd import auth
 from cli_web.producthunt.utils.repl_skin import ReplSkin
 
 VERSION = "2.0.0"
@@ -103,9 +101,6 @@ def _print_repl_help():
     print("  Users:")
     print("    users get <username> [--json]")
     print()
-    print("  Auth:")
-    print("    auth status [--json]")
-    print()
     print("  REPL:")
     print("    help                              Show this help")
     print("    quit                              Exit REPL")
@@ -116,7 +111,6 @@ def _print_repl_help():
 
 cli.add_command(posts)
 cli.add_command(users)
-cli.add_command(auth)
 
 
 def main():

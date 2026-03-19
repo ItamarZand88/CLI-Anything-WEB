@@ -28,8 +28,10 @@ See standards/SKILL.md for the pipeline workflow and smoke test process.
 `utils/repl_skin.py`, `utils/output.py`, `utils/config.py`, `utils/helpers.py`,
 `tests/TEST.md`, `tests/test_core.py`, `tests/test_e2e.py`
 
-> **No-auth exception:** `core/auth.py` and `core/session.py` are not required
-> for no-auth public API CLIs. Mark as N/A.
+> **No-auth sites:** DO NOT create `core/auth.py`, `core/session.py`, or auth
+> command groups. These are not "optional" — they should not exist. Mark checks
+> 2.5 (auth.py), 2.6 (session.py), 3.5 (auth commands), and 4.2 (auth module)
+> as N/A.
 
 ### 3. CLI Implementation (9 checks)
 

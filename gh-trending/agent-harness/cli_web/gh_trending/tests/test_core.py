@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -242,40 +240,3 @@ class TestExceptionsToDicts:
         assert d["code"] == "PARSE_ERROR"
 
 
-# ─── Auth module tests ────────────────────────────────────────────────────────
-
-class TestAuth:
-    def test_load_cookies_missing_file(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("CLI_WEB_GH_TRENDING_AUTH_JSON", raising=False)
-        monkeypatch.setattr(
-            "cli_web.gh_trending.core.auth.AUTH_FILE",
-            tmp_path / "nonexistent.json",
-        )
-        from cli_web.gh_trending.core.auth import load_cookies
-        result = load_cookies()
-        assert result == {}
-
-    def test_auth_status_not_configured(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("CLI_WEB_GH_TRENDING_AUTH_JSON", raising=False)
-        monkeypatch.setattr(
-            "cli_web.gh_trending.core.auth.AUTH_FILE",
-            tmp_path / "nonexistent.json",
-        )
-        from cli_web.gh_trending.core.auth import auth_status
-        status = auth_status()
-        assert status["authenticated"] is False
-        assert "auth_file" in status
-
-    def test_load_cookies_from_env(self, tmp_path, monkeypatch):
-        auth_file = tmp_path / "auth.json"
-        state = {
-            "cookies": [
-                {"name": "user_session", "value": "test123", "domain": "github.com"}
-            ],
-            "origins": [],
-        }
-        auth_file.write_text(json.dumps(state))
-        monkeypatch.setenv("CLI_WEB_GH_TRENDING_AUTH_JSON", str(auth_file))
-        from cli_web.gh_trending.core.auth import load_cookies
-        cookies = load_cookies()
-        assert cookies.get("user_session") == "test123"

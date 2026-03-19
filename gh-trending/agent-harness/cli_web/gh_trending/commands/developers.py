@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import click
 
-from cli_web.gh_trending.core.auth import load_cookies
 from cli_web.gh_trending.core.client import GitHubClient
 from cli_web.gh_trending.core.exceptions import AppError
 from cli_web.gh_trending.utils.output import print_developers_table, print_error_json, print_json
@@ -31,7 +30,7 @@ def developers_list(ctx, language, since, json_mode):
     """List trending GitHub developers."""
     json_mode = json_mode or ctx.obj.get("json", False)
     try:
-        client = GitHubClient(cookies=load_cookies())
+        client = GitHubClient()
         developers = client.get_trending_developers(language=language, since=since)
         if json_mode:
             print_json([d.to_dict() for d in developers])

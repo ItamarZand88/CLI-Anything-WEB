@@ -8,47 +8,10 @@ import click
 
 from cli_web.gh_trending.commands.developers import developers_group
 from cli_web.gh_trending.commands.repos import repos_group
-from cli_web.gh_trending.core.auth import auth_status, login, login_from_json
 from cli_web.gh_trending.core.exceptions import AppError
-from cli_web.gh_trending.utils.output import print_json
 from cli_web.gh_trending.utils.repl_skin import ReplSkin
 
 _skin = ReplSkin(app="gh_trending", version="1.0.0")
-
-
-# ---------------------------------------------------------------------------- auth group
-
-
-@click.group("auth")
-def auth_group():
-    """Manage GitHub authentication (optional — trending is public)."""
-
-
-@auth_group.command("login")
-@click.option("--cookies-json", type=click.Path(exists=True), default=None,
-              help="Import cookies from a JSON file instead of browser login.")
-def auth_login(cookies_json):
-    """Authenticate with GitHub via browser or cookies file."""
-    from pathlib import Path
-    if cookies_json:
-        login_from_json(Path(cookies_json))
-    else:
-        login()
-
-
-@auth_group.command("status")
-@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
-@click.pass_context
-def auth_status_cmd(ctx, json_mode):
-    """Check authentication status."""
-    json_mode = json_mode or ctx.obj.get("json", False)
-    status = auth_status()
-    if json_mode:
-        print_json(status)
-    else:
-        icon = "[OK]" if status["authenticated"] else "[--]"
-        click.echo(f"{icon} {status['message']}")
-        click.echo(f"  Auth file: {status['auth_file']}")
 
 
 # ---------------------------------------------------------------------------- main CLI
@@ -72,7 +35,6 @@ def cli(ctx, json_mode):
 
 cli.add_command(repos_group)
 cli.add_command(developers_group)
-cli.add_command(auth_group)
 
 
 # ---------------------------------------------------------------------------- REPL
@@ -91,10 +53,6 @@ def _print_repl_help() -> None:
     print("    -l, --language TEXT         Filter by programming language")
     print("    -s, --since RANGE           Time range: daily, weekly, monthly")
     print("    --json                      Output as JSON")
-    print()
-    print("  auth login                    Authenticate with GitHub (optional)")
-    print("  auth login --cookies-json F   Import cookies from JSON file")
-    print("  auth status                   Check authentication status")
     print()
     print("  help                          Show this help")
     print("  exit / quit / Ctrl-D          Exit REPL")

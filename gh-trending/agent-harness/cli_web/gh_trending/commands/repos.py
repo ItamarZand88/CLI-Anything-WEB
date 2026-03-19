@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import click
 
-from cli_web.gh_trending.core.auth import load_cookies
 from cli_web.gh_trending.core.client import GitHubClient
 from cli_web.gh_trending.core.exceptions import AppError
 from cli_web.gh_trending.utils.output import print_error_json, print_json, print_repos_table
@@ -32,7 +31,7 @@ def repos_list(ctx, language, since, spoken_language, json_mode):
     """List trending GitHub repositories."""
     json_mode = json_mode or ctx.obj.get("json", False)
     try:
-        client = GitHubClient(cookies=load_cookies())
+        client = GitHubClient()
         repos = client.get_trending_repos(
             language=language,
             since=since,

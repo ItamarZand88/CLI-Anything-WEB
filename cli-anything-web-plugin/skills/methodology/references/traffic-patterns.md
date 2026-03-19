@@ -11,6 +11,11 @@
 - Async Content Generation
 - CAPTCHA / Bot Detection
 - Plain HTML (No Framework)
+- WebSocket / Real-time APIs
+- Server-Sent Events (SSE) / Streaming APIs
+- JSON-RPC APIs
+- tRPC APIs
+- Firebase Realtime Database
 - SSR / Server-Rendered Sites
 
 ## Documented Public API
@@ -242,6 +247,132 @@ for row in soup.select("tr.athing"):  # CSS selector from page
 - HTML structure changes break parsers — include version detection
 - Pagination is usually `?p=N` or `?page=N` query params
 - No auth needed for most plain HTML sites (public content)
+
+---
+
+## WebSocket / Real-time APIs
+
+Live bidirectional communication over persistent connections.
+
+### Detection signals:
+- URLs starting with `wss://` or `ws://`
+- `Upgrade: websocket` header in request
+- Persistent connection (not request/response)
+- Examples: Slack, Discord, chat apps, live dashboards, collaborative editors
+
+### CLI mapping:
+- `<resource> stream` or `<resource> watch` — subscribe to real-time updates
+- `<resource> send` — send a message through the WebSocket
+- Consider `--poll` fallback for environments without WebSocket support
+- WebSocket CLIs typically need a background listener + command sender
+
+### Key considerations:
+- WebSocket connections require maintaining state between commands
+- Authentication usually happens via initial HTTP handshake (cookies/tokens)
+- Messages may use JSON, binary (protobuf), or custom formats
+- The CLI must handle reconnection gracefully
+
+---
+
+## Server-Sent Events (SSE) / Streaming APIs
+
+One-directional streaming from server to client over HTTP.
+
+### Detection signals:
+- `Accept: text/event-stream` in request headers
+- `Content-Type: text/event-stream` in response headers
+- Response body contains `data:` prefixed lines
+- Long-lived HTTP connections (high response times)
+- Examples: ChatGPT streaming, AI completion APIs, live feeds, notification streams
+
+### CLI mapping:
+- `<resource> stream` — subscribe to event stream, print events as they arrive
+- For AI completion: `<resource> generate --stream` — show tokens as they arrive
+- `--no-stream` flag to wait for complete response instead
+- Parse `data:` lines, handle `event:` types, respect `retry:` directives
+
+### Key considerations:
+- SSE is HTTP-based — works with standard auth (Bearer, cookies)
+- Responses can be very large (streaming for minutes)
+- The CLI must handle `[DONE]` or empty-data termination signals
+- JSON parsing per `data:` line (each line is a complete JSON object)
+
+---
+
+## JSON-RPC APIs
+
+Remote procedure calls over HTTP with JSON payloads.
+
+### Detection signals:
+- Request body contains `"jsonrpc": "2.0"` and `"method": "..."` fields
+- Single POST endpoint (no resource-style URLs)
+- Batch requests: array of RPC calls in one request
+- `"id"` field for request/response correlation
+- Examples: Ethereum/Web3 APIs, some microservices, LSP (Language Server Protocol)
+
+### CLI mapping:
+- Each RPC method → one CLI command
+- `<method-group> <method-name> [params]`
+- Example: `eth call --to 0x... --data 0x...` for `eth_call` RPC method
+- Support `--raw` flag for direct JSON-RPC request passthrough
+
+### Key considerations:
+- Single endpoint, method name in body (similar to batchexecute but standard)
+- Errors have `error.code` and `error.message` in response
+- Batch support: multiple calls in one request for efficiency
+- Method names are often namespaced: `eth_getBalance`, `net_version`
+
+---
+
+## tRPC APIs
+
+Type-safe RPC framework for Next.js/TypeScript applications.
+
+### Detection signals:
+- URLs containing `/api/trpc/` or `/trpc/`
+- Procedure names in URL path: `/api/trpc/post.list`, `/api/trpc/user.get`
+- Query parameters: `input=` with URL-encoded JSON
+- Batch requests: `/api/trpc/post.list,user.get?batch=1`
+- Examples: T3 Stack apps, Cal.com, many Next.js applications
+
+### CLI mapping:
+- Each tRPC procedure → one CLI command
+- Group by router: `post.list` → `posts list`, `user.get` → `users get`
+- `input` parameter maps to CLI flags/arguments
+- Batch endpoints can be used for efficient multi-resource fetches
+
+### Key considerations:
+- tRPC is TypeScript-native — response types are very predictable
+- Procedures are either `query` (GET) or `mutation` (POST)
+- Input validation is strict — match the expected schema exactly
+- The URL structure reveals the full API surface
+
+---
+
+## Firebase Realtime Database
+
+Google's real-time NoSQL database with REST API.
+
+### Detection signals:
+- URLs containing `firebaseio.com`
+- REST endpoint pattern: `https://<project>.firebaseio.com/<path>.json`
+- Authentication via `?auth=<token>` query parameter or Authorization header
+- Real-time via SSE: `Accept: text/event-stream` for live updates
+- Examples: Hacker News API, many mobile app backends
+
+### CLI mapping:
+- `<resource> list` → `GET /<resource>.json`
+- `<resource> get <id>` → `GET /<resource>/<id>.json`
+- `<resource> create` → `POST /<resource>.json`
+- `<resource> update <id>` → `PATCH /<resource>/<id>.json`
+- `<resource> delete <id>` → `DELETE /<resource>/<id>.json`
+- `<resource> watch` → `GET /<resource>.json` with `Accept: text/event-stream`
+
+### Key considerations:
+- Data is a JSON tree — paths map directly to URLs
+- Supports filtering: `orderBy`, `equalTo`, `limitToFirst`, `limitToLast`
+- Real-time updates via SSE (add `Accept: text/event-stream` header)
+- Authentication varies: none (public), Firebase Auth tokens, or legacy secrets
 
 ---
 

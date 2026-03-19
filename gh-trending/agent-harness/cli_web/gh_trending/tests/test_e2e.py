@@ -172,12 +172,6 @@ class TestCLISubprocess:
         assert first["rank"] == 1
         print(f"[verify] CLI developers list JSON: top={first['login']}")
 
-    def test_auth_status(self):
-        result = self._run(["auth", "status"], check=False)
-        # auth status always exits 0 (it's a status check, not login)
-        assert result.returncode == 0
-        assert "Auth file" in result.stdout
-
     def test_version(self):
         result = self._run(["--version"])
         assert result.returncode == 0

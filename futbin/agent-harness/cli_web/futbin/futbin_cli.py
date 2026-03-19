@@ -30,12 +30,10 @@ from cli_web.futbin.commands.market import market
 from cli_web.futbin.commands.sbc import sbc
 from cli_web.futbin.commands.evolutions import evolutions
 from cli_web.futbin.commands.config_cmd import config
-from cli_web.futbin.core.auth import get_status, login, logout
 from cli_web.futbin.utils.repl_skin import ReplSkin
 
 VERSION = "0.1.0"
 APP_NAME = "futbin"
-APP_URL = "https://www.futbin.com"
 
 _skin = ReplSkin(APP_NAME, version=VERSION)
 
@@ -115,9 +113,7 @@ def _print_repl_help():
     print("    config show                                   Show current config")
     print("    config reset                                  Reset to defaults")
     print()
-    print("  Account:")
-    print("    auth status                                   Check auth status")
-    print("    quit                                          Exit REPL")
+    print("  quit                                          Exit REPL")
 
 
 # ── Command groups ────────────────────────────────────────────────────────────
@@ -127,38 +123,6 @@ cli.add_command(market)
 cli.add_command(sbc)
 cli.add_command(evolutions)
 cli.add_command(config)
-
-
-# ── Auth commands ─────────────────────────────────────────────────────────────
-
-@cli.group()
-def auth():
-    """Authentication management (optional — FUTBIN is public)."""
-
-
-@auth.command("status")
-@click.option("--json", "as_json", is_flag=True)
-def auth_status(as_json: bool):
-    """Show authentication status."""
-    from cli_web.futbin.utils.output import print_json
-    status = get_status()
-    if as_json:
-        print_json(status)
-    else:
-        for k, v in status.items():
-            click.echo(f"{k}: {v}")
-
-
-@auth.command("login")
-def auth_login():
-    """Log in to FUTBIN (optional — enables personal features)."""
-    login(APP_URL)
-
-
-@auth.command("logout")
-def auth_logout():
-    """Remove stored credentials."""
-    logout()
 
 
 if __name__ == "__main__":
