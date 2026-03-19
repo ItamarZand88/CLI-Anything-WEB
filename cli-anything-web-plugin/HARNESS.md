@@ -394,7 +394,7 @@ media downloads.
 8. **CAPTCHAs Require Human Intervention** — Detect, pause, guide, resume.
 9. **Cross-Reference RPC IDs** — Obfuscated method IDs (batchexecute) can be
    mislabeled during traffic analysis. Always cross-reference with known-good
-   implementations (e.g., notebooklm-py) before hardcoding IDs. A single wrong
+   implementations or open-source clients before hardcoding IDs. A single wrong
    ID (e.g., using CREATE_NOTE instead of CREATE_ARTIFACT) causes silent failures.
 10. **Force UTF-8 on Windows** — Player names, Hebrew text, and emoji break on
     Windows without explicit encoding. Add this at the top of `<app>_cli.py`:
@@ -410,13 +410,14 @@ media downloads.
     mean the parser is incomplete, not that the data doesn't exist. Verify by comparing
     `--json` output fields against what the browser shows.
 12. **SSR Slug URLs** — Many SSR sites require a slug in the URL
-    (`/player/40/kylian-mbappe`, not `/player/40`). The bare-ID URL may 404.
+    (`/resource/40/item-name`, not `/resource/40`). The bare-ID URL may 404.
     Strategy: search API first to get the canonical URL/slug, then scrape the
     detail page. If search doesn't return the ID, try with a placeholder slug
     (some sites redirect to the correct one).
-13. **Price Text Has Noise** — Scraped price cells often contain extra text
-    (percentage changes, currency symbols, status labels). Use regex to isolate
-    the numeric part before parsing: `re.split(r'[+-]?\d+\.\d+%', text)[0]`.
+13. **Scraped Text Has Noise** — HTML table cells often contain extra text
+    alongside the value you want (percentage changes, badges, status labels,
+    currency symbols). Never parse `get_text()` directly — use regex or string
+    splitting to isolate the target value before type conversion.
 
 ---
 
