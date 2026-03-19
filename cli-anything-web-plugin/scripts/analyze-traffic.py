@@ -194,33 +194,13 @@ def detect_protocol(entries: list[dict]) -> dict:
     if not active_signals:
         return {"protocol": "unknown", "confidence": 0, "signals": {}}
 
-    # When a specific API protocol is detected (graphql, batchexecute, grpc_web,
-    # json_rpc, trpc, firebase), SSR HTML pages are just navigation — not a
-    # competing protocol. Remove ssr_html from competition.
-    specific_protocols = {"graphql", "batchexecute", "grpc_web", "json_rpc", "trpc", "firebase", "websocket", "sse"}
-    has_specific = any(active_signals.get(p, 0) > 0 for p in specific_protocols)
-    if has_specific and "ssr_html" in active_signals:
-        del active_signals["ssr_html"]
-    # Similarly, if specific protocol found, generic "rest" is probably just /api/ URL noise
-    if has_specific and "rest" in active_signals:
-        specific_score = max(active_signals.get(p, 0) for p in specific_protocols)
-        if specific_score > active_signals.get("rest", 0):
-            del active_signals["rest"]
-
-    if not active_signals:
-        return {"protocol": "unknown", "confidence": 0, "signals": {}}
-
+    # Confidence = top signal's share of total signal weight.
+    # No artificial boosting — the number reflects actual signal dominance.
+    # All signals shown so the agent can judge edge cases.
     max_signal = max(active_signals, key=active_signals.get)
     max_value = active_signals[max_signal]
     total = sum(active_signals.values()) or 1
     confidence = round(max_value / total * 100, 1)
-
-    # Boost confidence when the signal is dominant
-    runner_up = sorted(active_signals.values(), reverse=True)
-    if len(runner_up) >= 2 and runner_up[0] > runner_up[1] * 2:
-        confidence = min(confidence + 15, 100)
-    if len(runner_up) == 1 or (len(runner_up) >= 2 and runner_up[1] == 0):
-        confidence = 100.0
 
     result = {
         "protocol": max_signal,
