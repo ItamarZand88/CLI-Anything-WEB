@@ -380,38 +380,86 @@ class FutbinClient:
                     if not position:
                         position = pos_cell.get_text(strip=True)
 
+                # Version — card type from td[0] (e.g., "TOTY", "Icons", "FUT Birthday")
+                # The version text appears after the player name in the name cell
+                version = ""
+                name_cell = row.find("td", class_="table-name")
+                if name_cell:
+                    # Look for card type badges/labels
+                    version_el = name_cell.find(class_=re.compile(r"card-type|version|label"))
+                    if version_el:
+                        version = version_el.get_text(strip=True)
+                    if not version:
+                        # Fallback: extract version from the full cell text after the name
+                        full_text = name_cell.get_text(" ", strip=True)
+                        # Remove rating number and name to get version
+                        for suffix in [name, str(rating)]:
+                            full_text = full_text.replace(suffix, "")
+                        leftover = full_text.strip()
+                        if leftover and leftover not in ("", name):
+                            version = leftover.strip()
+
+                # Club & Nation — from img title attributes in name cell
+                club = ""
+                nation = ""
+                if name_cell:
+                    for img in name_cell.find_all("img"):
+                        alt = img.get("alt", "")
+                        title = img.get("title", "")
+                        if alt == "Club" and title and not club:
+                            club = title
+                        elif alt == "Nation" and title and not nation:
+                            nation = title
+
+                # Stats — from dedicated table columns (PAC/SHO/PAS/DRI/DEF/PHY)
+                stats = {}
+                stat_map = {
+                    "table-pace": "pac",
+                    "table-shooting": "sho",
+                    "table-passing": "pas",
+                    "table-dribbling": "dri",
+                    "table-defending": "def",
+                    "table-physicality": "phy",
+                }
+                for css_class, stat_key in stat_map.items():
+                    stat_cell = row.find("td", class_=css_class)
+                    if stat_cell:
+                        try:
+                            stats[stat_key] = int(stat_cell.get_text(strip=True))
+                        except ValueError:
+                            pass
+
                 # Prices — td.platform-ps-only / td.platform-pc-only
-                # Price text is the first text node inside div.price, before the coin <img>
                 ps_price = None
                 xbox_price = None
                 ps_cell = row.find("td", class_=lambda c: c and "platform-ps-only" in c)
                 if ps_cell:
-                    price_div = ps_cell.find(class_="price")
-                    if price_div:
-                        price_text = price_div.find(string=True, recursive=False)
-                        if price_text:
-                            ps_price = _coin_str_to_int(str(price_text).strip())
+                    price_text = ps_cell.get_text(strip=True)
+                    # Price text may include % change suffix — take first part
+                    price_part = re.split(r'[+-]?\d+\.\d+%', price_text)[0].strip()
+                    if price_part:
+                        ps_price = _coin_str_to_int(price_part)
                 pc_cell = row.find("td", class_=lambda c: c and "platform-pc-only" in c)
                 if pc_cell:
-                    price_div = pc_cell.find(class_="price")
-                    if price_div:
-                        price_text = price_div.find(string=True, recursive=False)
-                        if price_text:
-                            xbox_price = _coin_str_to_int(str(price_text).strip())
+                    price_text = pc_cell.get_text(strip=True)
+                    price_part = re.split(r'[+-]?\d+\.\d+%', price_text)[0].strip()
+                    if price_part:
+                        xbox_price = _coin_str_to_int(price_part)
 
                 players.append(
                     Player(
                         id=pid,
                         name=name,
                         position=position,
-                        version="",
+                        version=version,
                         rating=rating,
-                        club="",
-                        nation="",
+                        club=club,
+                        nation=nation,
                         year=year,
                         url=href,
                         ps_price=ps_price,
                         xbox_price=xbox_price,
+                        stats=stats,
                     )
                 )
             except (ValueError, IndexError):

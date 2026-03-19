@@ -10,6 +10,19 @@ Usage:
     cli-web-futbin evolutions list
 """
 import sys
+
+# Force UTF-8 output on Windows to handle Unicode player names (ć, é, ö, etc.)
+if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass
+if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf8"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass
+
 import click
 
 from cli_web.futbin.commands.players import players
