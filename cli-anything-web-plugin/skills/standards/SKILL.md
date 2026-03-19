@@ -2,7 +2,7 @@
 name: standards
 description: >
   Quality standards and Phase 8 publish/verify for cli-web-* CLIs. Covers the
-  68-check quality checklist, package publishing (pip install -e .), end-user
+  70-check quality checklist, package publishing (pip install -e .), end-user
   smoke testing (READ + WRITE), and final pipeline verification. Use when building,
   reviewing, or checking quality of a cli-web-* CLI package, during implementation
   (Phase 4), validation, code review, Phase 8 publish and verify, or when checking
@@ -13,7 +13,7 @@ version: 0.1.0
 # CLI-Anything-Web Standards (Phase 8 + Quality)
 
 Quality standards, publishing, and final verification for cli-web-* CLIs.
-This skill owns the 68-check quality checklist and Phase 8 of the pipeline:
+This skill owns the 70-check quality checklist and Phase 8 of the pipeline:
 publish the CLI and verify it works end-to-end as a real user would.
 
 ---
@@ -341,7 +341,7 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 - All imports use `cli_web.<app>.*` prefix
 - `python_requires=">=3.10"`
 
-### 8. Code Quality (5 checks)
+### 8. Code Quality (8 checks)
 
 - No syntax errors, no import errors
 - No hardcoded auth tokens or API keys
@@ -349,6 +349,8 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 - No hardcoded session tokens, CSRF tokens, build labels, or session IDs (must be extracted dynamically)
 - No bare `except:` blocks
 - Error messages include actionable guidance
+- `<app>_cli.py` forces UTF-8 stdout/stderr on Windows (`sys.stdout.reconfigure(encoding="utf-8")`)
+- HTML table parsers extract ALL visible columns (no empty fields for data the site displays)
 
 ### 9. REPL Quality (3 checks)
 
@@ -409,4 +411,4 @@ These are non-negotiable standards:
 - **`testing`** skill -- Phases 5-7 test planning/writing/documentation
 - **`methodology`** skill -- Phases 2-4 analyze/design/implement
 - **`capture`** skill -- Phase 1 traffic recording
-- **`/cli-anything-web:validate`** -- Command to run the full 68-check validation
+- **`/cli-anything-web:validate`** -- Command to run the full 70-check validation

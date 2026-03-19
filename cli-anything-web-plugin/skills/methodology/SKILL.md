@@ -247,6 +247,16 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
           result = retry_on_rate_limit(lambda: client.generate(...), max_retries=retry)
   ```
 
+- **Windows UTF-8 fix** — Add at the top of `<app>_cli.py` before any imports that print:
+  ```python
+  import sys
+  if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+      try: sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+      except AttributeError: pass
+  ```
+- **HTML table parsers MUST extract ALL visible columns** — not just name/price.
+  If the site shows version, club, nation, stats, skills, weak foot — parse all of them.
+  Empty fields in `--json` output = incomplete parser.
 - Entry point: `cli-web-<app>` via setup.py console_scripts
 - Namespace: `cli_web.*`
 - Copy `repl_skin.py` from plugin for consistent REPL experience

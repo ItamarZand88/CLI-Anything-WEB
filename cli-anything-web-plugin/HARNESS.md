@@ -396,6 +396,27 @@ media downloads.
    mislabeled during traffic analysis. Always cross-reference with known-good
    implementations (e.g., notebooklm-py) before hardcoding IDs. A single wrong
    ID (e.g., using CREATE_NOTE instead of CREATE_ARTIFACT) causes silent failures.
+10. **Force UTF-8 on Windows** — Player names, Hebrew text, and emoji break on
+    Windows without explicit encoding. Add this at the top of `<app>_cli.py`:
+    ```python
+    import sys
+    if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+        try: sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except AttributeError: pass
+    ```
+11. **HTML Parsers Must Extract ALL Visible Fields** — When scraping a table, extract
+    every column — not just name/price. If the HTML shows version, club, nation, and
+    6 stat columns, the parser must return all of them. Empty fields in the output
+    mean the parser is incomplete, not that the data doesn't exist. Verify by comparing
+    `--json` output fields against what the browser shows.
+12. **SSR Slug URLs** — Many SSR sites require a slug in the URL
+    (`/player/40/kylian-mbappe`, not `/player/40`). The bare-ID URL may 404.
+    Strategy: search API first to get the canonical URL/slug, then scrape the
+    detail page. If search doesn't return the ID, try with a placeholder slug
+    (some sites redirect to the correct one).
+13. **Price Text Has Noise** — Scraped price cells often contain extra text
+    (percentage changes, currency symbols, status labels). Use regex to isolate
+    the numeric part before parsing: `re.split(r'[+-]?\d+\.\d+%', text)[0]`.
 
 ---
 

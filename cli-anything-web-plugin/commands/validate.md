@@ -18,7 +18,7 @@ Target: $ARGUMENTS
 
 ## Process
 
-> **Skills used:** `standards` (68-check validation)
+> **Skills used:** `standards` (70-check validation)
 
 1. Parse the target path to extract `<app>` name
 2. Resolve the `agent-harness/` root and `cli_web/<app>/` package path
@@ -32,7 +32,7 @@ Target: $ARGUMENTS
 
 ## Validation Checklist
 
-Invoke the `standards` skill which defines the complete 68-check
+Invoke the `standards` skill which defines the complete 70-check
 validation across 11 categories:
 
 1. Directory Structure (6 checks)
