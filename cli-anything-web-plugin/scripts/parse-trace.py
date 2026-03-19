@@ -145,6 +145,33 @@ def main():
 
     print(f"Parsed {len(entries)} API requests -> {output_path}")
 
+    # Auto-run analysis if analyze-traffic.py is available
+    analysis_path = output_path.parent / "traffic-analysis.json"
+    analyze_script = Path(__file__).parent / "analyze-traffic.py"
+    if analyze_script.exists() and entries:
+        try:
+            # Import and run inline (same process, no subprocess overhead)
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("analyze_traffic", analyze_script)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            report = mod.analyze(entries)
+            analysis_path.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+            p = report["protocol"]
+            a = report["auth"]
+            s = report["stats"]
+            print(f"Analysis: protocol={p['protocol']} ({p['confidence']}%), "
+                  f"auth={a['primary']}, "
+                  f"requests={s['total_requests']} ({s['read_operations']}R/{s['write_operations']}W)")
+            if p.get("graphql_operations"):
+                ops = [op["name"] for op in p["graphql_operations"]]
+                print(f"  GraphQL ops: {', '.join(ops)}")
+            if p.get("batchexecute_rpc_ids"):
+                print(f"  batchexecute IDs: {', '.join(p['batchexecute_rpc_ids'])}")
+            print(f"  -> {analysis_path}")
+        except Exception as e:
+            print(f"  (analysis skipped: {e})", file=sys.stderr)
+
 
 if __name__ == "__main__":
     main()

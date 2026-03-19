@@ -221,18 +221,21 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py \
   .playwright-cli/traces/ --latest \
   --output <app>/traffic-capture/raw-traffic.json
 
-# Verify WRITE operations captured
-python -c "
-import json
-data = json.load(open('<app>/traffic-capture/raw-traffic.json'))
-posts = [r for r in data if r['method'] in ('POST','PUT','PATCH','DELETE')]
-print(f'Total: {len(data)} requests, {len(posts)} write operations')
-if not posts:
-    print('WARNING: No write operations! Go use Create/Generate features.')
-"
+# parse-trace.py now auto-runs analyze-traffic.py and produces:
+#   - <app>/traffic-capture/raw-traffic.json (raw request/response data)
+#   - <app>/traffic-capture/traffic-analysis.json (auto-detected protocol, auth, endpoints)
+#
+# The analysis output shows: protocol type, auth pattern, endpoint groups,
+# GraphQL operations, batchexecute RPC IDs, and suggested CLI commands.
+# Review the analysis — anything marked "unknown" needs manual investigation.
+
+# You can also run the analyzer separately for more detail:
+python ${CLAUDE_PLUGIN_ROOT}/scripts/analyze-traffic.py \
+  <app>/traffic-capture/raw-traffic.json --summary
 ```
 
-If you noted "read-only site" in Step 3, this warning is expected. Proceed to methodology.
+If you noted "read-only site" in Step 3, the "write operations" count may be 0
+(or only analytics/tracking POSTs). This is expected — proceed to methodology.
 
 ---
 
