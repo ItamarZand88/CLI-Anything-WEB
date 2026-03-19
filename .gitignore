@@ -24,7 +24,7 @@ Thumbs.db
 .env.*
 *.credentials.json
 **/auth.json
-**/traffic-capture/*-auth.json
+**/traffic-capture/
 **/playwright-state.json
 
 # Claude Code local state (settings.json is committed)

@@ -1,6 +1,6 @@
 ---
 name: cli-anything-web:validate
-description: Validate a cli-anything-web CLI against HARNESS.md standards and best practices. Reports 8-category N/N check results.
+description: Validate a cli-anything-web CLI against HARNESS.md standards and best practices. Reports 11-category N/N check results.
 argument-hint: <app-path>
 allowed-tools: Bash(*), Read, Write, Edit
 ---
@@ -18,13 +18,13 @@ Target: $ARGUMENTS
 
 ## Process
 
-> **Skills used:** `standards` (50-check validation)
+> **Skills used:** `standards` (68-check validation)
 
 1. Parse the target path to extract `<app>` name
 2. Resolve the `agent-harness/` root and `cli_web/<app>/` package path
-3. Run all 8 categories of checks below
+3. Run all 11 categories of checks below
 4. Print the report in the format shown at the bottom
-5. Exit with summary: PASS if all 50 checks pass, FAIL otherwise
+5. Exit with summary: PASS if all 68 checks pass, FAIL otherwise
 
 ## Prerequisites
 
@@ -32,17 +32,20 @@ Target: $ARGUMENTS
 
 ## Validation Checklist
 
-Invoke the `standards` skill which defines the complete 50-check
-validation across 8 categories:
+Invoke the `standards` skill which defines the complete 68-check
+validation across 11 categories:
 
 1. Directory Structure (6 checks)
-2. Required Files (13 checks)
-3. CLI Implementation Standards (6 checks)
-4. Core Module Standards (4 checks)
+2. Required Files (14 checks)
+3. CLI Implementation Standards (9 checks)
+4. Core Module Standards (7 checks)
 5. Test Standards (8 checks)
 6. Documentation Standards (3 checks)
 7. PyPI Packaging Standards (5 checks)
 8. Code Quality (5 checks)
+9. REPL Quality (3 checks)
+10. Error Handling & Resilience (8 checks)
+11. UX Patterns (4 checks)
 
 See the `standards` skill for the detailed checklist and report format.
 
@@ -55,16 +58,19 @@ CLI-Anything-Web Validation Report
 App: <app>
 Path: <path>/agent-harness/cli_web/<app>
 
-Directory Structure  (X/6 checks passed)
-Required Files       (X/13 files present)
-CLI Standards        (X/6 standards met)
-Core Modules         (X/4 standards met)
-Test Standards       (X/8 standards met)
-Documentation        (X/3 standards met)
-PyPI Packaging       (X/5 standards met)
-Code Quality         (X/5 checks passed)
+Directory Structure   (X/6 checks passed)
+Required Files        (X/14 files present)
+CLI Standards         (X/9 standards met)
+Core Modules          (X/7 standards met)
+Test Standards        (X/8 standards met)
+Documentation         (X/3 standards met)
+PyPI Packaging        (X/5 standards met)
+Code Quality          (X/5 checks passed)
+REPL Quality          (X/3 checks passed)
+Error Handling        (X/8 checks passed)
+UX Patterns           (X/4 checks passed)
 
-Overall: PASS|FAIL (X/50 checks)
+Overall: PASS|FAIL (X/68 checks)
 ```
 
 For each FAIL, print a detail line below the category:

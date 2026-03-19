@@ -188,15 +188,20 @@ cli-web-futbin
 ├── players
 │   ├── search --name <query> [--year N] [--evolutions] [--json]
 │   ├── get --id <id> [--year N] [--json]
-│   └── list [--name <filter>] [--min-price N] [--max-price N] [--sort field] [--json]
+│   ├── list [--name <filter>] [--min-price N] [--max-price N] [--sort field] [--page N] [--json]
+│   └── compare <id1> <id2> [--year N] [--json]
 ├── market
 │   └── index [--json]
 ├── sbc
 │   ├── list [--category <cat>] [--json]
 │   └── get --id <id> [--year N] [--json]
-└── evolutions
-    ├── list [--category <cat>] [--expiring] [--json]
-    └── get --id <id> [--json]
+├── evolutions
+│   ├── list [--category <cat>] [--expiring] [--json]
+│   └── get --id <id> [--json]
+└── config
+    ├── set <key> <value>    # keys: year, platform
+    ├── show [--json]
+    └── reset
 ```
 
 ---
