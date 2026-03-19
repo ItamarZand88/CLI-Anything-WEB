@@ -78,7 +78,7 @@ Error codes map directly from the exception hierarchy:
 
 ### Development vs End-User
 
-| | Development (Phases 1-8) | End-User (published CLI) |
+| | Development (Phases 1-4) | End-User (published CLI) |
 |--|--------------------------|--------------------------|
 | **Browser** | playwright-cli manages its own | playwright-cli via subprocess (auth only) |
 | **Traffic capture** | `tracing-start` → browse → `tracing-stop` | N/A — CLI uses httpx |

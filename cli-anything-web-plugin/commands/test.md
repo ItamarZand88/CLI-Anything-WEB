@@ -7,7 +7,7 @@ allowed-tools: Bash(*), Read, Write, Edit
 
 # CLI-Anything-Web: Test Runner
 
-> **Skills used:** `testing` (Phases 5-7)
+> **Skills used:** `testing` (Phase 3)
 
 Read the methodology overview:
 @${CLAUDE_PLUGIN_ROOT}/HARNESS.md
@@ -16,7 +16,7 @@ Target: $ARGUMENTS
 
 ## Process
 
-This command invokes the `testing` skill for Phases 5-7.
+This command invokes the `testing` skill for Phase 3.
 
 1. **Verify auth is working FIRST** — this is mandatory before any E2E test:
    ```

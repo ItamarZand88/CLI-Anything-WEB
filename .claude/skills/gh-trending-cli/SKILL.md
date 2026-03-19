@@ -127,7 +127,7 @@ cli-web-gh-trending repos list --json
 
 ## Notes
 
-- **Auth**: Not required — GitHub Trending is public data. `auth login` is available for future features.
+- Auth: Not required — GitHub Trending is public data.
 - **Read-only**: GitHub Trending has no write operations (it's a discovery feature).
 - **Rate limiting**: GitHub may rate-limit scrapers. Avoid making many rapid requests.
 - **25 results**: GitHub Trending shows exactly 25 repos/developers per page.

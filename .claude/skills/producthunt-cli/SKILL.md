@@ -49,9 +49,7 @@ cli-web-producthunt users get <username> --json
 
 ### Auth
 
-```bash
-cli-web-producthunt auth status --json    # Shows "No auth required"
-```
+No authentication required — public HTML scraping.
 
 ---
 

@@ -80,8 +80,6 @@ assert p.ps_price is not None and p.ps_price > 0, f"Bad price: {p.ps_price}"
 wrong values without raising exceptions. For JSON APIs that deserialize into typed
 models, a type check is often sufficient.
 
-Unit test patterns, RPC codec testing, and browser-delegated auth test flows.
-
 ## Unit Test Pattern
 
 ```python

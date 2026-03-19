@@ -138,6 +138,7 @@ def set_context_value(key, value):
     CONTEXT_FILE.parent.mkdir(parents=True, exist_ok=True)
     CONTEXT_FILE.write_text(json.dumps(ctx, indent=2), encoding="utf-8")
 
+# Rename to match your app's primary entity (e.g., require_project, require_workspace)
 def require_notebook(notebook_arg):
     """Get notebook ID from argument or persistent context.
 

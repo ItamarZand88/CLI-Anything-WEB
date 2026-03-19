@@ -11,7 +11,6 @@
 - Async Content Generation
 - CAPTCHA / Bot Detection
 - Plain HTML (No Framework)
-- WebSocket / Real-time APIs
 - Server-Sent Events (SSE) / Streaming APIs
 - JSON-RPC APIs
 - tRPC APIs
