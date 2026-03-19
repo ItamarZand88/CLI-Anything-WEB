@@ -133,10 +133,10 @@ graph LR
     style C fill:#9b59b6,stroke:#7d3c98,color:#fff
     style D fill:#2ecc71,stroke:#1a9c4e,color:#fff
     style E fill:#e74c3c,stroke:#c0392b,color:#fff
-    style B1 fill:#fff3e0,stroke:#e8944a
-    style C1 fill:#f3e5f5,stroke:#9b59b6
-    style D1 fill:#e8f5e9,stroke:#2ecc71
-    style E1 fill:#fce4ec,stroke:#e74c3c
+    style B1 fill:#fff3e0,stroke:#e8944a,color:#000
+    style C1 fill:#f3e5f5,stroke:#9b59b6,color:#000
+    style D1 fill:#e8f5e9,stroke:#2ecc71,color:#000
+    style E1 fill:#fce4ec,stroke:#e74c3c,color:#000
 ```
 
 <br>
