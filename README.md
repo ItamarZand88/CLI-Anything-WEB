@@ -116,21 +116,28 @@ gh-trending> exit
 
 The plugin runs a 4-phase pipeline, fully automated by Claude:
 
-```
- URL ──► Capture ──► Analyze ──► Generate ──► Publish
-          │            │            │            │
-          │ Playwright  │ Map API    │ Python CLI │ pip install -e .
-          │ browser     │ surface    │ + tests    │ on your PATH
-          ▼            ▼            ▼            ▼
-       Traffic      API Map      cli-web-*     Ready to use
-```
+```mermaid
+graph LR
+    A["🌐 URL"] --> B["📡 Capture"]
+    B --> C["🔍 Analyze"]
+    C --> D["⚙️ Generate"]
+    D --> E["📦 Publish"]
 
-| Phase | What Happens |
-|-------|-------------|
-| **1. Capture** | Opens a browser with playwright-cli, detects frameworks (Next.js, Rails, etc.) and protections (Cloudflare, CAPTCHAs), then records all HTTP traffic while exercising the app |
-| **2. Analyze** | Parses captured traffic, identifies the protocol (REST, GraphQL, gRPC-Web, batchexecute), maps endpoints, and designs the CLI architecture |
-| **3. Generate** | Produces a complete Python package — Click CLI, httpx client, typed exceptions, auth flow, REPL mode, unit + E2E tests |
-| **4. Publish** | Validates against quality standards, runs smoke tests, and produces a pip-installable package |
+    B -.- B1["Playwright browser\nFramework detection\nTraffic recording"]
+    C -.- C1["Protocol identification\nEndpoint mapping\nCLI architecture"]
+    D -.- D1["Python CLI + tests\nhttpx client\nAuth & REPL"]
+    E -.- E1["pip install -e .\nSmoke tests\nOn your PATH"]
+
+    style A fill:#4a90d9,stroke:#2c5f8a,color:#fff
+    style B fill:#e8944a,stroke:#b36d2e,color:#fff
+    style C fill:#9b59b6,stroke:#7d3c98,color:#fff
+    style D fill:#2ecc71,stroke:#1a9c4e,color:#fff
+    style E fill:#e74c3c,stroke:#c0392b,color:#fff
+    style B1 fill:#fff3e0,stroke:#e8944a
+    style C1 fill:#f3e5f5,stroke:#9b59b6
+    style D1 fill:#e8f5e9,stroke:#2ecc71
+    style E1 fill:#fce4ec,stroke:#e74c3c
+```
 
 <br>
 
