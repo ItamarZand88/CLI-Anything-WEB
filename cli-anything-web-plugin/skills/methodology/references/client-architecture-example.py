@@ -6,8 +6,8 @@ Each sub-client handles one API domain and shares the core HTTP transport.
 
 Pattern: client.notebooks.list(), client.sources.add_url(), client.artifacts.generate()
 
-This example shows the NotebookLM pattern (batchexecute RPC).
-Adapt for REST (simpler — just method-per-endpoint) or GraphQL.
+This example shows a generic pattern with REST-style endpoints.
+Adapt for batchexecute (add rpc/ encoder/decoder) or GraphQL (query templates).
 """
 import httpx
 import json
@@ -62,9 +62,27 @@ class ClientCore:
         return response
 
     def _refresh_tokens(self):
-        """Re-fetch homepage to extract fresh CSRF/session tokens."""
-        # App-specific token extraction logic here
-        pass
+        """Re-fetch homepage to extract fresh CSRF/session tokens.
+
+        For browser-delegated auth (Google, Microsoft), the cookies are
+        still valid — only the page-embedded tokens (CSRF, session ID)
+        have expired. Fetch the homepage with existing cookies and
+        re-extract tokens from the HTML.
+        """
+        import re
+        resp = self._client.get("/", cookies=self._cookies, follow_redirects=True)
+        if resp.status_code != 200:
+            raise AuthError("Token refresh failed — session may have expired. "
+                            "Run: cli-web-<app> auth login", recoverable=False)
+        html = resp.text
+        # Example: Google batchexecute token extraction
+        # Adapt these regex patterns for your target app
+        m = re.search(r'"SNlM0e"\s*:\s*"([^"]+)"', html)
+        if m:
+            self._csrf_token = m.group(1)
+        m = re.search(r'"FdrFJe"\s*:\s*"([^"]+)"', html)
+        if m:
+            self._session_id = m.group(1)
 
 
 class NotebooksAPI:

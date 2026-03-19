@@ -80,27 +80,42 @@ def handle_errors(json_mode=False):
         raise
     except click.UsageError:
         raise
-    # Catch AppError (your base exception) with code mapping
-    # except AppError as exc:
-    #     code = error_code_for(exc)
-    #     if json_mode:
-    #         click.echo(json.dumps({"error": True, "code": code, "message": str(exc)}))
-    #     else:
-    #         click.echo(f"Error: {exc}", err=True)
-    #     sys.exit(1)
     except Exception as exc:
+        # Map typed exceptions to error codes for JSON output.
+        # Import your app's base exception to distinguish user errors from system errors.
+        # from .core.exceptions import AppError, EXCEPTION_CODE_MAP
+        code = _error_code_for(exc)
+        exit_code = 1 if code != "INTERNAL_ERROR" else 2
         if json_mode:
-            click.echo(json.dumps({"error": True, "code": "INTERNAL_ERROR", "message": str(exc)}))
+            click.echo(json.dumps({"error": True, "code": code, "message": str(exc)}))
         else:
             click.echo(f"Error: {exc}", err=True)
-        sys.exit(2)
+        sys.exit(exit_code)
+
+
+def _error_code_for(exc):
+    """Map exception type to error code string.
+
+    Adapt this to your app's exception hierarchy from exceptions.py.
+    """
+    type_name = type(exc).__name__
+    code_map = {
+        "AuthError": "AUTH_EXPIRED",
+        "RateLimitError": "RATE_LIMITED",
+        "NotFoundError": "NOT_FOUND",
+        "ServerError": "SERVER_ERROR",
+        "NetworkError": "NETWORK_ERROR",
+    }
+    return code_map.get(type_name, "INTERNAL_ERROR")
 
 
 # ---------------------------------------------------------------------------
 # Persistent context
 # ---------------------------------------------------------------------------
 
-CONTEXT_FILE = Path.home() / ".config" / "cli-web-APP" / "context.json"
+# Replace <app> with your app name (e.g., "notebooklm", "monday")
+# In practice, derive from a constant: APP_NAME = "notebooklm"
+CONTEXT_FILE = Path.home() / ".config" / "cli-web-<app>" / "context.json"
 
 def get_context_value(key):
     """Get a value from persistent context.json."""
@@ -133,7 +148,7 @@ def require_notebook(notebook_arg):
     ctx_id = get_context_value("notebook_id")
     if ctx_id:
         return ctx_id
-    raise click.UsageError("No notebook specified. Use --notebook <id> or: cli-web-APP use <id>")
+    raise click.UsageError("No resource specified. Use --resource <id> or: cli-web-<app> use <id>")
 
 
 # ---------------------------------------------------------------------------
@@ -164,11 +179,20 @@ def retry_on_rate_limit(fn, max_retries=3):
         )
     """
     import time
+    # Import your app's RateLimitError for explicit type checking
+    # from .core.exceptions import RateLimitError
     for attempt in range(max_retries + 1):
         try:
             return fn()
         except Exception as e:
-            if not hasattr(e, 'retry_after') and 'rate limit' not in str(e).lower():
+            # Prefer isinstance(e, RateLimitError) when your exception hierarchy is available.
+            # This fallback uses duck-typing for portability across apps.
+            is_rate_limit = (
+                hasattr(e, 'retry_after')
+                or 'rate limit' in str(e).lower()
+                or '429' in str(e)
+            )
+            if not is_rate_limit:
                 raise
             if attempt == max_retries:
                 raise

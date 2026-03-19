@@ -7,82 +7,108 @@ provide `use <id>` and `status` commands that persist across CLI sessions.
 Key patterns:
 1. `use <id>` — validates and saves to context.json
 2. `status` — shows current context + auth status
-3. `require_notebook()` — --notebook is optional when context is set
+3. `require_<resource>()` — --<resource> is optional when context is set
 4. Partial ID resolution — users type short prefixes
 
-This pattern eliminates the need to pass --notebook on every command.
+This pattern eliminates the need to pass --<resource> on every command.
+Replace <resource> with the app's primary entity (notebook, project, workspace, etc.).
 """
 
-# --- In notebooklm_cli.py (or <app>_cli.py) ---
+# --- In <app>_cli.py ---
 
 import click
 
-# @main.command("use")
-# @click.argument("notebook_id")
-# def use_notebook(notebook_id):
-#     """Set the current notebook context (persists across sessions)."""
-#     from .utils.helpers import handle_errors, set_context_value
-#     with handle_errors():
-#         client = AppClient()
-#         nb = client.get_notebook(notebook_id)
-#         set_context_value("notebook_id", nb.id)
-#         set_context_value("notebook_title", nb.title)
-#         click.echo(f"Now using: {nb.title} ({nb.id})")
-#
-# @main.command("status")
-# @click.option("--json", "as_json", is_flag=True)
-# def show_status(as_json):
-#     """Show current context and auth status."""
-#     from .utils.helpers import handle_errors, get_context_value
-#     with handle_errors(json_mode=as_json):
-#         context = {
-#             "notebook_id": get_context_value("notebook_id"),
-#             "notebook_title": get_context_value("notebook_title"),
-#         }
-#         # ... show context + auth status
+
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx):
+    pass
 
 
-# --- In command files: --notebook becomes optional ---
+@cli.command("use")
+@click.argument("resource_id")
+@click.pass_context
+def use_resource(ctx, resource_id):
+    """Set the current resource context (persists across sessions)."""
+    from .utils.helpers import handle_errors, set_context_value, resolve_partial_id
 
-# BEFORE (required):
-# @sources.command("list")
-# @click.option("--notebook", required=True)  # User must always specify
-# def list_sources(notebook, use_json):
-#     ...
+    with handle_errors():
+        client = AppClient()
+        # Resolve partial ID (user can type 'abc' instead of full UUID)
+        all_items = client.list_resources()
+        matched = resolve_partial_id(resource_id, all_items, kind="resource")
+        set_context_value("resource_id", matched.id)
+        set_context_value("resource_title", matched.title)
+        click.echo(f"  Now using: {matched.title} ({matched.id})")
 
-# AFTER (optional with context fallback):
-# @sources.command("list")
-# @click.option("--notebook", default=None)  # Falls back to context
-# def list_sources(notebook, use_json):
-#     with handle_errors(json_mode=use_json):
-#         nb_id = require_notebook(notebook)  # Checks arg, then context.json
-#         client = AppClient()
-#         sources = client.list_sources(nb_id)
+
+@cli.command("status")
+@click.option("--json", "use_json", is_flag=True)
+@click.pass_context
+def show_status(ctx, use_json):
+    """Show current context and auth status."""
+    from .utils.helpers import handle_errors, get_context_value, print_json
+
+    with handle_errors(json_mode=use_json):
+        status = {
+            "resource_id": get_context_value("resource_id"),
+            "resource_title": get_context_value("resource_title"),
+        }
+        # Add auth status if the app requires auth
+        try:
+            from .core.auth import get_auth_status
+            status["auth"] = get_auth_status()
+        except ImportError:
+            status["auth"] = {"configured": False, "message": "No auth required"}
+        if use_json:
+            print_json(status)
+        else:
+            click.echo(f"  Resource: {status['resource_title'] or '(none)'}")
+            click.echo(f"  Auth: {status['auth'].get('message', 'unknown')}")
+
+
+# --- In command files: --<resource> becomes optional ---
+
+@cli.group()
+def items():
+    """Item commands."""
+    pass
+
+
+@items.command("list")
+@click.option("--resource", default=None, help="Resource ID (optional if context set)")
+@click.option("--json", "use_json", is_flag=True)
+def list_items(resource, use_json):
+    """List items in a resource."""
+    from .utils.helpers import handle_errors, require_resource
+
+    with handle_errors(json_mode=use_json):
+        res_id = require_resource(resource)  # Checks arg first, then context.json
+        client = AppClient()
+        items = client.list_items(res_id)
+        # ... output items
 
 
 # --- In command files: partial ID for get/rename/delete ---
 
-# BEFORE:
-# @notebooks.command("get")
-# @click.option("--id", "notebook_id", required=True)  # Full UUID required
-# def get_notebook(notebook_id, as_json):
-#     client = AppClient()
-#     nb = client.get_notebook(notebook_id)
+@items.command("get")
+@click.argument("item_id")  # Positional — supports partial IDs
+@click.option("--json", "use_json", is_flag=True)
+def get_item(item_id, use_json):
+    """Get an item by ID (partial prefix OK)."""
+    from .utils.helpers import handle_errors, resolve_partial_id
 
-# AFTER:
-# @notebooks.command("get")
-# @click.argument("notebook_id")  # Positional, supports partial
-# def get_notebook(notebook_id, as_json):
-#     with handle_errors(json_mode=as_json):
-#         client = AppClient()
-#         nbs = client.list_notebooks()
-#         matched = resolve_partial_id(notebook_id, nbs, kind="notebook")
-#         nb = client.get_notebook(matched.id)
+    with handle_errors(json_mode=use_json):
+        client = AppClient()
+        all_items = client.list_items()
+        matched = resolve_partial_id(item_id, all_items, kind="item")
+        item = client.get_item(matched.id)
+        # ... output item
 
 
 # --- Context file format ---
 # ~/.config/cli-web-<app>/context.json
 # {
-#   "notebook_id": "abc123-full-uuid",
-#   "notebook_title": "My Research"
+#   "resource_id": "abc123-full-uuid",
+#   "resource_title": "My Project"
 # }
