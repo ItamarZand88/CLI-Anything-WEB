@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="banner.png" alt="CLI Anything Web" width="700">
+  <img src="banner.png" alt="CLI Anything Web" width="100%">
 </p>
 
 # CLI-Anything-Web
