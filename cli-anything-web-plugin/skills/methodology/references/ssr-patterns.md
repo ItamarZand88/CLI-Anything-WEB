@@ -1,5 +1,27 @@
 # SSR Patterns Reference
 
+## Plain HTML (No Framework) — Check for Public API First
+
+Before applying SSR extraction patterns, check if the site has a **separate public API**.
+Many traditional HTML sites (Hacker News, Reddit, Wikipedia, Dev.to) have documented
+REST APIs that are much easier to use than HTML scraping:
+
+```python
+# Quick check: does /api/ return JSON?
+resp = httpx.get(f"{BASE_URL}/api/", follow_redirects=True)
+if resp.headers.get("content-type", "").startswith("application/json"):
+    print("Public API found — skip HTML scraping, use the API directly")
+```
+
+If the site has no public API and no framework (no `__NEXT_DATA__`, no SPA root),
+use httpx + BeautifulSoup4 to parse HTML tables/lists. See `traffic-patterns.md`
+"Plain HTML (No Framework)" for the pattern.
+
+**The SSR patterns below are for JavaScript framework-based SSR only** (Next.js,
+Nuxt, Remix, SvelteKit). They do NOT apply to plain HTML sites.
+
+---
+
 ## What SSR Means for CLI Generation
 
 Server-Side Rendered (SSR) sites deliver data embedded directly in the HTML response

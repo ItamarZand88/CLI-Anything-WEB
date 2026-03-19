@@ -26,10 +26,18 @@ The skill sequence is strictly ordered: `capture → methodology → testing →
 
 | Phase | Skill | What it does |
 |-------|-------|-------------|
-| 1 | capture | Site assessment + browser traffic recording via playwright-cli |
-| 2-3 | methodology | Analyze traffic, design CLI architecture, implement code |
-| 3+ | testing | Write unit + E2E + subprocess tests |
-| 8 | standards | Publish (`pip install -e .`), smoke test, generate skill |
+| 1 | capture | Site assessment + browser traffic recording (or public API shortcut) |
+| 2 | methodology | Analyze traffic, design CLI architecture, implement code |
+| 3 | testing | Write unit + E2E + subprocess tests |
+| 4 | standards | Publish (`pip install -e .`), smoke test, generate skill |
+
+### Site Profiles
+
+Not all sites need the same pipeline path. Identify the profile early:
+- **Auth + CRUD** (full pipeline): Google apps, Monday.com, Notion, Jira
+- **Auth + read-only**: Dashboards, analytics viewers
+- **No-auth + CRUD**: Sites with optional API key auth (Dev.to)
+- **No-auth + read-only**: Hacker News, Wikipedia, npm — skip auth.py, skip write tests
 
 ## Tool Hierarchy (Strict)
 
@@ -79,6 +87,9 @@ bash cli-anything-web-plugin/verify-plugin.sh
 - **Namespace packages**: `cli_web/` has NO `__init__.py`; sub-packages DO have `__init__.py`
 - **Typed exceptions**: Every CLI has `core/exceptions.py` with `AppError → AuthError, RateLimitError, NetworkError, ServerError, NotFoundError, RPCError`. No generic `RuntimeError`.
 - **Auth**: Credentials in `auth.json` with `chmod 600`, never hardcoded. Env var `CLI_WEB_<APP>_AUTH_JSON` for CI/CD.
+- **Auth cookie priority**: For Google apps, `.google.com` cookies MUST take priority over regional duplicates (`.google.co.il`, `.google.de`, etc.). Naive `{c["name"]: c["value"]}` flattening is BROKEN for international users. See `auth-strategies.md` "Cookie domain priority".
+- **Auth login flow**: `login_browser()` MUST use `subprocess.Popen()`, not `subprocess.run()` — playwright-cli `open --persistent` blocks until browser closes, making `input()` unreachable.
+- **Auth format handling**: `load_cookies()` must handle both raw playwright list format `[{name, value, domain}]` and extracted dict format `{name: value}`.
 - **Auth retry**: Client retries once on recoverable `AuthError` (token refresh), never more.
 - **Tests FAIL on missing auth** — never skip
 - **Every command supports `--json`** — structured output for agents, including errors: `{"error": true, "code": "AUTH_EXPIRED", "message": "..."}`

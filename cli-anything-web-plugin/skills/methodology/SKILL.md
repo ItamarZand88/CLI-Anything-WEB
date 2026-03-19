@@ -22,8 +22,8 @@ HTTP traffic to a production-ready CLI.
 ## Prerequisites (Hard Gate)
 
 Do NOT start unless:
-- [ ] `raw-traffic.json` exists with WRITE operations (POST/PUT/PATCH/DELETE)
-- [ ] Auth state was captured during Phase 1
+- [ ] `raw-traffic.json` exists (with WRITE operations, or read-only GET-only traffic)
+- [ ] Auth state was captured during Phase 1 (if the site requires auth)
 
 If raw-traffic.json is missing or has no WRITE operations, invoke the
 `capture` skill first.
@@ -33,6 +33,10 @@ dashboard, analytics viewer with no create/update/delete), the trace may contain
 GET requests. In this case, note "read-only site — no write operations" in `<APP>.md`
 and proceed. The generated CLI will have read-only commands (list, get, search) but
 no create/update/delete commands. This is valid.
+
+**No-auth sites:** If the target site requires no authentication (public API,
+no login needed), the "Auth state captured" prerequisite does not apply. Note
+"no-auth site" in `<APP>.md` and proceed.
 
 ---
 
@@ -62,6 +66,8 @@ no create/update/delete commands. This is valid.
    | gRPC-Web | `application/grpc-web` content type, binary payloads | Proto-based client |
    | Google batchexecute | `batchexecute` in URL, `f.req=` body, `)]}'\n` prefix | `rpc/` subpackage (see `references/google-batchexecute.md`) |
    | Custom RPC | Single endpoint, method name in body, proprietary encoding | Custom codec module |
+   | Public REST API | Documented `/api/` endpoints, OpenAPI spec, JSON responses | Standard `client.py` with httpx |
+   | Plain HTML (no framework) | No SPA root, no framework globals, data in `<table>`/`<div>` | `client.py` with httpx + BeautifulSoup4 |
 
    This determines client architecture in Phase 4 -- REST uses simple `client.py`,
    non-REST protocols need a dedicated `rpc/` subpackage with encoder/decoder/types.
@@ -79,6 +85,8 @@ no create/update/delete commands. This is valid.
    - Browser-delegated auth: tokens embedded in page JavaScript (e.g., `WIZ_global_data`),
      not in HTTP headers. Requires CDP for initial cookies, HTTP for token extraction.
      See `references/auth-strategies.md` "Browser-Delegated Auth" section.
+   - No auth / public access: fully public API, no login required. CLI may
+     optionally support API key auth for write operations (e.g., dev.to).
 
 7. Write `<APP>.md` -- software-specific SOP document
 
@@ -155,38 +163,25 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
   - For apps with 3+ resource types: split into namespaced sub-clients (`client.notebooks.list()`, `client.sources.add()`)
   - See `references/client-architecture-example.py` for the full pattern
 
-- **`auth.py`** -- handles token storage, refresh, expiry. MUST support 2 login methods:
-  1. **`auth login`** (primary) -- uses playwright-cli via subprocess to open browser.
-     User logs in manually, `state-save` captures cookies + localStorage.
-     No Playwright Python needed -- just `npx @playwright/cli`.
-     ```python
-     # auth.py -- playwright-cli login
-     def login(app_url, auth_path):
-         import subprocess
-         session = "auth-login"
-         subprocess.run(["npx", "@playwright/cli@latest", "-s=" + session,
-                         "open", app_url, "--headed", "--persistent"], check=True)
-         input("Log in, then press ENTER...")
-         subprocess.run(["npx", "@playwright/cli@latest", "-s=" + session,
-                         "state-save", str(auth_path)], check=True)
-         subprocess.run(["npx", "@playwright/cli@latest", "-s=" + session,
-                         "close"], check=True)
-         state = json.loads(auth_path.read_text())
-         cookies = {c["name"]: c["value"] for c in state.get("cookies", [])}
-         save_cookies(cookies)
-     ```
-  2. **`auth login --cookies-json <file>`** (manual fallback) -- import from JSON file.
+- **`auth.py`** -- handles token storage, refresh, expiry. Implementation depends on auth type:
+
+  **For no-auth or API-key sites:** `auth.py` is optional. If the site uses API key auth,
+  implement a simple `login(api_key)` / `inject_auth(headers)` module — no browser needed.
+
+  **For browser-delegated auth (Google, Microsoft, etc.):** Full playwright-cli login flow
+  with cookie domain priority for international users.
+
+  See `references/auth-strategies.md` for complete implementation patterns including:
+  - Browser login with `Popen` (not `subprocess.run` — critical fix)
+  - Cookie domain priority (`.google.com` over regional domains)
+  - Dual format handling (list vs dict cookies)
+  - API key auth (simple header injection)
+  - Environment variable auth for CI/CD
+  - Context commands (`use <id>`, `status`) for stateful apps
+
+  Key rules:
   - Store cookies at `~/.config/cli-web-<app>/auth.json` with chmod 600
-  - No more `--from-chrome` or `--from-browser` flags
-  - `setup.py` should NOT include Playwright Python -- only `click`, `httpx`
-  - **Environment variable auth**: Support `CLI_WEB_<APP>_AUTH_JSON` for CI/CD
-    ```python
-    env_auth = os.environ.get(f"CLI_WEB_{APP_UPPER}_AUTH_JSON")
-    if env_auth:
-        return json.loads(env_auth)
-    ```
-  - **Context commands** (for apps with persistent context like notebooks/projects):
-    `use <id>` to set context, `status` to show current. Store in `context.json`.
+  - `setup.py` should NOT include Playwright Python — only `click`, `httpx`
 
 - **Anti-bot resilient client construction** (when detected in Phase 2):
   - Extract session tokens via CDP first (cookies), then HTTP GET + HTML parsing (CSRF, session IDs)
@@ -211,7 +206,8 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
   ```
   Add `rich>=13.0` to `setup.py` dependencies.
 
-- **JSON error output** -- When `--json` is active, errors MUST also be JSON:
+- **JSON error output** -- When `--json` is active, errors MUST also be JSON — agents
+  parsing stdout will crash on unexpected plain-text error messages:
   ```python
   # utils/output.py
   def json_error(code: str, message: str, **extra) -> str:
@@ -223,7 +219,8 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 
 - Every command: `--json` flag, proper error messages
 
-- **All commands MUST use `handle_errors()` context manager** — not manual try/except.
+- **All commands MUST use `handle_errors()` context manager** — not manual try/except,
+  because scattered try/except blocks produce inconsistent exit codes and miss JSON error formatting.
   This centralizes error handling, exit codes (1=user, 2=system, 130=interrupt),
   and JSON error output:
   ```python
@@ -235,7 +232,8 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
           nbs = client.list_notebooks()
   ```
 
-- **Generation commands MUST support `--wait`, `--retry`, `--output`:**
+- **Generation commands MUST support `--wait`, `--retry`, `--output`** — without these,
+  agents cannot script end-to-end workflows (generate, wait for result, save to disk):
   ```python
   @artifacts.command("generate")
   @click.option("--wait", is_flag=True, help="Wait for completion.")
@@ -254,7 +252,8 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
       try: sys.stdout.reconfigure(encoding="utf-8", errors="replace")
       except AttributeError: pass
   ```
-- **HTML table parsers MUST extract ALL visible columns** — not just name/price.
+- **HTML table parsers MUST extract ALL visible columns** — not just name/price,
+  because missing fields in `--json` output make the CLI useless for filtering and analysis.
   If the site shows version, club, nation, stats, skills, weak foot — parse all of them.
   Empty fields in `--json` output = incomplete parser.
 - Entry point: `cli-web-<app>` via setup.py console_scripts
@@ -268,6 +267,11 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
   - `poll_until_complete(check_fn)` — exponential backoff polling
   - `get_context_value(key)` / `set_context_value(key, value)` — persistent context.json
   See `references/helpers-module-example.py` for the complete module.
+
+> **Not all helpers apply to every CLI.** Include only what the CLI uses:
+> `handle_errors` and `print_json` are always needed. `resolve_partial_id` only
+> for UUID-based apps. `require_notebook`/context helpers only for apps with
+> persistent context. `poll_until_complete` only for generation/async operations.
 
 ### REPL Implementation Rules (Critical)
 
@@ -297,7 +301,7 @@ cli.main(args=repl_args, standalone_mode=False)
 cli.main(args=args, standalone_mode=False, **ctx.params)
 ```
 
-**4. Keep `_print_repl_help()` in sync with the actual command surface**
+**3. Keep `_print_repl_help()` in sync with the actual command surface**
 
 The `_print_repl_help()` function in `<app>_cli.py` is the user's first discovery surface — it's what they see when they type `help` in the REPL. It must mirror the real commands, including all key options. A REPL that shows outdated or incomplete help is confusing and makes the CLI feel broken.
 
@@ -319,7 +323,7 @@ Rule: **every time you add options to a command, update `_print_repl_help()` in 
 
 ---
 
-**3. Use `@click.argument` for positional REPL params, not `@click.option("--x", required=True)`**
+**4. Use `@click.argument` for positional REPL params, not `@click.option("--x", required=True)`**
 
 REPL commands show `players search <query>` in help. If `query` is a `--query` option,
 users typing `players search messi` get "Error: Missing option '--query'".
@@ -365,7 +369,8 @@ dispatch parallel subagents -- one per command module. Each agent gets:
 
 **Implementation order:**
 
-1. **First (sequential):** `core/exceptions.py`, `core/client.py`, `core/auth.py`, `core/session.py`, `core/models.py`
+1. **First (sequential):** `core/exceptions.py`, `core/client.py`, `core/auth.py` (if auth required),
+   `core/session.py` (if stateful context needed), `core/models.py`
    -- these are the foundation that everything else imports
 2. **Then (parallel subagents):** all `commands/*.py` files + `rpc/encoder.py` + `rpc/decoder.py`
    -- each is independent once the core exists
@@ -407,6 +412,16 @@ Do NOT skip testing -- every CLI must have comprehensive tests before publishing
 | `testing` | Phase 3 -- test writing, documentation |
 | `standards` | Phase 4 -- publish, verify, smoke test |
 | `auto-optimize` | Meta -- autonomous skill optimization |
+
+---
+
+## Integration
+
+| Relationship | Skill |
+|-------------|-------|
+| **Preceded by** | `capture` (Phase 1) |
+| **Followed by** | `testing` (Phase 3) |
+| **References** | `traffic-patterns.md`, `auth-strategies.md`, `google-batchexecute.md`, `ssr-patterns.md`, `exception-hierarchy-example.py`, `client-architecture-example.py`, `polling-backoff-example.py`, `rich-output-example.py` |
 
 ---
 

@@ -1,19 +1,19 @@
 ---
 name: standards
 description: >
-  Quality standards and Phase 8 publish/verify for cli-web-* CLIs. Covers the
-  70-check quality checklist, package publishing (pip install -e .), end-user
+  Quality standards and Phase 4 publish/verify for cli-web-* CLIs. Covers the
+  75-check quality checklist, package publishing (pip install -e .), end-user
   smoke testing (READ + WRITE), and final pipeline verification. Use when building,
   reviewing, or checking quality of a cli-web-* CLI package, during implementation
-  (Phase 4), validation, code review, Phase 8 publish and verify, or when checking
+  (Phase 2), validation, code review, Phase 4 publish and verify, or when checking
   if an implementation is complete.
 version: 0.1.0
 ---
 
-# CLI-Anything-Web Standards (Phase 8 + Quality)
+# CLI-Anything-Web Standards (Phase 4 + Quality)
 
 Quality standards, publishing, and final verification for cli-web-* CLIs.
-This skill owns the 70-check quality checklist and Phase 8 of the pipeline:
+This skill owns the 75-check quality checklist and Phase 4 of the pipeline:
 publish the CLI and verify it works end-to-end as a real user would.
 
 ---
@@ -21,15 +21,28 @@ publish the CLI and verify it works end-to-end as a real user would.
 ## Prerequisites (Hard Gate)
 
 Do NOT start unless:
-- [ ] All tests pass (100% pass rate from Phase 7)
+- [ ] All tests pass (100% pass rate from Phase 3)
 - [ ] TEST.md has both Part 1 (plan) and Part 2 (results)
 - [ ] All core modules are implemented and functional
 
 If tests are not passing, invoke the `testing` skill first.
 
+### Site Profile Exceptions
+
+Not all checks apply to every CLI. When evaluating, consider the site profile:
+
+- **No-auth sites** (public APIs): Skip auth-related checks (auth.py required,
+  auth commands, auth smoke test). Mark as N/A.
+- **Read-only sites** (no write operations): Skip write operation smoke test.
+  Verify reads return real data instead.
+- **API-key auth sites**: `auth login` takes a key argument, not playwright-cli.
+  `auth refresh` is not applicable — use `auth logout` instead.
+
+Mark inapplicable checks as "N/A — [reason]" rather than creating dead-code stubs.
+
 ---
 
-## Phase 8: Publish and Verify
+## Phase 8: Publish and Verify (Phase 4)
 
 **Goal:** Make CLI installable AND verify it works end-to-end as a real user would use it.
 
@@ -49,6 +62,10 @@ If tests are not passing, invoke the `testing` skill first.
 This is the most critical verification step. The agent MUST simulate what a real
 end user would do after `pip install cli-web-<app>`. If this fails, the pipeline
 is NOT complete -- go back and fix the issue.
+
+**If no-auth site:** Skip steps 5-6 (auth). Go directly to step 7 (READ).
+
+**If read-only site:** Skip step 8 (WRITE). Verify reads return real data.
 
 **5. Authenticate as an end user would:**
 ```bash
@@ -101,10 +118,10 @@ not just read them.
 
 ### Smoke Test Checklist
 
-- [ ] `auth login` works via playwright-cli subprocess
-- [ ] `auth status` shows valid
+- [ ] `auth login` works (playwright-cli, API key, or N/A for no-auth)
+- [ ] `auth status` shows valid (or N/A for no-auth)
 - [ ] At least one READ returns real data
-- [ ] **At least one WRITE/CREATE/GENERATE succeeds against the real API**
+- [ ] **At least one WRITE/CREATE/GENERATE succeeds** (or N/A for read-only)
 - [ ] The CLI works standalone -- no debug Chrome, no port 9222, no MCP
 
 ### Common Failure Mode
@@ -121,7 +138,7 @@ correct POST bodies, CSRF tokens, request encoding). This is the #1 gap to watch
 
 ---
 
-## Phase 9: Generate Claude Skill
+## Generate Claude Skill (Post-Pipeline)
 
 **Goal:** Create a project-local Claude skill so that Claude can use this CLI
 automatically in future conversations — no manual lookup required.
@@ -241,10 +258,10 @@ The skill takes effect immediately in the next Claude Code session in this proje
 ## Pipeline Complete
 
 The pipeline is NOT done until:
-- `auth login` works via playwright-cli subprocess
-- `auth status` shows valid
+- `auth login` works (via playwright-cli, API key, or N/A for no-auth sites)
+- `auth status` shows valid (or N/A for no-auth sites)
 - At least one READ returns real data
-- **At least one WRITE/CREATE/GENERATE succeeds against the real API**
+- **At least one WRITE/CREATE/GENERATE succeeds** (or N/A for read-only sites)
 - The CLI works standalone -- no debug Chrome, no port 9222, no MCP
 - **`.claude/skills/<app>-cli/SKILL.md` exists and documents all commands**
 
@@ -258,123 +275,27 @@ See HARNESS.md "Generated CLI Structure" for the complete package template.
 Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `__init__.py`),
 `core/`, `commands/`, `utils/`, `tests/` directories.
 
-## 8-Category Checklist (59 checks)
+## Quality Checklist
 
-### 1. Directory Structure (6 checks)
+The full checklist is in `references/quality-checklist.md` (11 categories, 75 checks).
 
-*(checked against `agent-harness/` root)*
+**Quick summary of categories:**
 
-- `agent-harness/cli_web/<app>/` exists
-- `agent-harness/<APP>.md` exists (SOP at harness root)
-- `cli_web/` has NO `__init__.py` (namespace package)
-- `<app>/` HAS `__init__.py`
-- `core/`, `commands/`, `utils/`, `tests/` all present (one atomic check)
-- `setup.py` at `agent-harness/` root
+| # | Category | Checks |
+|---|----------|--------|
+| 1 | Directory Structure | 6 |
+| 2 | Required Files | 13 |
+| 3 | CLI Implementation | 9 |
+| 4 | Core Modules | 8 |
+| 5 | Test Standards | 8 |
+| 6 | Documentation | 3 |
+| 7 | PyPI Packaging | 5 |
+| 8 | Code Quality | 8 |
+| 9 | REPL Quality | 3 |
+| 10 | Error Handling & Resilience | 8 |
+| 11 | UX Patterns | 4 |
 
-### 2. Required Files (13 checks)
-
-*(checked against `cli_web/<app>/`)*
-
-`README.md`, `<app>_cli.py`, `__main__.py`,
-`core/client.py`, `core/auth.py`, `core/session.py`, `core/models.py`,
-`utils/repl_skin.py`, `utils/output.py`, `utils/config.py`, `utils/helpers.py`,
-`tests/TEST.md`, `tests/test_core.py`, `tests/test_e2e.py`
-
-### 3. CLI Implementation (6 checks)
-
-- Click framework with command groups (`@click.group`)
-- `--json` flag on every command
-- REPL mode via `invoke_without_command=True`
-- `ReplSkin` used for banner, prompt, messages
-- `auth` group with `login`, `status`, `refresh`
-- Global session state (`pass_context=True`)
-- Commands use `handle_errors(json_mode)` context manager — no manual try/except blocks
-- Resource get/rename/delete use `@click.argument` (positional ID), not `@click.option("--id")`
-- `--notebook` is optional on notebook-scoped commands (falls back to persistent context via `require_notebook()`)
-
-### 4. Core Modules (4 checks)
-
-- `client.py`: centralized auth header injection, exponential backoff, JSON parsing
-- `auth.py`: login, refresh, expiry check, secure storage (chmod 600)
-- `session.py`: Session class with undo/redo stack
-- `models.py`: typed response models
-- If protocol is non-REST: `core/rpc/` exists with `types.py`, `encoder.py`, `decoder.py`
-- `core/exceptions.py`: domain-specific exception hierarchy (AuthError, RateLimitError, NetworkError, ServerError, NotFoundError)
-- `client.py` maps HTTP status codes to typed exceptions (401→AuthError, 404→NotFoundError, 429→RateLimitError, 5xx→ServerError)
-- Auth retry: client retries once on recoverable AuthError with token refresh
-
-### 5. Test Standards (8 checks)
-
-- `TEST.md` has both plan (Part 1) and results (Part 2)
-- Unit tests use `unittest.mock.patch` -- no real network
-- E2E fixture tests replay from `tests/fixtures/`
-- E2E live tests FAIL (not skip) without auth
-- `TestCLISubprocess` class exists
-- Uses `_resolve_cli("cli-web-<app>")` -- no hardcoded paths
-- Subprocess `_run` does NOT set `cwd`
-- Supports `CLI_WEB_FORCE_INSTALLED=1`
-
-### 6. Documentation (3 checks)
-
-- `README.md` in `cli_web/<app>/` — must follow this structure:
-  ```markdown
-  # cli-web-<app>
-
-  > Generated by [CLI-Anything-Web](../../../../cli-anything-web-plugin/) from [<app>.com](<url>)
-
-  One-line description of what the CLI does.
-
-  ## Installation
-  ## Usage          (show key commands with examples)
-  ## Auth           (login methods, when auth is required vs optional)
-  ## JSON Output    (show --json flag usage)
-  ## Testing        (pytest commands for unit and E2E)
-  ```
-- `<APP>.md`: API map, data model, auth scheme, endpoint inventory
-- No `HARNESS.md` inside app package (lives in plugin root)
-
-### 7. PyPI Packaging (5 checks)
-
-- `find_namespace_packages(include=["cli_web.*"])`
-- Package name: `cli-web-<app>`
-- Entry point: `cli-web-<app>=cli_web.<app>.<app>_cli:main`
-- All imports use `cli_web.<app>.*` prefix
-- `python_requires=">=3.10"`
-
-### 8. Code Quality (8 checks)
-
-- No syntax errors, no import errors
-- No hardcoded auth tokens or API keys
-- No hardcoded API base URLs or credentials in source
-- No hardcoded session tokens, CSRF tokens, build labels, or session IDs (must be extracted dynamically)
-- No bare `except:` blocks
-- Error messages include actionable guidance
-- `<app>_cli.py` forces UTF-8 stdout/stderr on Windows (`sys.stdout.reconfigure(encoding="utf-8")`)
-- HTML table parsers extract ALL visible columns (no empty fields for data the site displays)
-
-### 9. REPL Quality (3 checks)
-
-- REPL uses `shlex.split(line)` — not `line.split()` (quoted args must parse correctly)
-- REPL dispatches with `cli.main(args=repl_args, standalone_mode=False)` — never `**ctx.params`
-- Primary resource commands use `@click.argument` for positional params (not `--required-option`)
-
-### 10. Error Handling & Resilience (6 checks)
-
-- `core/exceptions.py` exists with typed hierarchy (not generic RuntimeError)
-- Client maps HTTP status codes to domain exceptions
-- Auth module supports `CLI_WEB_<APP>_AUTH_JSON` environment variable
-- Polling operations use exponential backoff (not fixed `time.sleep()`)
-- `--json` mode outputs structured error JSON (`{"error": true, "code": "...", "message": "..."}`)
-- Long operations (>2s) show progress feedback when not in `--json` mode
-- Generation commands support `--wait` (poll until complete) and `--retry N` (rate-limit retry)
-- `--output <path>` flag on generation commands saves content to file
-
-### 11. UX Patterns (4 checks)
-
-- Partial ID resolution: get/rename/delete accept short prefixes (not full UUIDs only)
-- Persistent context: `use <id>` saves to `context.json`, `status` shows current context
-- `--notebook` optional when context is set (via `require_notebook()`)
-- Regional Google cookie domains supported (60+ ccTLDs, not just `.google.com`)
+Run `/cli-anything-web:validate` to check all items automatically.
 
 ## Key Rules
 
@@ -406,9 +327,19 @@ These are non-negotiable standards:
 
 ---
 
+## Integration
+
+| Relationship | Skill |
+|-------------|-------|
+| **Preceded by** | `testing` (Phase 3) |
+| **Followed by** | None — this is the final phase |
+| **References** | HARNESS.md (Generated CLI Structure, Naming Conventions) |
+
+---
+
 ## Related
 
-- **`testing`** skill -- Phases 5-7 test planning/writing/documentation
-- **`methodology`** skill -- Phases 2-4 analyze/design/implement
+- **`testing`** skill -- Phase 3 test planning/writing/documentation
+- **`methodology`** skill -- Phase 2 analyze/design/implement
 - **`capture`** skill -- Phase 1 traffic recording
-- **`/cli-anything-web:validate`** -- Command to run the full 70-check validation
+- **`/cli-anything-web:validate`** -- Command to run the full 75-check validation

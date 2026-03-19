@@ -1,5 +1,51 @@
 # Traffic Patterns Reference
 
+## Contents
+- Documented Public API
+- REST APIs
+- GraphQL APIs
+- gRPC-Web / Protobuf
+- Google batchexecute RPC
+- Batch / Multiplex APIs
+- WebSocket / Real-time
+- Async Content Generation
+- CAPTCHA / Bot Detection
+- Plain HTML (No Framework)
+- SSR / Server-Rendered Sites
+
+## Documented Public API
+
+Sites with official, documented REST/JSON APIs that don't require browser traffic capture.
+
+### Detection signals:
+- API docs page exists (developer.example.com, `/api/docs`, Swagger/OpenAPI)
+- `/api/` prefix with versioning (`/api/v1/`, `/api/articles`)
+- JSON responses from direct HTTP requests (no browser needed)
+- Rate limit headers present (`X-RateLimit-Remaining`)
+- Examples: Hacker News Firebase API, Dev.to API, Reddit API, Wikipedia API, GitHub API
+
+### CLI strategy:
+- **Skip browser capture** — probe endpoints directly with httpx/curl
+- Construct `raw-traffic.json` from API probe results
+- No playwright-cli needed (unless auth requires browser login)
+- Use API docs to discover endpoints instead of reverse-engineering traffic
+
+### CLI mapping:
+```
+GET /api/articles         → articles list [--tag T] [--page N]
+GET /api/articles/:id     → articles get <id>
+GET /api/articles/search  → articles search <query>
+GET /api/tags             → tags list
+GET /api/users/:username  → users get <username>
+```
+
+### Auth patterns:
+- **No auth** — fully public read access (HN, Wikipedia)
+- **API key** — optional `api-key` or `Authorization` header for writes
+- **OAuth** — for user-specific operations
+
+---
+
 ## REST APIs
 
 Most common pattern. Endpoints follow resource-based URLs.
@@ -160,6 +206,44 @@ Challenges that interrupt normal API flow.
   ```
 - After user confirms, retry the original request once
 - If CAPTCHA persists, suggest reducing request frequency
+
+## Plain HTML (No Framework)
+
+Traditional server-rendered sites with no JavaScript framework.
+
+### Detection signals:
+- No `__NEXT_DATA__`, `__NUXT__`, `__remixContext`, or SPA root elements
+- No framework-specific script tags (`_next/`, `_nuxt/`, etc.)
+- Data is in HTML `<table>`, `<div>`, `<article>` elements with CSS classes
+- Example sites: Hacker News, Craigslist, older forums, government sites
+
+### CLI strategy:
+- **First check for a public API** — many plain HTML sites have separate JSON APIs
+  (HN has Firebase API, Reddit has `/api/`, Wikipedia has MediaWiki API). If found,
+  use the API and skip HTML scraping entirely.
+- If no API exists, use httpx + BeautifulSoup4 to parse HTML
+- Identify CSS classes/selectors for data extraction from the page source
+- Store example HTML in `tests/fixtures/` for unit testing parsers
+
+### CLI mapping:
+```python
+# client.py for plain HTML scraping
+resp = httpx.get(f"{BASE_URL}/page")
+soup = BeautifulSoup(resp.text, "html.parser")
+items = []
+for row in soup.select("tr.athing"):  # CSS selector from page
+    items.append(Story(
+        title=row.select_one(".titleline a").text,
+        url=row.select_one(".titleline a")["href"],
+    ))
+```
+
+### Key considerations:
+- HTML structure changes break parsers — include version detection
+- Pagination is usually `?p=N` or `?page=N` query params
+- No auth needed for most plain HTML sites (public content)
+
+---
 
 ## SSR / Server-Rendered Sites
 

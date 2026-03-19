@@ -1,5 +1,13 @@
 # API Discovery & Strategy Selection Reference
 
+## Contents
+- API Priority Chain
+- Decision Tree
+- Finding APIs in the Trace
+- Force SPA Navigation Trick
+- Strategy Details
+- Anti-Patterns
+
 How to find APIs during site assessment and choose the right capture strategy.
 APIs produce clean structured data and are always preferred over HTML scraping.
 

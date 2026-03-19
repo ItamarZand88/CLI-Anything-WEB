@@ -30,106 +30,23 @@ REPL mode, auth management, session state, and comprehensive tests.
 
 ### Error Handling Architecture
 
-Every generated CLI MUST include a `core/exceptions.py` with a domain-specific exception
-hierarchy. Generic `RuntimeError` is not acceptable — typed exceptions enable retry logic,
-proper CLI exit codes, and structured JSON error responses.
-
-**Required base hierarchy:**
-
-```python
-# core/exceptions.py
-class AppError(Exception):
-    """Base for all CLI errors."""
-
-class AuthError(AppError):
-    """Authentication failed — token expired, cookies invalid, etc."""
-    def __init__(self, message: str, recoverable: bool = True):
-        self.recoverable = recoverable
-        super().__init__(message)
-
-class RateLimitError(AppError):
-    """Server returned 429 — retry after backoff."""
-    def __init__(self, message: str, retry_after: float | None = None):
-        self.retry_after = retry_after
-        super().__init__(message)
-
-class NetworkError(AppError):
-    """Connection failed, DNS error, timeout."""
-
-class ServerError(AppError):
-    """Server returned 5xx."""
-    def __init__(self, message: str, status_code: int = 500):
-        self.status_code = status_code
-        super().__init__(message)
-
-class NotFoundError(AppError):
-    """Resource not found (404)."""
-```
-
-Extend with domain-specific errors as needed (e.g., `ArtifactNotReadyError`,
-`SourceProcessingError`). The client maps HTTP status codes to these exceptions.
-Commands catch them and produce appropriate exit codes + JSON error output.
+Every generated CLI MUST include `core/exceptions.py` with a domain-specific exception
+hierarchy — typed exceptions enable retry logic, proper CLI exit codes, and structured
+JSON error responses. See `references/exception-hierarchy-example.py` for the complete
+template. Required types: `AppError` (base), `AuthError` (recoverable flag),
+`RateLimitError` (retry_after), `NetworkError`, `ServerError` (status_code), `NotFoundError`.
 
 ### Exponential Backoff & Polling
 
-Any operation that takes >2 seconds (content generation, file processing, research)
-MUST use exponential backoff polling — never fixed `time.sleep()`.
+Operations taking >2 seconds MUST use exponential backoff polling (2s→10s, factor 1.5,
+timeout 300s) — never fixed `time.sleep()`. Generation commands also need rate-limit
+retry (60s→300s backoff on 429). See `references/polling-backoff-example.py` for both
+patterns.
 
-**Required pattern:**
+### Progress & Output
 
-```python
-# core/client.py or utils/polling.py
-import time
-
-def poll_until_complete(
-    check_fn,                    # () -> status dict
-    initial_interval: float = 2.0,
-    max_interval: float = 10.0,
-    timeout: float = 300.0,
-    backoff_factor: float = 1.5,
-) -> dict:
-    """Poll with exponential backoff until complete or timeout."""
-    start = time.perf_counter()
-    interval = initial_interval
-    while time.perf_counter() - start < timeout:
-        status = check_fn()
-        if status.get("completed") or status.get("failed"):
-            return status
-        time.sleep(min(interval, max_interval))
-        interval *= backoff_factor
-    raise TimeoutError(f"Operation timed out after {timeout}s")
-```
-
-For generation commands, also implement retry on rate limit:
-```python
-def retry_on_rate_limit(fn, max_retries=3):
-    for attempt in range(max_retries + 1):
-        try:
-            return fn()
-        except RateLimitError as e:
-            if attempt == max_retries:
-                raise
-            delay = e.retry_after or (60 * (2 ** attempt))
-            time.sleep(min(delay, 300))
-```
-
-### Progress Feedback
-
-Operations taking >2 seconds SHOULD show progress to the user. Use `rich` for
-spinners and progress bars when not in `--json` mode:
-
-```python
-from rich.console import Console
-console = Console()
-
-with console.status("Generating audio...") as status:
-    result = poll_until_complete(check_fn)
-    status.update("Downloading...")
-    download(result["url"], output_path)
-```
-
-In `--json` mode, suppress spinners and output only the final JSON result.
-Add `rich>=13.0` to `setup.py` dependencies.
+Use `rich>=13.0` for spinners/progress bars in interactive mode. Suppress in `--json`
+mode. See `references/rich-output-example.py` for patterns.
 
 ### JSON Error Response Format
 
@@ -169,8 +86,9 @@ Error codes map directly from the exception hierarchy:
 | **Runtime HTTP** | N/A | httpx — no browser needed |
 | **Dependencies** | Node.js + npx | click, httpx, Node.js + npx (auth only) |
 
-**The generated CLI MUST work standalone.** playwright-cli is only needed during
-`auth login` — all regular commands use httpx.
+**The generated CLI MUST work standalone** — a CLI that requires a running browser
+defeats the purpose of having a CLI. playwright-cli is only needed during `auth login`;
+all regular commands use httpx.
 
 ---
 
@@ -181,10 +99,14 @@ phases and invokes the next when done. Hard gates prevent skipping.
 
 | Phase | Skill | What it does | Hard Gate |
 |-------|-------|-------------|-----------|
-| 1 | `capture` | Assess site + capture traffic + explore + save auth | playwright-cli available |
+| 1 | `capture` | Assess site + capture traffic + explore + save auth | playwright-cli available (or public API shortcut) |
 | 2 | `methodology` | Analyze + Design + Implement CLI | raw-traffic.json exists |
 | 3 | `testing` | Write tests + document results | Implementation complete |
 | 4 | `standards` | Publish, verify, smoke test, generate Claude skill | All tests pass |
+
+> **Phase numbering:** The pipeline has 4 phases. Some skills reference legacy
+> sub-phase numbers (e.g., "Phase 7", "Phase 8"). Ignore these — use the 4-phase
+> scheme above. Capture=1, Methodology=2, Testing=3, Standards=4.
 
 **Sequencing:**
 ```
@@ -252,22 +174,32 @@ These are non-negotiable standards that apply across all phases:
   then `auth status` to verify. Tests that output "auth not configured" are BROKEN.
 - **Every command MUST support `--json`.** Agents consume structured output.
   Human-readable is optional; machine-readable is required.
-- **E2E tests MUST include subprocess tests** via `_resolve_cli("cli-web-<app>")`.
+  **`--json` flag placement:** Place `--json` on EACH individual command (not just
+  the top-level group). In REPL mode, propagate `--json` from the top-level group
+  via `ctx.obj["json"]`. For subprocess calls, `cli-web-<app> <resource> list --json`
+  must work — this means `--json` must be an option on the command, not only on the group.
+- **E2E tests MUST include subprocess tests** via `_resolve_cli("cli-web-<app>")` —
+  source-level imports can hide packaging bugs (missing entry points, broken imports)
+  that only surface when the CLI is invoked as an installed command.
 - **Every `cli_web/<app>/` MUST contain `README.md`** with auth setup, install steps,
-  and usage examples.
+  and usage examples — without it, users who discover the CLI via `pip` have no way to
+  learn how to authenticate or use it.
 - **Every `cli_web/<app>/tests/` MUST contain `TEST.md`** written in two parts: plan
-  (before tests), results (appended after running).
-- **Every CLI MUST use the unified REPL skin** (`repl_skin.py`). REPL MUST be the
-  default when invoked without a subcommand.
+  (before tests), results (appended after running) — this is the audit trail that proves
+  tests were designed intentionally and actually passed, not just committed untested.
+- **Every CLI MUST use the unified REPL skin** (`repl_skin.py`) — consistent branding
+  and prompt behavior across all `cli-web-*` tools. REPL MUST be the default when
+  invoked without a subcommand — users expect an interactive shell, not a help dump.
 - **Rate limits MUST be respected.** Never retry without backoff. Never hammer endpoints.
 - **Response bodies MUST be verified.** Never trust HTTP status alone. Always check
   that returned JSON contains expected fields.
 - **Content generation commands MUST download the result.** If the app generates
   content (audio, images, video, documents), the CLI must handle the full lifecycle:
   trigger → poll → download → save. Support `--output <path>` flag.
-- **Generation commands MUST support `--wait` and `--retry`.** `--wait` polls
-  until the artifact is ready (exponential backoff). `--retry N` retries on
-  429 rate limit (default 3). `--output <path>` saves content to a file.
+- **Generation commands MUST support `--wait` and `--retry`** — without these, agents
+  cannot script end-to-end workflows and must poll manually. `--wait` polls until the
+  artifact is ready (exponential backoff). `--retry N` retries on 429 rate limit
+  (default 3). `--output <path>` saves content to a file.
 - **CAPTCHAs MUST pause and prompt, never crash or skip.** If a CAPTCHA is detected
   in any response, stop and tell the user to solve it in their browser. Wait for
   confirmation, then retry.
@@ -331,9 +263,9 @@ and makes the codebase navigable.
 
 ### Partial ID Resolution
 
-Every CLI MUST support partial ID prefixes for get/rename/delete operations.
-Users should type `abc` to match `abc123-long-uuid-...` instead of copying
-the full UUID. The `resolve_partial_id()` helper in `utils/helpers.py`:
+Every CLI MUST support partial ID prefixes for get/rename/delete operations —
+UUIDs are 36 characters and impossible to type from memory. Users should type
+`abc` to match `abc123-long-uuid-...` instead of copying the full UUID. The `resolve_partial_id()` helper in `utils/helpers.py`:
 
 - IDs >= 20 chars: assume complete, match exactly
 - Short prefixes: case-insensitive prefix match against list
@@ -343,7 +275,8 @@ the full UUID. The `resolve_partial_id()` helper in `utils/helpers.py`:
 See `references/helpers-module-example.py` for the implementation.
 
 Commands that accept a resource ID (get, rename, delete) MUST use `@click.argument`
-(positional) instead of `@click.option("--id", required=True)`:
+(positional) instead of `@click.option("--id", required=True)` — positional args
+match natural shell conventions (`git checkout main`, not `git checkout --branch main`):
 
 ```bash
 # Good: cli-web-app notebooks get abc123
@@ -369,8 +302,9 @@ errors in `--json` mode.
 
 ### Rate-Limit Retry
 
-Generation commands MUST support `--retry N` flag. The `retry_on_rate_limit()`
-helper wraps the generation call with exponential backoff (60s→300s).
+Generation commands MUST support `--retry N` flag — generation endpoints are the most
+rate-limited, and a single 429 should not abort a long-running workflow. The
+`retry_on_rate_limit()` helper wraps the generation call with exponential backoff (60s→300s).
 
 ### Regional Cookie Support
 
@@ -379,6 +313,14 @@ The auth module MUST accept Google cookies from regional domains (`.google.co.jp
 users may have cookies on regional ccTLDs. Include a `GOOGLE_REGIONAL_CCTLDS`
 frozenset with 60+ domains. Also include `.googleusercontent.com` for authenticated
 media downloads.
+
+**CRITICAL: `.google.com` cookies MUST always take priority over regional duplicates.**
+When the same cookie name exists on both `.google.com` and `.google.co.il` (or any
+other regional domain), the `.google.com` value is the one that Google services
+accept. Never overwrite a `.google.com` cookie with a regional duplicate. This is
+the #1 auth bug for international users. See Critical Lesson #14 and
+`auth-strategies.md` "Cookie domain priority" for the working pattern from
+`notebooklm/agent-harness/cli_web/notebooklm/core/auth.py`.
 
 ---
 
@@ -418,6 +360,29 @@ media downloads.
     alongside the value you want (percentage changes, badges, status labels,
     currency symbols). Never parse `get_text()` directly — use regex or string
     splitting to isolate the target value before type conversion.
+14. **Cookie Domain Priority Breaks International Users** — Playwright's
+    `state-save` captures the same Google auth cookie names (`SID`,
+    `__Secure-1PSID`, `HSID`, etc.) on BOTH `.google.com` AND regional
+    domains (`.google.co.il`, `.google.de`, `.google.co.jp`, etc.).
+    Naive flattening `{c["name"]: c["value"] for c in cookies}` lets the
+    LAST value win — which may be the regional one. Google services like
+    NotebookLM only accept `.google.com` cookies. The fix: always prefer
+    `.google.com` values when deduplicating. See `auth-strategies.md`
+    "Cookie domain priority" section for the working pattern.
+15. **`login_browser()` Must Use `Popen`, Not `subprocess.run()`** —
+    Playwright-cli's `open --headed --persistent` keeps the process alive
+    while the browser is open. `subprocess.run()` blocks until the browser
+    closes, making the subsequent `input("press ENTER...")` unreachable.
+    The user sees the browser, but the CLI appears frozen. Fix: use
+    `subprocess.Popen()` so the browser runs in the background and `input()`
+    works while the user logs in. Close the session separately after
+    `state-save`.
+16. **Playwright `state-save` Produces a List, Not a Dict** — The raw
+    format is `{"cookies": [{name, value, domain, httpOnly, ...}, ...]}`.
+    `load_cookies()` must handle both this list format AND the extracted
+    dict format `{"cookies": {"SID": "val", ...}}`. Always check
+    `isinstance(cookies, list)` before using the value. If it's a list,
+    run it through `_extract_cookies()` with domain priority.
 
 ---
 

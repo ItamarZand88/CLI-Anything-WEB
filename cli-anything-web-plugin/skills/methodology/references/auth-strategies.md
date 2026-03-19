@@ -1,5 +1,17 @@
 # Auth Strategies Reference
 
+## Contents
+- Cookie-Based Sessions
+- Bearer / JWT Tokens
+- API Key
+- OAuth 2.0 / Browser-Based Login
+- Browser-Delegated Auth (Anti-Bot Protected)
+- Environment Variable Auth (CI/CD)
+- Context Commands (Stateful Apps)
+- Packaging Rules
+- Simplified API Key Auth
+- Config File Location
+
 ## Cookie-Based Sessions
 
 ### Detection:
@@ -127,16 +139,83 @@ them — even with valid credentials. The browser is the only reliable login sur
 
 # In generated CLI's auth login command:
 import subprocess
-subprocess.run(["npx", "@playwright/cli@latest", "-s=auth",
-                "open", app_url, "--headed", "--persistent"], check=True)
+
+# CRITICAL: Use Popen, NOT subprocess.run().
+# subprocess.run() with playwright-cli "open --headed --persistent" BLOCKS
+# until the browser is closed — the user can never reach input() to confirm
+# they've logged in while the browser is still open. Popen runs the browser
+# in the background so input() works.
+proc = subprocess.Popen(["npx", "@playwright/cli@latest", "-s=auth",
+                         "open", app_url, "--headed", "--persistent"])
 input("Log in, then press ENTER...")
 subprocess.run(["npx", "@playwright/cli@latest", "-s=auth",
-                "state-save", str(auth_path)], check=True)
+                "state-save", str(auth_path)], capture_output=True, text=True, check=True)
 subprocess.run(["npx", "@playwright/cli@latest", "-s=auth",
-                "close"], check=True)
+                "close"], capture_output=True)
+
 # Parse storage state → extract cookies for httpx
+# CRITICAL: state-save produces a LIST of cookie objects, not a flat dict.
+# Each cookie has {name, value, domain, ...} and the SAME cookie name may
+# appear multiple times for different domains.
 state = json.loads(auth_path.read_text())
+cookies = _extract_cookies_with_priority(state.get("cookies", []))
+```
+
+**Cookie domain priority (CRITICAL for Google apps):**
+
+Playwright `state-save` captures cookies from ALL visited domains. For Google
+apps, the same cookie names (`SID`, `__Secure-1PSID`, `HSID`, etc.) appear on
+multiple domains: `.google.com`, `.google.co.il`, `.youtube.com`, etc.
+
+**The naive approach is WRONG for international users:**
+```python
+# ✗ BROKEN — last value wins. If user is in Israel, .google.co.il overwrites
+# .google.com and the CLI can't authenticate (gets redirected to login page).
 cookies = {c["name"]: c["value"] for c in state.get("cookies", [])}
+```
+
+**The correct approach — prioritize `.google.com` over regional domains:**
+```python
+# ✓ CORRECT — .google.com cookies ALWAYS win over regional duplicates.
+# Proven working with Israeli users (.google.co.il), and applicable to all 60+
+# regional Google domains (.google.de, .google.co.jp, .google.com.br, etc.)
+def _extract_cookies(raw_cookies: list) -> dict:
+    result = {}
+    result_domains = {}
+    for c in raw_cookies:
+        domain = c.get("domain", "")
+        name = c.get("name", "")
+        if not _is_allowed_domain(domain) or not name:
+            continue
+        # Don't overwrite a .google.com cookie with a regional duplicate
+        if name not in result or domain == ".google.com":
+            result[name] = c.get("value", "")
+            result_domains[name] = domain
+    return result
+```
+
+**Why this matters:** When httpx sends cookies to `notebooklm.google.com`, the
+service only trusts cookies from `.google.com`. The regional `.google.co.il`
+value for `__Secure-1PSID` is a different session token — valid on `google.co.il`
+but rejected by `notebooklm.google.com`. The request gets 302'd to the Google
+login page and `fetch_tokens()` fails with "Session expired."
+
+**How to handle dual formats in `load_cookies()`:**
+
+The auth file may contain cookies in either format depending on how it was saved:
+- Dict format (CLI's own extraction): `{"cookies": {"SID": "val", ...}}`
+- List format (raw playwright state): `{"cookies": [{name, value, domain, ...}, ...]}`
+
+```python
+def load_cookies() -> dict:
+    data = json.loads(auth_file.read_text())
+    cookies = data.get("cookies", {})
+    # Handle raw playwright state-save format
+    if isinstance(cookies, list):
+        cookies = _extract_cookies(cookies)  # with domain priority
+        if not cookies:
+            raise AuthError("No Google cookies found")
+    return cookies
 ```
 
 **Legacy fallback (chrome-devtools-mcp):**
@@ -153,7 +232,9 @@ save_cookies(cookies)  # ~/.config/cli-web-<app>/auth.json
 **Phase B — Token extraction via HTTP (repeatable):**
 ```python
 # Once you have valid cookies, HTTP GET works for token extraction
-resp = httpx.get(APP_URL, headers={"Cookie": cookie_header(cookies)})
+resp = httpx.get(APP_URL, cookies=cookies, headers={
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+})
 csrf = re.search(r'"SNlM0e":"([^"]+)"', resp.text).group(1)
 session_id = re.search(r'"FdrFJe":"([^"]+)"', resp.text).group(1)
 ```
@@ -165,7 +246,7 @@ Token refresh uses plain HTTP with those cookies — no browser required for sub
 ```python
 def refresh_tokens(self):
     """Re-fetch tokens from homepage. Cookies are still valid."""
-    resp = httpx.get(APP_URL, headers={"Cookie": self.cookie_header})
+    resp = httpx.get(APP_URL, cookies=self.cookies)
     self.csrf, self.session_id = extract_tokens(resp.text)
 ```
 
@@ -186,6 +267,66 @@ auth login --cookies-json <file>  # manual import (fallback)
 auth status             # show cookies + token validity
 auth refresh            # re-fetch tokens via HTTP
 ```
+
+### Known Pitfalls (from production bugs)
+
+| Pitfall | Symptom | Fix |
+|---------|---------|-----|
+| `subprocess.run()` with `open --persistent` | `input()` never reached; user sees "Aborted!" | Use `Popen()` so browser runs in background |
+| Naive cookie flattening `{c["name"]: c["value"]}` | Auth works in US but fails in Israel, Germany, Japan, etc. | Prioritize `.google.com` over regional domains |
+| `load_cookies()` expects dict but gets list | `TypeError` or empty cookies | Check `isinstance(cookies, list)` and convert |
+| `state-save` from non-authenticated session | All cookies captured but none valid — redirects to login | Verify user logged in before saving state |
+| Missing `User-Agent` header on token fetch | Some services reject bare HTTP clients | Always include a browser-like User-Agent |
+
+## Environment Variable Auth (CI/CD)
+
+For CI/CD pipelines where browser login is impossible, support an environment variable:
+
+```python
+import os, json
+
+env_auth = os.environ.get(f"CLI_WEB_{APP_UPPER}_AUTH_JSON")
+if env_auth:
+    return json.loads(env_auth)
+```
+
+This allows headless environments to inject auth as a JSON string without
+needing `auth login`.
+
+## Context Commands (Stateful Apps)
+
+For apps with persistent context (notebooks, projects, boards):
+
+- `use <id>` — set the active context, stored in `context.json`
+- `status` — show the current context (active notebook/project/board)
+
+Store context at `~/.config/cli-web-<app>/context.json` alongside `auth.json`.
+
+## Packaging Rules
+
+- `setup.py` should NOT include Playwright Python as a dependency — only `click`, `httpx`,
+  and other runtime deps. Playwright is a dev/user tool invoked via `npx`, not a Python import.
+- No `--from-chrome` or `--from-browser` flags — playwright-cli is the only browser integration.
+
+## Simplified API Key Auth
+
+For sites that use API key auth (simple header like `api-key: <KEY>`),
+implement a minimal auth module — no browser needed:
+
+```python
+# auth.py for API key auth
+def login(api_key: str):
+    save_auth({"api_key": api_key})
+
+def inject_auth(headers: dict) -> dict:
+    auth = load_auth()
+    if auth and auth.get("api_key"):
+        headers["api-key"] = auth["api_key"]
+    return headers
+```
+
+The full playwright-cli browser login is only needed for browser-delegated
+auth (Google apps, Microsoft 365, etc.).
 
 ## Config File Location
 

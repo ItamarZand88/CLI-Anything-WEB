@@ -18,13 +18,13 @@ Target: $ARGUMENTS
 
 ## Process
 
-> **Skills used:** `standards` (70-check validation)
+> **Skills used:** `standards` (75-check validation)
 
 1. Parse the target path to extract `<app>` name
 2. Resolve the `agent-harness/` root and `cli_web/<app>/` package path
 3. Run all 11 categories of checks below
 4. Print the report in the format shown at the bottom
-5. Exit with summary: PASS if all 68 checks pass, FAIL otherwise
+5. Exit with summary: PASS if all 75 checks pass, FAIL otherwise
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ Target: $ARGUMENTS
 
 ## Validation Checklist
 
-Invoke the `standards` skill which defines the complete 70-check
+Invoke the `standards` skill which defines the complete 75-check
 validation across 11 categories:
 
 1. Directory Structure (6 checks)
@@ -70,7 +70,7 @@ REPL Quality          (X/3 checks passed)
 Error Handling        (X/8 checks passed)
 UX Patterns           (X/4 checks passed)
 
-Overall: PASS|FAIL (X/68 checks)
+Overall: PASS|FAIL (X/75 checks)
 ```
 
 For each FAIL, print a detail line below the category:

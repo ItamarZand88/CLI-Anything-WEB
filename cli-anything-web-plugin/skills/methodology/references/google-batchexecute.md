@@ -1,5 +1,17 @@
 # Google batchexecute RPC Protocol
 
+## Contents
+- When You'll See This
+- URL Format
+- Request Headers
+- Request Body Encoding
+- Response Decoding
+- Token Extraction
+- RPC Method Discovery
+- Recommended Code Organization
+- Auth Refresh Pattern
+- Cookie Priority for Google Apps (Critical)
+
 Google's internal RPC protocol used by NotebookLM, Google Keep, Google Contacts,
 Gemini/Bard, and other Google web apps. Unlike REST APIs, all operations go through
 a single endpoint with method IDs in query parameters.
@@ -204,3 +216,37 @@ async def call_rpc(self, method, params):
         self.csrf, self.session_id = await fetch_tokens(self.cookies)
         return await self._do_rpc(method, params)
 ```
+
+## Cookie Priority for Google Apps (Critical)
+
+Google's auth cookies (`SID`, `__Secure-1PSID`, `__Secure-3PSID`, `HSID`, `SAPISID`,
+etc.) may exist on multiple domains simultaneously when captured by playwright
+`state-save`. For an Israeli user, the state file will contain:
+
+```
+SID: .google.com         → "g.a0007whSv1rz..."  ← CORRECT for batchexecute
+SID: .youtube.com        → "g.a0007whSvXyz..."
+SID: .google.co.il       → "g.a0007whSvAbc..."  ← WRONG for batchexecute
+__Secure-1PSID: .google.com    → "g.a0007whSv1rz..."  ← CORRECT
+__Secure-1PSID: .google.co.il  → "g.a0007whSvDef..."  ← WRONG
+```
+
+When you flatten `{c["name"]: c["value"] for c in cookies}`, the LAST value wins.
+If `.google.co.il` appears after `.google.com` in the list, the regional cookie
+overwrites the base domain cookie. The batchexecute endpoint at
+`<app>.google.com/_/<Service>/data/batchexecute` only trusts `.google.com` cookies.
+Sending the `.google.co.il` value causes a redirect to `accounts.google.com`.
+
+**Always use domain-priority extraction:**
+```python
+# Prioritize .google.com over regional domains
+for c in raw_cookies:
+    domain = c.get("domain", "")
+    name = c.get("name", "")
+    if name not in result or domain == ".google.com":
+        result[name] = c.get("value", "")
+```
+
+This affects all Google batchexecute apps (NotebookLM, Google Keep, Gemini/Bard,
+Google Contacts, etc.) for users in any of the 60+ regional Google domains.
+See `auth-strategies.md` "Cookie domain priority" for the complete pattern.

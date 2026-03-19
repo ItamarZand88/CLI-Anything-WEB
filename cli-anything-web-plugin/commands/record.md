@@ -28,6 +28,10 @@ Target URL: $ARGUMENTS
 Invoke the `capture` skill for Phase 1 traffic recording.
 The capture skill handles everything: site assessment, setup, trace, explore, parse.
 
+**Difference from `/cli-anything-web`:** This command records traffic ONLY — it does not
+generate a CLI. Use this when you want to explore a site's API surface before committing
+to full CLI generation, or when adding coverage data to an existing capture.
+
 ## Interactive Mode
 
 Ask the user at each major section:
@@ -35,3 +39,8 @@ Ask the user at each major section:
 - "I found a settings area. Should I capture these endpoints too?"
 
 This gives the user control over what gets recorded.
+
+## Output
+
+Traffic is saved to `<app>/traffic-capture/raw-traffic.json`. To generate a CLI
+from this data later, run `/cli-anything-web:cli-anything-web <url>`.

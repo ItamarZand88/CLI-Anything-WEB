@@ -30,6 +30,10 @@ If implementation is incomplete, invoke the `methodology` skill first.
 
 ## Auth MUST Be Working Before Any E2E Test
 
+**Exception for no-auth sites:** If the site requires no authentication
+(public API, no login needed), skip auth setup entirely. E2E tests can run
+without auth. The rules below apply only to CLIs that require authentication.
+
 This is the #1 rule for web CLI testing. Before writing or running any E2E test:
 
 1. Ensure playwright-cli is available (`npx @playwright/cli@latest --version`)
@@ -186,7 +190,8 @@ print(f"[verify] Created board id={data['id']} name={data['name']}")
 
 ### Exception Testing
 
-Unit tests MUST verify that the client raises the correct typed exceptions:
+Unit tests MUST verify that the client raises the correct typed exceptions — without
+these assertions, a client that always raises generic `Exception` would pass the suite:
 
 ```python
 # test_core.py
@@ -212,7 +217,8 @@ def test_json_error_output(cli_runner):
 
 ### Helper Function Testing
 
-Unit tests MUST cover the shared helpers in `utils/helpers.py`:
+Unit tests MUST cover the shared helpers in `utils/helpers.py` — these are used by
+every command, so a bug here silently breaks the entire CLI:
 
 ```python
 # test_core.py — partial ID resolution
@@ -256,7 +262,9 @@ def test_handle_errors_unknown_exits_2():
 
 ### Round-Trip Test Requirement
 
-Every E2E live test MUST include at minimum a create-read-verify round-trip:
+Every E2E live test MUST include at minimum a create-read-verify round-trip —
+a test that only creates without reading back cannot detect silent data loss or
+malformed request bodies:
 
 ```
 create entity -> read it back -> verify fields match -> update ->
@@ -265,12 +273,19 @@ verify update -> delete -> verify 404 on read
 
 Tests that only create without reading back give false confidence.
 
+**For read-only CLIs:** The round-trip becomes: list resources → get one by ID →
+verify fields match between list and detail views. No create/update/delete
+round-trip is needed.
+
 ### The `_resolve_cli` Pattern
 
 See `references/resolve-cli-pattern.md` for the complete helper function and
 `TestCLISubprocess` class. Key rules:
 - Always use `_resolve_cli("cli-web-<app>")` — never hardcode module paths
 - Do NOT set `cwd` — installed commands must work from any directory
+- On Windows, always pass `encoding="utf-8", errors="replace"` to `subprocess.run()`
+  in tests — API responses may contain emoji or non-ASCII characters that crash
+  the default cp1252 encoding.
 - Use `CLI_WEB_FORCE_INSTALLED=1` in CI
 
 ### TEST.md Part 1 — Write As You Go
@@ -337,6 +352,16 @@ When all tests pass, invoke the `standards` skill to
 publish and verify the CLI.
 
 Do NOT skip to publishing — all tests must pass first.
+
+---
+
+## Integration
+
+| Relationship | Skill |
+|-------------|-------|
+| **Preceded by** | `methodology` (Phase 2) |
+| **Followed by** | `standards` (Phase 4) |
+| **References** | `resolve-cli-pattern.md`, `test-code-examples.md`, `exception-testing-examples.md` |
 
 ---
 

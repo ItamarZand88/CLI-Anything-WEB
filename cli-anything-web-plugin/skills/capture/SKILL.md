@@ -24,6 +24,21 @@ Do NOT start unless:
 
 If playwright-cli fails, fall back to chrome-devtools-mcp (see HARNESS.md Tool Hierarchy).
 
+### Public API Shortcut
+
+If the target site has a **documented public REST/JSON API** (e.g., Hacker News Firebase API, Dev.to API, Reddit API, Wikipedia API), browser capture is optional:
+
+1. Probe the API endpoints directly with `httpx` or `curl`
+2. Save responses as `<app>/traffic-capture/raw-traffic.json`
+3. Skip to Phase 2 (methodology)
+
+This applies when:
+- API docs exist (OpenAPI/Swagger, developer docs page, `/api/` prefix)
+- The API is publicly accessible without browser-specific auth
+- Endpoints return JSON (not HTML)
+
+If unsure whether a public API exists, proceed with browser capture as normal.
+
 ---
 
 ## Step 1: Setup
@@ -44,6 +59,7 @@ npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
 # Do NOT re-navigate or restart when you see this. The session is still open.
 
 # If login required -- ask user to log in, wait for confirmation
+# If NO login is required (public site), skip state-save and proceed to Step 2.
 
 # Save auth state BEFORE tracing
 npx @playwright/cli@latest -s=<app> state-save <app>/traffic-capture/<app>-auth.json
@@ -124,9 +140,21 @@ Based on Steps 2a-2c, determine the capture strategy:
 - **SSR + __NEXT_DATA__** -- focus on client-side navigations
 - **Google batchexecute** -- trace + eval WIZ_global_data for tokens
 - **Cloudflare/protected** -- add delays, note rate limits
+- **Plain HTML / no framework** — no SPA detected, no `__NEXT_DATA__` or similar.
+  Check for a public API (documented REST endpoint, Firebase, etc.). If found,
+  use the API directly (skip HTML scraping). If not, HTML scraping with
+  BeautifulSoup4 is the strategy — capture page HTML for analysis.
 - **No API found** -- try more internal navigation, or site may not be CLI-suitable
 
 Log findings to terminal. No separate RECON-REPORT.md needed.
+
+**Assessment checklist** (copy and track):
+```
+- [ ] Framework detection (2a) — identified: ___
+- [ ] Protection check (2b) — result: ___
+- [ ] Quick API probe (2c) — endpoints found: ___
+- [ ] Strategy chosen (2d) — approach: ___
+```
 
 ---
 
@@ -169,7 +197,9 @@ npx @playwright/cli@latest -s=<app> snapshot
 | Search app | Search query, Results, Filters, Pagination | Futbin: player search, prices |
 | Chat/Query app | Send message, Receive response, History | NotebookLM: ask, get sources |
 
-**The trace MUST contain at least one WRITE operation before stopping.**
+**The trace MUST contain at least one WRITE operation before stopping** — without
+captured POST/PUT/DELETE bodies the methodology skill cannot generate create/update
+commands, and the CLI becomes read-only by accident (see exception below).
 
 **Exception for read-only sites:** If the site is genuinely read-only (search engine,
 dashboard, analytics viewer with no create/update/delete), the trace may contain only
@@ -202,6 +232,8 @@ if not posts:
 "
 ```
 
+If you noted "read-only site" in Step 3, this warning is expected. Proceed to methodology.
+
 ---
 
 ## Step 5: Close
@@ -228,8 +260,19 @@ for chrome-devtools-mcp fallback instructions.
 
 ## Next Step
 
-When capture is complete and raw-traffic.json has WRITE operations, invoke
-`methodology` to analyze the traffic and build the CLI.
+When capture is complete (raw-traffic.json has WRITE operations, or the site is
+read-only with only GET requests), invoke `methodology` to analyze the traffic
+and build the CLI.
+
+---
+
+## Integration
+
+| Relationship | Skill |
+|-------------|-------|
+| **Preceded by** | None — this is the first phase |
+| **Followed by** | `methodology` (Phase 2) |
+| **References** | `playwright-cli-tracing.md`, `playwright-cli-sessions.md`, `playwright-cli-advanced.md`, `framework-detection.md`, `protection-detection.md`, `api-discovery.md` |
 
 ---
 
