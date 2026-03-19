@@ -140,27 +140,14 @@ correct POST bodies, CSRF tokens, request encoding). This is the #1 gap to watch
 
 ## Post-Smoke-Test: Generate Skill + Update README (Parallel)
 
-After smoke tests pass, three tasks remain — **all independent, dispatch as
-three parallel agents in a SINGLE message:**
+After smoke tests pass, three tasks remain — all independent, dispatch in parallel:
 
 ```
-Agent tool call 1: "Generate Claude Skill at .claude/skills/<app>-cli/SKILL.md
-  using the template below. Read cli_web/<app>/README.md and <app> --help
-  for command details."
-
-Agent tool call 2: "Update the repository README.md at <git-root>/README.md:
-  add cli-web-<app> to the examples table, the try-them section, and the
-  supported protocols table if it uses a new protocol."
-
-Agent tool call 3: "Write cli_web/<app>/README.md with installation, usage
-  examples, auth setup, JSON output, and testing instructions."
+┌─ Agent 1: Generate Claude Skill (.claude/skills/<app>-cli/SKILL.md)
+├─ Agent 2: Update repository README.md (add CLI to examples table)
+└─ Agent 3: Write/update cli_web/<app>/README.md (package docs)
+All 3 are independent — launch in one message with run_in_background: true
 ```
-
-All 3 write to DIFFERENT files — no conflicts. Launch in one message to run
-concurrently. Each agent needs: the app name, the command structure (from
-`<app> --help`), and the protocol/auth type from `<APP>.md`.
-
-Below are the detailed instructions for each task (for agents or manual execution):
 
 ### Generate Claude Skill
 
