@@ -102,7 +102,7 @@ bash cli-anything-web-plugin/verify-plugin.sh
 ## Tech Stack for Generated CLIs
 
 - **CLI framework**: Click (with `@click.group(invoke_without_command=True)`)
-- **HTTP client**: httpx (with typed exception mapping per status code)
+- **HTTP client**: httpx (default), or curl_cffi for Cloudflare-protected sites (TLS fingerprint impersonation)
 - **HTML parsing**: BeautifulSoup4 (for SSR sites)
 - **Output**: Rich (`>=13.0`) for tables, spinners, colored status; custom table formatting
 - **Auth flow**: playwright-cli browser login → cookie extraction → `auth.json`; env var fallback for CI

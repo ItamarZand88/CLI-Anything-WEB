@@ -168,6 +168,16 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
   See `references/exception-hierarchy-example.py` for a complete example.
 
 - **`client.py`** -- HTTP client with exception mapping and auth retry:
+  - **HTTP library choice:**
+    - `httpx` (default) — for most sites (REST, GraphQL, batchexecute)
+    - `curl_cffi` — for Cloudflare-protected sites. Uses Chrome TLS fingerprint
+      impersonation to bypass bot detection without cookies or auth:
+      ```python
+      from curl_cffi import requests as curl_requests
+      resp = curl_requests.get(url, impersonate="chrome")
+      ```
+      Use `curl_cffi` when Phase 1 detects Cloudflare (`cf-ray` header, challenge page).
+      Add `curl_cffi, beautifulsoup4` to `setup.py` instead of `httpx`.
   - Centralized auth header/cookie injection
   - Automatic JSON parsing with response body verification
   - **Status code → exception mapping**: 401/403→`AuthError`, 404→`NotFoundError`, 429→`RateLimitError`, 5xx→`ServerError`

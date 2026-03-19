@@ -35,11 +35,38 @@ npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.
 
 ### Impact on CLI Generation
 
+Cloudflare blocks standard HTTP clients (`httpx`, `requests`) because their TLS
+fingerprints don't match real browsers. Two strategies:
+
+**Strategy 1: `curl_cffi` with TLS impersonation (preferred)**
+
+Use `curl_cffi` instead of `httpx` — it impersonates Chrome's TLS fingerprint,
+which passes Cloudflare without any cookies or browser session:
+
+```python
+from curl_cffi import requests as curl_requests
+
+resp = curl_requests.get("https://protected-site.com/", impersonate="chrome")
+# Returns 200 — Cloudflare thinks it's a real browser
+```
+
+Add `curl_cffi` and `beautifulsoup4` to `setup.py` dependencies (instead of `httpx`).
+This approach requires NO auth, NO cookies, NO browser session. It works because
+Cloudflare primarily checks the TLS fingerprint, not the cookie jar.
+
+**Strategy 2: Browser cookies (fallback)**
+
+If `curl_cffi` doesn't work (some sites check more than TLS), fall back to:
+- Use playwright `state-save` to capture `cf_clearance` + `__cf_bm` cookies
+- Pass cookies to `httpx` requests
+- Cookies expire — users must re-run `auth login` periodically
+
+**Strategy 1 is strongly preferred** — it's simpler, needs no auth, and doesn't expire.
+
+### General Cloudflare rules:
 - Add realistic delays between requests (1-3 seconds)
 - Respect rate limits strictly — Cloudflare escalates protections on abuse
-- If challenge pages appear, the generated CLI must note that manual browser
-  auth may be required for the first session
-- Consider building cookie persistence into the auth flow
+- Never retry failed requests rapidly — exponential backoff only
 
 ---
 
