@@ -167,14 +167,25 @@ def auth_status(as_json):
 
 @auth.command("refresh")
 def auth_refresh():
-    """Re-extract tokens from NotebookLM homepage."""
+    """Re-extract CSRF and session tokens from NotebookLM homepage.
+
+    This refreshes tokens when they've rotated but cookies are still valid.
+    If cookies themselves have expired, run 'auth login' instead.
+    """
     try:
-        from .core.auth import load_cookies, fetch_tokens
+        from .core.auth import load_cookies, fetch_tokens, _save_auth
         cookies = load_cookies()
         csrf, session_id, build_label = fetch_tokens(cookies)
+        # Save the refreshed session info
+        from .core.auth import AUTH_DIR
+        import json
+        session_file = AUTH_DIR / "session.json"
+        session_file.write_text(json.dumps({
+            "at": csrf, "f_sid": session_id, "bl": build_label,
+        }), encoding="utf-8")
         click.echo(f"[OK] Tokens refreshed -- session {session_id[:8]}...")
     except AuthError as e:
-        error(str(e))
+        error(f"{e}\n\nTokens AND cookies expired. Run: cli-web-notebooklm auth login")
 
 
 # ── Context commands ─────────────────────────────────────────────────────────
