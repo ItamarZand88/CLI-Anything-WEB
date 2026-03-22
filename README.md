@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="bannerGif10.gif" alt="CLI Anything Web" width="100%">
+  <img src="assets/bannerGif10.gif" alt="CLI Anything Web" width="100%">
 </p>
 
 <p align="center">
@@ -143,28 +143,9 @@ gh-trending> exit
 
 The plugin runs a 4-phase pipeline, fully automated by Claude:
 
-```mermaid
-graph LR
-    A["🌐 URL"] --> B["📡 Capture"]
-    B --> C["🔍 Analyze"]
-    C --> D["⚙️ Generate"]
-    D --> E["📦 Publish"]
-
-    B -.- B1["Playwright browser\nFramework detection\nTraffic recording"]
-    C -.- C1["Protocol identification\nEndpoint mapping\nCLI architecture"]
-    D -.- D1["Python CLI + tests\nhttpx client\nAuth & REPL"]
-    E -.- E1["pip install -e .\nSmoke tests\nOn your PATH"]
-
-    style A fill:#4a90d9,stroke:#2c5f8a,color:#fff
-    style B fill:#e8944a,stroke:#b36d2e,color:#fff
-    style C fill:#9b59b6,stroke:#7d3c98,color:#fff
-    style D fill:#2ecc71,stroke:#1a9c4e,color:#fff
-    style E fill:#e74c3c,stroke:#c0392b,color:#fff
-    style B1 fill:#fff3e0,stroke:#e8944a,color:#000
-    style C1 fill:#f3e5f5,stroke:#9b59b6,color:#000
-    style D1 fill:#e8f5e9,stroke:#2ecc71,color:#000
-    style E1 fill:#fce4ec,stroke:#e74c3c,color:#000
-```
+<p align="center">
+  <img src="assets/pipeline.png" alt="CLI-Anything-Web Pipeline" width="100%">
+</p>
 
 <br>
 
@@ -252,19 +233,64 @@ This project is directly inspired by [CLI-Anything](https://github.com/HKUDS/CLI
 | **Challenges** | API surface discovery, state management | Anti-bot protection, undocumented APIs, session expiry |
 | **Output** | Same: Click CLI + REPL + `--json` + tests | Same: Click CLI + REPL + `--json` + tests |
 
-Both projects share the same CLI architecture (Click, REPL mode, `--json` output, namespace packages, subprocess tests) and the same goal: **making software agent-native through CLI interfaces**. CLI-Anything tackles the desktop side; CLI-Anything-Web tackles the web side.
+Together they cover the full spectrum: **CLI-Anything** handles desktop software, **CLI-Anything-Web** handles the web. Same CLI architecture, same agent-native philosophy, different domains.
+
+<br>
+
+## What's Next
+
+We're actively building more CLIs and improving the plugin. Here's what's coming:
+
+- **More example CLIs** — Jira, Notion, Monday.com, Spotify, LinkedIn
+- **Audio/video generation** — Suno, ElevenLabs, Midjourney
+- **Smarter traffic analysis** — Auto-detect auth flows, pagination patterns, WebSocket streams
+- **CI/CD integration** — Run generated CLIs in GitHub Actions with env-var auth
+- **Community CLI registry** — Share and install CLIs built by other users
+
+Want to see a specific website supported? [Open an issue](https://github.com/ItamarZand88/CLI-Anything-WEB/issues/new) with the URL.
 
 <br>
 
 ## Contributing
 
-Contributions are welcome! Whether it's a new example CLI, a plugin improvement, or a bug fix:
+We'd love your help! The easiest ways to contribute:
 
-1. **Fork** the repo
-2. **Create** a feature branch (`git checkout -b feat/my-feature`)
-3. **Make** your changes
-4. **Validate** the plugin: `bash cli-anything-web-plugin/verify-plugin.sh`
-5. **Submit** a PR
+**Build a CLI for a new website** — Run `/cli-anything-web <url>` on any site you use daily, fix any issues, and submit a PR. Your CLI becomes a reference implementation that helps others.
+
+**Improve the plugin** — The pipeline skills in `cli-anything-web-plugin/skills/` contain the methodology. Found a pattern the plugin doesn't handle? Add it.
+
+**Report bugs** — If a generated CLI breaks (website changed their API, anti-bot protection added), [open an issue](https://github.com/ItamarZand88/CLI-Anything-WEB/issues). Include the `--json` output so we can diagnose.
+
+```bash
+# Standard contribution flow
+git clone https://github.com/ItamarZand88/CLI-Anything-WEB.git
+cd CLI-Anything-WEB
+git checkout -b feat/my-feature
+# ... make changes ...
+bash cli-anything-web-plugin/verify-plugin.sh  # validate
+git push origin feat/my-feature
+# Open a PR
+```
+
+<br>
+
+## Star History
+
+If this project is useful to you, consider giving it a star. It helps others discover it.
+
+<p align="center">
+  <a href="https://github.com/ItamarZand88/CLI-Anything-WEB/stargazers">
+    <img src="https://img.shields.io/github/stars/ItamarZand88/CLI-Anything-WEB?style=for-the-badge&logo=github&color=yellow" alt="Stars">
+  </a>
+  &nbsp;
+  <a href="https://github.com/ItamarZand88/CLI-Anything-WEB/network/members">
+    <img src="https://img.shields.io/github/forks/ItamarZand88/CLI-Anything-WEB?style=for-the-badge&logo=github&color=blue" alt="Forks">
+  </a>
+  &nbsp;
+  <a href="https://github.com/ItamarZand88/CLI-Anything-WEB/issues">
+    <img src="https://img.shields.io/github/issues/ItamarZand88/CLI-Anything-WEB?style=for-the-badge&color=orange" alt="Issues">
+  </a>
+</p>
 
 <br>
 
@@ -275,5 +301,6 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 <p align="center">
-  Built with <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>
+  Built with <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> &nbsp;|&nbsp;
+  Inspired by <a href="https://github.com/HKUDS/CLI-Anything">CLI-Anything</a>
 </p>
