@@ -1,18 +1,37 @@
 ---
 name: capture
 description: >
-  Capture HTTP traffic from web apps using playwright-cli. Includes site assessment
-  (framework detection, protection checks, API discovery) and full traffic recording
-  with tracing. Use when recording traffic, starting Phase 1, capturing API calls,
-  analyzing a web app's architecture, or detecting frameworks and protections.
-version: 0.2.0
+  Capture HTTP traffic from web apps using playwright-cli. Includes site fingerprinting
+  (framework detection, protection checks, iframe detection, auth detection, API discovery)
+  and full traffic recording with tracing and optional HAR output.
+  TRIGGER when: "record traffic from", "capture API calls from", "start Phase 1 for",
+  "analyze traffic from URL", "assess site", "site fingerprint", "start capture for",
+  "open browser for", or any URL is given as the first step of CLI generation.
+  DO NOT trigger for: Phase 2 implementation, test writing, or quality validation.
+version: 0.3.0
 ---
 
 # Traffic Capture (Phase 1)
 
 Assess the site, then capture comprehensive HTTP traffic. This skill combines
-site assessment (formerly separate "recon") with full traffic recording in a
-single browser session.
+site assessment with full traffic recording in a single browser session.
+
+---
+
+## CRITICAL EXECUTION RULES
+
+> **NEVER use `run_in_background: true` for ANY playwright-cli command.**
+> All playwright-cli commands must run in the foreground with appropriate timeouts.
+> Background execution causes task ID tracking failures — the command completes
+> before you can read the output. See `references/playwright-cli-commands.md`
+> for the timeout table.
+
+> **NEVER use `eval` for complex expressions.** `eval` fails silently on ternaries,
+> comma operators, and multi-branch logic with "not well-serializable" errors.
+> Use `run-code` instead. See `references/framework-detection.md` for details.
+
+> **ESM context — no `require()`.** `run-code` uses ESM. Use `await import('fs')`
+> instead of `require('fs')`. See `references/playwright-cli-commands.md`.
 
 ---
 
@@ -39,6 +58,18 @@ This applies when:
 
 If unsure whether a public API exists, proceed with browser capture as normal.
 
+### Resume from Checkpoint
+
+Before starting, check if a previous capture session exists:
+
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/capture-checkpoint.py restore <app>
+```
+
+If a checkpoint exists, read the `guidance` field and **resume from the last
+completed step** instead of starting over. This prevents duplicate work when
+sessions are interrupted.
+
 ---
 
 ## Step 1: Setup
@@ -57,62 +88,106 @@ npx @playwright/cli@latest -s=<app> open <url> --headed --persistent
 # IMPORTANT — "Browser opened with pid..." in command output means the daemon
 # RE-ATTACHED to the existing browser, NOT that a new session was created.
 # Do NOT re-navigate or restart when you see this. The session is still open.
-
-# If login required -- ask user to log in, wait for confirmation
-# If NO login is required (public site), skip state-save and proceed to Step 2.
-
-# Save auth state BEFORE tracing
-npx @playwright/cli@latest -s=<app> state-save <app>/traffic-capture/<app>-auth.json
 ```
+
+**Do NOT ask the user to log in yet** — Step 2 will determine if auth is needed.
 
 ---
 
-## Step 2: Quick Site Assessment
+## Step 2: Site Fingerprint (Single Command)
 
-Before full capture, run a quick assessment to guide the capture strategy.
-This takes ~60 seconds and prevents wasted effort.
+Run the all-in-one site fingerprint command instead of individual eval calls.
+This is faster, more reliable, and detects framework + protection + iframes +
+auth requirements in one shot.
 
-### 2a. Framework Detection
-
-```bash
-# Next.js Pages Router
-npx @playwright/cli@latest -s=<app> eval "document.getElementById('__NEXT_DATA__')?.textContent?.substring(0, 200)"
-
-# Next.js App Router (RSC)
-npx @playwright/cli@latest -s=<app> eval "typeof self !== 'undefined' && document.querySelector('script[src*=\"_next\"]')?.src || 'no-next-app'"
-
-# Nuxt
-npx @playwright/cli@latest -s=<app> eval "typeof window.__NUXT__ !== 'undefined' ? 'nuxt' : 'not-nuxt'"
-
-# Google batchexecute
-npx @playwright/cli@latest -s=<app> eval "typeof WIZ_global_data !== 'undefined' ? 'google-batchexecute' : 'not-google'"
-
-# Generic SPA root
-npx @playwright/cli@latest -s=<app> eval "document.querySelector('#app, #root, #__next, #__nuxt')?.id || 'no-spa-root'"
-```
-
-See `references/framework-detection.md` for the complete detection command set.
-
-### 2b. Protection Check
-
-Use `run-code` (not `eval`) — multi-line JS and comma-selectors break `eval` serialization:
+**Use the script file** — multi-line JS with arrow functions and optional chaining
+fails in playwright-cli's single-line command parser. The script file approach
+has been tested and works reliably:
 
 ```bash
-npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const body = document.body.textContent.toLowerCase(); const html = document.documentElement.outerHTML; const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); return { cloudflare: body.includes('cloudflare') || html.includes('cf-ray') || html.includes('__cf_bm'), captcha: !!(document.querySelector('.g-recaptcha') || document.querySelector('#px-captcha') || document.querySelector('.h-captcha')), akamai: scripts.some(s => s.includes('akamai')), datadome: scripts.some(s => s.includes('datadome')), perimeterx: scripts.some(s => s.includes('perimeterx') || s.includes('/px/')), rateLimit: html.includes('429') || body.includes('too many requests') }; }); }"
+npx @playwright/cli@latest -s=<app> run-code "$(grep -v '^\s*//' ${CLAUDE_PLUGIN_ROOT}/scripts/site-fingerprint.js | tr '\n' ' ')"
 ```
 
-Also check robots.txt:
+> **IMPORTANT:** The `site-fingerprint.js` script must be loaded via the command
+> above. Do NOT copy-paste the JS inline — it will fail with SyntaxError.
+> The `grep -v` strips comments and `tr` joins lines for single-line execution.
+```
+
+### Interpret fingerprint results
+
+**Framework:**
+- `googleBatch: true` → Google batchexecute RPC protocol. Generate `rpc/` subpackage.
+- `nextPages: true` → Next.js Pages Router. Extract `__NEXT_DATA__` + trace `/_next/data/` fetches.
+- `nextApp: true` → Next.js App Router. Trace client navigations for RSC payloads.
+- `nuxt: true` → Nuxt. Extract `__NUXT__` + trace API calls.
+- No framework flags → likely SSR HTML or custom SPA. Check for REST API in probe.
+
+**Protection:**
+- `cloudflare: true` → Use `curl_cffi` with `impersonate='chrome'` in generated CLI.
+- `awsWaf: true` → Need WAF token cookie via browser. Use curl_cffi for API calls.
+- `captcha: true` → Add pause-and-prompt to auth flow.
+- `serviceWorker: true` → Site has an active Service Worker that may intercept requests
+  and hide them from traces. Note in assessment.md. Generated CLI's auth.py should use
+  `service_workers="block"` in browser context. See `references/protection-detection.md`.
+
+**Iframes:**
+- `iframeCount > 0` → App is iframe-embedded. **Re-run detection inside the iframe:**
+
 ```bash
-npx @playwright/cli@latest -s=<app> goto <url>/robots.txt
-npx @playwright/cli@latest -s=<app> snapshot
+npx @playwright/cli@latest -s=<app> run-code "async page => {
+  const frame = page.frames()[1];
+  if (!frame) return { error: 'no iframe found' };
+  return await frame.evaluate(() => ({
+    framework: {
+      nextPages: !!document.getElementById('__NEXT_DATA__'),
+      googleBatch: typeof WIZ_global_data !== 'undefined',
+      spaRoot: document.querySelector('#app, #root')?.id || null,
+      vite: !!document.querySelector('script[type=\"module\"][src*=\"/@vite\"]') || !!document.querySelector('script[type=\"module\"][src*=\"/src/\"]')
+    },
+    title: document.title,
+    bodyPreview: document.body?.textContent?.substring(0, 300) || ''
+  }));
+}"
 ```
 
-> **SPA navigation note:** `goto` has a 5s snapshot timeout and may fail on SPAs.
-> If it times out, use `run-code` instead:
-> `npx @playwright/cli@latest -s=<app> run-code "async page => { await page.goto('<url>'); await page.waitForLoadState('networkidle'); }"`
-> For internal links (e.g. clicking nav items), prefer `click` over `goto`.
+Common iframe pattern: Google Labs apps (Stitch, MusicFX, ImageFX) embed a
+Vite/React SPA in an iframe. Parent has `WIZ_global_data`, iframe has the real app.
+See `references/playwright-cli-advanced.md` for iframe interaction patterns.
 
-See `references/protection-detection.md` for detailed checks.
+**Note:** `snapshot` and `click <ref>` auto-resolve iframes. Only use `run-code`
+for iframe interaction when built-in commands fail.
+
+### Auth detection (BEFORE exploration)
+
+Check the fingerprint auth fields:
+
+| Condition | Meaning | Action |
+|-----------|---------|--------|
+| `hasLoginButton && !hasUserMenu` | Login required, not logged in | Ask user to log in NOW |
+| `hasUserMenu` | Already logged in | Proceed to capture |
+| `!hasLoginButton && !hasUserMenu` | No auth needed (public site) | Skip auth, proceed |
+
+**If auth is needed:**
+1. Tell the user: "This site requires login. Please log in in the browser window."
+2. Wait for user confirmation
+3. Save auth state:
+```bash
+npx @playwright/cli@latest -s=<app> state-save <app>/traffic-capture/<app>-auth.json
+```
+
+**If NO auth is needed:** Skip directly to Step 2b.
+
+### 2b. Classify Site Profile
+
+Based on fingerprint results AND what you see in the UI, classify the site:
+
+| Profile | Auth? | Operations | Exploration Focus |
+|---------|-------|-----------|-------------------|
+| **Auth + CRUD** | Yes | Create, Read, Update, Delete | Full CRUD per resource |
+| **Auth + Generation** | Yes | Generate, Poll, Download | Generation lifecycle + projects |
+| **Auth + Read-only** | Yes | Read, Search, Export | Read operations + auth flow |
+| **No-auth + CRUD** | No/Optional | Full CRUD | Skip auth, full CRUD |
+| **No-auth + Read-only** | No | Read, Search | Minimal capture |
 
 ### 2c. Quick API Probe (Force SPA Navigation Trick)
 
@@ -130,30 +205,37 @@ npx @playwright/cli@latest -s=<app> tracing-stop
 python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --latest --output /tmp/probe.json
 ```
 
-Check the probe results -- what API patterns did you find?
+Check the probe results — what API patterns did you find?
 See `references/api-discovery.md` for the priority chain and decision tree.
 
-### 2d. Log findings and choose strategy
+### 2d. Write Assessment Summary
 
-Based on Steps 2a-2c, determine the capture strategy:
-- **SPA + REST API found** -- standard full trace capture
-- **SSR + __NEXT_DATA__** -- focus on client-side navigations
-- **Google batchexecute** -- trace + eval WIZ_global_data for tokens
-- **Cloudflare/protected** -- add delays, note rate limits
-- **Plain HTML / no framework** — no SPA detected, no `__NEXT_DATA__` or similar.
-  Check for a public API (documented REST endpoint, Firebase, etc.). If found,
-  use the API directly (skip HTML scraping). If not, HTML scraping with
-  BeautifulSoup4 is the strategy — capture page HTML for analysis.
-- **No API found** -- try more internal navigation, or site may not be CLI-suitable
+Create `<app>/traffic-capture/assessment.md` to consolidate all findings:
 
-Log findings to terminal. No separate RECON-REPORT.md needed.
+```markdown
+# Site Assessment: <app>
 
-**Assessment checklist** (copy and track):
+- **URL**: <url>
+- **Framework**: <detected framework or "none/custom">
+- **Protocol**: <REST / GraphQL / batchexecute / HTML scraping / hybrid>
+- **Protection**: <none / cloudflare / captcha / aws-waf / etc.>
+- **Auth required**: <yes (type: Google SSO / cookie / JWT / API key) / no>
+- **Iframes**: <yes (N frames, app in frame N at <url>) / no>
+- **Site profile**: <Auth+CRUD / Auth+Generation / Auth+Read-only / No-auth+CRUD / No-auth+Read-only>
+- **Capture strategy**: <API-first / SSR+API hybrid / batchexecute / HTML scraping / protected-manual>
+- **Key observations**: <any quirks, localized UI, rate limits, special patterns>
 ```
-- [ ] Framework detection (2a) — identified: ___
-- [ ] Protection check (2b) — result: ___
-- [ ] Quick API probe (2c) — endpoints found: ___
-- [ ] Strategy chosen (2d) — approach: ___
+
+Update checkpoint:
+**Assessment checklist** (all should be answered before proceeding):
+```
+- [ ] Framework detected — identified: ___
+- [ ] Protection checked — result: ___
+- [ ] Iframes detected — count: ___, app in frame: ___
+- [ ] Auth requirement — needs login: ___, user logged in: ___
+- [ ] Site profile — classified as: ___
+- [ ] API probe — endpoints found: ___
+- [ ] Capture strategy chosen — approach: ___
 ```
 
 ---
@@ -163,49 +245,96 @@ Log findings to terminal. No separate RECON-REPORT.md needed.
 Now do the comprehensive capture based on what Step 2 revealed.
 
 ```bash
-# Start fresh trace for full capture
+# Optional: Start HAR recording alongside trace for standard-format capture
+# HAR files enable mitmproxy2swagger (auto OpenAPI spec) and third-party analysis tools
+npx @playwright/cli@latest -s=<app> run-code "async page => {
+  await page.context().routeFromHAR('<app>/traffic-capture/capture.har', {
+    update: true,
+    updateContent: 'embed',
+    updateMode: 'full'
+  });
+  return 'HAR recording started';
+}"
+
+# Start fresh trace for full capture (note the trace ID from output!)
 npx @playwright/cli@latest -s=<app> tracing-start
+# Output: "trace-<ID>" — record this ID
 
-# === EXPLORATION CHECKLIST ===
-# For EACH resource/feature visible in the UI:
-
-# A. READ operations
-npx @playwright/cli@latest -s=<app> screenshot
-npx @playwright/cli@latest -s=<app> snapshot
-# Navigate to list views, detail pages, dashboards
-
-# B. WRITE operations (MOST IMPORTANT -- don't skip!)
-# Screenshot -> snapshot -> find Create/Generate button ref -> click ref -> fill -> submit
-#
-# Clicking by ref (from snapshot) is most reliable:
-#   snapshot -> note ref like e1088 -> click e1088
-# Clicking by text as fallback:
-#   click "Create song"   (exact visible text)
-# If both fail, use run-code:
-#   run-code "async page => { await page.locator('button:has-text(\"Create\")').last().click(); }"
-# IMPORTANT: refs go stale — always take a fresh snapshot before clicking
-
-# C. Other: settings, profile, export, delete
 ```
 
-**Exploration checklist by app type:**
+> **HAR recording is optional but recommended.** It produces a standard HAR file
+> alongside the trace. This enables `mitmproxy2swagger` to auto-generate an
+> OpenAPI spec: `pip install mitmproxy2swagger && mitmproxy2swagger -i capture.har -o api-spec.yaml -p <base-url>`
+> The HAR file is saved when the browser context is closed (Step 5).
 
-| App Type | Must capture | Example |
-|----------|-------------|---------|
-| CRUD app | List, Get, Create, Update, Delete per resource | Monday: boards list, board create |
-| Generation app | Create/Generate, Poll status, Download result | Suno: generate song, download MP3 |
-| Search app | Search query, Results, Filters, Pagination | Futbin: player search, prices |
-| Chat/Query app | Send message, Receive response, History | NotebookLM: ask, get sources |
+### Exploration by site profile
 
-**The trace MUST contain at least one WRITE operation before stopping** — without
-captured POST/PUT/DELETE bodies the methodology skill cannot generate create/update
-commands, and the CLI becomes read-only by accident (see exception below).
+Use the profile-specific checklist from Step 2b:
 
-**Exception for read-only sites:** If the site is genuinely read-only (search engine,
-dashboard, analytics viewer with no create/update/delete), the trace may contain only
-GET requests. In this case, note "read-only site — no write operations" in `<APP>.md`
-and proceed. The generated CLI will have read-only commands (list, get, search) but
-no create/update/delete commands. This is valid.
+**Auth + CRUD:**
+```
+For EACH resource visible in the UI:
+- [ ] List/browse: navigate to list view
+- [ ] Detail: open one item
+- [ ] Create: fill form, submit (capture POST body!)
+- [ ] Update: edit an item, save
+- [ ] Delete: delete a test item
+- [ ] Settings/profile: check app settings
+- [ ] Export: if available, trigger export/download
+```
+
+**Auth + Generation:**
+```
+- [ ] Dashboard/projects: navigate to project list
+- [ ] Open existing project: view editor/canvas
+- [ ] Generate new content: type prompt, click generate, WAIT for completion
+- [ ] Edit/iterate: modify generation, re-generate
+- [ ] Export/download: trigger download of generated content
+- [ ] Delete: delete a test project
+- [ ] Settings: check model selection, preferences
+```
+
+**Auth + Read-only:**
+```
+- [ ] Main view: navigate to primary content
+- [ ] Search/filter: use search functionality
+- [ ] Detail pages: open 2-3 different items
+- [ ] Pagination: go to page 2 if available
+- [ ] Export: if available
+```
+
+**No-auth + CRUD:**
+```
+Same as Auth + CRUD, but skip auth-related captures.
+```
+
+**No-auth + Read-only:**
+```
+- [ ] Homepage: capture initial data
+- [ ] Search: try 2-3 different queries
+- [ ] Detail pages: open 2-3 items
+- [ ] Filters: apply different filters
+- [ ] Pagination: check next page
+```
+
+### General interaction rules
+
+- **Click by ref (from snapshot) is most reliable:** `snapshot` → note ref → `click <ref>`
+- **Refs go stale** — always take a fresh snapshot before clicking
+- **For localized UIs** (Hebrew, Arabic, etc.) — use refs or data-testid, not text
+- **For iframe-embedded apps** — `snapshot` + `click <ref>` auto-resolves iframes
+- **Wait after generation** — if the app generates content async, wait:
+  ```bash
+  npx @playwright/cli@latest -s=<app> run-code "async page => {
+    await page.waitForTimeout(15000);
+    return 'waited';
+  }"
+  ```
+- **The trace MUST contain at least one WRITE operation** (POST/PUT/DELETE) unless
+  the site is genuinely read-only (see exception below)
+
+**Exception for read-only sites:** If the site is genuinely read-only, the trace
+may contain only GET requests. Note "read-only site" in `assessment.md` and proceed.
 
 ---
 
@@ -213,10 +342,14 @@ no create/update/delete commands. This is valid.
 
 ```bash
 npx @playwright/cli@latest -s=<app> tracing-stop
-# If you get "Cannot read properties of undefined (reading 'tracesDir')" — the session
-# reconnected and lost track of the active trace. Just run tracing-start again and
-# re-do the actions that were lost. Don't restart the whole capture.
+```
 
+**If `tracing-stop` fails:**
+1. Retry once with 15s timeout
+2. If it fails again — the trace is lost. Start a new trace (Step 3).
+3. **NEVER retry more than twice.** See `references/playwright-cli-tracing.md` for recovery.
+
+```bash
 python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py \
   .playwright-cli/traces/ --latest \
   --output <app>/traffic-capture/raw-traffic.json
@@ -234,23 +367,23 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/analyze-traffic.py \
   <app>/traffic-capture/raw-traffic.json --summary
 ```
 
-If you noted "read-only site" in Step 3, the "write operations" count may be 0
-(or only analytics/tracking POSTs). This is expected — proceed to methodology.
-
 ---
 
 ## Step 5: Close
 
 ```bash
 npx @playwright/cli@latest -s=<app> close
+
+# Mark capture complete
+python ${CLAUDE_PLUGIN_ROOT}/scripts/capture-checkpoint.py update <app> --step complete
 ```
 
 ---
 
-## If an endpoint is missing -- USE THE FEATURE
+## If an endpoint is missing — USE THE FEATURE
 
-Don't grep JS bundles. Start a new trace -> screenshot -> click the button -> fill
--> submit -> stop -> parse. The browser IS the API documentation.
+Don't grep JS bundles. Start a new trace → screenshot → click the button → fill
+→ submit → stop → parse. The browser IS the API documentation.
 
 ---
 
@@ -275,15 +408,16 @@ and build the CLI.
 |-------------|-------|
 | **Preceded by** | None — this is the first phase |
 | **Followed by** | `methodology` (Phase 2) |
-| **References** | `playwright-cli-tracing.md`, `playwright-cli-sessions.md`, `playwright-cli-advanced.md`, `framework-detection.md`, `protection-detection.md`, `api-discovery.md` |
+| **References** | `playwright-cli-commands.md`, `playwright-cli-tracing.md`, `playwright-cli-sessions.md`, `playwright-cli-advanced.md`, `framework-detection.md`, `protection-detection.md`, `api-discovery.md` |
 
 ---
 
 ## Reference Files
 
-- [Tracing format](references/playwright-cli-tracing.md) -- trace file structure, .network format
+- [Command reference](references/playwright-cli-commands.md) -- **READ FIRST** — correct syntax, timeouts, ESM rules
+- [Tracing format](references/playwright-cli-tracing.md) -- trace file structure, .network format, lifecycle management
 - [Sessions & auth](references/playwright-cli-sessions.md) -- named sessions, state-save format
-- [Advanced commands](references/playwright-cli-advanced.md) -- run-code, waits, downloads
-- [Framework detection](references/framework-detection.md) -- SSR framework eval commands
+- [Advanced commands](references/playwright-cli-advanced.md) -- run-code, waits, iframe handling, downloads, localized UIs
+- [Framework detection](references/framework-detection.md) -- site fingerprint command, SSR framework detection
 - [Protection detection](references/protection-detection.md) -- anti-bot checks
 - [API discovery](references/api-discovery.md) -- API priority chain, decision tree, strategy details

@@ -7,5 +7,5 @@
     "url": "https://github.com/itamar-earlyai"
   },
   "license": "MIT",
-  "keywords": ["cli-generation", "web-automation", "agent-native", "reverse-engineering", "chrome-devtools"]
+  "keywords": ["cli-generation", "web-automation", "agent-native", "reverse-engineering", "playwright-cli", "traffic-capture"]
 }

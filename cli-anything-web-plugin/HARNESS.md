@@ -118,9 +118,9 @@ phases and invokes the next when done. Hard gates prevent skipping.
 | 3 | `testing` | Write tests + document results | Implementation complete |
 | 4 | `standards` | Publish, verify, smoke test, generate Claude skill | All tests pass |
 
-> **Phase numbering:** The pipeline has 4 phases. Some skills reference legacy
-> sub-phase numbers (e.g., "Phase 7", "Phase 8"). Ignore these — use the 4-phase
-> scheme above. Capture=1, Methodology=2, Testing=3, Standards=4.
+> **Phase numbering:** The pipeline has 4 phases: Capture=1, Methodology=2,
+> Testing=3, Standards=4. The methodology skill has internal steps (Analyze, Implement)
+> but these are NOT separate pipeline phases.
 
 **Sequencing:**
 ```
@@ -135,7 +135,7 @@ concurrent calls to maximize throughput.
 
 ```
 Phase 1 (Capture): Sequential — single browser session
-  framework detection → protection check → API probe → full capture
+  checkpoint check → setup → site fingerprint → auth gate → API probe → full capture → parse
 
 Phase 2 (Methodology): Fork-join pattern
   Sequential: exceptions.py → client.py → auth.py → models.py
@@ -186,12 +186,23 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 
 | Reference | When to read | Used in |
 |-----------|-------------|---------|
-| `playwright-cli-tracing.md` | Understanding trace file format | Phase 1 |
+| `playwright-cli-commands.md` | **READ FIRST** — correct syntax, timeouts, ESM rules | Phase 1 |
+| `playwright-cli-tracing.md` | Trace file format, lifecycle management, recovery protocol | Phase 1 |
 | `playwright-cli-sessions.md` | Named sessions, auth persistence | Phase 1 |
-| `playwright-cli-advanced.md` | run-code, wait strategies, downloads | Phase 1 |
-| `framework-detection.md` | Detecting SSR frameworks during capture | Phase 1 |
+| `playwright-cli-advanced.md` | run-code, wait strategies, iframe handling, localized UIs, downloads | Phase 1 |
+| `framework-detection.md` | Site fingerprint command, SSR framework detection | Phase 1 |
 | `protection-detection.md` | Checking anti-bot protections during capture | Phase 1 |
 | `api-discovery.md` | Finding API endpoints, decision tree, strategy details | Phase 1 |
+
+### Capture Scripts (`scripts/`)
+
+| Script | Purpose | When to use |
+|--------|---------|-------------|
+| `phase-state.py` | Track all 4 pipeline phases — skip completed, retry failed | Before each phase, prevents re-running expensive work |
+| `capture-checkpoint.py` | Save/restore capture session state (within Phase 1) | Resume interrupted captures, prevent duplicate work |
+| `parse-trace.py` | Convert trace files → raw-traffic.json | After `tracing-stop` |
+| `analyze-traffic.py` | Analyze raw-traffic.json → protocol/endpoint detection | Auto-run by parse-trace.py |
+| `extract-browser-cookies.py` | Cookie extraction utility | During auth implementation |
 
 ### Methodology References (`skills/methodology/references/`)
 
@@ -423,7 +434,7 @@ Every generated CLI follows this package structure:
             +-- <app>_cli.py        # Main CLI entry point
             +-- core/
             |   +-- __init__.py
-            |   +-- client.py       # HTTP client (requests/httpx)
+            |   +-- client.py       # HTTP client (httpx or curl_cffi)
             |   +-- auth.py         # Auth management
             |   +-- session.py      # State + undo/redo
             |   +-- models.py       # Response models

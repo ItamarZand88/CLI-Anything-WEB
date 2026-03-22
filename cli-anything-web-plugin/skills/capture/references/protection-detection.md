@@ -5,6 +5,43 @@ All commands use `npx @playwright/cli@latest -s=<app>`.
 
 ---
 
+## Service Worker Detection
+
+Service Workers can intercept network requests and make them invisible to
+Playwright's tracing. **Always check for Service Workers during assessment:**
+
+```bash
+npx @playwright/cli@latest -s=<app> run-code "async page => {
+  return await page.evaluate(() => {
+    const sw = navigator.serviceWorker;
+    return {
+      supported: !!sw,
+      controller: sw?.controller ? {
+        scriptURL: sw.controller.scriptURL,
+        state: sw.controller.state
+      } : null,
+      hasRegistrations: 'getRegistrations' in (sw || {})
+    };
+  });
+}"
+```
+
+If `controller` is not null, the site has an active Service Worker that may
+intercept network requests. **Impact on capture:**
+- Requests intercepted by SW won't appear in traces
+- Playwright recommends `service_workers: 'block'` when capturing traffic
+- The site fingerprint command (in `framework-detection.md`) should be run first;
+  if SW is detected, restart the browser with SW blocking
+
+**Mitigation during capture (if playwright-cli supports context options):**
+```bash
+# When opening the browser, Service Workers are active by default.
+# If SW is detected, note it in assessment.md.
+# The generated CLI's auth.py should use service_workers="block" in context options.
+```
+
+---
+
 ## All-in-One Detection Script
 
 > **Important:** Use `run-code` not `eval` for this check. Multi-line expressions and

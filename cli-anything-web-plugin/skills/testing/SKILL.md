@@ -3,10 +3,12 @@ name: testing
 description: >
   Write and document tests for cli-web-* CLIs. Covers writing the test suite
   (unit + E2E + subprocess), documenting what is tested as you go, and recording
-  results in TEST.md. Use when writing tests for web API wrappers, setting up
-  pytest for HTTP-based CLIs, creating TEST.md files, writing E2E tests, implementing
-  subprocess tests with _resolve_cli, or when working on the testing phase of the
-  cli-anything-web pipeline.
+  results in TEST.md.
+  TRIGGER when: "write tests for cli-web-*", "run tests", "start Phase 3", "create
+  TEST.md", "add E2E tests", "add subprocess tests", "test the CLI", "_resolve_cli",
+  or after methodology skill completes implementation.
+  DO NOT trigger for: traffic capture (use capture), implementation (use methodology),
+  or quality validation (use standards).
 version: 0.2.0
 ---
 
@@ -346,6 +348,47 @@ Write this alongside the tests, not before or after:
    - Bulk operations: create N items → list all → verify count → delete all → verify empty
    - Rate limit handling: rapid requests → verify backoff behavior
 
+### Handling Client-Side Operations in E2E Tests
+
+Some batchexecute/RPC operations are **client-side** — the browser generates the ID
+and the API just acknowledges (returns null). This is common for project/document
+creation in Google apps.
+
+**How to detect:** If `create_X()` returns None during the methodology smoke check,
+the operation is client-side.
+
+**How to test:**
+```python
+# DON'T: test create → get round trip (create returns None)
+def test_create_project(self):
+    project = client.create_project()
+    assert project is not None  # WILL FAIL for client-side creates
+
+# DO: test operations that work via RPC
+def test_delete_project(self):
+    """Delete an existing project (creation was via browser)."""
+    projects = client.list_projects()
+    assert len(projects) > 0, "No projects to test with"
+    # Pick a safe target (not the user's main projects)
+    target = find_safe_delete_target(projects)
+    if not target:
+        pytest.skip("No safe delete target — all projects appear important")
+    result = client.delete_project(target.id)
+    assert result is True
+
+# DO: test the list-diff pattern if create_X uses it
+def test_create_via_list_diff(self):
+    """Test create if it uses the list-before/after pattern."""
+    before = len(client.list_projects())
+    project = client.create_project(prompt="test prompt")
+    if project is None:
+        pytest.skip("Create is client-side only — requires browser")
+    after = len(client.list_projects())
+    assert after > before
+```
+
+**Document in TEST.md** which operations are client-side and can't be tested via E2E.
+
 ---
 
 ## Run & Verify
@@ -357,9 +400,9 @@ Write this alongside the tests, not before or after:
    ```
    If auth status fails, fix it before proceeding.
 
-2. Run full test suite: `python3 -m pytest cli_web/<app>/tests/ -v --tb=short`
+2. Run full test suite: `python -m pytest cli_web/<app>/tests/ -v --tb=short`
 
-3. Run subprocess tests: `CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s -k subprocess`
+3. Run subprocess tests: `CLI_WEB_FORCE_INSTALLED=1 python -m pytest cli_web/<app>/tests/ -v -s -k subprocess`
 
 4. **ALL tests must pass.** If E2E tests fail with auth errors, go back to step 1.
    Do NOT record "auth not configured" as a test result — that means auth is broken.
@@ -391,8 +434,16 @@ When tests fail:
 
 ## Next Step
 
-When all tests pass, invoke the `standards` skill to
-publish and verify the CLI.
+When all tests pass, update phase state and invoke the `standards` skill:
+
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py complete <app> \
+  --phase testing --output "<app>/agent-harness/cli_web/<app>/tests/"
+
+# If tests fail:
+python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py fail <app> \
+  --phase testing --error "<N> tests failed" --error-type retryable
+```
 
 Do NOT skip to publishing — all tests must pass first.
 

@@ -130,3 +130,44 @@ rm -rf .playwright-cli/traces/
 ### Start Tracing Before the Interesting Part
 
 Trace the entire flow, not just the failing or interesting step. Context from earlier requests (auth tokens, session setup) is often needed to understand later API calls.
+
+---
+
+## Trace Lifecycle Management
+
+### Track active traces
+
+Always note the trace ID returned by `tracing-start`:
+```
+Trace recording started
+- [Action log](.playwright-cli/traces/trace-1774195355438.trace)
+```
+The ID is `trace-1774195355438`. Record this in the capture checkpoint.
+
+### Trace Recovery Protocol
+
+If `tracing-stop` fails:
+
+1. **First failure** — retry once with 15s timeout
+2. **Second failure** — the trace is lost (session likely reconnected and lost state)
+3. **NEVER retry more than twice** — you'll waste time
+4. **Recovery**: Run `tracing-start` again and re-do the exploration actions
+5. The previous trace files may still be partially written in `.playwright-cli/traces/`
+   but they won't have complete data — don't try to parse them
+
+### Common trace errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "Cannot read properties of undefined (reading 'tracesDir')" | Session reconnected, lost trace state | Start new trace |
+| `tracing-stop` hangs | Browser process died | `kill-all`, reopen, start fresh |
+| `.network` file is empty | Trace was too short or no network activity | Re-do with more interactions |
+| `.network` file missing | Trace didn't complete properly | Start new trace |
+
+### One trace per purpose
+
+Don't mix probe traces with capture traces. Use separate traces:
+1. **Probe trace** (Step 2c): Short, 3-4 clicks, for API discovery
+2. **Capture trace** (Step 3): Full exploration with all CRUD operations
+
+Parse them separately. The capture trace is what feeds Phase 2.

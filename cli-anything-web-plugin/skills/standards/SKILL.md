@@ -3,11 +3,12 @@ name: standards
 description: >
   Quality standards and Phase 4 publish/verify for cli-web-* CLIs. Covers the
   75-check quality checklist, package publishing (pip install -e .), end-user
-  smoke testing (READ + WRITE), and final pipeline verification. Use when building,
-  reviewing, or checking quality of a cli-web-* CLI package, during implementation
-  (Phase 2), validation, code review, Phase 4 publish and verify, or when checking
-  if an implementation is complete.
-version: 0.1.0
+  smoke testing (READ + WRITE), and final pipeline verification.
+  TRIGGER when: "validate CLI", "publish CLI", "pip install -e .", "smoke test",
+  "quality check", "start Phase 4", "75-check", "generate Claude skill", "check
+  if implementation is complete", or after testing skill completes.
+  DO NOT trigger for: traffic capture, implementation, or test writing.
+version: 0.2.0
 ---
 
 # CLI-Anything-Web Standards (Phase 4 + Quality)

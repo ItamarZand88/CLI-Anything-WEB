@@ -4,10 +4,12 @@ description: >
   Analyze captured HTTP traffic, design CLI architecture, and implement the Python
   CLI package. Covers Phase 2 of the pipeline: parse raw-traffic.json, identify
   protocol type, map endpoints, design Click command groups, implement with parallel
-  subagents. Use when the user asks to "create a CLI for a website", "generate API
-  wrapper", "reverse engineer web API", "analyze traffic", "design CLI", "implement CLI",
-  "build CLI from network traffic", or discusses turning closed-source web applications
-  into agent-controllable command-line interfaces.
+  subagents.
+  TRIGGER when: "analyze traffic", "design CLI", "implement CLI", "build CLI from
+  network traffic", "generate API wrapper", "reverse engineer web API", "start Phase 2",
+  raw-traffic.json exists and capture is complete, or after the capture skill finishes.
+  DO NOT trigger for: traffic recording (use capture), test writing (use testing),
+  or quality checks (use standards).
 version: 0.2.0
 ---
 
@@ -40,7 +42,7 @@ no login needed), the "Auth state captured" prerequisite does not apply. Note
 
 ---
 
-## Phase 2: Analyze (API Discovery)
+## Step A: Analyze (API Discovery)
 
 **Goal:** Map raw traffic to a structured API model.
 
@@ -82,7 +84,7 @@ no login needed), the "Auth state captured" prerequisite does not apply. Note
    | Public REST API | Documented `/api/` endpoints, OpenAPI spec, JSON responses | Standard `client.py` with httpx |
    | Plain HTML (no framework) | No SPA root, no framework globals, data in `<table>`/`<div>` | `client.py` with httpx + BeautifulSoup4 |
 
-   This determines client architecture in Phase 4 -- REST uses simple `client.py`,
+   This determines client architecture in Step B -- REST uses simple `client.py`,
    non-REST protocols need a dedicated `rpc/` subpackage with encoder/decoder/types.
 
 5. Detect data model:
@@ -109,7 +111,39 @@ no login needed), the "Auth state captured" prerequisite does not apply. Note
 
 ---
 
-## Phase 3: Implement (Code Generation)
+## Step B: Implement (Code Generation)
+
+### Study Existing CLIs First (Critical for Accuracy)
+
+Before implementing, **read an existing CLI that uses the same protocol** as your
+target. These are battle-tested implementations that solved the same problems you'll face.
+
+| Protocol | Reference CLI | Key files to read |
+|----------|--------------|-------------------|
+| **Google batchexecute** | `notebooklm/agent-harness/cli_web/notebooklm/` | `core/rpc/encoder.py`, `core/rpc/decoder.py`, `core/client.py`, `core/auth.py` |
+| **GraphQL + WAF** | `booking/agent-harness/cli_web/booking/` | `core/client.py` (curl_cffi + GraphQL), `core/auth.py` (WAF tokens) |
+| **HTML scraping** | `futbin/agent-harness/cli_web/futbin/` | `core/client.py` (httpx + BS4), `commands/players.py` |
+| **HTML + Cloudflare** | `producthunt/agent-harness/cli_web/producthunt/` | `core/client.py` (curl_cffi impersonate) |
+| **REST API** | `unsplash/agent-harness/cli_web/unsplash/` | `core/client.py`, `commands/photos.py` |
+| **Simple HTML** | `gh-trending/agent-harness/cli_web/gh_trending/` | Minimal structure example |
+
+**How to use reference CLIs:**
+
+1. Read the reference CLI's `core/client.py` — understand the request/response pattern
+2. Read `core/auth.py` — copy the login_browser() pattern exactly for Google apps
+3. Read `core/rpc/` (for batchexecute) — understand encoder/decoder, DO NOT reinvent
+4. Read `commands/` — see how Click commands are structured, how --json works
+5. Read `utils/helpers.py` — see handle_errors(), _resolve_cli(), repl patterns
+
+**For batchexecute apps specifically**, the notebooklm CLI is your bible:
+- Copy the encoder/decoder architecture (don't reinvent the batchexecute wire format)
+- Copy the auth token extraction pattern (CSRF, session ID, build label)
+- Copy the cookie domain priority logic (critical for Israeli/international users)
+- Adapt the RPC method IDs and param structures to your target app
+
+The agent implementing the CLI MUST read these files before writing code. Use the
+`Agent` tool to dispatch a research agent that reads
+the reference implementation while you design the command structure.
 
 ### Design Before You Code
 
@@ -437,10 +471,53 @@ Agent 5 (background): "Write unit tests for core/client.py, core/auth.py, core/m
 
 ---
 
+## Mandatory Smoke Check (Before Testing Phase)
+
+Before invoking the testing skill, verify that the core implementation actually works.
+This catches bugs early — **especially for batchexecute CLIs** where response parsing
+indices are fragile.
+
+```bash
+# 1. Install the CLI
+cd <app>/agent-harness && pip install -e .
+
+# 2. Verify CLI loads
+cli-web-<app> --help
+
+# 3. Auth (if required)
+cli-web-<app> auth import <app>/traffic-capture/<app>-auth.json  # or auth login
+cli-web-<app> auth status --json
+# MUST show: {"success": true, "data": {"valid": true, ...}}
+
+# 4. Test the primary READ command with --json
+cli-web-<app> <primary-resource> list --json
+# VERIFY: response contains actual data, not raw RPC fragments or empty arrays
+
+# 5. Test one WRITE command (if applicable)
+cli-web-<app> <resource> <write-command> --json
+# VERIFY: operation succeeds OR clearly errors with typed exception
+```
+
+**Red flags that need fixing before testing:**
+- `--json` output contains `wrb.fr`, `af.httprm`, `di` → decoder broken
+- Response is `[]` or `null` where data expected → wrong RPC params or client-side operation
+- Fields show wrong values (e.g., prompt shows "3" instead of text) → parser index mismatch
+- `AuthError` on every call → token refresh broken
+
+**If a write operation returns null:** The RPC may be client-side. See
+`references/google-batchexecute.md` "Client-Side vs Server-Side Operations"
+for the list-diff workaround pattern.
+
+Update phase state:
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py complete <app> \
+  --phase methodology --output <app>/agent-harness/
+```
+
 ## Next Step
 
-When implementation is complete, invoke the `testing` skill
-to plan and write tests.
+When implementation is complete and the smoke check passes, invoke the `testing`
+skill to plan and write tests.
 
 Do NOT skip testing -- every CLI must have comprehensive tests before publishing.
 

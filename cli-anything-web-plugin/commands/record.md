@@ -43,4 +43,4 @@ This gives the user control over what gets recorded.
 ## Output
 
 Traffic is saved to `<app>/traffic-capture/raw-traffic.json`. To generate a CLI
-from this data later, run `/cli-anything-web:cli-anything-web <url>`.
+from this data later, run `/cli-anything-web <url>`.

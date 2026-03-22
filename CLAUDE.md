@@ -14,8 +14,7 @@ cli-anything-web-plugin/          # The plugin itself
 ├── HARNESS.md                    # Core methodology SOP (read this first)
 ├── commands/                     # Slash commands (/cli-anything-web, /record, /refine, etc.)
 ├── skills/                       # 4-phase skill system (capture → methodology → testing → standards)
-├── scripts/                      # Shared utilities (repl_skin.py, parse-trace.py, etc.)
-└── docs/                         # PUBLISHING.md, QUICKSTART.md
+└── scripts/                      # parse-trace.py, analyze-traffic.py, site-fingerprint.js, capture-checkpoint.py, phase-state.py, repl_skin.py
 ```
 
 Generated CLIs live in their own directories (e.g., `futbin/agent-harness/`) with namespace packages under `cli_web/`.
@@ -57,7 +56,7 @@ cli_web/                    # Namespace package (NO __init__.py)
     ├── core/               # exceptions.py, client.py, auth.py, session.py, models.py
     │   └── rpc/            # Optional: types.py, encoder.py, decoder.py (non-REST protocols)
     ├── commands/           # One file per resource group
-    ├── utils/              # repl_skin.py (from plugin/scripts/), output.py, config.py
+    ├── utils/              # helpers.py, repl_skin.py, output.py, config.py
     └── tests/              # test_core.py (unit), test_e2e.py (E2E + subprocess)
 ```
 
@@ -106,7 +105,7 @@ bash cli-anything-web-plugin/verify-plugin.sh
 - **HTTP client**: httpx (default), or curl_cffi for anti-bot protected sites (Cloudflare, AWS WAF, generic challenges). Use curl_cffi when plain httpx gets 401/403 with "bot" or "challenge" in response body. Sites can add protection at any time — if a working CLI starts getting blocked, switch to curl_cffi.
 - **HTML parsing**: BeautifulSoup4 (for SSR sites)
 - **Output**: Rich (`>=13.0`) for tables, spinners, colored status; custom table formatting
-- **Auth flow**: Python `sync_playwright()` browser login → cookie extraction → `auth.json`; env var fallback for CI
+- **Auth flow**: Python `sync_playwright()` browser login → cookie extraction → `auth.json`; env var fallback for CI. Optional: `playwright-stealth` if bot detection blocks login.
 - **Packaging**: `find_namespace_packages(include=["cli_web.*"])` in setup.py
 
 ## RPC Method Verification (Critical for batchexecute)

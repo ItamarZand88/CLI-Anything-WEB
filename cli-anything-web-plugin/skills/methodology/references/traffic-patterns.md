@@ -148,20 +148,6 @@ Multiple operations in single request.
 - Unbundle individual operations into separate commands
 - Optionally support `--batch` flag for efficiency
 
-## WebSocket / Real-time
-
-Persistent connections for live data.
-
-### Detection signals:
-- `wss://` or `ws://` URLs
-- Upgrade headers
-- Repeated message patterns
-
-### CLI mapping:
-- `<resource> watch` or `<resource> stream` commands
-- `--poll` fallback if WebSocket is too complex
-- Consider SSE (Server-Sent Events) alternatives
-
 ## Async Content Generation
 
 Apps that generate content asynchronously (AI music, images, documents, audio).

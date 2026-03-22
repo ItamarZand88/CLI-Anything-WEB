@@ -25,13 +25,30 @@ Target URL: $ARGUMENTS
 
 ## Execution Plan
 
-Run the full pipeline by invoking skills in sequence:
+Run the full pipeline by invoking skills in sequence. **Each phase checks for
+prior completion and skips if already done.**
 
 1. Check playwright-cli availability (see Prerequisites above)
-2. Invoke `capture` skill -- Phase 1 site assessment + traffic recording
-3. Invoke `methodology` skill -- Phases 2-3 analyze/design/implement
-4. Invoke `testing` skill -- Phase 3 test writing/documentation
-5. Invoke `standards` skill -- Phase 4 publish and verify + generate Claude skill
+2. **Check pipeline state:** `python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py status <app>`
+   - If a phase is already `done` → skip it and proceed to the next
+   - If a phase `failed` with `retryable` → retry automatically
+   - If a phase `failed` with `fatal` → report and ask user
+3. For each phase, check before running:
+   ```bash
+   python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py check <app> --phase <phase>
+   # Exit 0 = skip (already done), Exit 1 = run
+   ```
+4. Invoke `capture` skill -- Phase 1 site assessment + traffic recording
+   - Also check capture checkpoint: `python ${CLAUDE_PLUGIN_ROOT}/scripts/capture-checkpoint.py restore <app>`
+5. Invoke `methodology` skill -- Phase 2 analyze/design/implement
+   - Agent MUST read a reference CLI first (same protocol) — see methodology skill
+6. Invoke `testing` skill -- Phase 3 test writing/documentation
+7. Invoke `standards` skill -- Phase 4 publish and verify + generate Claude skill
+
+After each phase completes, mark it:
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py complete <app> --phase <phase> --output <output-path>
+```
 
 Each skill handles its phases completely and invokes the next when done.
 See HARNESS.md for the pipeline overview and critical rules.

@@ -169,6 +169,14 @@ with _windows_playwright_event_loop(), sync_playwright() as p:
               "--password-store=basic"],
         ignore_default_args=["--enable-automation"],
     )
+
+    # Optional: Apply playwright-stealth if bot detection is aggressive.
+    # The base args above (disable AutomationControlled + skip --enable-automation)
+    # work for Google SSO without stealth. Only add stealth if login gets blocked.
+    # pip install playwright-stealth
+    # from playwright_stealth import Stealth
+    # Stealth(init_scripts_only=True).apply_stealth_sync(context)
+
     page = context.pages[0] if context.pages else context.new_page()
     page.goto(app_url)
     input("[Press ENTER when logged in] ")
@@ -367,7 +375,7 @@ Store context at `~/.config/cli-web-<app>/context.json` alongside `auth.json`.
 - `setup.py` should include `playwright` as an optional dependency:
   `extras_require={"browser": ["playwright>=1.40.0"]}`
 - Core deps: `click`, `httpx`, `rich`. Playwright is only needed for `auth login`.
-- No `--from-chrome` or `--from-browser` flags — Python playwright is the only browser integration.
+- Python `sync_playwright()` is the only browser integration for auth login.
 
 ## Simplified API Key Auth
 

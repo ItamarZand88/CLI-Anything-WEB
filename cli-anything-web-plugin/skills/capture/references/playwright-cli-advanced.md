@@ -94,20 +94,122 @@ playwright-cli -s=<app> run-code "async page => {
 
 ## Frame / Iframe Handling
 
-Some apps embed content in iframes (e.g., embedded editors, payment forms).
+Some apps embed content in iframes (e.g., Google Labs apps like Stitch, MusicFX;
+embedded editors; payment forms). **Detect iframes early** — if the real app is
+inside an iframe, all framework detection must be re-run inside that frame.
+
+### Detecting iframes
 
 ```bash
-# List all frames and their URLs
+# List all frames with URLs and names
 playwright-cli -s=<app> run-code "async page => {
-  return page.frames().map(f => f.url());
-}"
-
-# Interact with iframe content
-playwright-cli -s=<app> run-code "async page => {
-  const frame = page.locator('iframe#editor-iframe').contentFrame();
-  await frame.locator('button.save').click();
+  return page.frames().map((f, i) => ({
+    index: i,
+    url: f.url(),
+    name: f.name() || null
+  }));
 }"
 ```
+
+If more than 1 frame exists, the app may be iframe-embedded. Common pattern:
+- Frame 0: Parent/wrapper (e.g., `stitch.withgoogle.com`) — has `WIZ_global_data`
+- Frame 1: Actual app (e.g., `app-companion-*.appspot.com`) — has the real SPA
+
+### Google Labs Iframe Pattern
+
+Google Labs apps (Stitch, MusicFX, ImageFX, etc.) embed a Vite/React SPA inside
+an iframe on a Google App Engine domain. Key characteristics:
+- Parent frame has `WIZ_global_data` but NO interactive UI
+- Iframe has the actual app with a different framework (Vite, React)
+- `snapshot` and `click <ref>` auto-resolve iframes (safe to use)
+- `eval` does NOT reach inside iframes — use `run-code` with `page.frames()[1]`
+
+### Reading iframe content
+
+```bash
+# Get text content from iframe
+playwright-cli -s=<app> run-code "async page => {
+  const frame = page.frames()[1];
+  if (!frame) return 'no iframe';
+  return await frame.evaluate(() => document.body.textContent.substring(0, 500));
+}"
+
+# Run framework detection inside iframe
+playwright-cli -s=<app> run-code "async page => {
+  const frame = page.frames()[1];
+  if (!frame) return { error: 'no iframe' };
+  return await frame.evaluate(() => ({
+    title: document.title,
+    spaRoot: document.querySelector('#app, #root')?.id || null,
+    vite: !!document.querySelector('script[type=\"module\"][src*=\"/@vite\"]'),
+    scripts: Array.from(document.querySelectorAll('script[src]')).map(s => s.src).slice(0, 10)
+  }));
+}"
+```
+
+### Interacting with iframe content
+
+```bash
+# Click a button inside an iframe (by locator)
+playwright-cli -s=<app> run-code "async page => {
+  const frame = page.locator('iframe').first().contentFrame();
+  await frame.locator('button:has-text(\"Submit\")').click();
+}"
+
+# Fill an input inside an iframe
+playwright-cli -s=<app> run-code "async page => {
+  const frame = page.frames()[1];
+  await frame.locator('[contenteditable]').first().click();
+  await frame.locator('[contenteditable]').first().fill('');
+  await frame.type('[contenteditable]', 'my text');
+}"
+```
+
+**Tip:** `snapshot` + `click <ref>` works across iframes automatically — this is
+the preferred approach. Only use `run-code` for iframe interaction when you need
+to target elements that don't have good snapshot refs.
+
+## Handling Localized / RTL UIs
+
+When the browser is set to Hebrew, Arabic, Chinese, or another non-English language,
+UI text will be localized. **Never hardcode translated strings** in your capture
+commands — they break when the language changes.
+
+### Interaction priority for localized UIs
+
+1. **Click by ref** (most reliable): `click f8e77` — language-independent
+2. **Click by role + test-id**: Elements with `data-testid` attributes
+3. **Click by role**: `getByRole('button', { name: /generate/i })` via run-code
+4. **Click by position**: `.first()`, `.last()`, `.nth(2)` via run-code
+
+### Avoid
+
+- `click "button text"` with translated text — breaks in other locales
+- Hardcoding translated strings in notes (use English descriptions)
+- Assuming LTR layout for coordinate-based clicks
+
+### Reading localized UI text
+
+```bash
+# Get all button labels (regardless of language)
+playwright-cli -s=<app> run-code "async page => {
+  const frame = page.frames().length > 1 ? page.frames()[1] : page.mainFrame();
+  return await frame.evaluate(() =>
+    Array.from(document.querySelectorAll('button, [role=\"button\"]'))
+      .map(b => ({
+        text: b.textContent?.trim()?.substring(0, 50),
+        testId: b.getAttribute('data-testid'),
+        ariaLabel: b.getAttribute('aria-label')
+      }))
+      .filter(b => b.text || b.testId || b.ariaLabel)
+  );
+}"
+```
+
+This returns test-ids and aria-labels alongside the localized text, making it
+easier to find language-independent selectors.
+
+---
 
 ## File Download Handling
 

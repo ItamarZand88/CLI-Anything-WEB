@@ -33,19 +33,19 @@ This command invokes the `testing` skill for Phase 3.
 3. Run full test suite:
    ```
    cd <app>/agent-harness
-   python3 -m pytest cli_web/<app>/tests/ -v --tb=short 2>&1
+   python -m pytest cli_web/<app>/tests/ -v --tb=short 2>&1
    ```
 4. If installed, also run subprocess tests:
    ```
-   CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s -k subprocess 2>&1
+   CLI_WEB_FORCE_INSTALLED=1 python -m pytest cli_web/<app>/tests/ -v -s -k subprocess 2>&1
    ```
    After running, verify the subprocess backend was used:
    - Check output for `[_resolve_cli] Using installed command:` — this confirms
      the installed package is being tested, not the source fallback
    - If this line is absent, the installed CLI was not found in PATH
-4. Parse test output: count passed, failed, skipped, errors
-5. Update `TEST.md` with results in standard format
-6. If failures exist, analyze and suggest fixes
+5. Parse test output: count passed, failed, skipped, errors
+6. Update `TEST.md` with results in standard format
+7. If failures exist, analyze and suggest fixes
 
 See the `testing` skill for detailed testing patterns and the
 `standards` skill for quality checks.

@@ -75,7 +75,7 @@ Always record the chosen strategy and rationale in the app's `<APP>.md`.
 
 ## Finding APIs in the Trace
 
-After running Step 1.3 (Network Traffic Analysis) and parsing the trace:
+After running Step 2c (Quick API Probe) and parsing the trace:
 
 1. **Filter for JSON responses** — any request returning `application/json`
    is likely an API
