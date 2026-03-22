@@ -1,5 +1,10 @@
 # Auth Strategies Reference
 
+> **CRITICAL**: `npx @playwright/cli` is ONLY for Phase 1 traffic capture.
+> For auth login in generated CLIs, always use Python `sync_playwright()`
+> with `launch_persistent_context()`. The npx approach has interactive input
+> race conditions on Windows. See "Known Pitfalls" table at the bottom.
+
 ## Contents
 - Cookie-Based Sessions
 - Bearer / JWT Tokens
@@ -131,30 +136,59 @@ them — even with valid credentials. The browser is the only reliable login sur
 
 ### Two-phase pattern:
 
-**Phase A — Session capture via playwright-cli (primary):**
+**Phase A — Session capture via Python playwright (primary):**
 ```python
-# During development (Phase 1 recording)
-# playwright-cli saves auth state automatically:
-# npx @playwright/cli@latest -s=<app> state-save <app>-auth.json
-
 # In generated CLI's auth login command:
-import subprocess
+# CRITICAL: Use Python sync_playwright(), NOT npx @playwright/cli.
+# The npx approach has interactive input issues (Popen + input() race conditions,
+# state-save failures, Windows compatibility problems).
 
-# CRITICAL: Use Popen, NOT subprocess.run().
-# subprocess.run() with playwright-cli "open --headed --persistent" BLOCKS
-# until the browser is closed — the user can never reach input() to confirm
-# they've logged in while the browser is still open. Popen runs the browser
-# in the background so input() works.
-proc = subprocess.Popen(["npx", "@playwright/cli@latest", "-s=auth",
-                         "open", app_url, "--headed", "--persistent"])
-input("Log in, then press ENTER...")
-subprocess.run(["npx", "@playwright/cli@latest", "-s=auth",
-                "state-save", str(auth_path)], capture_output=True, text=True, check=True)
-subprocess.run(["npx", "@playwright/cli@latest", "-s=auth",
-                "close"], capture_output=True)
+import asyncio, sys
+from contextlib import contextmanager
+
+@contextmanager
+def _windows_playwright_event_loop():
+    """Restore default event loop policy for Playwright on Windows."""
+    if sys.platform != "win32":
+        yield
+        return
+    original = asyncio.get_event_loop_policy()
+    asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+    try:
+        yield
+    finally:
+        asyncio.set_event_loop_policy(original)
+
+from playwright.sync_api import sync_playwright
+
+with _windows_playwright_event_loop(), sync_playwright() as p:
+    context = p.chromium.launch_persistent_context(
+        user_data_dir=str(browser_profile_dir),
+        headless=False,
+        args=["--disable-blink-features=AutomationControlled",
+              "--password-store=basic"],
+        ignore_default_args=["--enable-automation"],
+    )
+    page = context.pages[0] if context.pages else context.new_page()
+    page.goto(app_url)
+    input("[Press ENTER when logged in] ")
+
+    # Force .google.com cookies for regional users (Israel, Germany, etc.)
+    # Without this, cookies land on .google.co.il and auth fails.
+    try:
+        page.goto("https://accounts.google.com/", wait_until="load")
+    except Exception:
+        pass  # May auto-redirect — cookies are still set
+    try:
+        page.goto(app_url, wait_until="load")
+    except Exception:
+        pass
+
+    context.storage_state(path=str(auth_path))
+    context.close()
 
 # Parse storage state → extract cookies for httpx
-# CRITICAL: state-save produces a LIST of cookie objects, not a flat dict.
+# CRITICAL: storage_state produces a LIST of cookie objects, not a flat dict.
 # Each cookie has {name, value, domain, ...} and the SAME cookie name may
 # appear multiple times for different domains.
 state = json.loads(auth_path.read_text())
@@ -272,11 +306,17 @@ auth refresh            # re-fetch tokens via HTTP
 
 | Pitfall | Symptom | Fix |
 |---------|---------|-----|
-| `subprocess.run()` with `open --persistent` | `input()` never reached; user sees "Aborted!" | Use `Popen()` so browser runs in background |
+| Using `npx @playwright/cli` for login | Interactive input race, state-save fails, Windows issues | Use Python `sync_playwright()` with `launch_persistent_context()` |
+| Missing Windows event loop fix | `NotImplementedError` on Windows Python 3.12+ | Wrap with `asyncio.DefaultEventLoopPolicy()` context manager |
+| No regional cookie forcing after login | Auth works in US but fails in Israel, Germany, Japan | Navigate to `accounts.google.com` then back after user presses ENTER |
 | Naive cookie flattening `{c["name"]: c["value"]}` | Auth works in US but fails in Israel, Germany, Japan, etc. | Prioritize `.google.com` over regional domains |
 | `load_cookies()` expects dict but gets list | `TypeError` or empty cookies | Check `isinstance(cookies, list)` and convert |
 | `state-save` from non-authenticated session | All cookies captured but none valid — redirects to login | Verify user logged in before saving state |
 | Missing `User-Agent` header on token fetch | Some services reject bare HTTP clients | Always include a browser-like User-Agent |
+| Wrong RPC method ID for source operations | Add returns OK but list shows empty `[]` | ALL source adds use `izAoDd`, not `VfAZjd` or `hPTbtc` |
+| Incomplete GET_NOTEBOOK params | Sources list returns `[]` even after adding | Use `[notebook_id, None, [2], None, 0]`, not just `[notebook_id]` |
+| Chat returns raw RPC chunks | Output shows `wrb.fr`, `af.httprm` instead of text | Parse `wrb.fr` entries: `json.loads(item[2])` → `inner[0][0]` is the answer |
+| `urllib.parse.urlencode` for chat body | Double-encoding breaks the request | Use `urllib.parse.quote(value, safe='')` for each body part |
 
 ## Environment Variable Auth (CI/CD)
 
@@ -304,9 +344,10 @@ Store context at `~/.config/cli-web-<app>/context.json` alongside `auth.json`.
 
 ## Packaging Rules
 
-- `setup.py` should NOT include Playwright Python as a dependency — only `click`, `httpx`,
-  and other runtime deps. Playwright is a dev/user tool invoked via `npx`, not a Python import.
-- No `--from-chrome` or `--from-browser` flags — playwright-cli is the only browser integration.
+- `setup.py` should include `playwright` as an optional dependency:
+  `extras_require={"browser": ["playwright>=1.40.0"]}`
+- Core deps: `click`, `httpx`, `rich`. Playwright is only needed for `auth login`.
+- No `--from-chrome` or `--from-browser` flags — Python playwright is the only browser integration.
 
 ## Simplified API Key Auth
 

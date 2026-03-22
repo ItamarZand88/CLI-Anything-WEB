@@ -12,10 +12,15 @@ from ..utils.helpers import handle_errors, require_notebook, sanitize_filename
 
 ARTIFACT_TYPE_MAP = {
     "mindmap": ArtifactType.MIND_MAP,
-    "study-guide": ArtifactType.STUDY_GUIDE,
-    "briefing": ArtifactType.BRIEFING_DOC,
-    "faq": ArtifactType.FAQ,
-    "timeline": ArtifactType.TIMELINE,
+    "study-guide": ArtifactType.REPORT,
+    "briefing": ArtifactType.REPORT,
+    "faq": ArtifactType.QUIZ,
+    "audio": ArtifactType.AUDIO,
+    "video": ArtifactType.VIDEO,
+    "quiz": ArtifactType.QUIZ,
+    "infographic": ArtifactType.INFOGRAPHIC,
+    "slide-deck": ArtifactType.SLIDE_DECK,
+    "data-table": ArtifactType.DATA_TABLE,
 }
 
 
@@ -66,11 +71,44 @@ def generate(notebook, artifact_type, use_json, wait, max_retries, output):
         mapped_type = ARTIFACT_TYPE_MAP[artifact_type]
 
         a = _retry_on_rate_limit(
-            lambda: client.generate_artifact(nb_id, mapped_type),
+            lambda: client.generate_artifact(nb_id, mapped_type, report_format=artifact_type),
             max_retries=max_retries,
         )
 
-        if output and a.content:
+        # --wait: poll until artifact completes (exponential backoff 2s→10s)
+        if wait and a.id:
+            interval = 2.0
+            max_wait = 300.0
+            elapsed = 0.0
+            if not use_json:
+                click.echo(f"  Waiting for {artifact_type} to complete...", err=True)
+            while elapsed < max_wait:
+                time.sleep(interval)
+                elapsed += interval
+                status = client.poll_artifact_status(nb_id, a.id)
+                if status.get("status") == "completed":
+                    a = type(a)(id=a.id, artifact_type=a.artifact_type,
+                                content=f"Completed: {status.get('title', artifact_type)}")
+                    break
+                if status.get("status") == "failed":
+                    a = type(a)(id=a.id, artifact_type=a.artifact_type,
+                                content=f"Failed: {status.get('title', artifact_type)}")
+                    break
+                interval = min(interval * 1.5, 10.0)
+                if not use_json:
+                    click.echo(f"  Still generating... ({elapsed:.0f}s)", err=True)
+
+        # --output: download the artifact if completed
+        if output and a.id:
+            try:
+                path = client.download_artifact(nb_id, a.id, output)
+                if not use_json:
+                    click.echo(f"Downloaded to {path}")
+            except Exception as e:
+                if not use_json:
+                    click.echo(f"Download failed: {e}", err=True)
+        elif output and a.content and not a.id:
+            # Mind maps return inline content with no ID
             from pathlib import Path
             Path(output).write_text(a.content, encoding="utf-8")
             if not use_json:
@@ -110,6 +148,42 @@ def generate_notes(notebook, use_json, max_retries, output):
             print_json({"id": a.id, "type": a.artifact_type, "content": a.content})
         else:
             print_artifact(a)
+
+
+@artifacts.command("list")
+@click.option("--notebook", default=None, help="Notebook ID (or use current context).")
+@click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
+def list_artifacts(notebook, use_json):
+    """List all artifacts in a notebook with their status."""
+    with handle_errors(json_mode=use_json):
+        nb_id = require_notebook(notebook)
+        client = NotebookLMClient()
+        artifacts_list = client.list_artifacts(nb_id)
+        if use_json:
+            print_json(artifacts_list)
+        else:
+            for a in artifacts_list:
+                status_icon = {"completed": "✓", "in_progress": "⏳", "pending": "⏳", "failed": "✗"}.get(a["status"], "?")
+                click.echo(f"  {status_icon} [{a['type']}] {a['title'] or '(untitled)'} — {a['id'][:12]}... ({a['status']})")
+            if not artifacts_list:
+                click.echo("  No artifacts found.")
+
+
+@artifacts.command("download")
+@click.option("--notebook", default=None, help="Notebook ID (or use current context).")
+@click.argument("artifact_id")
+@click.option("--output", "-o", type=click.Path(), required=True, help="Output file path.")
+@click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
+def download(notebook, artifact_id, output, use_json):
+    """Download a completed artifact to a file."""
+    with handle_errors(json_mode=use_json):
+        nb_id = require_notebook(notebook)
+        client = NotebookLMClient()
+        path = client.download_artifact(nb_id, artifact_id, output)
+        if use_json:
+            print_json({"downloaded": True, "path": path, "artifact_id": artifact_id})
+        else:
+            click.echo(f"Downloaded to {path}")
 
 
 @artifacts.command("list-audio-types")

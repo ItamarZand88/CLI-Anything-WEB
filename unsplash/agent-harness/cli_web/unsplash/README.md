@@ -107,5 +107,5 @@ python -m pytest cli_web/unsplash/tests/ -v
 
 - Python >= 3.10
 - click >= 8.0
-- httpx >= 0.24
+- curl_cffi (Chrome TLS impersonation for anti-bot bypass)
 - rich >= 13.0

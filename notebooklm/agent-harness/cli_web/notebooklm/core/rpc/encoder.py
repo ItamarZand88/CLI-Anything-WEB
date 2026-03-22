@@ -24,7 +24,7 @@ def encode_request(rpc_id: str, params: list, csrf_token: str) -> str:
 def build_url(
     rpc_id: str,
     session_id: str,
-    build_label: str,
+    build_label: str = "",
     source_path: str = "/",
     req_id: int = 100000,
     lang: str = "en",
@@ -34,7 +34,7 @@ def build_url(
     Args:
         rpc_id: The RPC method identifier
         session_id: The f.sid value (FdrFJe from WIZ_global_data)
-        build_label: The bl value (cfb2h from WIZ_global_data)
+        build_label: The bl value (cfb2h) — optional, not required
         source_path: The current page context path
         req_id: Incrementing request counter (start at 100000)
         lang: Language code
@@ -46,9 +46,9 @@ def build_url(
         "rpcids": rpc_id,
         "source-path": source_path,
         "f.sid": session_id,
-        "bl": build_label,
         "hl": lang,
-        "_reqid": str(req_id),
         "rt": "c",
     }
+    if build_label:
+        params["bl"] = build_label
     return f"{BATCHEXECUTE_URL}?{urllib.parse.urlencode(params)}"

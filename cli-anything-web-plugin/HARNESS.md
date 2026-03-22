@@ -70,31 +70,45 @@ Error codes map directly from the exception hierarchy:
 
 ## Tool Hierarchy (strict priority)
 
+### Phase 1: Traffic Capture (Developer)
+
 | Priority | Tool | When to use |
 |----------|------|-------------|
-| 1. PRIMARY | `npx @playwright/cli@latest` via Bash | Always try first |
+| 1. PRIMARY | `npx @playwright/cli@latest` via Bash | Traffic recording, tracing |
 | 2. FALLBACK | `mcp__chrome-devtools__*` MCP tools | Only if playwright-cli unavailable |
 | 3. NEVER | `mcp__claude-in-chrome__*` | Blocked — cannot capture request bodies |
+
+### Generated CLI: Auth Login (End-User)
+
+| Tool | When to use |
+|------|-------------|
+| Python `sync_playwright()` | `auth login` command — opens browser for Google/SSO login |
+| `curl_cffi` with `impersonate` | Runtime HTTP for anti-bot protected sites (Unsplash, ProductHunt) |
+| `httpx` | Runtime HTTP for unprotected sites and JSON APIs |
+
+> **CRITICAL**: Generated CLIs use Python `sync_playwright()` for auth login,
+> NOT `npx @playwright/cli`. The npx approach has interactive input race conditions
+> on Windows. See `auth-strategies.md` Known Pitfalls.
 
 ### Development vs End-User
 
 | | Development (Phases 1-4) | End-User (published CLI) |
 |--|--------------------------|--------------------------|
-| **Browser** | playwright-cli manages its own | playwright-cli via subprocess (auth only) |
-| **Traffic capture** | `tracing-start` → browse → `tracing-stop` | N/A — CLI uses httpx |
-| **Auth** | `state-save` after user logs in | `auth login` → subprocess `state-save` → parse cookies |
-| **Runtime HTTP** | N/A | httpx — no browser needed |
-| **Dependencies** | Node.js + npx | click, httpx, Node.js + npx (auth only) |
+| **Browser** | npx playwright-cli manages its own | Python sync_playwright() (auth only) |
+| **Traffic capture** | `tracing-start` → browse → `tracing-stop` | N/A — CLI uses httpx/curl_cffi |
+| **Auth** | `state-save` after user logs in | `auth login` → sync_playwright context → storage_state → parse cookies |
+| **Runtime HTTP** | N/A | httpx or curl_cffi — no browser needed |
+| **Dependencies** | Node.js + npx | click, httpx (or curl_cffi), playwright (auth only) |
 
 **The generated CLI MUST work standalone** — a CLI that requires a running browser
-defeats the purpose of having a CLI. playwright-cli is only needed during `auth login`;
+defeats the purpose of having a CLI. Python playwright is only needed during `auth login`;
 all regular commands use httpx.
 
 ---
 
 ## Pipeline: Skill Sequence
 
-The 8-phase pipeline is implemented as a chain of skills. Each skill handles its
+The 4-phase pipeline is implemented as a chain of skills. Each skill handles its
 phases and invokes the next when done. Hard gates prevent skipping.
 
 | Phase | Skill | What it does | Hard Gate |
@@ -183,12 +197,12 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 
 | Reference | When to read | Used in |
 |-----------|-------------|---------|
-| `traffic-patterns.md` | Phase 2 — identifying API protocol (REST, GraphQL, SSR, batchexecute) | Phase 1-3 |
-| `auth-strategies.md` | Phase 4 — implementing auth module | Phase 4 |
-| `google-batchexecute.md` | Phase 2+4 — when target is a Google app | Phase 2, 4 |
+| `traffic-patterns.md` | Phase 2 — identifying API protocol (REST, GraphQL, SSR, batchexecute) | Phase 2 |
+| `auth-strategies.md` | Phase 2 — implementing auth module | Phase 2 |
+| `google-batchexecute.md` | Phase 2 — when target is a Google app | Phase 2 |
 | `ssr-patterns.md` | Phase 2 — when target uses SSR (Next.js, Nuxt, etc.) | Phase 2 |
-| `helpers-module-example.py` | Phase 3 — implementing utils/helpers.py | Phase 3 |
-| `persistent-context-example.py` | Phase 3 — persistent context commands | Phase 3 |
+| `helpers-module-example.py` | Phase 2 — implementing utils/helpers.py | Phase 2 |
+| `persistent-context-example.py` | Phase 2 — persistent context commands | Phase 2 |
 
 ---
 
@@ -348,71 +362,33 @@ media downloads.
 When the same cookie name exists on both `.google.com` and `.google.co.il` (or any
 other regional domain), the `.google.com` value is the one that Google services
 accept. Never overwrite a `.google.com` cookie with a regional duplicate. This is
-the #1 auth bug for international users. See Critical Lesson #14 and
-`auth-strategies.md` "Cookie domain priority" for the working pattern from
-`notebooklm/agent-harness/cli_web/notebooklm/core/auth.py`.
+the #1 auth bug for international users. See `auth-strategies.md` "Cookie domain
+priority" for the working pattern and code example.
 
 ---
 
-## Critical Lessons
+## Lessons Learned (cross-reference)
 
-1. **Auth is Everything** — The auth module is the most critical component.
-2. **Capture Comprehensively** — Systematically exercise every feature.
-3. **APIs Change** — Include version detection and graceful degradation.
-4. **Rate Limiting** — Respect limits. Add exponential backoff. Cache where safe.
-5. **Verify Responses** — Never trust status 200 alone.
-6. **GraphQL Needs Special Handling** — Abstract query complexity into human-friendly commands.
-7. **Content Generation Requires Download** — trigger → poll → download → save.
-8. **CAPTCHAs Require Human Intervention** — Detect, pause, guide, resume.
-9. **Cross-Reference RPC IDs** — Obfuscated method IDs (batchexecute) can be
-   mislabeled during traffic analysis. Always cross-reference with known-good
-   implementations (check existing CLIs in this repo — `futbin/`, `notebooklm/`). A single wrong
-   ID (e.g., using CREATE_NOTE instead of CREATE_ARTIFACT) causes silent failures.
-10. **Force UTF-8 on Windows** — Player names, Hebrew text, and emoji break on
-    Windows without explicit encoding. Add this at the top of `<app>_cli.py`:
-    ```python
-    import sys
-    if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
-        try: sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        except AttributeError: pass
-    ```
-11. **HTML Parsers Must Extract ALL Visible Fields** — When scraping a table, extract
-    every column — not just name/price. If the HTML shows version, club, nation, and
-    6 stat columns, the parser must return all of them. Empty fields in the output
-    mean the parser is incomplete, not that the data doesn't exist. Verify by comparing
-    `--json` output fields against what the browser shows.
-12. **SSR Slug URLs** — Many SSR sites require a slug in the URL
-    (`/resource/40/item-name`, not `/resource/40`). The bare-ID URL may 404.
-    Strategy: search API first to get the canonical URL/slug, then scrape the
-    detail page. If search doesn't return the ID, try with a placeholder slug
-    (some sites redirect to the correct one).
-13. **Scraped Text Has Noise** — HTML table cells often contain extra text
-    alongside the value you want (percentage changes, badges, status labels,
-    currency symbols). Never parse `get_text()` directly — use regex or string
-    splitting to isolate the target value before type conversion.
-14. **Cookie Domain Priority Breaks International Users** — Playwright's
-    `state-save` captures the same Google auth cookie names (`SID`,
-    `__Secure-1PSID`, `HSID`, etc.) on BOTH `.google.com` AND regional
-    domains (`.google.co.il`, `.google.de`, `.google.co.jp`, etc.).
-    Naive flattening `{c["name"]: c["value"] for c in cookies}` lets the
-    LAST value win — which may be the regional one. Google services like
-    NotebookLM only accept `.google.com` cookies. The fix: always prefer
-    `.google.com` values when deduplicating. See `auth-strategies.md`
-    "Cookie domain priority" section for the working pattern.
-15. **`login_browser()` Must Use `Popen`, Not `subprocess.run()`** —
-    Playwright-cli's `open --headed --persistent` keeps the process alive
-    while the browser is open. `subprocess.run()` blocks until the browser
-    closes, making the subsequent `input("press ENTER...")` unreachable.
-    The user sees the browser, but the CLI appears frozen. Fix: use
-    `subprocess.Popen()` so the browser runs in the background and `input()`
-    works while the user logs in. Close the session separately after
-    `state-save`.
-16. **Playwright `state-save` Produces a List, Not a Dict** — The raw
-    format is `{"cookies": [{name, value, domain, httpOnly, ...}, ...]}`.
-    `load_cookies()` must handle both this list format AND the extracted
-    dict format `{"cookies": {"SID": "val", ...}}`. Always check
-    `isinstance(cookies, list)` before using the value. If it's a list,
-    run it through `_extract_cookies()` with domain priority.
+These lessons are documented in detail in the skill/reference where they're most
+actionable. This section is a quick-reference index — read the linked file for
+full context and code examples.
+
+| Topic | Where to find it | Key takeaway |
+|-------|-----------------|--------------|
+| Auth login must use Python playwright | `auth-strategies.md` "Known Pitfalls" | Never use `npx @playwright/cli` for auth login — use `sync_playwright()` with persistent context |
+| Cookie domain priority | `auth-strategies.md` "Cookie domain priority" | `.google.com` cookies must override regional duplicates (`.google.co.il`, etc.) |
+| Storage state is a list, not dict | `auth-strategies.md` "How to handle dual formats" | `load_cookies()` must handle both `[{name,value,domain}]` and `{name: value}` |
+| Domain-aware cookies for downloads | `auth-strategies.md` "Known Pitfalls" | Google download URLs need `httpx.Cookies` with domain info, not flat dicts |
+| RPC ID verification | `google-batchexecute.md` "Critical: One RPC ID, Multiple Operations" | Never guess RPC IDs — verify against traffic. Same ID can serve different operations |
+| Verify `--json` output | `testing/SKILL.md` "CLI Output Sanity Checks" + `standards/SKILL.md` "Output Sanity Verification" | Run every command with `--json` after implementation — check for raw protocol leaks |
+| Anti-bot protection | `capture/references/protection-detection.md` "Cloudflare" | Sites add protection over time — switch `httpx` → `curl_cffi` when you see 401/403 challenges |
+| HTML parser completeness | `methodology/references/ssr-patterns.md` | Extract ALL visible fields, not just obvious ones — verify `--json` fields against browser |
+| SSR slug URLs | `methodology/references/ssr-patterns.md` | Bare-ID URLs may 404 — search first for canonical slug |
+| Scraped text noise | `methodology/references/ssr-patterns.md` | Use regex to isolate values from surrounding badges/labels |
+| UTF-8 on Windows | `methodology/SKILL.md` | Add `sys.stdout.reconfigure(encoding="utf-8")` at CLI entry point |
+| Content generation lifecycle | Critical Rules above | trigger → poll → download → save with `--wait`, `--retry`, `--output` |
+| Rate limiting | Critical Rules above | Exponential backoff, never fixed sleep |
+| Response body verification | Critical Rules above + `testing/SKILL.md` | Never trust HTTP 200 alone — check returned fields |
 
 ---
 

@@ -71,7 +71,7 @@ is NOT complete -- go back and fix the issue.
 ```bash
 cli-web-<app> auth login
 ```
-This uses playwright-cli via subprocess -- opens a browser, user logs in,
+This uses Python sync_playwright() -- opens a browser, user logs in,
 cookies saved. This is what end users will run. If this fails, the CLI is
 broken for end users.
 
@@ -118,11 +118,45 @@ not just read them.
 
 ### Smoke Test Checklist
 
-- [ ] `auth login` works (playwright-cli, API key, or N/A for no-auth)
+- [ ] `auth login` works (Python playwright, API key, or N/A for no-auth)
 - [ ] `auth status` shows valid (or N/A for no-auth)
 - [ ] At least one READ returns real data
 - [ ] **At least one WRITE/CREATE/GENERATE succeeds** (or N/A for read-only)
 - [ ] The CLI works standalone -- no debug Chrome, no port 9222, no MCP
+- [ ] **Output sanity: no raw protocol data leaks in `--json` output** (see below)
+
+### Output Sanity Verification (Critical)
+
+After every smoke test command, inspect the `--json` output for raw protocol leakage.
+This catches broken decoders, wrong RPC IDs, and incomplete param structures:
+
+```bash
+# Run each command and check for RED FLAGS:
+cli-web-<app> <command> --json 2>&1 | head -20
+
+# FAIL if output contains any of:
+# - "wrb.fr", "af.httprm", "di" → raw batchexecute chunks leaked
+# - Empty [] where data is expected → wrong RPC params
+# - "null" for required fields → response parser extracting wrong indices
+# - Truncated/garbled text → encoding issue (body double-encoded)
+```
+
+**For batchexecute CLIs specifically:**
+```bash
+# Test chat returns readable text, not RPC fragments:
+cli-web-<app> chat ask --query "test" --json
+# answer field must be >50 chars of readable text
+
+# Test sources appear after adding:
+cli-web-<app> sources add-url --url "https://example.com" --json
+sleep 5
+cli-web-<app> sources list --json
+# Must show the added source, not empty []
+
+# Test artifacts return structured data:
+cli-web-<app> artifacts generate --type mindmap --json
+# Must have id or content field, not raw RPC
+```
 
 ### Common Failure Mode
 
@@ -309,7 +343,7 @@ add a new row for it.
 ## Pipeline Complete
 
 The pipeline is NOT done until:
-- `auth login` works (via playwright-cli, API key, or N/A for no-auth sites)
+- `auth login` works (via Python playwright, API key, or N/A for no-auth sites)
 - `auth status` shows valid (or N/A for no-auth sites)
 - At least one READ returns real data
 - **At least one WRITE/CREATE/GENERATE succeeds** (or N/A for read-only sites)
@@ -353,7 +387,7 @@ Run `/cli-anything-web:validate` to check all items automatically.
 
 These are non-negotiable standards:
 
-- **playwright-cli is the primary browser tool** -- verify with `npx @playwright/cli --version`
+- **Python playwright is the primary browser tool** -- verify with `python -c "from playwright.sync_api import sync_playwright; print('OK')"`
 - **Content generation downloads the result** -- if the app generates content (audio,
   images, video), the CLI must trigger -> poll -> download -> save. Support `--output`.
 - **CAPTCHAs pause and prompt** -- never crash or skip. Detect, tell user to solve in

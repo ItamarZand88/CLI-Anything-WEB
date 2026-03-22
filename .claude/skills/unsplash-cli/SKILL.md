@@ -34,7 +34,7 @@ cli-web-unsplash photos search "sunset" --orientation landscape --color orange -
 ```
 
 **Key options:** `--orientation` (landscape/portrait/squarish), `--color`, `--order-by` (relevant/latest), `--page`, `--per-page`
-**Output fields:** `total`, `total_pages`, `results[]` with `id`, `description`, `width`, `height`, `likes`, `author`, `url`, `link`, `premium`
+**Output fields:** `total`, `total_pages`, `results[]` with `id`, `description`, `width`, `height`, `likes`, `color`, `author`, `url`, `link`, `premium`
 
 ### `photos get <photo_id>`
 Get full photo details including EXIF, location, and tags.
@@ -43,7 +43,7 @@ Get full photo details including EXIF, location, and tags.
 cli-web-unsplash photos get SyfvrXRy28Y --json
 ```
 
-**Output fields:** `id`, `slug`, `description`, `width`, `height`, `likes`, `views`, `downloads`, `author`, `urls`, `exif` (camera, aperture, exposure, focal_length, iso), `location` (name, city, country, latitude, longitude), `tags[]`
+**Output fields:** `id`, `slug`, `description`, `width`, `height`, `color`, `likes`, `views`, `downloads`, `created_at`, `author` ({username, name}), `urls`, `exif` (camera, aperture, exposure, focal_length, iso), `location` (name, city, country, latitude, longitude), `tags[]`, `premium`, `link`
 
 ### `photos random`
 Get random photo(s), optionally filtered.

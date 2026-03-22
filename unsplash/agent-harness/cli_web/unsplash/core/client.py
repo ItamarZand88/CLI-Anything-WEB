@@ -1,8 +1,11 @@
-"""HTTP client for Unsplash internal /napi/ endpoints."""
+"""HTTP client for Unsplash internal /napi/ endpoints.
+
+Uses curl_cffi with Chrome TLS impersonation to bypass anti-bot protection.
+"""
 
 from __future__ import annotations
 
-import httpx
+from curl_cffi import requests as curl_requests
 
 from .exceptions import (
     NetworkError,
@@ -13,30 +16,20 @@ from .exceptions import (
 )
 
 BASE_URL = "https://unsplash.com"
-DEFAULT_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/131.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json",
-    "Accept-Language": "en-US,en;q=0.9",
-}
 
 
 class UnsplashClient:
     """Client for Unsplash's internal /napi/ REST API."""
 
     def __init__(self) -> None:
-        self._http = httpx.Client(
-            base_url=BASE_URL,
-            headers=DEFAULT_HEADERS,
-            timeout=30.0,
-            follow_redirects=True,
+        self._session = curl_requests.Session(
+            impersonate="chrome131",
+            headers={"Accept": "application/json"},
+            timeout=30,
         )
 
     def close(self) -> None:
-        self._http.close()
+        self._session.close()
 
     def __enter__(self) -> UnsplashClient:
         return self
@@ -47,12 +40,11 @@ class UnsplashClient:
     # ── HTTP helpers ────────────────────────────────────────────
 
     def _get(self, path: str, params: dict | None = None) -> dict | list:
+        url = f"{BASE_URL}{path}"
         try:
-            resp = self._http.get(path, params=params)
-        except httpx.TimeoutException as exc:
-            raise NetworkError(f"Request timed out: {exc}") from exc
-        except httpx.ConnectError as exc:
-            raise NetworkError(f"Connection failed: {exc}") from exc
+            resp = self._session.get(url, params=params)
+        except Exception as exc:
+            raise NetworkError(f"Request failed: {exc}") from exc
 
         if resp.status_code == 404:
             raise NotFoundError(f"Not found: {path}")

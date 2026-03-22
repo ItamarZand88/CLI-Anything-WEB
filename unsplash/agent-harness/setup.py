@@ -10,7 +10,7 @@ setup(
     python_requires=">=3.10",
     install_requires=[
         "click>=8.0",
-        "httpx>=0.24",
+        "curl_cffi",
         "rich>=13.0",
         "prompt_toolkit>=3.0",
     ],

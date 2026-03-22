@@ -63,6 +63,12 @@ If `curl_cffi` doesn't work (some sites check more than TLS), fall back to:
 
 **Strategy 1 is strongly preferred** — it's simpler, needs no auth, and doesn't expire.
 
+**Protection can appear after launch.** Sites add anti-bot protection over time.
+Unsplash added it in March 2026 — a CLI that worked fine with `httpx` suddenly started
+getting 401 "Making sure you're not a bot!" responses. When this happens, switch from
+`httpx` to `curl_cffi` with `impersonate="chrome131"`. Detection: HTTP 401/403 response
+body contains "not a bot", "challenge", or "Cloudflare" text.
+
 ### General Cloudflare rules:
 - Add realistic delays between requests (1-3 seconds)
 - Respect rate limits strictly — Cloudflare escalates protections on abuse

@@ -1,6 +1,5 @@
 """HTTP client for NotebookLM batchexecute API."""
 import json
-import time
 import urllib.parse
 from typing import Any, Optional
 
@@ -17,7 +16,7 @@ from .models import (
 )
 from .rpc import encode_request, build_url, decode_response
 from .rpc.decoder import strip_prefix, parse_chunks
-from .rpc.types import RPCMethod, ArtifactType
+from .rpc.types import RPCMethod, ArtifactType, BATCHEXECUTE_URL
 from .session import get_session
 
 BASE_URL = "https://notebooklm.google.com"
@@ -165,7 +164,7 @@ class NotebookLMClient:
         """Get notebook details by ID."""
         result = self._call(
             RPCMethod.GET_NOTEBOOK,
-            [notebook_id],
+            [notebook_id, None, [2], None, 0],
             source_path=f"/notebook/{notebook_id}",
         )
         if not result or not isinstance(result, list):
@@ -206,11 +205,11 @@ class NotebookLMClient:
     def list_sources(self, notebook_id: str) -> list[Source]:
         """List all sources in a notebook (extracted from get_notebook response).
 
-        izAoDd is deprecated/inaccessible; sources are embedded in rLM1Ne response.
+        Sources are embedded in rLM1Ne (GET_NOTEBOOK) response at result[0][1].
         """
         result = self._call(
             RPCMethod.GET_NOTEBOOK,
-            [notebook_id],
+            [notebook_id, None, [2], None, 0],
             source_path=f"/notebook/{notebook_id}",
         )
         if not result or not isinstance(result, list):
@@ -225,33 +224,48 @@ class NotebookLMClient:
         return sources
 
     def add_url_source(self, notebook_id: str, url: str) -> Source:
-        """Add a URL source to a notebook."""
+        """Add a URL source to a notebook.
+
+        Uses izAoDd (ADD_SOURCE) with correct param structure.
+        """
+        params = [
+            [[None, None, [url], None, None, None, None, None]],
+            notebook_id,
+            [2],
+            None,
+            None,
+        ]
         result = self._call(
-            RPCMethod.ADD_URL_SOURCE,
-            [notebook_id, [url]],
+            RPCMethod.ADD_SOURCE,
+            params,
             source_path=f"/notebook/{notebook_id}",
         )
-        # VfAZjd returns [null, "source_id"]
-        if result and isinstance(result, list) and len(result) > 1:
-            source_id = result[1]
-            time.sleep(1)  # Brief delay for source to be indexed
+        # izAoDd returns source data — extract source ID
+        source_id = _extract_source_id_from_add(result)
+        if source_id:
             return Source(id=source_id, name=url, source_type="url", url=url)
         raise ServerError(f"Unexpected add-url response: {result}")
 
     def add_text_source(self, notebook_id: str, title: str, text: str) -> Source:
-        """Add a plain-text source to a notebook."""
+        """Add a plain-text source to a notebook.
+
+        Uses izAoDd (ADD_SOURCE) with correct param structure.
+        """
+        params = [
+            [[None, [title, text], None, None, None, None, None, None]],
+            notebook_id,
+            [2],
+            None,
+            None,
+        ]
         result = self._call(
-            RPCMethod.ADD_TEXT_SOURCE,
-            [None, None, notebook_id, title, text],
+            RPCMethod.ADD_SOURCE,
+            params,
             source_path=f"/notebook/{notebook_id}",
         )
-        # hPTbtc returns [[[source_id]]]
-        if result and isinstance(result, list):
-            try:
-                source_id = result[0][0][0]
-                return Source(id=source_id, name=title, source_type="text")
-            except (IndexError, TypeError):
-                pass
+        source_id = _extract_source_id_from_add(result)
+        if source_id:
+            return Source(id=source_id, name=title, source_type="text")
         raise ServerError(f"Unexpected add-text response: {result}")
 
     def get_source(self, notebook_id: str, source_id: str) -> Source:
@@ -291,7 +305,7 @@ class NotebookLMClient:
     def chat_query(self, notebook_id: str, query: str) -> str:
         """Ask a question to a notebook.
 
-        Uses GenerateFreeFormStreamed endpoint (NotebookLM migrated from yyryJe).
+        Uses GenerateFreeFormStreamed endpoint.
         Returns the answer as a string.
         """
         self._ensure_auth()
@@ -299,19 +313,24 @@ class NotebookLMClient:
         sources = self.list_sources(notebook_id)
         source_ids = [s.id for s in sources]
 
-        # Build inner JSON: [[["id1"]], [["id2"]], ...], "query", []
+        # Build inner params matching the reference implementation
         sources_arr = [[[sid]] for sid in source_ids]
-        inner = [sources_arr, query, []]
+        inner = [sources_arr, query, None, [2, None, [1], [1]], None, None, None, notebook_id, 1]
         inner_json = json.dumps(inner, separators=(",", ":"))
 
         # Outer f.req: [null, inner_json_string]
         freq = json.dumps([None, inner_json], separators=(",", ":"))
-        body = urllib.parse.urlencode({"f.req": freq, "at": self._csrf})
+
+        # URL-encode body parts with quote() for proper encoding
+        body_parts = [f"f.req={urllib.parse.quote(freq, safe='')}"]
+        if self._csrf:
+            body_parts.append(f"at={urllib.parse.quote(self._csrf, safe='')}")
+        body = "&".join(body_parts) + "&"
 
         req_id = self._session.next_req_id()
         url_params = urllib.parse.urlencode({
-            "f.sid": self._session_id,
-            "bl": self._build_label,
+            "f.sid": self._session_id or "",
+            "bl": self._build_label or "",
             "hl": "en",
             "_reqid": str(req_id),
             "rt": "c",
@@ -328,7 +347,7 @@ class NotebookLMClient:
         try:
             resp = httpx.post(
                 url,
-                content=body.encode("utf-8"),
+                content=body,
                 headers=headers,
                 cookies=self._cookies,
                 follow_redirects=False,
@@ -358,50 +377,373 @@ class NotebookLMClient:
 
     # ── Artifacts ─────────────────────────────────────────────────────────────
 
-    def generate_artifact(self, notebook_id: str, artifact_type: int = ArtifactType.MIND_MAP) -> Artifact:
-        """Generate a structured artifact from a notebook.
-
-        Uses the unified CREATE_ARTIFACT (R7cb6c) RPC method.
-        artifact_type: ArtifactType.AUDIO (1), REPORT/STUDY_GUIDE (2), VIDEO (3),
-                       QUIZ (4), MIND_MAP (5), INFOGRAPHIC (7), SLIDE_DECK (8), DATA_TABLE (9)
-
-        The param structure matches notebooklm-py's _call_generate pattern:
-        [[2], notebook_id, [None, None, type_code, source_ids, ...]]
-        """
-        # Get source IDs — the API requires them for artifact generation
+    def _get_source_ids(self, notebook_id: str) -> tuple[list, list]:
+        """Get source IDs in both triple and double nested formats."""
         sources = self.list_sources(notebook_id)
         source_ids = [s.id for s in sources]
-        source_ids_triple = [[[sid]] for sid in source_ids] if source_ids else []
+        triple = [[[sid]] for sid in source_ids] if source_ids else []
+        double = [[sid] for sid in source_ids] if source_ids else []
+        return triple, double
 
-        params = [
-            [2],
-            notebook_id,
-            [
-                None,
-                None,
-                artifact_type,
-                source_ids_triple,
-            ],
-        ]
-        result = self._call(
-            RPCMethod.CREATE_ARTIFACT,
-            params,
-            source_path=f"/notebook/{notebook_id}",
-        )
-        # R7cb6c returns [artifact_id, title, date?, null, status_code] or None
+    def generate_artifact(
+        self,
+        notebook_id: str,
+        artifact_type: int = ArtifactType.MIND_MAP,
+        report_format: str = "briefing",
+    ) -> Artifact:
+        """Generate an artifact from a notebook.
+
+        Supports all artifact types from NotebookLM:
+        - audio (1), report (2), video (3), quiz (4), mindmap (5),
+          infographic (7), slide_deck (8), data_table (9)
+
+        Mind maps use GENERATE_MIND_MAP (yyryJe). All others use CREATE_ARTIFACT (R7cb6c).
+        """
         type_names = {
             1: "audio", 2: "report", 3: "video", 4: "quiz",
             5: "mindmap", 7: "infographic", 8: "slide_deck", 9: "data_table",
         }
         type_name = type_names.get(artifact_type, "unknown")
 
-        if not result or not isinstance(result, list):
-            # Null result can mean generation was triggered async
-            return Artifact(id="", artifact_type=type_name, content="Generation triggered — check artifacts list")
+        source_ids_triple, source_ids_double = self._get_source_ids(notebook_id)
 
-        artifact_id = result[0] if len(result) > 0 else ""
-        content = result[1] if len(result) > 1 else ""
-        return Artifact(id=str(artifact_id), artifact_type=type_name, content=str(content))
+        # Mind map uses a completely different RPC method
+        if artifact_type == ArtifactType.MIND_MAP:
+            return self._generate_mind_map(notebook_id, source_ids_triple)
+
+        # Build params — each type has a unique structure
+        params = self._build_artifact_params(
+            notebook_id, artifact_type, source_ids_triple, source_ids_double, report_format
+        )
+        result = self._call(
+            RPCMethod.CREATE_ARTIFACT,
+            params,
+            source_path=f"/notebook/{notebook_id}",
+        )
+        return _parse_generation_result(result, type_name)
+
+    def _build_artifact_params(
+        self, notebook_id: str, artifact_type: int,
+        sids_triple: list, sids_double: list, report_format: str,
+    ) -> list:
+        """Build the full params array for CREATE_ARTIFACT (R7cb6c).
+
+        Each artifact type has a unique inner structure at different array
+        positions. These structures are reverse-engineered from traffic analysis.
+        """
+        if artifact_type == ArtifactType.AUDIO:
+            return [
+                [2], notebook_id,
+                [None, None, 1, sids_triple, None, None,
+                 [None, [None, None, None, sids_double, "en", None, None]]],
+            ]
+
+        if artifact_type == ArtifactType.REPORT:
+            report_configs = {
+                "briefing": ("Briefing Doc", "Key insights and important quotes",
+                    "Create a comprehensive briefing document that includes an "
+                    "Executive Summary, detailed analysis of key themes, important "
+                    "quotes with context, and actionable insights."),
+                "study-guide": ("Study Guide", "Short-answer quiz, essay questions, glossary",
+                    "Create a comprehensive study guide that includes key concepts, "
+                    "short-answer practice questions, essay prompts for deeper "
+                    "exploration, and a glossary of important terms."),
+                "blog-post": ("Blog Post", "Insightful takeaways in readable article format",
+                    "Write an engaging blog post that presents the key insights "
+                    "in an accessible, reader-friendly format."),
+            }
+            title, desc, prompt = report_configs.get(report_format, report_configs["briefing"])
+            return [
+                [2], notebook_id,
+                [None, None, 2, sids_triple, None, None, None,
+                 [None, [title, desc, None, sids_double, "en", prompt, None, True]]],
+            ]
+
+        if artifact_type == ArtifactType.VIDEO:
+            return [
+                [2], notebook_id,
+                [None, None, 3, sids_triple, None, None, None, None,
+                 [None, None, [sids_double, "en", None, None, None, None]]],
+            ]
+
+        if artifact_type == ArtifactType.QUIZ:
+            return [
+                [2], notebook_id,
+                [None, None, 4, sids_triple, None, None, None, None, None,
+                 [None, [2, None, None, None, None, None, None, [None, None]]]],
+            ]
+
+        if artifact_type == ArtifactType.INFOGRAPHIC:
+            return [
+                [2], notebook_id,
+                [None, None, 7, sids_triple, None, None, None, None, None,
+                 None, None, None, None, None,
+                 [[None, "en", None, None, None, None]]],
+            ]
+
+        if artifact_type == ArtifactType.SLIDE_DECK:
+            return [
+                [2], notebook_id,
+                [None, None, 8, sids_triple, None, None, None, None, None,
+                 None, None, None, None, None, None, None,
+                 [[None, "en", None, None]]],
+            ]
+
+        if artifact_type == ArtifactType.DATA_TABLE:
+            return [
+                [2], notebook_id,
+                [None, None, 9, sids_triple, None, None, None, None, None,
+                 None, None, None, None, None, None, None, None, None,
+                 [None, [None, "en"]]],
+            ]
+
+        # Fallback for unknown types
+        return [[2], notebook_id, [None, None, artifact_type, sids_triple]]
+
+    def _generate_mind_map(self, notebook_id: str, source_ids_triple: list) -> Artifact:
+        """Generate a mind map using GENERATE_MIND_MAP (yyryJe) RPC.
+
+        Mind maps use the chat/query RPC with a special prompt structure,
+        not CREATE_ARTIFACT.
+        """
+        params = [
+            source_ids_triple,
+            None, None, None, None,
+            ["interactive_mindmap", [["[CONTEXT]", ""]], ""],
+            None,
+            [2, None, [1]],
+        ]
+        result = self._call(
+            RPCMethod.CHAT_QUERY,
+            params,
+            source_path=f"/notebook/{notebook_id}",
+        )
+        if result and isinstance(result, list) and len(result) > 0:
+            inner = result[0]
+            if isinstance(inner, list) and len(inner) > 0:
+                content = inner[0] if isinstance(inner[0], str) else json.dumps(inner[0])
+                return Artifact(id="", artifact_type="mindmap", content=content)
+        return Artifact(id="", artifact_type="mindmap", content="Mind map generation triggered")
+
+    def list_artifacts(self, notebook_id: str) -> list[dict]:
+        """List all artifacts in a notebook with their status."""
+        params = [[2], notebook_id, 'NOT artifact.status = "ARTIFACT_STATUS_SUGGESTED"']
+        result = self._call(
+            RPCMethod.LIST_ARTIFACTS,
+            params,
+            source_path=f"/notebook/{notebook_id}",
+        )
+        if not result or not isinstance(result, list):
+            return []
+        artifacts_data = result[0] if isinstance(result[0], list) else result
+        artifacts = []
+        status_names = {1: "in_progress", 2: "pending", 3: "completed", 4: "failed"}
+        type_names = {1: "audio", 2: "report", 3: "video", 4: "quiz",
+                      5: "mindmap", 7: "infographic", 8: "slide_deck", 9: "data_table"}
+        for art in artifacts_data:
+            if not isinstance(art, list) or len(art) < 1:
+                continue
+            art_id = art[0] if len(art) > 0 else ""
+            art_type = type_names.get(art[2], "unknown") if len(art) > 2 else "unknown"
+            status = status_names.get(art[4], "unknown") if len(art) > 4 else "unknown"
+            title = art[1] if len(art) > 1 and isinstance(art[1], str) else ""
+            artifacts.append({"id": art_id, "type": art_type, "title": title, "status": status})
+        return artifacts
+
+    def poll_artifact_status(self, notebook_id: str, artifact_id: str) -> dict:
+        """Poll the status of a specific artifact."""
+        all_artifacts = self.list_artifacts(notebook_id)
+        for art in all_artifacts:
+            if art["id"] == artifact_id:
+                return art
+        return {"id": artifact_id, "status": "pending"}
+
+    def _list_artifacts_raw(self, notebook_id: str) -> list:
+        """Get raw artifact list data for download parsing."""
+        params = [[2], notebook_id, 'NOT artifact.status = "ARTIFACT_STATUS_SUGGESTED"']
+        result = self._call(
+            RPCMethod.LIST_ARTIFACTS, params,
+            source_path=f"/notebook/{notebook_id}",
+        )
+        if result and isinstance(result, list) and len(result) > 0:
+            return result[0] if isinstance(result[0], list) else result
+        return []
+
+    def download_artifact(self, notebook_id: str, artifact_id: str, output_path: str) -> str:
+        """Download a completed artifact to a file.
+
+        Supports: report (md), audio (mp4), video (mp4), infographic (png),
+        slide_deck (pdf), data_table (csv), quiz (json), mind_map (json).
+
+        Returns the output path on success.
+        """
+        from pathlib import Path
+        import csv
+
+        raw = self._list_artifacts_raw(notebook_id)
+        art = None
+        for a in raw:
+            if isinstance(a, list) and len(a) > 0 and a[0] == artifact_id:
+                art = a
+                break
+        if not art:
+            raise NotFoundError(f"Artifact {artifact_id} not found")
+
+        art_type = art[2] if len(art) > 2 else 0
+        status = art[4] if len(art) > 4 else 0
+        if status != 3:  # 3 = completed
+            raise ServerError(f"Artifact not completed (status={status}). Wait and retry.")
+
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+
+        # Report — markdown content at art[7][0]
+        if art_type == 2:
+            content = art[7][0] if len(art) > 7 and isinstance(art[7], list) and art[7] else ""
+            if not isinstance(content, str):
+                content = str(content)
+            out.write_text(content, encoding="utf-8")
+            return str(out)
+
+        # Audio — URL at art[6][5][0][0]
+        if art_type == 1:
+            url = art[6][5][0][0] if (len(art) > 6 and isinstance(art[6], list)
+                                      and len(art[6]) > 5 and isinstance(art[6][5], list)
+                                      and art[6][5] and isinstance(art[6][5][0], list)) else None
+            if not url:
+                raise ServerError("Audio URL not found in artifact data")
+            return self._download_url(url, out)
+
+        # Video — URL at art[8], scan for first HTTP string
+        if art_type == 3:
+            url = None
+            if len(art) > 8 and isinstance(art[8], list):
+                for item in art[8]:
+                    if isinstance(item, str) and item.startswith("http"):
+                        url = item
+                        break
+            if not url:
+                raise ServerError("Video URL not found in artifact data")
+            return self._download_url(url, out)
+
+        # Infographic — scan reversed entries for URL
+        if art_type == 7:
+            url = None
+            for item in reversed(art):
+                if isinstance(item, list):
+                    for sub in item:
+                        if isinstance(sub, list) and len(sub) > 2 and isinstance(sub[2], list):
+                            for candidate in sub[2]:
+                                if isinstance(candidate, str) and candidate.startswith("http"):
+                                    url = candidate
+                                    break
+                        if url:
+                            break
+                if url:
+                    break
+            if not url:
+                raise ServerError("Infographic URL not found in artifact data")
+            return self._download_url(url, out)
+
+        # Slide deck — PDF/PPTX URLs are at the end of art[16]
+        if art_type == 8:
+            url = None
+            if len(art) > 16 and isinstance(art[16], list):
+                ext = str(out).lower()
+                # Scan art[16] for download URLs
+                for item in art[16]:
+                    if isinstance(item, str) and item.startswith("http"):
+                        if ".pptx" in ext and "pptx" in item:
+                            url = item
+                            break
+                        elif ".pdf" in ext and "pdf" in item.lower():
+                            url = item
+                            break
+                        elif not url:
+                            url = item  # First URL as fallback
+            if not url:
+                raise ServerError("Slide deck URL not found in artifact data")
+            return self._download_url(url, out)
+
+        # Data table — complex nested structure at art[18]
+        if art_type == 9:
+            if len(art) > 18:
+                raw_data = art[18]
+                # Parse using the same approach as the reference implementation
+                # Structure: raw_data[0][0][0][0][4][2] = rows array
+                headers, rows = _parse_data_table(raw_data)
+                with out.open("w", newline="", encoding="utf-8-sig") as f:
+                    writer = csv.writer(f)
+                    if headers:
+                        writer.writerow(headers)
+                    writer.writerows(rows)
+                return str(out)
+            raise ServerError("Data table content not found")
+
+        # Quiz/Flashcards — fetch interactive HTML, extract app data
+        if art_type == 4:
+            result = self._call(
+                "v9rmvd",  # GET_INTERACTIVE_HTML
+                [artifact_id],
+                source_path=f"/notebook/{notebook_id}",
+            )
+            # Response: result[0][9][0] = HTML content with embedded quiz data
+            html_content = None
+            if result and isinstance(result, list) and len(result) > 0:
+                data = result[0]
+                if isinstance(data, list) and len(data) > 9 and data[9]:
+                    html_content = data[9][0] if isinstance(data[9], list) and data[9] else data[9]
+            if html_content and isinstance(html_content, str):
+                # Extract JSON from data-app-data attribute
+                import re
+                m = re.search(r'data-app-data="([^"]*)"', html_content)
+                if m:
+                    import html as html_mod
+                    app_data = html_mod.unescape(m.group(1))
+                    out.write_text(app_data, encoding="utf-8")
+                else:
+                    out.write_text(html_content, encoding="utf-8")
+            else:
+                out.write_text(json.dumps(result, indent=2, ensure_ascii=False) if result else "{}", encoding="utf-8")
+            return str(out)
+
+        raise ServerError(f"Download not supported for artifact type {art_type}")
+
+    def _download_url(self, url: str, output_path) -> str:
+        """Download a URL to a file using domain-aware cookies.
+
+        Media downloads go to usercontent.google.com which needs cookies with
+        proper domain info — the flat dict approach doesn't work for cross-domain.
+        """
+        from .auth import AUTH_DIR
+        state_file = AUTH_DIR / "playwright-state.json"
+        cookies = httpx.Cookies()
+
+        if state_file.exists():
+            state = json.loads(state_file.read_text(encoding="utf-8"))
+            for c in state.get("cookies", []):
+                domain = c.get("domain", "")
+                name = c.get("name", "")
+                value = c.get("value", "")
+                if ("google" in domain or "usercontent" in domain) and name and value:
+                    cookies.set(name, value, domain=domain)
+        else:
+            # Fallback to flat cookies
+            self._ensure_auth()
+            for k, v in (self._cookies or {}).items():
+                cookies.set(k, v)
+
+        resp = httpx.get(
+            url,
+            cookies=cookies,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+            follow_redirects=True,
+            timeout=120.0,
+        )
+        if resp.status_code != 200:
+            raise ServerError(f"Download failed: HTTP {resp.status_code}")
+        output_path.write_bytes(resp.content)
+        return str(output_path)
 
     def generate_notes(self, notebook_id: str, notes_type: int = 1) -> Artifact:
         """Generate study notes/report from a notebook."""
@@ -499,6 +841,61 @@ def _parse_notebook_content_entry(raw) -> Optional[Notebook]:
         return None
 
 
+def _parse_generation_result(result, type_name: str) -> Artifact:
+    """Parse CREATE_ARTIFACT (R7cb6c) response into an Artifact.
+
+    Response structure: [[artifact_id, title, date?, None, status_code], ...]
+    The artifact data is at result[0].
+    """
+    if not result or not isinstance(result, list):
+        return Artifact(id="", artifact_type=type_name, content="Generation triggered — check artifacts list")
+
+    # Result is nested: result[0] is the artifact data array
+    artifact_data = result[0] if isinstance(result[0], list) else result
+    artifact_id = artifact_data[0] if len(artifact_data) > 0 else ""
+    status_code = artifact_data[4] if len(artifact_data) > 4 else None
+
+    status_names = {1: "in_progress", 2: "pending", 3: "completed", 4: "failed"}
+    status = status_names.get(status_code, "pending") if status_code else "pending"
+
+    if artifact_id:
+        return Artifact(
+            id=str(artifact_id),
+            artifact_type=type_name,
+            content=f"Generation {status} (artifact_id={artifact_id})",
+        )
+
+    return Artifact(id="", artifact_type=type_name, content="Generation triggered — check artifacts list")
+
+
+def _extract_source_id_from_add(result) -> Optional[str]:
+    """Extract source ID from an izAoDd (ADD_SOURCE) response.
+
+    The response structure varies but typically contains the source ID
+    nested inside arrays. Try common patterns.
+    """
+    if not result or not isinstance(result, list):
+        return None
+    try:
+        # Pattern 1: [[source_id, ...], ...]
+        if isinstance(result[0], list) and len(result[0]) > 0:
+            candidate = result[0][0]
+            if isinstance(candidate, str):
+                return candidate
+            # Pattern 2: [[[source_id]], ...]
+            if isinstance(candidate, list) and len(candidate) > 0:
+                if isinstance(candidate[0], str):
+                    return candidate[0]
+                if isinstance(candidate[0], list) and len(candidate[0]) > 0:
+                    return str(candidate[0][0])
+        # Pattern 3: [source_id, ...]
+        if isinstance(result[0], str):
+            return result[0]
+    except (IndexError, TypeError):
+        pass
+    return None
+
+
 def _extract_sources_from_nb_result(result: list) -> list:
     """Extract the sources list embedded in an rLM1Ne (get_notebook) response.
 
@@ -517,8 +914,12 @@ def _extract_sources_from_nb_result(result: list) -> list:
 def _parse_streaming_chat(data: "str | bytes") -> str:
     """Parse the GenerateFreeFormStreamed response and extract the answer text.
 
-    The response uses the same batchexecute chunked format with )]}' prefix.
-    Extracts the first non-empty text content found in the response.
+    The response uses the batchexecute chunked format with )]}' prefix.
+    Each chunk contains wrb.fr entries where item[2] is a JSON string with
+    the answer at inner_data[0][0].
+
+    Each chunk contains wrb.fr entries where item[2] is a JSON string with
+    the answer at inner_data[0][0].
     """
     if isinstance(data, bytes):
         text = data.decode("utf-8", errors="replace")
@@ -529,61 +930,72 @@ def _parse_streaming_chat(data: "str | bytes") -> str:
     if text.startswith(")]}'"):
         text = text[4:].lstrip("\n")
 
-    # Try to parse all JSON chunks and find text content
-    decoder = json.JSONDecoder()
-    pos = 0
-    answer_parts = []
+    # Parse chunked response: alternating length-hint lines and JSON lines
+    lines = text.strip().split("\n")
+    best_answer = ""
 
-    while pos < len(text):
-        ch = text[pos]
-        if ch in " \t\r\n":
-            pos += 1
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if not line:
+            i += 1
             continue
-        if ch.isdigit():
-            while pos < len(text) and text[pos] != "\n":
-                pos += 1
+
+        # Try as length-hint number line
+        try:
+            int(line)
+            i += 1
+            if i < len(lines):
+                answer = _extract_answer_from_chunk(lines[i])
+                if answer and len(answer) > len(best_answer):
+                    best_answer = answer
+            i += 1
+        except ValueError:
+            # Not a number — try as JSON directly
+            answer = _extract_answer_from_chunk(line)
+            if answer and len(answer) > len(best_answer):
+                best_answer = answer
+            i += 1
+
+    return best_answer
+
+
+def _extract_answer_from_chunk(json_str: str) -> Optional[str]:
+    """Extract answer text from a single wrb.fr response chunk.
+
+    Structure: [[wrb.fr, rpc_id, inner_json_string, ...]]
+    inner_json parses to: [[answer_text, null, [conv_id, ...], ...]]
+    """
+    try:
+        data = json.loads(json_str)
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+    if not isinstance(data, list):
+        return None
+
+    for item in data:
+        if not isinstance(item, list) or len(item) < 3:
             continue
-        if ch == "[":
-            try:
-                chunk, end = decoder.raw_decode(text, pos)
-                pos = end
-                # Look for answer text in the chunk structure
-                _collect_answer_text(chunk, answer_parts)
-                continue
-            except json.JSONDecodeError:
-                pass
-        pos += 1
+        if item[0] != "wrb.fr":
+            continue
 
-    if answer_parts:
-        return "".join(answer_parts)
+        inner_json = item[2]
+        if not isinstance(inner_json, str):
+            continue
 
-    # Fallback: return raw truncated text for debugging
-    return text[:500] if len(text) > 500 else text
+        try:
+            inner_data = json.loads(inner_json)
+            if isinstance(inner_data, list) and len(inner_data) > 0:
+                first = inner_data[0]
+                if isinstance(first, list) and len(first) > 0:
+                    text = first[0]
+                    if isinstance(text, str) and text:
+                        return text
+        except (json.JSONDecodeError, ValueError):
+            continue
 
-
-def _collect_answer_text(obj, parts: list, depth: int = 0) -> None:
-    """Recursively search a parsed JSON structure for answer text strings."""
-    if depth > 10:
-        return
-    if isinstance(obj, str):
-        # Try to parse as nested JSON first (GenerateFreeFormStreamed double-encodes)
-        stripped = obj.strip()
-        if stripped.startswith("[") or stripped.startswith("{"):
-            try:
-                inner = json.loads(stripped)
-                _collect_answer_text(inner, parts, depth + 1)
-                return
-            except (json.JSONDecodeError, ValueError):
-                pass
-        # Keep substantive non-URL text
-        if len(obj) > 20 and not obj.startswith("http"):
-            parts.append(obj)
-        return
-    if isinstance(obj, list):
-        for item in obj:
-            if parts:  # stop after first answer found
-                return
-            _collect_answer_text(item, parts, depth + 1)
+    return None
 
 
 def _parse_create_response(result) -> Optional[Notebook]:
@@ -601,3 +1013,44 @@ def _parse_create_response(result) -> Optional[Notebook]:
         return Notebook(id=nb_id, title="", emoji="📓", is_pinned=False)
     except (IndexError, TypeError):
         return None
+
+
+def _extract_cell_text(cell) -> str:
+    """Recursively extract text from a nested data table cell."""
+    if isinstance(cell, str):
+        return cell
+    if isinstance(cell, int):
+        return ""
+    if isinstance(cell, list):
+        return "".join(text for item in cell if (text := _extract_cell_text(item)))
+    return ""
+
+
+def _parse_data_table(raw_data) -> tuple:
+    """Parse rich-text data table into (headers, rows).
+
+    Data tables have deeply nested structure:
+    raw_data[0][0][0][0][4][2] = rows array
+    Each row: [start_pos, end_pos, [cell_array]]
+    """
+    try:
+        rows_array = raw_data[0][0][0][0][4][2]
+        if not rows_array:
+            return [], []
+
+        headers = []
+        rows = []
+        for i, row_section in enumerate(rows_array):
+            if not isinstance(row_section, list) or len(row_section) < 3:
+                continue
+            cell_array = row_section[2]
+            if not isinstance(cell_array, list):
+                continue
+            row_values = [_extract_cell_text(cell) for cell in cell_array]
+            if i == 0:
+                headers = row_values
+            else:
+                rows.append(row_values)
+        return headers, rows
+    except (IndexError, TypeError, KeyError):
+        return [], []

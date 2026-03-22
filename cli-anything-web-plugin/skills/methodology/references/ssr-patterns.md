@@ -182,3 +182,33 @@ API calls for mutations. The CLI generation strategy should reflect this:
 2. Use Force SPA Navigation to discover internal API routes
 3. Capture mutation endpoints through normal user interaction
 4. Build CLI with: SSR-derived models + internal data routes for reads + API for writes
+
+---
+
+## HTML Scraping Pitfalls
+
+These apply to any CLI that parses HTML (SSR or plain):
+
+### Extract ALL visible fields
+When scraping a table, extract every column — not just name and price. If the browser
+shows version, club, nation, and 6 stat columns, the parser must return all of them.
+Empty fields in the `--json` output mean the parser is incomplete, not that the data
+doesn't exist. Verify by comparing `--json` output against what the browser shows.
+
+### SSR slug URLs
+Many SSR sites require a slug in the URL (`/resource/40/item-name`, not `/resource/40`).
+The bare-ID URL may 404. Strategy: search the API first to get the canonical URL/slug,
+then scrape the detail page. If search doesn't return the ID, try a placeholder slug
+(some sites redirect to the correct one).
+
+### Scraped text has noise
+HTML table cells often contain extra text alongside the value you want — percentage
+changes, badges, status labels, currency symbols. Never parse `get_text()` directly.
+Use regex or string splitting to isolate the target value before type conversion:
+
+```python
+# Bad: int(cell.get_text())  # "1,234,567 (+5.2%)" → ValueError
+# Good:
+raw = cell.get_text(strip=True)
+value = int(re.sub(r"[^\d]", "", raw.split("(")[0]))
+```

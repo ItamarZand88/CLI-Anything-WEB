@@ -7,8 +7,9 @@
 - **Framework**: React SPA (custom, not Next.js/Nuxt)
 - **Protocol**: REST JSON via internal `/napi/` endpoints
 - **Auth**: None required for read operations (downloads require login)
-- **Protections**: None detected (no Cloudflare, CAPTCHA, etc.)
+- **Protections**: Anti-bot challenge (added ~March 2026) — requires `curl_cffi` with Chrome TLS impersonation
 - **Rate Limits**: Headers present (`x-ratelimit-limit: 99999999`) — generous limits
+- **HTTP Client**: `curl_cffi` with `impersonate="chrome131"` — plain httpx gets 401 "Making sure you're not a bot!"
 
 ## API Base
 
@@ -19,8 +20,8 @@ Autocomplete prefix: /nautocomplete/
 Image CDN: images.unsplash.com
 ```
 
-All endpoints return JSON. No special auth headers needed — only a browser-like
-User-Agent is required.
+All endpoints return JSON. Uses `curl_cffi` with Chrome TLS fingerprint impersonation
+to bypass anti-bot protection. Plain `httpx` or `requests` will receive a 401 challenge page.
 
 ## Data Model
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-import httpx
+from curl_cffi import requests as curl_requests
 
 from ..core.client import UnsplashClient
 from ..core.models import format_photo_detail, format_photo_summary
@@ -93,14 +93,10 @@ def download(photo_id, size, output, use_json):
             output = f"{photo.get('id', photo_id)}_{size}.jpg"
 
         out_path = Path(output)
-        with httpx.stream("GET", url, follow_redirects=True, timeout=60.0) as resp:
-            resp.raise_for_status()
-            total = int(resp.headers.get("content-length", 0))
-            downloaded = 0
-            with open(out_path, "wb") as f:
-                for chunk in resp.iter_bytes(chunk_size=8192):
-                    f.write(chunk)
-                    downloaded += len(chunk)
+        resp = curl_requests.get(url, impersonate="chrome131", timeout=60)
+        if resp.status_code >= 400:
+            raise click.ClickException(f"Download failed: HTTP {resp.status_code}")
+        out_path.write_bytes(resp.content)
 
         file_size = out_path.stat().st_size
         if use_json:

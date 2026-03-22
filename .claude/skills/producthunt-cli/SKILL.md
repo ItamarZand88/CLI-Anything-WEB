@@ -37,7 +37,7 @@ cli-web-producthunt posts leaderboard --period monthly   # Monthly leaderboard
 cli-web-producthunt posts leaderboard --date 2026-03-15  # Specific date
 ```
 
-**Output fields:** `id`, `name`, `tagline`, `slug`, `url`, `votes_count`, `comments_count`, `topics`, `thumbnail_url`, `rank`
+**Output fields:** `id`, `name`, `tagline`, `slug`, `url`, `description`, `votes_count`, `comments_count`, `topics`, `thumbnail_url`, `rank`
 
 ### Users
 

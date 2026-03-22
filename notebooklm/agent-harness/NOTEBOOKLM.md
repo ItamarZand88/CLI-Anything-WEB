@@ -33,24 +33,32 @@ f.req=[[[rpcid, json.dumps(params), null, "generic"]]]&at=<CSRF_TOKEN>
 
 ## rpcid Map
 
-| rpcid     | Operation               | Params                                        | Returns                        |
-|-----------|-------------------------|-----------------------------------------------|--------------------------------|
-| `wXbhsf`  | List notebooks          | `[null, 1, null, [2]]`                        | Array of notebook objects      |
-| `CCqFvf`  | Create notebook         | `[null, "title", null, "emoji"]`              | New notebook object            |
-| `rLM1Ne`  | Get notebook            | `[null, null, "notebook_id"]`                 | Notebook object                |
-| `s0tc2d`  | Rename notebook         | `[null, null, "notebook_id", "new_title"]`    | Updated notebook object        |
-| `WWINqb`  | Delete notebook         | `[null, null, "notebook_id"]`                 | `[]`                           |
-| `VfAZjd`  | Add URL source          | `[null, null, "notebook_id", ["url"]]`        | `[null, "source_id"]`          |
-| `hPTbtc`  | Add text source         | `[null, null, "notebook_id", "title", "txt"]` | `[[[source_id]]]`              |
-| `izAoDd`  | List sources            | `[null, null, "notebook_id"]`                 | Array of source objects        |
-| `R7cb6c`  | Get source              | `[null, null, "source_id", "notebook_id"]`    | Source object                  |
-| `e3bVqc`  | Delete source           | `[null, null, "notebook_id", ["source_id"]]`  | `[]`                           |
-| `yyryJe`  | Chat query              | `[null, "query", null, "notebook_id", ...]`   | JSON answer string             |
-| `CYK0Xb`  | Generate artifact       | `[null, null, "notebook_id", type_id]`        | `[artifact_id, json_content]`  |
-| `ciyUvf`  | Notes artifact          | `[null, null, "notebook_id", type_id]`        | `[[[title, summary, ...]]]`    |
-| `sqTeoe`  | List audio types        | `[null, null, "notebook_id"]`                 | Array of audio types           |
-| `JFMDGd`  | Get user info           | `[null, 1]`                                   | User object                    |
-| `ZwVcOc`  | Get config/limits       | `[null, 1]`                                   | Config object                  |
+| rpcid     | Operation               | Params (simplified)                                   | Returns                        |
+|-----------|-------------------------|-------------------------------------------------------|--------------------------------|
+| `wXbhsf`  | List notebooks          | `[null, 1, null, [2]]`                                | Array of notebook objects      |
+| `CCqFvf`  | Create notebook         | `["title"]`                                           | New notebook object            |
+| `rLM1Ne`  | Get notebook + sources  | `[notebook_id, null, [2], null, 0]`                   | Notebook + embedded sources    |
+| `s0tc2d`  | Rename notebook         | `[null, null, notebook_id, new_title]`                | Updated notebook object        |
+| `WWINqb`  | Delete notebook         | `[null, null, notebook_id]`                           | `[]`                           |
+| `izAoDd`  | Add URL source          | `[[[null,null,[url],null*5]], nb_id, [2], null, null]`| Source data with ID            |
+| `izAoDd`  | Add text source         | `[[[null,[title,text],null*6]], nb_id, [2], null, null]`| Source data with ID          |
+| `hizoJc`  | Get source              | `[null, null, source_id, notebook_id]`                | Source object                  |
+| `tGMBJ`   | Delete source           | `[null, null, notebook_id, [source_id]]`              | `[]`                           |
+| `yyryJe`  | Chat (streaming)        | `[src_ids, query, null, [2,null,[1],[1]], conv_id, null, null, nb_id, 1]` | Streamed answer |
+| `yyryJe`  | Generate mind map       | `[src_ids, null*4, ["interactive_mindmap",...], null, [2,null,[1]]]` | Mind map JSON |
+| `R7cb6c`  | Create artifact         | `[[2], nb_id, [null,null, type_code, src_ids, ...type_config]]` | `[[artifact_id, title, ...]]` |
+| `gArtLc`  | List artifacts          | `[[2], nb_id, filter_str]`                            | Array of artifact objects      |
+| `v9rmvd`  | Get interactive HTML    | `[artifact_id]`                                       | HTML with quiz/flashcard data  |
+| `ciyUvf`  | Suggested reports       | `[null, null, notebook_id, type_id]`                  | `[[[title, summary, ...]]]`    |
+| `sqTeoe`  | List audio types        | `[null, null, notebook_id]`                           | Array of audio types           |
+| `hPTbtc`  | Get conversation ID     | `[[], null, notebook_id, 1]`                          | `[[[conversation_id]]]`        |
+| `JFMDGd`  | Get share status        | `[null, 1]`                                           | Share/user object              |
+| `ZwVcOc`  | Get user settings       | `[null, 1]`                                           | Config object                  |
+| `VfAZjd`  | Summarize sources       | `[notebook_id, [url]]`                                | Summary text                   |
+
+**Note:** `izAoDd` is used for ALL source add operations (URL, text, file) — differentiated by param structure.
+Chat and mind map both use `yyryJe` — differentiated by the prompt structure.
+Sources list is extracted from `rLM1Ne` (GET_NOTEBOOK), not a separate RPC.
 
 ---
 

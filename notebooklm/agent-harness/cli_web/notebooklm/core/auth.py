@@ -1,16 +1,17 @@
 """Auth management for cli-web-notebooklm.
 
 Handles:
-- Login via playwright-cli (opens browser, saves state)
+- Login via Python playwright (opens browser, saves state)
 - Cookie import from JSON file (manual fallback)
 - Token extraction (CSRF, session ID, build label) from homepage
 - Secure storage at ~/.config/cli-web-notebooklm/auth.json
 """
+import asyncio
 import json
 import os
 import re
-import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -37,54 +38,114 @@ def _auth_dir_setup():
     AUTH_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _npx() -> str:
-    """Find npx executable, checking common Windows locations."""
-    path = shutil.which("npx")
-    if path:
-        return path
-    # Common Windows locations (nvm4w, nvm, direct install)
-    candidates = [
-        r"C:\nvm4w\nodejs\npx.cmd",
-        r"C:\nvm\versions\node\current\npx.cmd",
-        r"C:\Program Files\nodejs\npx.cmd",
-        r"C:\Program Files (x86)\nodejs\npx.cmd",
-    ]
-    for c in candidates:
-        if Path(c).exists():
-            return c
-    raise AuthError("npx not found — install Node.js from https://nodejs.org/")
+GOOGLE_ACCOUNTS_URL = "https://accounts.google.com/"
+BROWSER_PROFILE_DIR = AUTH_DIR / "browser-profile"
+
+
+def _windows_playwright_event_loop():
+    """Context manager: restore default event loop policy for Playwright on Windows.
+
+    Playwright's sync API needs ProactorEventLoop on Windows for subprocess spawning.
+    This temporarily restores the default policy, then switches back.
+    """
+    from contextlib import contextmanager
+
+    @contextmanager
+    def _ctx():
+        if sys.platform != "win32":
+            yield
+            return
+        original_policy = asyncio.get_event_loop_policy()
+        asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+        try:
+            yield
+        finally:
+            asyncio.set_event_loop_policy(original_policy)
+
+    return _ctx()
+
+
+def _ensure_chromium_installed():
+    """Pre-flight check: install Chromium if needed."""
+    try:
+        result = subprocess.run(
+            ["playwright", "install", "--dry-run", "chromium"],
+            capture_output=True, text=True,
+        )
+        stdout_lower = result.stdout.lower()
+        if "chromium" not in stdout_lower or "will download" not in stdout_lower:
+            return
+        print("Chromium browser not installed. Installing now...")
+        install_result = subprocess.run(
+            ["playwright", "install", "chromium"],
+            capture_output=True, text=True,
+        )
+        if install_result.returncode != 0:
+            raise AuthError("Failed to install Chromium. Run: playwright install chromium")
+        print("Chromium installed successfully.")
+    except (FileNotFoundError, AuthError):
+        pass  # playwright CLI not found but sync_playwright may still work
 
 
 def login_browser(headed: bool = True):
-    """Open browser via playwright-cli for Google login, save auth state."""
+    """Open browser via Python playwright for Google login, save auth state.
+
+    Uses sync_playwright() with a persistent context,
+    not the external npx @playwright/cli which has interactive input issues.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise AuthError(
+            "Playwright not installed. Run:\n"
+            "  pip install playwright\n"
+            "  playwright install chromium"
+        )
+
     _auth_dir_setup()
-    session = "notebooklm-auth"
+    _ensure_chromium_installed()
+
     state_file = AUTH_DIR / "playwright-state.json"
-    npx = _npx()
+    BROWSER_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("Opening browser for NotebookLM login...")
-    # Use Popen so the browser opens in background — subprocess.run() would block
-    # until the browser is closed, making input() unreachable.
-    proc = subprocess.Popen(
-        [npx, "@playwright/cli@latest", f"-s={session}", "open", BASE_URL,
-         "--headed", "--persistent"],
-    )
+    print("Opening Chromium for Google login...")
 
-    input("Log in to Google in the browser, then press ENTER here to continue...")
+    with _windows_playwright_event_loop(), sync_playwright() as p:
+        context = p.chromium.launch_persistent_context(
+            user_data_dir=str(BROWSER_PROFILE_DIR),
+            headless=not headed,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--password-store=basic",
+            ],
+            ignore_default_args=["--enable-automation"],
+        )
 
-    # Save playwright state
-    result = subprocess.run(
-        [npx, "@playwright/cli@latest", f"-s={session}", "state-save", str(state_file)],
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        raise AuthError(f"Failed to save auth state: {result.stderr}")
+        page = context.pages[0] if context.pages else context.new_page()
+        page.goto(BASE_URL)
 
-    # Close the session
-    subprocess.run(
-        [npx, "@playwright/cli@latest", f"-s={session}", "close"],
-        capture_output=True,
-    )
+        print("\nInstructions:")
+        print("1. Complete the Google login in the browser window")
+        print("2. Wait until you see the NotebookLM homepage")
+        print("3. Press ENTER here to save and close\n")
+
+        input("[Press ENTER when logged in] ")
+
+        # Force .google.com cookies for regional users (e.g. Israel → .google.co.il)
+        # Navigate to accounts.google.com first, then back to NotebookLM.
+        # accounts.google.com may auto-redirect back, so catch navigation errors.
+        try:
+            page.goto(GOOGLE_ACCOUNTS_URL, wait_until="load")
+        except Exception:
+            pass  # Redirect interrupted — cookies are still set
+        try:
+            page.goto(BASE_URL, wait_until="load")
+        except Exception:
+            pass  # Already on NotebookLM
+
+        # Save storage state
+        context.storage_state(path=str(state_file))
+        context.close()
 
     # Parse and save cookies
     try:

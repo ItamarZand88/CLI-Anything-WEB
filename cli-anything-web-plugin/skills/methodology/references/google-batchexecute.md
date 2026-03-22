@@ -181,8 +181,48 @@ class RPCMethod:
     LIST_NOTEBOOKS = "wXbhsf"
     CREATE_NOTEBOOK = "CCqFvf"
     GET_NOTEBOOK = "rLM1Ne"
-    ADD_SOURCE = "izAoDd"
+    ADD_SOURCE = "izAoDd"        # ALL source adds (URL, text, file) use this ID
     LIST_ARTIFACTS = "gArtLc"
+    SUMMARIZE = "VfAZjd"         # NOT the same as ADD_SOURCE
+    GET_LAST_CONVERSATION_ID = "hPTbtc"  # NOT ADD_TEXT_SOURCE
+```
+
+### Critical: One RPC ID, Multiple Operations
+
+Google batchexecute often uses the SAME RPC ID for different operations, differentiated
+only by param structure. The `izAoDd` (ADD_SOURCE) method handles:
+
+```python
+# Add URL source — param[0] has URL at position [2]
+params = [
+    [[None, None, [url], None, None, None, None, None]],
+    notebook_id, [2], None, None,
+]
+
+# Add text source — param[0] has [title, content] at position [1]
+params = [
+    [[None, [title, content], None, None, None, None, None, None]],
+    notebook_id, [2], None, None,
+]
+
+# GET_NOTEBOOK needs extra params for source data
+params = [notebook_id, None, [2], None, 0]  # NOT just [notebook_id]
+```
+
+**Never guess RPC IDs from similar-sounding names.** Always verify against captured
+traffic. Common mistakes: using SUMMARIZE (`VfAZjd`) for add-url, using
+GET_LAST_CONVERSATION_ID (`hPTbtc`) for add-text.
+
+### Mandatory Output Verification
+
+After implementing any batchexecute command, verify the CLI output makes sense:
+
+```bash
+# RED FLAGS in --json output:
+# - Raw RPC fragments: "wrb.fr", "af.httprm", "di" → decoder not parsing
+# - Empty [] where data expected → wrong params to GET_NOTEBOOK
+# - Source add returns ID but list shows [] → wrong RPC method
+# - Chat returns raw chunks → streaming parser not finding wrb.fr entries
 ```
 
 ## Recommended Code Organization

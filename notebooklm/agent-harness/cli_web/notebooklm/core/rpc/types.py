@@ -1,6 +1,5 @@
 """RPC method IDs and URL constants for NotebookLM batchexecute.
 
-Method IDs are cross-referenced with notebooklm-py (the reference implementation).
 When IDs rotate on Google's side, update this file as the single source of truth.
 """
 
@@ -11,7 +10,7 @@ BASE_URL = "https://notebooklm.google.com"
 class RPCMethod:
     """RPC method identifiers for the batchexecute API.
 
-    Cross-referenced with notebooklm-py src/notebooklm/rpc/types.py.
+    Reverse-engineered from network traffic analysis.
     """
     # Notebooks
     LIST_NOTEBOOKS = "wXbhsf"
@@ -20,26 +19,29 @@ class RPCMethod:
     RENAME_NOTEBOOK = "s0tc2d"
     DELETE_NOTEBOOK = "WWINqb"
 
-    # Sources
-    ADD_SOURCE = "izAoDd"        # Add source (URL, text, etc.)
-    ADD_URL_SOURCE = "VfAZjd"    # Summarize/add URL — legacy, may be SUMMARIZE
-    ADD_TEXT_SOURCE = "hPTbtc"    # May be GET_LAST_CONVERSATION_ID in newer API
-    LIST_SOURCES = "izAoDd"      # Same as ADD_SOURCE (deprecated for listing)
-    GET_SOURCE = "hizoJc"        # Correct ID from reference
-    DELETE_SOURCE = "tGMBJ"      # Correct ID from reference
+    # Sources — ALL source ops use "izAoDd" with different param structures
+    ADD_SOURCE = "izAoDd"        # Add source (URL, text, file)
+    ADD_SOURCE_FILE = "o4cbdc"   # Register uploaded file as source
+    GET_SOURCE = "hizoJc"
+    DELETE_SOURCE = "tGMBJ"
+    REFRESH_SOURCE = "FLmJqe"
 
     # Chat (streaming endpoint, not batchexecute)
     CHAT_QUERY = "yyryJe"        # Also GENERATE_MIND_MAP in reference
 
     # Artifacts (unified via R7cb6c)
     CREATE_ARTIFACT = "R7cb6c"   # Generate ANY artifact (audio, video, report, quiz, etc.)
-    GENERATE_ARTIFACT = "R7cb6c" # Alias for backward compatibility
     LIST_ARTIFACTS = "gArtLc"    # List all artifacts in a notebook
     NOTES_ARTIFACT = "ciyUvf"    # GET_SUGGESTED_REPORTS — AI-suggested formats
     LIST_AUDIO_TYPES = "sqTeoe"
 
     # Notes
     CREATE_NOTE = "CYK0Xb"
+    GET_NOTES_AND_MIND_MAPS = "cFji9"
+
+    # Conversation
+    GET_LAST_CONVERSATION_ID = "hPTbtc"
+    GET_CONVERSATION_TURNS = "khqZz"
 
     # Research
     POLL_RESEARCH = "e3bVqc"
@@ -47,6 +49,7 @@ class RPCMethod:
     # User/Config
     GET_USER_INFO = "JFMDGd"     # Also GET_SHARE_STATUS in reference
     GET_CONFIG = "ZwVcOc"
+    SUMMARIZE = "VfAZjd"         # Summarize sources
 
 
 # Artifact type IDs (used with CREATE_ARTIFACT / R7cb6c)

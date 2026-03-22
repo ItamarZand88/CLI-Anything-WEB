@@ -41,9 +41,10 @@ Not all sites need the same pipeline path. Identify the profile early:
 
 ## Tool Hierarchy (Strict)
 
-1. **PRIMARY**: `npx @playwright/cli@latest` — handles auth, traffic capture, browser management
-2. **FALLBACK**: `mcp__chrome-devtools__*` — only if playwright-cli unavailable
-3. **NEVER**: `mcp__claude-in-chrome__*` — cannot capture request bodies
+1. **PRIMARY (traffic capture)**: `npx @playwright/cli@latest` — handles traffic recording during Phase 1
+2. **PRIMARY (auth login)**: Python `sync_playwright()` — handles browser-based auth login in generated CLIs
+3. **FALLBACK**: `mcp__chrome-devtools__*` — only if playwright unavailable
+4. **NEVER**: `mcp__claude-in-chrome__*` — cannot capture request bodies
 
 ## Generated CLI Structure
 
@@ -88,7 +89,7 @@ bash cli-anything-web-plugin/verify-plugin.sh
 - **Typed exceptions**: Every CLI has `core/exceptions.py` with `AppError → AuthError, RateLimitError, NetworkError, ServerError, NotFoundError, RPCError`. No generic `RuntimeError`.
 - **Auth**: Credentials in `auth.json` with `chmod 600`, never hardcoded. Env var `CLI_WEB_<APP>_AUTH_JSON` for CI/CD.
 - **Auth cookie priority**: For Google apps, `.google.com` cookies MUST take priority over regional duplicates (`.google.co.il`, `.google.de`, etc.). Naive `{c["name"]: c["value"]}` flattening is BROKEN for international users. See `auth-strategies.md` "Cookie domain priority".
-- **Auth login flow**: `login_browser()` MUST use `subprocess.Popen()`, not `subprocess.run()` — playwright-cli `open --persistent` blocks until browser closes, making `input()` unreachable.
+- **Auth login flow**: `login_browser()` MUST use Python `sync_playwright()` with `launch_persistent_context()`, NOT `npx @playwright/cli`. The npx approach has interactive input issues (Popen + input() race). Always include Windows event loop fix (`asyncio.DefaultEventLoopPolicy()`), anti-automation args, and regional cookie forcing (navigate to `accounts.google.com` then back after login).
 - **Auth format handling**: `load_cookies()` must handle both raw playwright list format `[{name, value, domain}]` and extracted dict format `{name: value}`.
 - **Auth retry**: Client retries once on recoverable `AuthError` (token refresh), never more.
 - **Tests FAIL on missing auth** — never skip
@@ -102,15 +103,63 @@ bash cli-anything-web-plugin/verify-plugin.sh
 ## Tech Stack for Generated CLIs
 
 - **CLI framework**: Click (with `@click.group(invoke_without_command=True)`)
-- **HTTP client**: httpx (default), or curl_cffi for Cloudflare-protected sites (TLS fingerprint impersonation)
+- **HTTP client**: httpx (default), or curl_cffi for anti-bot protected sites (Cloudflare, AWS WAF, generic challenges). Use curl_cffi when plain httpx gets 401/403 with "bot" or "challenge" in response body. Sites can add protection at any time — if a working CLI starts getting blocked, switch to curl_cffi.
 - **HTML parsing**: BeautifulSoup4 (for SSR sites)
 - **Output**: Rich (`>=13.0`) for tables, spinners, colored status; custom table formatting
-- **Auth flow**: playwright-cli browser login → cookie extraction → `auth.json`; env var fallback for CI
+- **Auth flow**: Python `sync_playwright()` browser login → cookie extraction → `auth.json`; env var fallback for CI
 - **Packaging**: `find_namespace_packages(include=["cli_web.*"])` in setup.py
+
+## RPC Method Verification (Critical for batchexecute)
+
+When implementing Google batchexecute CLIs, RPC method IDs can be confusing — the same service may use one ID for multiple operations with different param structures. **Never assume an RPC ID from its name alone.** Always verify:
+
+1. **Cross-check every RPC method ID** against captured traffic. The param structure in `f.req` varies by operation even when using the same endpoint.
+2. **One RPC ID may serve multiple operations**: e.g., `izAoDd` handles add-url, add-text, and add-file sources — differentiated only by param structure.
+3. **Never reuse RPC IDs from other operations**: e.g., `VfAZjd` is SUMMARIZE, not ADD_URL_SOURCE. `hPTbtc` is GET_LAST_CONVERSATION_ID, not ADD_TEXT_SOURCE.
+4. **Verify param structures match the actual traffic capture**: compare `f.req` body from captured HAR/trace with what the code generates.
+
+### Mandatory CLI Output Verification
+
+After implementing any CLI command, **always verify the output matches expectations**:
+
+```bash
+# After implementing a command, test it and inspect the raw output:
+cli-web-<app> <command> --json 2>&1
+
+# Check for these red flags:
+# - Raw RPC data in output (e.g., wrb.fr, af.httprm, di)
+# - Empty arrays [] when data should exist
+# - Null/None where values are expected
+# - Status 200 but response body is wrong
+```
+
+**Common bugs to catch:**
+- Chat/query returns raw batchexecute chunks instead of parsed text → decoder is not finding the `wrb.fr` entry or not double-parsing `item[2]`
+- Sources list returns `[]` right after add → GET_NOTEBOOK params are wrong (missing `[2]` or other required elements)
+- Add source returns ID but source never appears → wrong RPC method ID used (e.g., SUMMARIZE instead of ADD_SOURCE)
 
 ## Protocol Detection
 
 Generated CLIs handle multiple API patterns: REST, GraphQL, gRPC-Web, Google batchexecute, custom RPC. The methodology skill identifies the protocol type during traffic analysis and generates appropriate client code.
+
+### AWS WAF Sites (Booking.com pattern)
+
+Sites protected by AWS WAF return a 202 JavaScript challenge page to raw HTTP clients. The bypass strategy:
+- **`curl_cffi` with `impersonate='chrome'`** passes the WAF for GraphQL endpoints without cookies
+- **SSR HTML pages** need a `aws-waf-token` cookie obtained via playwright-cli browser session
+- **Critical**: Use ONLY the `aws-waf-token` cookie for SSR requests — the `bkng` session cookie contains affiliate data that triggers server-side redirects on detail pages
+- **Hotel detail pages** redirect when date/occupancy params are present — fetch without them
+
+## Generated CLIs
+
+| CLI | Directory | Protocol | Key Pattern |
+|-----|-----------|----------|-------------|
+| `cli-web-futbin` | `futbin/` | HTML + JSON API | HTML scraping with httpx |
+| `cli-web-notebooklm` | `notebooklm/` | batchexecute RPC | Google SSO + RPC codec |
+| `cli-web-gh-trending` | `gh-trending/` | HTML scraping | Simple SSR, no auth |
+| `cli-web-producthunt` | `producthunt/` | HTML scraping (curl_cffi) | Cloudflare bypass |
+| `cli-web-unsplash` | `unsplash/` | REST API (curl_cffi) | Public JSON API, anti-bot bypass |
+| `cli-web-booking` | `booking/` | GraphQL + HTML (curl_cffi) | AWS WAF bypass, hybrid protocol |
 
 ## Reference Examples
 

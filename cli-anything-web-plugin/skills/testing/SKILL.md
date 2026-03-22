@@ -36,10 +36,11 @@ without auth. The rules below apply only to CLIs that require authentication.
 
 This is the #1 rule for web CLI testing. Before writing or running any E2E test:
 
-1. Ensure playwright-cli is available (`npx @playwright/cli@latest --version`)
-2. Run `cli-web-<app> auth login` (playwright-cli state-save)
-3. Run `cli-web-<app> auth status` — must show valid
-4. If auth fails, STOP and fix it. Do NOT write tests that catch auth errors.
+1. Ensure Python playwright is available (`python -c "from playwright.sync_api import sync_playwright; print('OK')"`)
+2. Ensure Chromium is installed (`playwright install chromium`)
+3. Run `cli-web-<app> auth login` (Python sync_playwright browser login)
+4. Run `cli-web-<app> auth status` — must show valid
+5. If auth fails, STOP and fix it. Do NOT write tests that catch auth errors.
 
 Tests that output "auth not configured" or skip on missing auth are **broken tests**.
 The web app requires authentication — the tests must authenticate. This is the web
@@ -58,7 +59,7 @@ gate before it.
 
 ### Testing Layer Strategy
 
-The standard two-layer suite is: **unit tests (mocked HTTP)** + **live E2E tests** +
+The standard three-layer suite is: **unit tests (mocked HTTP)** + **live E2E tests** +
 **subprocess tests**. This covers fast correctness, real integration, and installed CLI.
 
 | Layer | File | Purpose |
@@ -176,6 +177,44 @@ fixtures are naturally structural.
 
 Practical check: look at your parser's `.find(class_="...")` calls. If your fixture
 HTML doesn't contain those exact class names, the fixture is not testing the parser.
+
+### CLI Output Sanity Checks (Critical)
+
+Every `--json` output must be checked for raw protocol leakage. These are bugs
+the agent MUST catch before declaring tests pass:
+
+```python
+# In E2E tests, assert the output is real data, not raw RPC fragments:
+def test_chat_returns_text_not_rpc(client, notebook_id):
+    """Chat answer must be human-readable text, not raw batchexecute chunks."""
+    result = client.chat_query(notebook_id, "What is this about?")
+    # RED FLAGS — fail if any of these appear in the answer:
+    assert "wrb.fr" not in result, "Raw RPC data leaked into chat output"
+    assert "af.httprm" not in result, "Raw RPC data leaked into chat output"
+    assert '"di"' not in result, "Raw RPC data leaked into chat output"
+    assert len(result) > 50, "Answer too short — may be empty or error"
+
+def test_sources_list_after_add(client, notebook_id):
+    """Sources must appear in list after being added."""
+    source = client.add_url_source(notebook_id, "https://example.com")
+    import time; time.sleep(5)  # Wait for indexing
+    sources = client.list_sources(notebook_id)
+    assert len(sources) > 0, "Sources list empty after add — check GET_NOTEBOOK params"
+    assert any(s.id == source.id for s in sources), "Added source not in list"
+```
+
+**Subprocess test equivalent:**
+```python
+def test_cli_chat_output_is_text(self):
+    """CLI chat --json output must contain readable answer, not raw RPC."""
+    result = subprocess.run(
+        [cli, "chat", "ask", "--query", "test", "--json"],
+        capture_output=True, text=True, encoding="utf-8",
+    )
+    data = json.loads(result.stdout)
+    assert "wrb.fr" not in data.get("answer", ""), "Raw RPC leaked"
+    assert len(data.get("answer", "")) > 20, "Answer suspiciously short"
+```
 
 ### Response Body Verification
 
@@ -313,7 +352,7 @@ Write this alongside the tests, not before or after:
 
 1. **Verify auth is working FIRST:**
    ```bash
-   cli-web-<app> auth login              # opens browser via playwright-cli
+   cli-web-<app> auth login              # opens browser via Python playwright
    cli-web-<app> auth status             # must show live validation: OK
    ```
    If auth status fails, fix it before proceeding.

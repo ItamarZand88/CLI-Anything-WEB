@@ -2,7 +2,7 @@
 name: methodology
 description: >
   Analyze captured HTTP traffic, design CLI architecture, and implement the Python
-  CLI package. Covers Phases 2-3 of the pipeline: parse raw-traffic.json, identify
+  CLI package. Covers Phase 2 of the pipeline: parse raw-traffic.json, identify
   protocol type, map endpoints, design Click command groups, implement with parallel
   subagents. Use when the user asks to "create a CLI for a website", "generate API
   wrapper", "reverse engineer web API", "analyze traffic", "design CLI", "implement CLI",
@@ -11,7 +11,7 @@ description: >
 version: 0.2.0
 ---
 
-# CLI-Anything-Web Methodology (Phases 2-3)
+# CLI-Anything-Web Methodology (Phase 2)
 
 Analyze captured traffic, design the CLI command structure, and implement the
 complete Python CLI package. This skill owns the core transformation from raw
@@ -453,7 +453,6 @@ Do NOT skip testing -- every CLI must have comprehensive tests before publishing
 | `capture` | Phase 1 -- traffic recording (prerequisite for this skill) |
 | `testing` | Phase 3 -- test writing, documentation |
 | `standards` | Phase 4 -- publish, verify, smoke test |
-| `auto-optimize` | Meta -- autonomous skill optimization |
 
 ---
 

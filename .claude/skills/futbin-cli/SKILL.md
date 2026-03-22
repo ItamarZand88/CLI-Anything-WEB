@@ -61,13 +61,13 @@ Browse/filter the full player database. Supports comprehensive filters.
 cli-web-futbin players list --position ST --version gold_rare --cheapest --json
 
 # Top rated CAMs rated 85+, page 2
-cli-web-futbin players list --position CAM --rating-min 85 --sort overall --order desc --page 2 --json
+cli-web-futbin players list --position CAM --rating-min 85 --page 2 --json
 
 # TOTY players under 500K
 cli-web-futbin players list --version toty --max-price 500000 --cheapest --page 1 --json
 
 # 5-star skill players
-cli-web-futbin players list --min-skills 5 --sort overall --order desc --json
+cli-web-futbin players list --min-skills 5 --json
 ```
 
 **Filter options:**
@@ -88,8 +88,6 @@ cli-web-futbin players list --min-skills 5 --sort overall --order desc --json
 | `--league` | League ID (numeric) | `13` (Premier League) |
 | `--nation` | Nation ID (numeric) | |
 | `--club` | Club ID (numeric) | |
-| `--sort` | Sort field | `ps_price` `overall` `name` |
-| `--order` | Sort direction | `asc` `desc` |
 | `--page` | Page number | `1` (default) |
 | `--year` | Game year | `26` (default, falls back to config) |
 
@@ -141,8 +139,11 @@ Squad Building Challenges.
 
 ```bash
 cli-web-futbin sbc list --json
+cli-web-futbin sbc list --category "League SBC" --json
 cli-web-futbin sbc get 665 --json
 ```
+
+**Options:** `--category TEXT` (filter by SBC category), `--year INTEGER` (game year)
 
 **Output fields:** `id`, `name`, `expires`, `cost_ps`, `cost_xbox`, `repeatable`, `reward`
 
@@ -155,18 +156,11 @@ Player evolution paths.
 ```bash
 cli-web-futbin evolutions list --json
 cli-web-futbin evolutions list --expiring --json   # expiring soon
+cli-web-futbin evolutions list --category "Lengthy" --json
 cli-web-futbin evolutions get 666 --json
 ```
 
----
-
-### `auth status`
-
-```bash
-cli-web-futbin auth status --json
-```
-
-FUTBIN is public — no auth required. This always returns `authenticated: true`.
+**Options:** `--category TEXT`, `--expiring` (show expiring soon), `--year INTEGER`
 
 ---
 
@@ -175,9 +169,11 @@ FUTBIN is public — no auth required. This always returns `authenticated: true`
 Persistent configuration (year, platform, etc.).
 
 ```bash
-cli-web-futbin config set --year 26 --platform ps
-cli-web-futbin config show --json
-cli-web-futbin config reset
+cli-web-futbin config set year 26       # Set game year
+cli-web-futbin config set platform ps   # Set price platform
+cli-web-futbin config get year          # Get a setting
+cli-web-futbin config show --json       # Show all settings
+cli-web-futbin config reset             # Reset to defaults
 ```
 
 When `--year` is omitted on other commands, it falls back to the value set in config.
