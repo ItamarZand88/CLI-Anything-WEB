@@ -44,15 +44,9 @@
 
 Most web apps don't have public APIs. **CLI-Anything-Web** changes that:
 
-```
-You: /cli-anything-web https://notebooklm.google.com
-
-Claude: Opens browser → captures API traffic → analyzes 7 RPC endpoints →
-        generates cli-web-notebooklm with auth, 25+ commands, REPL, tests
-
-You: cli-web-notebooklm artifacts generate --type audio --wait --output podcast.mp4
-     ✓ Downloaded 42MB podcast
-```
+<p align="center">
+  <video src="assets/demo.mp4" autoplay loop muted playsinline width="100%"></video>
+</p>
 
 > **No API docs needed. No reverse-engineering by hand. Just point and generate.**
 
