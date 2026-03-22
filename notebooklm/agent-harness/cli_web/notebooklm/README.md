@@ -79,14 +79,24 @@ cli-web-notebooklm chat ask --query "Summarize key findings" --json   # uses act
 **Artifacts**
 
 ```bash
-cli-web-notebooklm artifacts generate --notebook <notebook-id> --type mindmap
-cli-web-notebooklm artifacts generate --type study-guide --wait --output study.md
-cli-web-notebooklm artifacts generate-notes --notebook <notebook-id> --retry 3
+# Generate any artifact type
+cli-web-notebooklm artifacts generate --type briefing --wait --output briefing.md
+cli-web-notebooklm artifacts generate --type audio --wait --json
+cli-web-notebooklm artifacts generate --type slide-deck --json
+
+# List all artifacts with status
+cli-web-notebooklm artifacts list --json
+
+# Download a completed artifact
+cli-web-notebooklm artifacts download <artifact-id> -o slides.pdf
+
+# Other
+cli-web-notebooklm artifacts generate-notes --retry 3
 ```
 
-Artifact types: `mindmap`, `study-guide`, `briefing`, `faq`, `timeline`
+Artifact types: `audio`, `video`, `mindmap`, `study-guide`, `briefing`, `faq`, `quiz`, `infographic`, `slide-deck`, `data-table`
 
-Options: `--wait` (poll until ready), `--retry N` (retry on transient failure), `--output FILE` (write result to file)
+Options: `--wait` (poll until ready), `--retry N` (retry on rate limit), `--output FILE` (save content/download)
 
 **User**
 
