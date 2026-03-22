@@ -129,33 +129,10 @@ capture → methodology → testing → standards → DONE
 
 ### Parallelism Strategy
 
-Phases are sequential (each depends on the previous), but WITHIN each phase there
-are significant parallelism opportunities. Use the `Agent` tool with multiple
-concurrent calls to maximize throughput.
-
-```
-Phase 1 (Capture): Sequential — single browser session
-  checkpoint check → setup → site fingerprint → auth gate → API probe → full capture → parse
-
-Phase 2 (Methodology): Fork-join pattern
-  Sequential: exceptions.py → client.py → auth.py → models.py
-  Parallel:   commands/*.py (one agent per file) + test_core.py (background)
-  Sequential: cli entry point, __main__.py, setup.py
-
-Phase 3 (Testing): Parallel test execution
-  Parallel:   test_core.py (if not started in Phase 2) + test_e2e.py
-  Sequential: run tests → update TEST.md
-
-Phase 4 (Standards): Parallel post-pipeline tasks
-  Sequential: pip install → smoke test
-  Parallel:   Claude skill + repo README update + package README
-```
-
-**Key rules for parallel dispatch:**
-- Launch ALL independent agents in a **single message** with multiple `Agent` tool calls
-- Use `run_in_background: true` for agents whose results you don't need immediately
-- Each agent gets: a clear scope, the files it depends on, and where to write output
-- Never parallelize agents that write to the **same file**
+Phases are sequential. Within each phase, dispatch independent file writes as
+parallel subagents. Core modules (exceptions → client → auth → models) must be
+sequential. Command modules and test files are independent — write them in parallel.
+Never parallelize writes to the same file.
 
 ### Prerequisites
 
@@ -219,162 +196,36 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 
 ## Critical Rules
 
-These are non-negotiable standards that apply across all phases:
-
-- **Auth credentials MUST be stored securely.** `chmod 600 auth.json`. Never hardcode
-  tokens in source. If auth file missing, CLI errors with clear instructions — never
-  falls back to unauthenticated requests.
-- **Tests MUST fail (not skip) when auth is missing.** Tests that skip on missing auth
-  give false confidence. Before running any E2E test, run `cli-web-<app> auth login`
-  then `auth status` to verify. Tests that output "auth not configured" are BROKEN.
-- **Every command MUST support `--json`.** Agents consume structured output.
-  Human-readable is optional; machine-readable is required.
-  **`--json` flag placement:** Place `--json` on EACH individual command (not just
-  the top-level group). In REPL mode, propagate `--json` from the top-level group
-  via `ctx.obj["json"]`. For subprocess calls, `cli-web-<app> <resource> list --json`
-  must work — this means `--json` must be an option on the command, not only on the group.
-- **E2E tests MUST include subprocess tests** via `_resolve_cli("cli-web-<app>")` —
-  source-level imports can hide packaging bugs (missing entry points, broken imports)
-  that only surface when the CLI is invoked as an installed command.
-- **Every `cli_web/<app>/` MUST contain `README.md`** with auth setup, install steps,
-  and usage examples — without it, users who discover the CLI via `pip` have no way to
-  learn how to authenticate or use it.
-- **Every `cli_web/<app>/tests/` MUST contain `TEST.md`** written in two parts: plan
-  (before tests), results (appended after running) — this is the audit trail that proves
-  tests were designed intentionally and actually passed, not just committed untested.
-- **Every CLI MUST use the unified REPL skin** (`repl_skin.py`) — consistent branding
-  and prompt behavior across all `cli-web-*` tools. REPL MUST be the default when
-  invoked without a subcommand — users expect an interactive shell, not a help dump.
-- **Rate limits MUST be respected.** Never retry without backoff. Never hammer endpoints.
-- **Response bodies MUST be verified.** Never trust HTTP status alone. Always check
-  that returned JSON contains expected fields.
-- **Content generation commands MUST download the result.** If the app generates
-  content (audio, images, video, documents), the CLI must handle the full lifecycle:
-  trigger → poll → download → save. Support `--output <path>` flag.
-- **Generation commands MUST support `--wait` and `--retry`** — without these, agents
-  cannot script end-to-end workflows and must poll manually. `--wait` polls until the
-  artifact is ready (exponential backoff). `--retry N` retries on 429 rate limit
-  (default 3). `--output <path>` saves content to a file.
-- **CAPTCHAs MUST pause and prompt, never crash or skip.** If a CAPTCHA is detected
-  in any response, stop and tell the user to solve it in their browser. Wait for
-  confirmation, then retry.
+- Auth: `chmod 600 auth.json`, never hardcode. Tests fail (not skip) without auth.
+- Every command supports `--json` (on each command, not just group). REPL propagates via `ctx.obj`.
+- E2E tests include subprocess tests via `_resolve_cli()`.
+- README.md and TEST.md required in every CLI package.
+- REPL is default (`invoke_without_command=True`). Use unified `repl_skin.py`.
+- Generation: `--wait` + `--retry N` + `--output path`. CAPTCHAs pause and prompt.
 
 ### Auth Resilience
 
-Beyond basic cookie storage, the auth module MUST support:
+Auth module must support: (1) env var `CLI_WEB_<APP>_AUTH_JSON` for CI/CD,
+(2) auto-refresh with single retry on 401/403 (never more than once),
+(3) `use <id>` / `status` context commands for stateful apps.
+See `auth-strategies.md` for all implementation patterns.
 
-1. **Environment variable auth** — `CLI_WEB_<APP>_AUTH_JSON` for CI/CD and headless
-   environments. When set, skip file-based auth entirely:
-   ```python
-   env_auth = os.environ.get(f"CLI_WEB_{app_upper}_AUTH_JSON")
-   if env_auth:
-       return json.loads(env_auth)
-   ```
+**CRITICAL: `.google.com` cookies must override regional duplicates** (e.g., `.google.co.il`).
+This is the #1 auth bug for international users. See `auth-strategies.md` "Cookie domain priority".
 
-2. **Auto-refresh with single retry** — On 401/403, re-fetch homepage tokens, retry once.
-   Never retry more than once to avoid infinite loops:
-   ```python
-   def _call_with_auth_retry(self, method, url, **kwargs):
-       try:
-           return self._call(method, url, **kwargs)
-       except AuthError as e:
-           if not e.recoverable:
-               raise
-           self._refresh_tokens()
-           return self._call(method, url, retry_on_auth=False, **kwargs)
-   ```
+### Implementation Patterns (Reference Files)
 
-3. **Context commands** — For apps with persistent context (e.g., selecting a notebook,
-   project, or workspace), provide `use <id>` and `status` commands:
-   ```bash
-   cli-web-<app> use <resource-id>    # Set context
-   cli-web-<app> status               # Show current context
-   ```
-   Store context in `~/.config/cli-web-<app>/context.json`. This avoids passing
-   `--notebook-id` on every command.
+These patterns are documented in reference files — read them during implementation, don't reinvent:
 
-### Namespaced Sub-Clients
-
-For apps with 3+ resource types, the client SHOULD be split into namespaced sub-clients
-instead of one monolithic class:
-
-```python
-# Instead of:
-client = AppClient()
-client.list_notebooks()
-client.add_source(nb_id, url)
-client.generate_audio(nb_id)
-
-# Use namespaced sub-clients:
-client = AppClient()
-client.notebooks.list()
-client.sources.add_url(nb_id, url)
-client.artifacts.generate_audio(nb_id)
-```
-
-Each sub-client lives in its own file (`_notebooks.py`, `_sources.py`, `_artifacts.py`)
-and shares the core HTTP transport from `client.py`. This keeps each file focused
-and makes the codebase navigable.
-
-### Partial ID Resolution
-
-Every CLI MUST support partial ID prefixes for get/rename/delete operations —
-UUIDs are 36 characters and impossible to type from memory. Users should type
-`abc` to match `abc123-long-uuid-...` instead of copying the full UUID. The `resolve_partial_id()` helper in `utils/helpers.py`:
-
-- IDs >= 20 chars: assume complete, match exactly
-- Short prefixes: case-insensitive prefix match against list
-- Ambiguous: show up to 5 candidates
-- No match: clear error
-
-See `references/helpers-module-example.py` for the implementation.
-
-Commands that accept a resource ID (get, rename, delete) MUST use `@click.argument`
-(positional) instead of `@click.option("--id", required=True)` — positional args
-match natural shell conventions (`git checkout main`, not `git checkout --branch main`):
-
-```bash
-# Good: cli-web-app notebooks get abc123
-# Bad:  cli-web-app notebooks get --id abc123
-```
-
-### Persistent Context
-
-For apps where commands operate on a specific resource (notebook, project,
-workspace), provide `use <id>` and `status` commands that persist to
-`~/.config/cli-web-<app>/context.json`. This makes `--notebook` optional
-on subsequent commands. The `require_notebook()` helper checks the arg first,
-then falls back to context.
-
-See `references/persistent-context-example.py` for the pattern.
-
-### Error Handler Context Manager
-
-Commands MUST use `with handle_errors(json_mode=use_json):` instead of
-manual try/except blocks. This centralizes error handling, ensures consistent
-exit codes (1=user, 2=system, 130=interrupt), and produces structured JSON
-errors in `--json` mode.
-
-### Rate-Limit Retry
-
-Generation commands MUST support `--retry N` flag — generation endpoints are the most
-rate-limited, and a single 429 should not abort a long-running workflow. The
-`retry_on_rate_limit()` helper wraps the generation call with exponential backoff (60s→300s).
-
-### Regional Cookie Support
-
-The auth module MUST accept Google cookies from regional domains (`.google.co.jp`,
-`.google.de`, `.google.com.br`, etc.) in addition to `.google.com`. International
-users may have cookies on regional ccTLDs. Include a `GOOGLE_REGIONAL_CCTLDS`
-frozenset with 60+ domains. Also include `.googleusercontent.com` for authenticated
-media downloads.
-
-**CRITICAL: `.google.com` cookies MUST always take priority over regional duplicates.**
-When the same cookie name exists on both `.google.com` and `.google.co.il` (or any
-other regional domain), the `.google.com` value is the one that Google services
-accept. Never overwrite a `.google.com` cookie with a regional duplicate. This is
-the #1 auth bug for international users. See `auth-strategies.md` "Cookie domain
-priority" for the working pattern and code example.
+| Pattern | Reference | Key |
+|---------|-----------|-----|
+| Exception hierarchy | `exception-hierarchy-example.py` | AppError → AuthError, RateLimitError, etc. |
+| Client architecture | `client-architecture-example.py` | Sub-clients for 3+ resources |
+| Polling/backoff | `polling-backoff-example.py` | --wait, --retry, rate limit retry |
+| Helpers module | `helpers-module-example.py` | handle_errors(), partial ID, _resolve_cli() |
+| Persistent context | `persistent-context-example.py` | use/status commands, context.json |
+| Rich output | `rich-output-example.py` | Tables, spinners, JSON error output |
+| Auth strategies | `auth-strategies.md` | All auth patterns, cookie priority, env var |
 
 ---
 
@@ -384,23 +235,15 @@ These lessons are documented in detail in the skill/reference where they're most
 actionable. This section is a quick-reference index — read the linked file for
 full context and code examples.
 
-| Topic | Where to find it | Key takeaway |
-|-------|-----------------|--------------|
-| Auth login must use Python playwright | `auth-strategies.md` "Known Pitfalls" | Never use `npx @playwright/cli` for auth login — use `sync_playwright()` with persistent context |
-| Cookie domain priority | `auth-strategies.md` "Cookie domain priority" | `.google.com` cookies must override regional duplicates (`.google.co.il`, etc.) |
-| Storage state is a list, not dict | `auth-strategies.md` "How to handle dual formats" | `load_cookies()` must handle both `[{name,value,domain}]` and `{name: value}` |
-| Domain-aware cookies for downloads | `auth-strategies.md` "Known Pitfalls" | Google download URLs need `httpx.Cookies` with domain info, not flat dicts |
-| RPC ID verification | `google-batchexecute.md` "Critical: One RPC ID, Multiple Operations" | Never guess RPC IDs — verify against traffic. Same ID can serve different operations |
-| Verify `--json` output | `testing/SKILL.md` "CLI Output Sanity Checks" + `standards/SKILL.md` "Output Sanity Verification" | Run every command with `--json` after implementation — check for raw protocol leaks |
-| Anti-bot protection | `capture/references/protection-detection.md` "Cloudflare" | Sites add protection over time — switch `httpx` → `curl_cffi` when you see 401/403 challenges |
-| HTML parser completeness | `methodology/references/ssr-patterns.md` | Extract ALL visible fields, not just obvious ones — verify `--json` fields against browser |
-| SSR slug URLs | `methodology/references/ssr-patterns.md` | Bare-ID URLs may 404 — search first for canonical slug |
-| Scraped text noise | `methodology/references/ssr-patterns.md` | Use regex to isolate values from surrounding badges/labels |
-| UTF-8 on Windows | `methodology/SKILL.md` | Add `sys.stdout.reconfigure(encoding="utf-8")` at CLI entry point |
-| Content generation lifecycle | Critical Rules above | trigger → poll → download → save with `--wait`, `--retry`, `--output` |
-| Rate limiting | Critical Rules above | Exponential backoff, never fixed sleep |
-| Response body verification | Critical Rules above + `testing/SKILL.md` | Never trust HTTP 200 alone — check returned fields |
-| Auth refresh vs re-login | `auth-strategies.md` "Auth refresh: two layers" | `auth refresh` = HTTP token refresh only. Never headless browser — Google blocks it. When cookies expire, user must `auth login` |
+| Bug / Gotcha | Reference | Fix |
+|------|-----------|-----|
+| Auth login via npx fails on Windows | `auth-strategies.md` | Use Python `sync_playwright()` with persistent context |
+| `.google.co.il` cookies override `.google.com` | `auth-strategies.md` | `.google.com` cookies take priority over regional |
+| `load_cookies()` gets list vs dict format | `auth-strategies.md` | Handle both `[{name,value}]` and `{name: value}` |
+| RPC IDs reused for different operations | `google-batchexecute.md` | Always verify against traffic, never guess |
+| `httpx` → 401/403 on previously working site | `protection-detection.md` | Site added Cloudflare — switch to `curl_cffi` |
+| SSR slug URLs return 404 with bare IDs | `ssr-patterns.md` | Search first for canonical slug |
+| Windows garbled output | `methodology/SKILL.md` | `sys.stdout.reconfigure(encoding="utf-8")` at entry |
 
 ---
 

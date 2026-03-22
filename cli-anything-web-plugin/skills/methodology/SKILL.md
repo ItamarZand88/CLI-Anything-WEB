@@ -168,38 +168,7 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 
 ### Implementation Rules
 
-- **`exceptions.py`** -- domain-specific exception hierarchy (MUST implement first):
-  ```python
-  # core/exceptions.py — generated for every CLI
-  class AppError(Exception):
-      """Base for all <app> CLI errors."""
-
-  class AuthError(AppError):
-      """Auth failed — expired cookies, invalid tokens."""
-      def __init__(self, message: str, recoverable: bool = True):
-          self.recoverable = recoverable
-          super().__init__(message)
-
-  class RateLimitError(AppError):
-      """429 — retry with backoff."""
-      def __init__(self, message: str, retry_after: float | None = None):
-          self.retry_after = retry_after
-          super().__init__(message)
-
-  class NetworkError(AppError):
-      """Connection/DNS/timeout errors."""
-
-  class ServerError(AppError):
-      """5xx responses."""
-      def __init__(self, message: str, status_code: int = 500):
-          self.status_code = status_code
-          super().__init__(message)
-
-  class NotFoundError(AppError):
-      """404 — resource not found."""
-  ```
-  Extend with domain-specific errors as needed. All other modules import from here.
-  See `references/exception-hierarchy-example.py` for a complete example.
+- **`exceptions.py`** -- implement first. Required types: AppError (base), AuthError(recoverable), RateLimitError(retry_after), NetworkError, ServerError(status_code), NotFoundError. See `references/exception-hierarchy-example.py` for the complete template.
 
 - **`client.py`** -- HTTP client with exception mapping and auth retry:
   - **HTTP library choice:**
@@ -231,17 +200,8 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
   **For browser-delegated auth (Google, Microsoft, etc.):** Full playwright-cli login flow
   with cookie domain priority for international users.
 
-  See `references/auth-strategies.md` for complete implementation patterns including:
-  - Browser login with `Popen` (not `subprocess.run` — critical fix)
-  - Cookie domain priority (`.google.com` over regional domains)
-  - Dual format handling (list vs dict cookies)
-  - API key auth (simple header injection)
-  - Environment variable auth for CI/CD
-  - Context commands (`use <id>`, `status`) for stateful apps
-
-  Key rules:
-  - Store cookies at `~/.config/cli-web-<app>/auth.json` with chmod 600
-  - `setup.py` should NOT include Playwright Python — only `click`, `httpx`
+  See `references/auth-strategies.md` for all patterns (browser login, cookie priority, API key, env var, context commands).
+  Store cookies at `~/.config/cli-web-<app>/auth.json` with chmod 600.
 
 - **Anti-bot resilient client construction** (when detected in Phase 2):
   - Extract session tokens via CDP first (cookies), then HTTP GET + HTML parsing (CSRF, session IDs)
@@ -257,53 +217,13 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
   - `decoder.py` -- response decoding (strip prefix, parse chunks, extract results)
   The `client.py` still exists but delegates encoding/decoding to `rpc/`.
 
-- **Progress feedback** -- Use `rich` spinners for operations >2s when not in `--json` mode:
-  ```python
-  from rich.console import Console
-  console = Console()
-  with console.status("Generating...") as spinner:
-      result = poll_until_complete(check_fn)
-  ```
-  Add `rich>=13.0` to `setup.py` dependencies.
+- **Progress feedback** -- Use `rich>=13.0` spinners for operations >2s (suppress in --json mode). See `references/rich-output-example.py`.
 
-- **JSON error output** -- When `--json` is active, errors MUST also be JSON — agents
-  parsing stdout will crash on unexpected plain-text error messages:
-  ```python
-  # utils/output.py
-  def json_error(code: str, message: str, **extra) -> str:
-      return json.dumps({"error": True, "code": code, "message": message, **extra})
+- **JSON error output** -- `--json` mode errors are JSON too, not plain text. Standard codes: AUTH_EXPIRED, RATE_LIMITED, NOT_FOUND, SERVER_ERROR, NETWORK_ERROR. Implement via `utils/output.py` json_error().
 
-  # In commands: catch exceptions, output json_error()
-  ```
-  Standard error codes: `AUTH_EXPIRED`, `RATE_LIMITED`, `NOT_FOUND`, `SERVER_ERROR`, `NETWORK_ERROR`
+- **All commands use `handle_errors(json_mode)` context manager** — centralizes error handling, exit codes (1=user, 2=system, 130=interrupt), and JSON errors. See `references/helpers-module-example.py`.
 
-- Every command: `--json` flag, proper error messages
-
-- **All commands MUST use `handle_errors()` context manager** — not manual try/except,
-  because scattered try/except blocks produce inconsistent exit codes and miss JSON error formatting.
-  This centralizes error handling, exit codes (1=user, 2=system, 130=interrupt),
-  and JSON error output:
-  ```python
-  @notebooks.command("list")
-  @click.option("--json", "use_json", is_flag=True)
-  def list_notebooks(use_json):
-      with handle_errors(json_mode=use_json):
-          client = AppClient()
-          nbs = client.list_notebooks()
-  ```
-
-- **Generation commands MUST support `--wait`, `--retry`, `--output`** — without these,
-  agents cannot script end-to-end workflows (generate, wait for result, save to disk):
-  ```python
-  @artifacts.command("generate")
-  @click.option("--wait", is_flag=True, help="Wait for completion.")
-  @click.option("--retry", type=int, default=3, help="Max retries on rate limit.")
-  @click.option("--output", "-o", type=click.Path(), help="Save to file.")
-  def generate(notebook, artifact_type, wait, retry, output, use_json):
-      with handle_errors(json_mode=use_json):
-          nb_id = require_notebook(notebook)
-          result = retry_on_rate_limit(lambda: client.generate(...), max_retries=retry)
-  ```
+- **Generation commands support `--wait`, `--retry N`, `--output path`** — for agent-scriptable end-to-end workflows. See `references/polling-backoff-example.py`.
 
 - **Windows UTF-8 fix** — Add at the top of `<app>_cli.py` before any imports that print:
   ```python
@@ -447,66 +367,25 @@ Phase C (sequential): Wire everything together
 ```
 
 **Key parallelism rules:**
-- Use `run_in_background: true` for the test-writing agent — it doesn't block Phase B
-- Launch ALL Phase B agents in a **single message** with multiple Agent tool calls
-- Each agent gets: the `<APP>.md` spec, the `client.py` interface, and a clear scope
-- Phase C starts only after ALL Phase B agents complete
-
-**Why start tests in Phase B?** Core module tests (mocking HTTP, testing parsers,
-exception hierarchy) don't depend on command modules. By the time Phase C finishes
-and `pip install -e .` runs, unit tests are already written and ready to execute.
-
-Example dispatch for a Google app with 4 command groups:
-```
-# After core/ modules are written — launch ALL in one message:
-Agent 1 (foreground): "Implement commands/notebooks.py (list, get, create, delete, rename)"
-Agent 2 (foreground): "Implement commands/sources.py (add-url, add-pdf, add-text, list, delete)"
-Agent 3 (foreground): "Implement commands/chat.py (ask, history)"
-Agent 4 (foreground): "Implement commands/artifacts.py (list, create, get)"
-Agent 5 (background): "Write unit tests for core/client.py, core/auth.py, core/models.py"
-# All 5 run concurrently, then integrate
-```
-
-**References:** `auth-strategies.md`, `google-batchexecute.md`
+- Dispatch independent command modules as parallel subagents (one per `commands/*.py` file)
+- Start unit test writing as a background agent during command implementation
+- Entry point (`<app>_cli.py`, `setup.py`) must come last (depends on all commands)
 
 ---
 
 ## Mandatory Smoke Check (Before Testing Phase)
 
-Before invoking the testing skill, verify that the core implementation actually works.
-This catches bugs early — **especially for batchexecute CLIs** where response parsing
-indices are fragile.
+Before invoking testing, install (`pip install -e .`) and verify:
+1. `cli-web-<app> --help` loads
+2. `cli-web-<app> auth status --json` shows valid (if auth-required)
+3. `cli-web-<app> <resource> list --json` returns real data
+4. One WRITE command works (if applicable)
 
-```bash
-# 1. Install the CLI
-cd <app>/agent-harness && pip install -e .
-
-# 2. Verify CLI loads
-cli-web-<app> --help
-
-# 3. Auth (if required)
-cli-web-<app> auth import <app>/traffic-capture/<app>-auth.json  # or auth login
-cli-web-<app> auth status --json
-# MUST show: {"success": true, "data": {"valid": true, ...}}
-
-# 4. Test the primary READ command with --json
-cli-web-<app> <primary-resource> list --json
-# VERIFY: response contains actual data, not raw RPC fragments or empty arrays
-
-# 5. Test one WRITE command (if applicable)
-cli-web-<app> <resource> <write-command> --json
-# VERIFY: operation succeeds OR clearly errors with typed exception
-```
-
-**Red flags that need fixing before testing:**
-- `--json` output contains `wrb.fr`, `af.httprm`, `di` → decoder broken
-- Response is `[]` or `null` where data expected → wrong RPC params or client-side operation
-- Fields show wrong values (e.g., prompt shows "3" instead of text) → parser index mismatch
-- `AuthError` on every call → token refresh broken
-
-**If a write operation returns null:** The RPC may be client-side. See
-`references/google-batchexecute.md` "Client-Side vs Server-Side Operations"
-for the list-diff workaround pattern.
+**Red flags — fix before testing:**
+- `wrb.fr`, `af.httprm` in output → decoder broken
+- `[]` or `null` where data expected → wrong params or client-side operation
+- Wrong field values (e.g., "3" instead of prompt text) → parser index mismatch
+- Null write response → may be client-side, see `references/google-batchexecute.md` "Client-Side Operations"
 
 Update phase state:
 ```bash

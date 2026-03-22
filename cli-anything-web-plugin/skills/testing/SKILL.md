@@ -30,26 +30,11 @@ If implementation is incomplete, invoke the `methodology` skill first.
 
 ---
 
-## Auth MUST Be Working Before Any E2E Test
+## Auth Must Be Working Before E2E Tests
 
-**Exception for no-auth sites:** If the site requires no authentication
-(public API, no login needed), skip auth setup entirely. E2E tests can run
-without auth. The rules below apply only to CLIs that require authentication.
-
-This is the #1 rule for web CLI testing. Before writing or running any E2E test:
-
-1. Ensure Python playwright is available (`python -c "from playwright.sync_api import sync_playwright; print('OK')"`)
-2. Ensure Chromium is installed (`playwright install chromium`)
-3. Run `cli-web-<app> auth login` (Python sync_playwright browser login)
-4. Run `cli-web-<app> auth status` — must show valid
-5. If auth fails, STOP and fix it. Do NOT write tests that catch auth errors.
-
-Tests that output "auth not configured" or skip on missing auth are **broken tests**.
-The web app requires authentication — the tests must authenticate. This is the web
-equivalent of CLI-Anything's rule that the real software must be installed.
-
-If a test cannot authenticate, it must call `pytest.fail()` with a message telling
-the user to run `auth login`, not silently skip or catch the error.
+For auth-required sites: run `cli-web-<app> auth login` then `auth status` (must show valid).
+Tests that skip or catch auth errors are broken — use `pytest.fail()` if auth is missing.
+No-auth sites skip auth setup entirely.
 
 ---
 
@@ -79,43 +64,18 @@ JSON APIs, fixture replay adds maintenance cost without much benefit.
 |-----------------|------|---------|
 | E2E fixture | `test_e2e.py` | Replay captured responses from `tests/fixtures/`. Verifies parsing logic. |
 
-### Parallel Test Writing (dispatch independent test files as subagents)
+### Parallel Test Writing
 
-Test files are independent and can be written in parallel:
-
-| Test file | Scope | Independent? |
-|-----------|-------|-------------|
-| `test_core.py` — client tests | Mock HTTP, test `client.py` | Yes |
-| `test_core.py` — auth tests | Mock filesystem, test `auth.py` | Yes |
-| `test_core.py` — RPC codec tests | Test encoder/decoder with fixtures | Yes |
-| `test_e2e.py` — live tests | Real API calls | Depends on auth working |
-| `test_e2e.py` — subprocess tests | `_resolve_cli()` | Depends on `pip install -e .` |
-
-Dispatch strategy — launch ALL in one message:
-```
-Agent 1 (foreground): "Write unit tests for core/client.py and core/auth.py in test_core.py"
-Agent 2 (foreground): "Write live E2E tests and subprocess tests in test_e2e.py"
-# Both run concurrently, then integrate into final test files and run
-```
-
-**Optimal timing:** If possible, start unit test writing during Phase 2 (methodology)
-as a background agent while command modules are still being implemented. Unit tests
-for core modules (client, auth, models, exceptions) don't depend on commands. By the
-time `pip install -e .` runs, unit tests are already written.
-
-Each agent receives: the module it's testing, and sample API responses if available.
-Agents must NOT depend on each other's output.
+Dispatch `test_core.py` and `test_e2e.py` writing as parallel subagents — they're
+independent. Start unit tests during Phase 2 if possible (they don't depend on commands).
 
 ### Testing Rules
 
-- Use `unittest.mock.patch` for HTTP in unit tests
-- Store captured responses in `tests/fixtures/` for replay (if using fixture layer)
-- E2E live tests require auth — **FAIL (not skip, not catch, not "auth not configured")**
-- If a test cannot authenticate, it must `pytest.fail("Auth not configured. Run: cli-web-<app> auth login")`
-- `TestCLISubprocess` using `_resolve_cli("cli-web-<app>")`
-- Target: >80% coverage on core modules
-- **HTML scrapers:** unit test fixtures must use the real CSS class names the parser targets, not generic simplified markup. If the fixture doesn't have the classes, it's not testing the parser. See `references/test-code-examples.md`.
-- **List/search assertions:** `assert isinstance(results, list)` doesn't catch broken parsers. When results have fields (name, id, price), assert on at least one field of the first result. Apply when the endpoint is HTML-scraped; JSON APIs that deserialize cleanly need less scrutiny. See `references/test-code-examples.md`.
+- Unit tests: `unittest.mock.patch` for HTTP, real CSS class names in HTML fixtures
+- E2E: require auth (pytest.fail if missing), verify response body fields not just status
+- Subprocess: `_resolve_cli("cli-web-<app>")` — see `references/resolve-cli-pattern.md`
+- HTML scraper assertions: check actual fields (name, id, price), not just `isinstance(results, list)`
+- See `references/test-code-examples.md` for patterns
 
 ### VCR.py Integration Tests (Recommended)
 
@@ -220,18 +180,8 @@ def test_cli_chat_output_is_text(self):
 
 ### Response Body Verification
 
-Never trust status 200 alone. For every API response:
-
-- **Create**: verify returned entity has the submitted field values
-- **Read**: verify entity ID matches what was requested
-- **Update**: verify changed fields reflect new values
-- **Delete**: verify subsequent read returns 404
-- **List**: verify count, verify each item has required fields
-
-Print entity IDs for manual verification:
-```python
-print(f"[verify] Created board id={data['id']} name={data['name']}")
-```
+Verify response bodies for every CRUD operation — status 200 alone is insufficient.
+Create → check fields match, Read → check ID matches, Delete → verify 404 on re-read.
 
 ### Exception Testing
 
@@ -342,12 +292,6 @@ Write this alongside the tests, not before or after:
 2. **Unit Test Plan** — For each core module: functions tested, edge cases covered
 3. **E2E Test Plan** — Live CRUD workflows and what is verified
 4. **Realistic Workflow Scenarios** — Multi-step flows with verification criteria:
-   - Auth flow: login → store token → make authenticated request → token refresh
-   - CRUD round-trip: create → read back → verify fields → update → verify → delete → verify 404
-   - Paginated list: fetch page 1 → verify count → fetch page 2 → verify no overlap
-   - Bulk operations: create N items → list all → verify count → delete all → verify empty
-   - Rate limit handling: rapid requests → verify backoff behavior
-
 ### Handling Client-Side Operations in E2E Tests
 
 Some batchexecute/RPC operations are **client-side** — the browser generates the ID

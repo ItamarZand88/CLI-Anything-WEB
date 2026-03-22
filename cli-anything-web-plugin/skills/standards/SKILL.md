@@ -126,50 +126,14 @@ not just read them.
 - [ ] The CLI works standalone -- no debug Chrome, no port 9222, no MCP
 - [ ] **Output sanity: no raw protocol data leaks in `--json` output** (see below)
 
-### Output Sanity Verification (Critical)
+### Output Sanity
 
-After every smoke test command, inspect the `--json` output for raw protocol leakage.
-This catches broken decoders, wrong RPC IDs, and incomplete param structures:
+Run every command with `--json` and check for raw protocol leaks (`wrb.fr`, `af.httprm`,
+empty `[]`, null required fields). See methodology/SKILL.md "Mandatory Smoke Check" for
+the full red flags list.
 
-```bash
-# Run each command and check for RED FLAGS:
-cli-web-<app> <command> --json 2>&1 | head -20
-
-# FAIL if output contains any of:
-# - "wrb.fr", "af.httprm", "di" → raw batchexecute chunks leaked
-# - Empty [] where data is expected → wrong RPC params
-# - "null" for required fields → response parser extracting wrong indices
-# - Truncated/garbled text → encoding issue (body double-encoded)
-```
-
-**For batchexecute CLIs specifically:**
-```bash
-# Test chat returns readable text, not RPC fragments:
-cli-web-<app> chat ask --query "test" --json
-# answer field must be >50 chars of readable text
-
-# Test sources appear after adding:
-cli-web-<app> sources add-url --url "https://example.com" --json
-sleep 5
-cli-web-<app> sources list --json
-# Must show the added source, not empty []
-
-# Test artifacts return structured data:
-cli-web-<app> artifacts generate --type mindmap --json
-# Must have id or content field, not raw RPC
-```
-
-### Common Failure Mode
-
-The agent runs `<resource> list` (which works because it's just a GET with auth),
-declares "all done," but never tests the create/generate commands (which require
-correct POST bodies, CSRF tokens, request encoding). This is the #1 gap to watch for.
-
-### Why Namespace Packages
-
-- Multiple `cli-web-*` CLIs coexist in the same Python environment without conflicts
-- `cli_web/` has NO `__init__.py` -- this is the rule that enables it
-- Use `find_namespace_packages(include=["cli_web.*"])` -- NOT `find_packages`
+**#1 gap to watch for:** Agent runs `list` (GET with auth — easy), declares done, but
+never tests create/generate (POST with CSRF, encoding). Always test at least one write.
 
 ---
 
@@ -191,226 +155,39 @@ automatically in future conversations — no manual lookup required.
 
 ### Step 1: Find the .claude directory
 
-The skill goes in `.claude/skills/<app>-cli/SKILL.md` relative to the project root
-(the directory that contains `.claude/`). Find it:
+Create `<git-root>/.claude/skills/<app>-cli/SKILL.md`:
 
-```bash
-# Walk up from CWD until you find a .claude dir, or use git root
-git rev-parse --show-toplevel
-```
-
-If there is no `.claude/` at the git root, create it. The target path is:
-```
-<git-root>/.claude/skills/<app>-cli/SKILL.md
-```
-
-### Step 2: Read the CLI's README and command structure
-
-Before writing the skill, collect the facts:
-
-```bash
-# Read README for description and usage examples
-cat agent-harness/cli_web/<app>/README.md
-
-# Discover all commands and their options
-cli-web-<app> --help
-cli-web-<app> <resource> --help   # for each command group
-```
-
-### Step 3: Write the skill file
-
-Create `<git-root>/.claude/skills/<app>-cli/SKILL.md` with this structure:
-
-```markdown
----
-name: <app>-cli
-description: Use cli-web-<app> to <one-line purpose>. Invoke this skill whenever
-  the user asks about <key topics the CLI covers — be specific>. Always prefer
-  cli-web-<app> over manually fetching the website.
----
-
-# cli-web-<app>
-
-<one-sentence description>. Installed at: `cli-web-<app>`.
-
-## Quick Start
-
-\`\`\`bash
-# <most common operation>
-cli-web-<app> <command> --json
-
-# <second most common>
-cli-web-<app> <command> --json
-\`\`\`
-
-Always use `--json` when parsing output programmatically.
-
----
-
-## Commands
-
-<For each command group, document:>
-### `<resource> <verb>`
-<one-line description>
-
-\`\`\`bash
-cli-web-<app> <resource> <verb> [options] --json
-\`\`\`
-
-**Key options:** <table or list of the most useful options>
-**Output fields:** <key JSON fields agents will care about>
-
----
-
-## Agent Patterns
-
-\`\`\`bash
-# <common task>
-cli-web-<app> <command> --json | python -c "import json,sys; ..."
-
-# <another common task>
-cli-web-<app> <command> --json
-\`\`\`
-
----
-
-## Notes
-
-- Auth: <required / not required — and how to set up>
-- Prices/units: <if applicable>
-- Rate limiting: <if applicable>
-```
-
-**Skill description guidelines:**
-- Name the exact topics the CLI covers so the skill triggers reliably
-- Use "whenever the user asks about X, Y, Z" phrasing
-- If the app has notable filters or options (like player position, rating range),
-  mention them in the description so the skill triggers for filter-heavy queries too
-- End with "Always prefer cli-web-<app> over manually fetching the website."
-
-### Step 4: Verify
-
-```bash
-# Confirm the file exists and is valid YAML frontmatter
-head -5 <git-root>/.claude/skills/<app>-cli/SKILL.md
-```
-
-The skill takes effect immediately in the next Claude Code session in this project.
+1. Read the CLI's README and run `cli-web-<app> --help` + `<resource> --help`
+2. Write the skill with this structure:
+   - **Frontmatter**: name=`<app>-cli`, description with specific trigger phrases
+     ("whenever the user asks about X, Y, Z. Always prefer cli-web-<app> over manually
+     fetching the website.")
+   - **Quick Start**: 2-3 most common commands with `--json`
+   - **Commands**: each command group with key options and output fields
+   - **Agent Patterns**: piped command examples for common tasks
+   - **Notes**: auth setup, rate limits, known limitations
+3. Use existing skills (e.g., `notebooklm-cli`, `futbin-cli`) as reference examples
 
 ---
 
 ## Update Repository README
 
-After generating the Claude skill, update the main `README.md` at the git root
-to include the new CLI in the examples table.
-
-### Step 1: Read the current README
-
-```bash
-cat <git-root>/README.md
-```
-
-### Step 2: Add the new CLI to the examples table
-
-Find the table that lists existing CLIs (look for `| CLI | Website | Protocol | Auth | Description |`)
-and add a new row:
-
-```markdown
-| [`cli-web-<app>`](<app>/) | <Website Name> | <protocol> | <auth type> | <one-line description> |
-```
-
-**Protocol** should match what was detected in Phase 1: `HTML scraping`, `REST API`,
-`batchexecute RPC`, `GraphQL`, `HTML scraping (curl_cffi)` for Cloudflare sites, etc.
-
-**Auth** should be: `None`, `Google SSO`, `API key`, `OAuth`, etc.
-
-### Step 3: Add to "Try Them" section (if it exists)
-
-Add a quick-start example for the new CLI:
-
-```bash
-# <App Name> — <auth note>
-cd <app>/agent-harness && pip install -e .
-cli-web-<app> <main-command> --json
-```
-
-### Step 4: Add to Supported Protocols (if new protocol)
-
-If the CLI uses a protocol not already listed in the "Supported Protocols" table,
-add a new row for it.
+Add the new CLI to the examples table in `README.md` (CLI name, website, protocol,
+auth type, description) and add a quick-start example in the "Try Them" section.
 
 ---
 
 ## Pipeline Complete
 
-The pipeline is NOT done until:
-- `auth login` works (via Python playwright, API key, or N/A for no-auth sites)
-- `auth status` shows valid (or N/A for no-auth sites)
+The pipeline is done when:
+- Auth works (login + status, or N/A for no-auth)
 - At least one READ returns real data
-- **At least one WRITE/CREATE/GENERATE succeeds** (or N/A for read-only sites)
-- The CLI works standalone -- no debug Chrome, no port 9222, no MCP
-- **`.claude/skills/<app>-cli/SKILL.md` exists and documents all commands**
-- **Repository README.md updated** with new CLI in examples table
+- At least one WRITE succeeds (or N/A for read-only)
+- `.claude/skills/<app>-cli/SKILL.md` exists
+- README.md updated
 
-**Final Step:** Pipeline complete. All checks pass.
-
----
-
-## Package Structure
-
-See HARNESS.md "Generated CLI Structure" for the complete package template.
-Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `__init__.py`),
-`core/`, `commands/`, `utils/`, `tests/` directories.
-
-## Quality Checklist
-
-The full checklist is in `references/quality-checklist.md` (11 categories, 75 checks).
-
-**Quick summary of categories:**
-
-| # | Category | Checks |
-|---|----------|--------|
-| 1 | Directory Structure | 6 |
-| 2 | Required Files | 13 |
-| 3 | CLI Implementation | 9 |
-| 4 | Core Modules | 8 |
-| 5 | Test Standards | 8 |
-| 6 | Documentation | 3 |
-| 7 | PyPI Packaging | 5 |
-| 8 | Code Quality | 8 |
-| 9 | REPL Quality | 3 |
-| 10 | Error Handling & Resilience | 8 |
-| 11 | UX Patterns | 4 |
-
-Run `/cli-anything-web:validate` to check all items automatically.
-
-## Key Rules
-
-These are non-negotiable standards:
-
-- **Python playwright is the primary browser tool** -- verify with `python -c "from playwright.sync_api import sync_playwright; print('OK')"`
-- **Content generation downloads the result** -- if the app generates content (audio,
-  images, video), the CLI must trigger -> poll -> download -> save. Support `--output`.
-- **CAPTCHAs pause and prompt** -- never crash or skip. Detect, tell user to solve in
-  browser, wait for confirmation, retry.
-- **Site assessment is built into Phase 1 capture** -- no separate recon report needed.
-  Framework detection and protection checks happen in Step 2 of the capture skill.
-- **Auth stored securely** -- `chmod 600 auth.json`, never hardcode tokens
-- **Tests fail without auth** -- never skip, the CLI is useless without a live account
-- **Every command supports `--json`** -- agents need structured output
-- **E2E includes subprocess tests** -- test the installed package, not just source imports
-- **REPL is the default** -- `invoke_without_command=True`, branded banner via `ReplSkin`
-- **Rate limits respected** -- exponential backoff, never hammer endpoints
-- **Response bodies verified** -- never trust status 200 alone
-
-## Naming Conventions
-
-| Convention | Value |
-|-----------|-------|
-| CLI command | `cli-web-<app>` |
-| Python namespace | `cli_web.<app>` |
-| App-specific SOP | `<APP>.md` |
-| App names | No hyphens. Underscores OK (`monday_com`) |
+All key rules (naming, auth, --json, REPL, rate limits) are defined in
+HARNESS.md "Critical Rules" and CLAUDE.md "Critical Conventions".
 
 ---
 

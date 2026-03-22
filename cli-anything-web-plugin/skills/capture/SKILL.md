@@ -226,18 +226,6 @@ Create `<app>/traffic-capture/assessment.md` to consolidate all findings:
 - **Key observations**: <any quirks, localized UI, rate limits, special patterns>
 ```
 
-Update checkpoint:
-**Assessment checklist** (all should be answered before proceeding):
-```
-- [ ] Framework detected — identified: ___
-- [ ] Protection checked — result: ___
-- [ ] Iframes detected — count: ___, app in frame: ___
-- [ ] Auth requirement — needs login: ___, user logged in: ___
-- [ ] Site profile — classified as: ___
-- [ ] API probe — endpoints found: ___
-- [ ] Capture strategy chosen — approach: ___
-```
-
 ---
 
 ## Step 3: Full Traffic Capture

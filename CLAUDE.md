@@ -119,23 +119,8 @@ When implementing Google batchexecute CLIs, RPC method IDs can be confusing — 
 
 ### Mandatory CLI Output Verification
 
-After implementing any CLI command, **always verify the output matches expectations**:
-
-```bash
-# After implementing a command, test it and inspect the raw output:
-cli-web-<app> <command> --json 2>&1
-
-# Check for these red flags:
-# - Raw RPC data in output (e.g., wrb.fr, af.httprm, di)
-# - Empty arrays [] when data should exist
-# - Null/None where values are expected
-# - Status 200 but response body is wrong
-```
-
-**Common bugs to catch:**
-- Chat/query returns raw batchexecute chunks instead of parsed text → decoder is not finding the `wrb.fr` entry or not double-parsing `item[2]`
-- Sources list returns `[]` right after add → GET_NOTEBOOK params are wrong (missing `[2]` or other required elements)
-- Add source returns ID but source never appears → wrong RPC method ID used (e.g., SUMMARIZE instead of ADD_SOURCE)
+After implementing any command, run it with `--json` and check for raw protocol leaks
+(`wrb.fr`, `af.httprm`, empty `[]`, null fields). See methodology/SKILL.md "Mandatory Smoke Check".
 
 ## Protocol Detection
 
