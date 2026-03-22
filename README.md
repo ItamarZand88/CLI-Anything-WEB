@@ -26,6 +26,17 @@
 
 **CLI-Anything-Web** is a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin that generates production-grade Python CLIs for **any** web application by capturing its live HTTP traffic. Point it at a URL, and get a fully working CLI on your PATH — with auth, REPL mode, `--json` output, and tests.
 
+> **Experimental Project — Use Responsibly**
+>
+> This project uses **undocumented web APIs** reverse-engineered from live HTTP traffic. These APIs can change without notice.
+>
+> - **Not affiliated with any website** — This is an independent open-source project
+> - **APIs may break** — Websites can change their internal endpoints, HTML structure, or add protections at any time
+> - **Respect rate limits** — Generated CLIs include exponential backoff, but heavy usage may be throttled
+> - **For personal use** — Best suited for prototyping, automation, research, and personal productivity
+>
+> Generated CLIs interact with real production services. Use them responsibly and in accordance with each website's terms of service.
+
 <br>
 
 ## The Idea
@@ -222,6 +233,22 @@ CLI-Anything-WEB/
 ├── unsplash/                    # Example: Unsplash (REST API + curl_cffi)
 └── booking/                     # Example: Booking.com (GraphQL + AWS WAF)
 ```
+
+<br>
+
+## Inspiration
+
+The name and spirit of this project draw from [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) by Mintplex Labs — a platform that lets you connect **any** LLM to **any** data source. CLI-Anything-Web applies the same "anything" philosophy to a different problem:
+
+| | **AnythingLLM** | **CLI-Anything-Web** |
+|---|---|---|
+| **Problem** | Chat with your documents using any LLM | Access any website from the terminal |
+| **"Anything" means** | Any LLM provider, any document format, any deployment | Any website becomes a CLI tool |
+| **How** | RAG pipeline with vector databases | HTTP traffic capture + CLI code generation |
+| **Output** | Private ChatGPT-like app | Installable Python CLI on your PATH |
+| **User** | Anyone wanting AI-powered document Q&A | Developers wanting programmatic access to web apps |
+
+Where AnythingLLM makes LLMs accessible to everyone, CLI-Anything-Web makes closed-source web applications accessible to agents and automation.
 
 <br>
 
