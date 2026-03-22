@@ -45,7 +45,7 @@
 Most web apps don't have public APIs. **CLI-Anything-Web** changes that:
 
 <p align="center">
-  <video src="assets/demo.mp4" autoplay loop muted playsinline width="100%"></video>
+  <img src="assets/demo.gif" alt="CLI-Anything-Web Demo" width="100%">
 </p>
 
 > **No API docs needed. No reverse-engineering by hand. Just point and generate.**
