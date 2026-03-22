@@ -144,6 +144,7 @@ Sites protected by AWS WAF return a 202 JavaScript challenge page to raw HTTP cl
 | `cli-web-producthunt` | `producthunt/` | HTML scraping (curl_cffi) | Cloudflare bypass |
 | `cli-web-unsplash` | `unsplash/` | REST API (curl_cffi) | Public JSON API, anti-bot bypass |
 | `cli-web-booking` | `booking/` | GraphQL + HTML (curl_cffi) | AWS WAF bypass, hybrid protocol |
+| `cli-web-stitch` | `stitch/` | batchexecute RPC | Google SSO + RPC codec (Nemo service) |
 
 ## Reference Examples
 

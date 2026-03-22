@@ -35,3 +35,4 @@ Thumbs.db
 cli-anything-web-plugin-workspace/
 docs/
 reference-skills/
+**/phase-state.json
