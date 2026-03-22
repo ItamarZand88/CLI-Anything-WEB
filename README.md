@@ -80,7 +80,7 @@ You: cli-web-notebooklm artifacts generate --type audio --wait --output podcast.
 ### Generate Your First CLI
 
 ```bash
-/cli-anything-web https://monday.com
+/cli-anything-web https://your-favorite-website.com
 ```
 
 The agent opens a browser, asks you to log in if needed, captures traffic, and generates a complete CLI. That's it.
@@ -284,20 +284,6 @@ bash cli-anything-web-plugin/verify-plugin.sh  # validate
 ```
 
 <br>
-
-## ⭐ Star History
-
-If this project is useful, a star helps others discover it.
-
-<p align="center">
-  <a href="https://star-history.com/#ItamarZand88/CLI-Anything-WEB&Date">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ItamarZand88/CLI-Anything-WEB&type=Date&theme=dark" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ItamarZand88/CLI-Anything-WEB&type=Date" />
-      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ItamarZand88/CLI-Anything-WEB&type=Date" width="600" />
-    </picture>
-  </a>
-</p>
 
 <br>
 
