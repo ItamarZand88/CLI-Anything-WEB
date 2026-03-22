@@ -64,15 +64,18 @@ def format_project(project: Project, json_mode: bool = False):
         print_json(json_success(_project_to_dict(project)))
         return
 
-    _console.print(f"[bold cyan]Project:[/] {project.title or '(untitled)'}")
-    _console.print(f"  ID:       {project.id}")
-    _console.print(f"  Resource: {project.resource_name}")
-    if project.created_at:
-        _console.print(f"  Created:  {_fmt_ts(project.created_at)}")
-    if project.modified_at:
-        _console.print(f"  Modified: {_fmt_ts(project.modified_at)}")
-    _console.print(f"  Status:   {STATUS_LABELS.get(project.status, str(project.status))}")
-    _console.print(f"  URL:      https://stitch.withgoogle.com/projects/{project.id}")
+    url = f"https://stitch.withgoogle.com/projects/{project.id}"
+    status = STATUS_LABELS.get(project.status, str(project.status))
+    _console.print(f"[bold cyan]{project.title or '(untitled)'}[/]  [dim]({status})[/]")
+    _console.print(f"  ID:  {project.id}")
+    if project.created_at or project.modified_at:
+        parts = []
+        if project.created_at:
+            parts.append(f"Created {_fmt_ts(project.created_at)}")
+        if project.modified_at:
+            parts.append(f"Modified {_fmt_ts(project.modified_at)}")
+        _console.print(f"  {' · '.join(parts)}")
+    _console.print(f"  [link={url}]{url}[/link]")
 
 
 # ── Screen formatting ────────────────────────────────────────────────

@@ -104,9 +104,11 @@ def projects_create(ctx, prompt, platform, wait, json_mode):
                     "prompt": prompt,
                 }))
             else:
-                format_project(project, json_mode=False)
-                _console.print(f"\n[green]Design generated for project {project.id}[/]")
-                _console.print(f"Active project set to: {project.id}")
+                title = project.title or "(untitled)"
+                url = f"https://stitch.withgoogle.com/projects/{project.id}"
+                _console.print(f"\n[green bold]{title}[/] created!")
+                _console.print(f"  [link={url}]{url}[/link]")
+                _console.print(f"  [dim]Active project set.[/]")
         else:
             # No-wait: create project and fire prompt without polling
             project = client.create_project()
