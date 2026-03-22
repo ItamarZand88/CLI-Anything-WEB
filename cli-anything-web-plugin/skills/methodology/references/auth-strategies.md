@@ -273,16 +273,35 @@ csrf = re.search(r'"SNlM0e":"([^"]+)"', resp.text).group(1)
 session_id = re.search(r'"FdrFJe":"([^"]+)"', resp.text).group(1)
 ```
 
-Key insight: playwright-cli state-save is only needed for initial cookie extraction.
+Key insight: Python playwright is only needed for initial cookie extraction.
 Token refresh uses plain HTTP with those cookies — no browser required for subsequent refreshes.
 
-### Token refresh (on 401):
+### Auth refresh: two layers
+
+**Layer 1: Token refresh (automatic on 401)** — re-extracts CSRF and session tokens
+from the homepage via HTTP. Works when cookies are still valid but tokens have rotated
+(Google rotates tokens every few hours). This happens silently in the client's retry logic.
+
 ```python
 def refresh_tokens(self):
     """Re-fetch tokens from homepage. Cookies are still valid."""
     resp = httpx.get(APP_URL, cookies=self.cookies)
     self.csrf, self.session_id = extract_tokens(resp.text)
 ```
+
+**Layer 2: Full re-login (manual `auth login`)** — needed when cookies themselves
+expire (typically 24-48h for Google). No silent/headless workaround exists — Google
+blocks headless browsers. The user must run `auth login` to open a real browser.
+
+**Do NOT try to silently refresh cookies via headless browser.** Google detects
+headless Chromium and returns a challenge page. The persistent browser profile helps
+users stay logged in across `auth login` calls (no need to re-enter credentials),
+but the browser must be visible (headed, not headless).
+
+**The `auth refresh` command should:**
+1. Try HTTP token refresh first
+2. If that fails (cookies expired), tell the user to run `auth login`
+3. Never attempt headless browser — it won't work with Google
 
 ### Auth file format:
 ```json
@@ -296,10 +315,10 @@ def refresh_tokens(self):
 
 ### CLI commands:
 ```
-auth login              # playwright-cli state-save (primary)
+auth login              # Python sync_playwright browser login (primary)
 auth login --cookies-json <file>  # manual import (fallback)
 auth status             # show cookies + token validity
-auth refresh            # re-fetch tokens via HTTP
+auth refresh            # re-fetch tokens via HTTP (cookies must be valid)
 ```
 
 ### Known Pitfalls (from production bugs)
@@ -317,6 +336,7 @@ auth refresh            # re-fetch tokens via HTTP
 | Incomplete GET_NOTEBOOK params | Sources list returns `[]` even after adding | Use `[notebook_id, None, [2], None, 0]`, not just `[notebook_id]` |
 | Chat returns raw RPC chunks | Output shows `wrb.fr`, `af.httprm` instead of text | Parse `wrb.fr` entries: `json.loads(item[2])` → `inner[0][0]` is the answer |
 | `urllib.parse.urlencode` for chat body | Double-encoding breaks the request | Use `urllib.parse.quote(value, safe='')` for each body part |
+| Headless browser for silent cookie refresh | Google blocks headless Chromium | Never attempt headless re-login. `auth refresh` = HTTP token refresh only. `auth login` = headed browser required |
 
 ## Environment Variable Auth (CI/CD)
 

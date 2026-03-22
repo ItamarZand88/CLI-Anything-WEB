@@ -389,6 +389,7 @@ full context and code examples.
 | Content generation lifecycle | Critical Rules above | trigger → poll → download → save with `--wait`, `--retry`, `--output` |
 | Rate limiting | Critical Rules above | Exponential backoff, never fixed sleep |
 | Response body verification | Critical Rules above + `testing/SKILL.md` | Never trust HTTP 200 alone — check returned fields |
+| Auth refresh vs re-login | `auth-strategies.md` "Auth refresh: two layers" | `auth refresh` = HTTP token refresh only. Never headless browser — Google blocks it. When cookies expire, user must `auth login` |
 
 ---
 
