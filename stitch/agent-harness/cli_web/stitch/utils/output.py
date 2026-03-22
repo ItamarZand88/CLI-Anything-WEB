@@ -71,9 +71,9 @@ def format_project(project: Project, json_mode: bool = False):
         _console.print(f"  Created:  {_fmt_ts(project.created_at)}")
     if project.modified_at:
         _console.print(f"  Modified: {_fmt_ts(project.modified_at)}")
-    _console.print(f"  Status:   {project.status}")
+    _console.print(f"  Status:   {STATUS_LABELS.get(project.status, str(project.status))}")
     if project.thumbnail_url:
-        _console.print(f"  Thumb:    {project.thumbnail_url}")
+        _console.print(f"  Thumb:    [dim](available via --json)[/]")
 
 
 # ── Screen formatting ────────────────────────────────────────────────
