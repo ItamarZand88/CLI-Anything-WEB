@@ -238,17 +238,21 @@ CLI-Anything-WEB/
 
 ## Inspiration
 
-The name and spirit of this project draw from [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) by Mintplex Labs — a platform that lets you connect **any** LLM to **any** data source. CLI-Anything-Web applies the same "anything" philosophy to a different problem:
+This project is directly inspired by [CLI-Anything](https://github.com/HKUDS/CLI-Anything) by HKUDS — a Claude Code plugin that makes **desktop software** (GIMP, Blender, LibreOffice, OBS Studio) agent-native by analyzing source code and generating CLI wrappers.
 
-| | **AnythingLLM** | **CLI-Anything-Web** |
+**CLI-Anything-Web** extends the same vision to the **web** — where there's no source code to analyze, only live HTTP traffic to capture.
+
+| | [**CLI-Anything**](https://github.com/HKUDS/CLI-Anything) | **CLI-Anything-Web** |
 |---|---|---|
-| **Problem** | Chat with your documents using any LLM | Access any website from the terminal |
-| **"Anything" means** | Any LLM provider, any document format, any deployment | Any website becomes a CLI tool |
-| **How** | RAG pipeline with vector databases | HTTP traffic capture + CLI code generation |
-| **Output** | Private ChatGPT-like app | Installable Python CLI on your PATH |
-| **User** | Anyone wanting AI-powered document Q&A | Developers wanting programmatic access to web apps |
+| **Target** | Desktop apps (GIMP, Blender, OBS, LibreOffice) | Web apps (NotebookLM, Booking.com, any website) |
+| **Input** | Source code, GUI APIs, plugin systems | Live HTTP traffic from browser |
+| **Analysis** | Static code analysis + API mapping | Network traffic capture + protocol detection |
+| **Protocols** | Python APIs, DBus, CLI wrappers | REST, GraphQL, batchexecute RPC, HTML scraping |
+| **Auth** | N/A (local software) | Browser login, cookies, WAF bypass, API keys |
+| **Challenges** | API surface discovery, state management | Anti-bot protection, undocumented APIs, session expiry |
+| **Output** | Same: Click CLI + REPL + `--json` + tests | Same: Click CLI + REPL + `--json` + tests |
 
-Where AnythingLLM makes LLMs accessible to everyone, CLI-Anything-Web makes closed-source web applications accessible to agents and automation.
+Both projects share the same CLI architecture (Click, REPL mode, `--json` output, namespace packages, subprocess tests) and the same goal: **making software agent-native through CLI interfaces**. CLI-Anything tackles the desktop side; CLI-Anything-Web tackles the web side.
 
 <br>
 
