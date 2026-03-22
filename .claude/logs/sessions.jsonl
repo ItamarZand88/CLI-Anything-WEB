@@ -1,0 +1,126 @@
+{
+  "timestamp": "2026-03-21T14:33:36Z",
+  "session_id": "d488dfa0-99e1-4e1a-b9ae-f19898f034c5",
+  "project": "CLI-Anything-Web",
+  "event": "session_start",
+  "environment": {
+    "permission_mode": "unknown",
+    "cwd": "C:\\Users\\ItamarZand\\Desktop\\02_Projects\\Personal\\CLI-Anything-Web",
+    "total_tracked_files": 186
+  },
+  "git": {
+    "branch": "main",
+    "dirty": "dirty",
+    "last_commit": "4994689 feat: add cli-web-unsplash — photo search, download, topics, collections, users",
+    "uncommitted_files": 1,
+    "untracked_files": 4
+  }
+}
+{
+  "timestamp": "2026-03-21T17:17:21Z",
+  "session_id": "b3d4a92a-53be-4967-9072-58a9ae3a5eb5",
+  "project": "CLI-Anything-Web",
+  "event": "session_start",
+  "environment": {
+    "permission_mode": "unknown",
+    "cwd": "C:\\Users\\ItamarZand\\Desktop\\02_Projects\\Personal\\CLI-Anything-Web",
+    "total_tracked_files": 186
+  },
+  "git": {
+    "branch": "main",
+    "dirty": "dirty",
+    "last_commit": "4994689 feat: add cli-web-unsplash — photo search, download, topics, collections, users",
+    "uncommitted_files": 2,
+    "untracked_files": 33
+  }
+}
+{
+  "timestamp": "2026-03-22T00:01:34Z",
+  "session_id": "d488dfa0-99e1-4e1a-b9ae-f19898f034c5",
+  "project": "CLI-Anything-Web",
+  "event": "session_start",
+  "environment": {
+    "permission_mode": "unknown",
+    "cwd": "C:\\Users\\ItamarZand\\Desktop\\02_Projects\\Personal\\CLI-Anything-Web",
+    "total_tracked_files": 186
+  },
+  "git": {
+    "branch": "main",
+    "dirty": "dirty",
+    "last_commit": "4994689 feat: add cli-web-unsplash — photo search, download, topics, collections, users",
+    "uncommitted_files": 4,
+    "untracked_files": 34
+  }
+}
+{
+  "timestamp": "2026-03-22T07:54:45Z",
+  "session_id": "d488dfa0-99e1-4e1a-b9ae-f19898f034c5",
+  "project": "CLI-Anything-Web",
+  "event": "session_start",
+  "environment": {
+    "permission_mode": "unknown",
+    "cwd": "C:\\Users\\ItamarZand\\Desktop\\02_Projects\\Personal\\CLI-Anything-Web",
+    "total_tracked_files": 186
+  },
+  "git": {
+    "branch": "main",
+    "dirty": "dirty",
+    "last_commit": "4994689 feat: add cli-web-unsplash — photo search, download, topics, collections, users",
+    "uncommitted_files": 4,
+    "untracked_files": 35
+  }
+}
+{
+  "timestamp": "2026-03-22T07:55:16Z",
+  "session_id": "b3d4a92a-53be-4967-9072-58a9ae3a5eb5",
+  "project": "CLI-Anything-Web",
+  "event": "session_start",
+  "environment": {
+    "permission_mode": "unknown",
+    "cwd": "C:\\Users\\ItamarZand\\Desktop\\02_Projects\\Personal\\CLI-Anything-Web",
+    "total_tracked_files": 186
+  },
+  "git": {
+    "branch": "main",
+    "dirty": "dirty",
+    "last_commit": "4994689 feat: add cli-web-unsplash — photo search, download, topics, collections, users",
+    "uncommitted_files": 4,
+    "untracked_files": 35
+  }
+}
+{
+  "timestamp": "2026-03-22T15:47:39Z",
+  "session_id": "a0da6497-2de9-4d03-afe3-8f8c138eb03f",
+  "project": "CLI-Anything-Web",
+  "event": "session_start",
+  "environment": {
+    "permission_mode": "unknown",
+    "cwd": "C:\\Users\\ItamarZand\\Desktop\\02_Projects\\Personal\\CLI-Anything-Web",
+    "total_tracked_files": 190
+  },
+  "git": {
+    "branch": "main",
+    "dirty": "dirty",
+    "last_commit": "9dc24d7 docs: credit CLI-Anything by HKUDS as inspiration, add comparison table",
+    "uncommitted_files": 1,
+    "untracked_files": 33
+  }
+}
+{
+  "timestamp": "2026-03-22T15:51:39Z",
+  "session_id": "0e3af8cb-7307-4489-a868-cfdba511ee89",
+  "project": "CLI-Anything-Web",
+  "event": "session_start",
+  "environment": {
+    "permission_mode": "unknown",
+    "cwd": "C:\\Users\\ItamarZand\\Desktop\\02_Projects\\Personal\\CLI-Anything-Web",
+    "total_tracked_files": 190
+  },
+  "git": {
+    "branch": "main",
+    "dirty": "dirty",
+    "last_commit": "9dc24d7 docs: credit CLI-Anything by HKUDS as inspiration, add comparison table",
+    "uncommitted_files": 2,
+    "untracked_files": 34
+  }
+}
