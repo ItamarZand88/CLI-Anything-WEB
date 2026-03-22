@@ -390,22 +390,9 @@ and build the CLI.
 
 ---
 
-## Integration
+## References
 
-| Relationship | Skill |
-|-------------|-------|
-| **Preceded by** | None — this is the first phase |
-| **Followed by** | `methodology` (Phase 2) |
-| **References** | `playwright-cli-commands.md`, `playwright-cli-tracing.md`, `playwright-cli-sessions.md`, `playwright-cli-advanced.md`, `framework-detection.md`, `protection-detection.md`, `api-discovery.md` |
-
----
-
-## Reference Files
-
-- [Command reference](references/playwright-cli-commands.md) -- **READ FIRST** — correct syntax, timeouts, ESM rules
-- [Tracing format](references/playwright-cli-tracing.md) -- trace file structure, .network format, lifecycle management
-- [Sessions & auth](references/playwright-cli-sessions.md) -- named sessions, state-save format
-- [Advanced commands](references/playwright-cli-advanced.md) -- run-code, waits, iframe handling, downloads, localized UIs
-- [Framework detection](references/framework-detection.md) -- site fingerprint command, SSR framework detection
-- [Protection detection](references/protection-detection.md) -- anti-bot checks
-- [API discovery](references/api-discovery.md) -- API priority chain, decision tree, strategy details
+See `references/` for: command syntax (playwright-cli-commands.md), tracing (playwright-cli-tracing.md),
+sessions (playwright-cli-sessions.md), advanced patterns (playwright-cli-advanced.md),
+framework detection (framework-detection.md), protection (protection-detection.md),
+API discovery (api-discovery.md).

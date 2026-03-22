@@ -79,29 +79,3 @@ If any tests fail:
 3. **Analyze and suggest fixes** — provide specific guidance for each failure
 4. **Offer to re-run** — ask the user if they want to fix and re-test
 
-## End-User Smoke Test
-
-After all pytest tests pass, run a manual smoke test as an end user would:
-
-```bash
-# 1. Auth (must work standalone)
-cli-web-<app> auth login
-
-# 2. Status (must show valid)
-cli-web-<app> auth status
-
-# 3. READ test (must return real data)
-cli-web-<app> --json <first-resource> list
-
-# 4. WRITE test (must succeed — THIS IS THE MOST IMPORTANT STEP)
-# For CRUD apps:
-cli-web-<app> --json <resource> create --name "smoke-test"
-# For generation apps:
-cli-web-<app> --json <resource> generate --prompt "test" --wait
-```
-
-**Step 4 is critical.** If you only test reads and skip writes, the CLI may appear
-to work but fail when users try to create/generate anything. This is the #1 gap —
-the agent declares "done" after a successful `list` without ever testing `create`.
-
-If any of these fail, the tests are NOT truly passing — fix before declaring done.

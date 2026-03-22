@@ -303,20 +303,3 @@ Every generated CLI follows this package structure:
                 +-- test_e2e.py     # E2E tests (live API)
 ```
 
----
-
-## Testing Strategy
-
-Standard three-layer suite (fixture replay is optional):
-
-| Layer | File | What it tests |
-|-------|------|--------------|
-| Unit tests | `test_core.py` | Core functions with mocked HTTP. No real network. Fast, deterministic. |
-| E2E live tests | `test_e2e.py` | Real API calls. Require auth — FAIL without it. CRUD round-trip. |
-| CLI subprocess | `test_e2e.py` | Installed `cli-web-<app>` via `_resolve_cli()`. Full end-to-end. |
-| Integration (VCR) | `test_integration.py` | Recorded HTTP cassettes via VCR.py. Reproducible, no network. Medium realism. |
-| E2E fixture tests *(optional)* | `test_e2e.py` | Replay captured responses from `tests/fixtures/`. Only add for complex HTML parsing. |
-
-**VCR.py integration tests** are recommended for apps with complex RPC protocols
-(batchexecute, GraphQL). Record cassettes during development, replay in CI.
-Use `@pytest.mark.vcr` marker and store cassettes in `tests/cassettes/`.

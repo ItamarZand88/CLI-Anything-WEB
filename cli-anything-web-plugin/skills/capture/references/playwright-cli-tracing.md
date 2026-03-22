@@ -67,16 +67,6 @@ Key fields:
 
 Response bodies are stored separately, referenced by SHA1 hash from the `.network` file. This is where you find the full JSON payloads that reveal the API structure.
 
-## Tracing vs Other Capture Methods
-
-| Method | Network data | DOM | Screenshots | Size |
-|--------|-------------|-----|------------|------|
-| Tracing | Full req/resp bodies | Yes | Yes | Large |
-| Network log | URL + status only | No | No | Small |
-| Video | Visual only | No | Continuous | Medium |
-
-For CLI generation, **always use tracing** -- we need full request/response bodies to understand the API contract.
-
 ## How It Connects to Our Pipeline
 
 ### Phase 1 Step 2 (Site Assessment — quick probe)

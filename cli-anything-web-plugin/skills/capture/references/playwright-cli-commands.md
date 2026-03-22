@@ -122,18 +122,8 @@ that can be used with `click` and `fill`.
 playwright-cli -s=<app> screenshot
 ```
 
-Captures a screenshot of the current viewport. Returns the image inline (no file
-path argument — the image is displayed in the tool output).
-
-**To save a screenshot to a file:**
-```bash
-playwright-cli -s=<app> run-code "async page => {
-  const fs = await import('fs');
-  const buf = await page.screenshot({ fullPage: true });
-  fs.writeFileSync('<app>/traffic-capture/screenshot.png', buf);
-  return 'saved';
-}"
-```
+Captures a screenshot of the current viewport (displayed inline, no file path argument).
+To save to file, use `run-code` with `await import('fs')` — see `playwright-cli-advanced.md`.
 
 ### eval — Quick DOM expression
 
@@ -141,24 +131,9 @@ playwright-cli -s=<app> run-code "async page => {
 playwright-cli -s=<app> eval "<javascript-expression>"
 ```
 
-Evaluates a single JavaScript expression in the page context.
-
-**Limitations:**
-- No async/await support
-- Ternary operators and complex expressions may fail with "not well-serializable"
-- Cannot access iframes (runs in main frame only)
-- Does NOT support multi-line or IIFE blocks
-
-**When eval fails, use run-code instead:**
-```bash
-# eval fails: "Passed function is not well-serializable!"
-playwright-cli -s=<app> eval "typeof X !== 'undefined' ? 'yes' : 'no'"
-
-# run-code works:
-playwright-cli -s=<app> run-code "async page => {
-  return await page.evaluate(() => typeof X !== 'undefined' ? 'yes' : 'no');
-}"
-```
+Quick DOM queries only. Fails on ternaries, complex expressions ("not well-serializable").
+**When eval fails, use `run-code` instead** — see `playwright-cli-advanced.md`.
+Does NOT reach inside iframes.
 
 ---
 
@@ -257,78 +232,3 @@ playwright-cli -s=<app> state-load <path>
 
 Restores cookies and storage from a previously saved state file.
 
----
-
-## Advanced: run-code
-
-### Syntax
-
-```bash
-playwright-cli -s=<app> run-code "async page => { /* code */ }"
-```
-
-Executes arbitrary async Playwright code with full access to the `page` object.
-Use for anything that built-in commands can't handle.
-
-### Common Patterns
-
-**Wait for network idle:**
-```bash
-run-code "async page => { await page.waitForLoadState('networkidle'); }"
-```
-
-**Wait for specific element:**
-```bash
-run-code "async page => { await page.waitForSelector('.result', { timeout: 10000 }); }"
-```
-
-**Wait for API response:**
-```bash
-run-code "async page => { await page.waitForResponse('**/api/data'); }"
-```
-
-**Interact with iframe:**
-```bash
-run-code "async page => {
-  const frame = page.frames()[1];
-  return await frame.evaluate(() => document.body.textContent.substring(0, 500));
-}"
-```
-
-**Click inside iframe:**
-```bash
-run-code "async page => {
-  const frame = page.locator('iframe').first().contentFrame();
-  await frame.locator('button:has-text(\"Submit\")').click();
-}"
-```
-
-**List all frames:**
-```bash
-run-code "async page => {
-  return page.frames().map((f, i) => ({ index: i, url: f.url(), name: f.name() || null }));
-}"
-```
-
-**Evaluate in specific frame:**
-```bash
-run-code "async page => {
-  const frame = page.frames()[1];
-  return await frame.evaluate(() => ({
-    title: document.title,
-    bodyLength: document.body.textContent.length
-  }));
-}"
-```
-
-**Handle download:**
-```bash
-run-code "async page => {
-  const [download] = await Promise.all([
-    page.waitForEvent('download'),
-    page.click('#download-btn')
-  ]);
-  await download.saveAs('./output-file');
-  return download.suggestedFilename();
-}"
-```

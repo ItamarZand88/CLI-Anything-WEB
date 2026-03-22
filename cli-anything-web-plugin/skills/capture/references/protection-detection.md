@@ -57,19 +57,6 @@ Interpret the result object — any `true` value means that protection is presen
 
 ## Cloudflare
 
-### Detection Indicators
-
-- **cf-ray header** in response headers (visible in trace)
-- **__cf_bm cookie** set in the browser
-- **Challenge page** with "Checking your browser before accessing..." text
-- **Turnstile widget** (Cloudflare's own CAPTCHA replacement)
-
-### Detailed Check
-
-```bash
-npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const cookies = document.cookie; const html = document.documentElement.outerHTML; return { cfBmCookie: cookies.includes('__cf_bm'), cfClearance: cookies.includes('cf_clearance'), cfRay: html.includes('cf-ray'), challengePage: document.body.textContent.includes('Checking your browser'), turnstile: !!(document.querySelector('.cf-turnstile') || document.querySelector('[data-sitekey]')) }; }); }"
-```
-
 ### Impact on CLI Generation
 
 Cloudflare blocks standard HTTP clients (`httpx`, `requests`) because their TLS
@@ -145,38 +132,6 @@ npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.
 
 ## CAPTCHA Types
 
-### reCAPTCHA v2 (Checkbox)
-
-```bash
-npx @playwright/cli@latest -s=<app> eval "!!(document.querySelector('.g-recaptcha') || document.querySelector('iframe[src*=\"recaptcha\"]')) ? 'recaptcha-v2' : 'no-recaptcha-v2'"
-```
-
-Visible checkbox challenge. Blocks automated flows entirely.
-
-### reCAPTCHA v3 (Invisible)
-
-```bash
-npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); return scripts.some(s => s.includes('recaptcha') && s.includes('v3')) ? 'recaptcha-v3' : 'no-recaptcha-v3'; }); }"
-```
-
-Invisible scoring — may silently block requests that look automated.
-
-### hCaptcha
-
-```bash
-npx @playwright/cli@latest -s=<app> eval "!!(document.querySelector('.h-captcha') || document.querySelector('iframe[src*=\"hcaptcha\"]')) ? 'hcaptcha' : 'no-hcaptcha'"
-```
-
-Similar to reCAPTCHA v2 but used by Cloudflare and others.
-
-### Cloudflare Turnstile
-
-```bash
-npx @playwright/cli@latest -s=<app> eval "!!(document.querySelector('.cf-turnstile') || document.querySelector('iframe[src*=\"challenges.cloudflare.com\"]')) ? 'turnstile' : 'no-turnstile'"
-```
-
-Cloudflare's managed challenge — less intrusive but still blocks bots.
-
 ### Impact on CLI Generation
 
 - If CAPTCHA is present on login/auth pages: add a `pause-and-prompt` step
@@ -188,30 +143,6 @@ Cloudflare's managed challenge — less intrusive but still blocks bots.
 ---
 
 ## WAF Detection
-
-### Akamai Bot Manager
-
-```bash
-npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); const cookies = document.cookie; return { akamaiScript: scripts.some(s => s.includes('akamai') || s.includes('akam')), akamaiCookie: cookies.includes('_abck') || cookies.includes('ak_bmsc'), sensorData: scripts.some(s => s.includes('sec_cpt')) }; }); }"
-```
-
-### Imperva / Incapsula
-
-```bash
-npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const cookies = document.cookie; const html = document.documentElement.outerHTML; return { incapCookie: cookies.includes('incap_ses') || cookies.includes('visid_incap'), impervaScript: html.includes('imperva') || html.includes('incapsula') }; }); }"
-```
-
-### PerimeterX
-
-```bash
-npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); const cookies = document.cookie; return { pxScript: scripts.some(s => s.includes('perimeterx') || s.includes('/px/')), pxCaptcha: !!document.querySelector('#px-captcha'), pxCookie: cookies.includes('_px') }; }); }"
-```
-
-### DataDome
-
-```bash
-npx @playwright/cli@latest -s=<app> run-code "async page => { return await page.evaluate(() => { const scripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src); const cookies = document.cookie; return { datadomeScript: scripts.some(s => s.includes('datadome')), datadomeCookie: cookies.includes('datadome') }; }); }"
-```
 
 ### Impact on CLI Generation
 
@@ -225,24 +156,6 @@ WAFs significantly increase the difficulty of automated access:
 | DataDome | Medium-High | Fingerprint detection — add delays, rotate sessions |
 
 For any detected WAF, note it prominently in the app's `<APP>.md` Warnings section.
-
----
-
-## robots.txt Check
-
-Always check robots.txt for crawl directives and sitemap references:
-
-```bash
-npx @playwright/cli@latest -s=<app> open "https://target-site.com/robots.txt"
-npx @playwright/cli@latest -s=<app> snapshot
-```
-
-**What to look for:**
-
-- `Disallow` directives — respect these in generated CLIs
-- `Crawl-delay` — build this delay into the client
-- `Sitemap:` references — useful for URL discovery in API discovery phase
-- Specific bot blocks (`User-agent: *` vs. targeted blocks)
 
 ---
 

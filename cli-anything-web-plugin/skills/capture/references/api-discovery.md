@@ -4,7 +4,6 @@
 - API Priority Chain
 - Decision Tree
 - Finding APIs in the Trace
-- Force SPA Navigation Trick
 - Strategy Details
 - Anti-Patterns
 
@@ -83,26 +82,6 @@ After running Step 2c (Quick API Probe) and parsing the trace:
 3. **Check request methods** — GET for reads, POST for mutations/GraphQL
 4. **Note query parameters** — these reveal pagination, filtering, and sorting
 5. **Check response structure** — arrays of objects usually mean list endpoints
-
----
-
-## Force SPA Navigation Trick
-
-When the initial page load embeds all data via SSR and the trace shows zero
-API calls:
-
-```bash
-npx @playwright/cli@latest -s=<app> tracing-start
-npx @playwright/cli@latest -s=<app> click <internal-link-1>
-npx @playwright/cli@latest -s=<app> click <internal-link-2>
-npx @playwright/cli@latest -s=<app> click <internal-link-3>
-npx @playwright/cli@latest -s=<app> tracing-stop
-python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --output recon-traffic.json
-```
-
-Client-side navigations bypass SSR and fetch data from APIs directly. This
-reveals endpoints that are invisible on the first load. See
-[framework-detection.md](framework-detection.md) for the full explanation.
 
 ---
 

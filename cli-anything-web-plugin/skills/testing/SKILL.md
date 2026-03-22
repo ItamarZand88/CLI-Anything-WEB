@@ -378,41 +378,9 @@ When tests fail:
 
 ## Next Step
 
-When all tests pass, update phase state and invoke the `standards` skill:
-
+When all tests pass, mark phase complete and invoke the `standards` skill:
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py complete <app> \
-  --phase testing --output "<app>/agent-harness/cli_web/<app>/tests/"
-
-# If tests fail:
-python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py fail <app> \
-  --phase testing --error "<N> tests failed" --error-type retryable
+python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py complete <app> --phase testing
 ```
 
-Do NOT skip to publishing — all tests must pass first.
-
----
-
-## Integration
-
-| Relationship | Skill |
-|-------------|-------|
-| **Preceded by** | `methodology` (Phase 2) |
-| **Followed by** | `standards` (Phase 4) |
-| **References** | `resolve-cli-pattern.md`, `test-code-examples.md` |
-
----
-
-## Reference Files
-
-- [_resolve_cli Pattern](references/resolve-cli-pattern.md) — subprocess testing helper
-- [Test Code Examples](references/test-code-examples.md) — unit test patterns, RPC testing, exception assertions
-
----
-
-## Related
-
-- **`capture`** skill — Phase 1 traffic recording (prerequisite chain)
-- **`methodology`** skill — analyze/design/implement
-- **`standards`** skill — publish, verify, smoke test
-- **`/cli-anything-web:test`** — Command to run tests and update TEST.md
+References: `resolve-cli-pattern.md`, `test-code-examples.md`
