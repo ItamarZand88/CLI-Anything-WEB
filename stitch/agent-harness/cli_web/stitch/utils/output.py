@@ -72,8 +72,7 @@ def format_project(project: Project, json_mode: bool = False):
     if project.modified_at:
         _console.print(f"  Modified: {_fmt_ts(project.modified_at)}")
     _console.print(f"  Status:   {STATUS_LABELS.get(project.status, str(project.status))}")
-    if project.thumbnail_url:
-        _console.print(f"  Thumb:    [dim](available via --json)[/]")
+    _console.print(f"  URL:      https://stitch.withgoogle.com/projects/{project.id}")
 
 
 # ── Screen formatting ────────────────────────────────────────────────
