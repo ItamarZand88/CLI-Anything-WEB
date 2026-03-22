@@ -74,3 +74,7 @@ cli-web-producthunt posts get stitch-2-0-by-google-2 --json
 - No API key, no tokens, no cookies needed
 - Uses Chrome TLS impersonation to bypass Cloudflare
 - Rate limiting: Be respectful — avoid rapid successive requests
+- `posts list` and `posts leaderboard` are the most reliable commands — they scrape the homepage/leaderboard which has clean structured data
+- `posts get <slug>` scrapes the detail page — `name` may include tagline, `votes_count`/`comments_count` may be 0 (detail page HTML structure differs from list). Prefer using data from `posts list` when possible
+- `description` is `null` in list view (only available in `posts get` detail view)
+- `rank` is `null` in leaderboard view (use array index for ordering)

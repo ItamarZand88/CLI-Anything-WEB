@@ -48,7 +48,7 @@ cli-web-futbin players search --name "Mbappe" --evolutions --json
 
 **Options:** `--name` (required), `--year` (default 26), `--evolutions` (include evo cards)
 
-**Output fields:** `id`, `name`, `rating`, `position`, `version`, `club`, `nation`, `ps_price`, `xbox_price`, `url`
+**Output fields:** `id`, `name`, `rating`, `position`, `version`, `club`, `nation`, `year`, `ps_price`, `xbox_price`, `url`, `stats` (empty `{}` in search — use `players get` for full stats)
 
 ---
 
