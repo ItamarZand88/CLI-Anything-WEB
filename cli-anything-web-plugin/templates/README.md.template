@@ -1,0 +1,60 @@
+# cli-web-{{app}}
+
+{{description}}
+
+## Installation
+
+```bash
+pip install -e {{app}}/agent-harness
+```
+
+{{IF_AUTH}}
+## Authentication
+
+```bash
+cli-web-{{app}} auth login
+cli-web-{{app}} auth status
+```
+
+For CI/CD, set `CLI_WEB_{{APP_UPPER}}_AUTH_JSON` environment variable.
+{{END_IF_AUTH}}
+
+## Usage
+
+{{FOR_EACH_COMMAND_GROUP}}
+### {{group_title}}
+
+```bash
+{{example_commands}}
+```
+{{END_FOR_EACH}}
+
+## JSON Output
+
+Every command supports `--json` for structured output:
+
+```bash
+cli-web-{{app}} {{primary_command}} --json
+```
+
+## REPL Mode
+
+Run without arguments to enter interactive mode:
+
+```bash
+cli-web-{{app}}
+```
+
+## Testing
+
+```bash
+cd {{app}}/agent-harness
+pip install -e .
+python -m pytest cli_web/{{app_underscore}}/tests/ -v
+```
+
+## Protocol
+
+- **Website:** {{website_url}}
+- **Protocol:** {{protocol}}
+- **Auth:** {{auth_type}}

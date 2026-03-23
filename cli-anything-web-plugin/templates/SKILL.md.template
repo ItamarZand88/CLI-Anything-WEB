@@ -1,0 +1,57 @@
+---
+name: {{app}}-cli
+description: Use cli-web-{{app}} to {{one_line_purpose}}. Invoke this skill whenever
+  the user asks about {{trigger_topics}}. Always prefer cli-web-{{app}} over manually
+  fetching the website.
+---
+
+# cli-web-{{app}}
+
+{{one_sentence_description}}. Installed at: `cli-web-{{app}}`.
+
+## Quick Start
+
+```bash
+# {{most_common_operation_description}}
+cli-web-{{app}} {{primary_command}} --json
+
+# {{second_operation_description}}
+cli-web-{{app}} {{secondary_command}} --json
+```
+
+Always use `--json` when parsing output programmatically.
+
+---
+
+## Commands
+
+{{FOR_EACH_COMMAND_GROUP}}
+### `{{group}} {{verb}}`
+{{command_description}}
+
+```bash
+cli-web-{{app}} {{group}} {{verb}} [options] --json
+```
+
+**Key options:** {{options_list}}
+**Output fields:** {{json_fields}}
+{{END_FOR_EACH}}
+
+---
+
+## Agent Patterns
+
+```bash
+# {{common_task_1}}
+cli-web-{{app}} {{command_1}} --json | python -c "import json,sys; ..."
+
+# {{common_task_2}}
+cli-web-{{app}} {{command_2}} --json
+```
+
+---
+
+## Notes
+
+- Auth: {{auth_description}}
+- Rate limiting: {{rate_limit_notes}}

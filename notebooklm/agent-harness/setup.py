@@ -6,6 +6,9 @@ setup(
     version="0.1.0",
     description="Agent-native CLI for NotebookLM — built with CLI-Anything-Web",
     packages=find_namespace_packages(include=["cli_web.*"]),
+    package_data={
+        "": ["skills/*.md", "*.md"],
+    },
     python_requires=">=3.10",
     install_requires=[
         "click>=8.0",

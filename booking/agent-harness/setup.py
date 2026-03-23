@@ -5,6 +5,9 @@ setup(
     version="0.1.0",
     description="Agent-native CLI for Booking.com — hotel search, property details, destination resolution",
     packages=find_namespace_packages(include=["cli_web.*"]),
+    package_data={
+        "": ["skills/*.md", "*.md"],
+    },
     install_requires=[
         "click>=8.0",
         "curl_cffi>=0.5",
