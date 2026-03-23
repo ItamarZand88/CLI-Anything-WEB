@@ -134,23 +134,6 @@ cli-web-stitch projects list --json
 
 </details>
 
-Every generated CLI drops into an **interactive REPL** when run with no arguments:
-
-```
-$ cli-web-gh-trending
-
-  cli-web . GitHub Trending
-  v0.1.0
-
-  Type help for commands, quit to exit
-
-gh-trending > repos list --language rust --since monthly
-gh-trending > developers list --language python
-gh-trending > quit
-```
-
-<br>
-
 ### Agent-Native: Claude uses the CLIs automatically
 
 Generated CLIs come with Claude Code skills — Claude loads them on demand to answer your questions:
