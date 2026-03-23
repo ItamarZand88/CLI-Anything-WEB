@@ -239,7 +239,7 @@ def detect_protocol(entries: list[dict]) -> dict:
                 pass
 
         # --- tRPC ---
-        if "/api/trpc/" in url or "/trpc/" in url and not is_noise:
+        if ("/api/trpc/" in url or "/trpc/" in url) and not is_noise:
             signals["trpc"] += 5
             # Extract procedure name from URL: /api/trpc/post.list
             parsed = urlparse(url)
@@ -333,7 +333,7 @@ def detect_protocol(entries: list[dict]) -> dict:
 
 
 def detect_auth(entries: list[dict]) -> dict:
-    """Detect authentication pattern from request headers."""
+    """Detect authentication pattern from request headers (noise URLs excluded)."""
     bearer_count = 0
     cookie_count = 0
     api_key_count = 0
@@ -342,7 +342,7 @@ def detect_auth(entries: list[dict]) -> dict:
     api_key_headers = set()
     cookie_names = set()
 
-    for e in entries:
+    for e in (e for e in entries if not _is_noise_url(e.get("url", ""))):
         headers = e.get("request_headers", {})
         has_auth = False
 
@@ -412,6 +412,10 @@ def detect_protections(entries: list[dict]) -> dict:
     """Detect WAF/bot protection signals."""
     protections = {
         "cloudflare": False,
+        "aws_waf": False,
+        "akamai": False,
+        "datadome": False,
+        "perimeterx": False,
         "captcha": False,
         "rate_limited": False,
     }
@@ -419,9 +423,11 @@ def detect_protections(entries: list[dict]) -> dict:
 
     for e in entries:
         status = e.get("status", 0)
+        req_headers = e.get("request_headers", {})
         headers = e.get("response_headers", {})
         body = e.get("response_body", "")
         body_str = str(body)[:2000].lower() if body else ""
+        cookie = req_headers.get("cookie", req_headers.get("Cookie", ""))
 
         # Cloudflare
         if headers.get("cf-ray") or headers.get("CF-RAY"):
@@ -430,8 +436,40 @@ def detect_protections(entries: list[dict]) -> dict:
             protections["cloudflare"] = True
             details.append("Cloudflare challenge page detected")
 
+        # AWS WAF — 202 JS challenge or x-amzn-waf-* response headers
+        if status == 202 and "aws-waf-token" in body_str:
+            protections["aws_waf"] = True
+            details.append("AWS WAF JavaScript challenge detected (202 response)")
+        if any(h.lower().startswith("x-amzn-waf") for h in headers):
+            protections["aws_waf"] = True
+        if "aws-waf-token" in cookie:
+            protections["aws_waf"] = True
+
+        # Akamai
+        if headers.get("akamai-grn") or headers.get("Akamai-GRN"):
+            protections["akamai"] = True
+        if "akamai" in body_str and ("access denied" in body_str or "reference #" in body_str):
+            protections["akamai"] = True
+            details.append("Akamai access denial detected")
+
+        # DataDome
+        if any(h.lower() in ("x-dd-b", "x-datadome") for h in headers):
+            protections["datadome"] = True
+        if "datadome.co" in body_str or "datadome" in body_str:
+            protections["datadome"] = True
+            details.append("DataDome bot protection detected")
+
+        # PerimeterX
+        if "_pxhd" in cookie or "_px3" in cookie:
+            protections["perimeterx"] = True
+        if any(h.lower().startswith("x-px") for h in headers):
+            protections["perimeterx"] = True
+        if "perimeterx" in body_str or "px-captcha" in body_str:
+            protections["perimeterx"] = True
+            details.append("PerimeterX bot protection detected")
+
         # CAPTCHA
-        if any(x in body_str for x in ["g-recaptcha", "h-captcha", "px-captcha"]):
+        if any(x in body_str for x in ["g-recaptcha", "h-captcha"]):
             protections["captcha"] = True
             details.append("CAPTCHA detected in response")
 
@@ -441,11 +479,38 @@ def detect_protections(entries: list[dict]) -> dict:
             retry_after = headers.get("retry-after", headers.get("Retry-After", ""))
             details.append(f"429 Too Many Requests (Retry-After: {retry_after or 'not specified'})")
 
+    active = {k: v for k, v in protections.items() if v}
     return {
-        "protections": {k: v for k, v in protections.items() if v},
+        "protections": active,
         "details": details,
-        "has_protection": any(protections.values()),
+        "has_protection": bool(active),
+        "recommended_client": _recommend_client(active),
     }
+
+
+def _recommend_client(active_protections: dict) -> str:
+    """Recommend httpx vs curl_cffi based on detected protections."""
+    if any(active_protections.get(p) for p in ("cloudflare", "aws_waf", "datadome", "perimeterx")):
+        return "curl_cffi (impersonate='chrome') — bot protection detected"
+    if active_protections.get("akamai"):
+        return "curl_cffi (impersonate='chrome') — Akamai detected"
+    return "httpx"
+
+
+_RE_UUID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.I)
+_RE_NUMERIC_ID = re.compile(r'^\d+$')
+_RE_HASH_ID = re.compile(r'^[0-9a-f]{16,}$', re.I)  # long hex IDs
+
+
+def _normalize_segment(segment: str) -> str:
+    """Replace dynamic path segments (IDs, UUIDs) with a placeholder."""
+    if _RE_UUID.match(segment):
+        return "{id}"
+    if _RE_NUMERIC_ID.match(segment) and len(segment) >= 4:
+        return "{id}"
+    if _RE_HASH_ID.match(segment) and len(segment) >= 16:
+        return "{id}"
+    return segment
 
 
 def group_endpoints(entries: list[dict]) -> list[dict]:
@@ -478,9 +543,9 @@ def group_endpoints(entries: list[dict]) -> list[dict]:
         method = e.get("method", "GET")
         parsed = urlparse(url)
 
-        # Determine group key: use first 2-3 path segments
+        # Determine group key: use first 2-3 path segments, normalizing IDs
         path = parsed.path.rstrip("/")
-        segments = [s for s in path.split("/") if s]
+        segments = [_normalize_segment(s) for s in path.split("/") if s]
 
         if not segments:
             continue
@@ -515,6 +580,44 @@ def group_endpoints(entries: list[dict]) -> list[dict]:
     return result[:20]  # Top 20 groups
 
 
+_PAGINATION_PARAMS = {
+    "page", "offset", "limit", "cursor", "after", "before",
+    "skip", "take", "per_page", "pageSize", "page_size", "startIndex",
+}
+
+
+def detect_pagination(entries: list[dict]) -> dict:
+    """Detect pagination patterns in API requests."""
+    paginated_endpoints = {}  # prefix → set of pagination params seen
+
+    for e in entries:
+        url = e.get("url", "")
+        if _is_noise_url(url):
+            continue
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+        found = {p for p in params if p.lower() in _PAGINATION_PARAMS}
+        if found:
+            # Normalize the path for grouping
+            segments = [_normalize_segment(s) for s in parsed.path.strip("/").split("/") if s]
+            key = (parsed.hostname or "") + "/" + "/".join(segments[:2])
+            if key not in paginated_endpoints:
+                paginated_endpoints[key] = set()
+            paginated_endpoints[key].update(found)
+
+    if not paginated_endpoints:
+        return {"has_pagination": False}
+
+    return {
+        "has_pagination": True,
+        "paginated_endpoints": [
+            {"prefix": k, "params": sorted(v)}
+            for k, v in sorted(paginated_endpoints.items())
+        ],
+        "cli_note": "List commands on paginated endpoints should support --page/--limit/--cursor flags",
+    }
+
+
 def detect_rate_limits(entries: list[dict]) -> dict:
     """Detect rate limit signals from traffic."""
     rate_limit_headers = {}
@@ -545,15 +648,17 @@ def detect_rate_limits(entries: list[dict]) -> dict:
 
 
 def compute_stats(entries: list[dict]) -> dict:
-    """Compute basic traffic statistics."""
-    methods = Counter(e.get("method", "GET") for e in entries)
-    statuses = Counter(e.get("status", 0) for e in entries)
-    mime_types = Counter(e.get("mime_type", "").split(";")[0].strip() for e in entries)
+    """Compute basic traffic statistics (noise URLs excluded from method/write counts)."""
+    api_entries = [e for e in entries if not _is_noise_url(e.get("url", ""))]
+
+    methods = Counter(e.get("method", "GET") for e in api_entries)
+    statuses = Counter(e.get("status", 0) for e in api_entries)
+    mime_types = Counter(e.get("mime_type", "").split(";")[0].strip() for e in api_entries)
 
     writes = sum(methods.get(m, 0) for m in ("POST", "PUT", "PATCH", "DELETE"))
     reads = methods.get("GET", 0)
 
-    # Unique domains
+    # Unique domains (from all entries, including noise — useful for awareness)
     domains = set()
     for e in entries:
         parsed = urlparse(e.get("url", ""))
@@ -561,14 +666,10 @@ def compute_stats(entries: list[dict]) -> dict:
             domains.add(parsed.hostname)
 
     return {
-        "total_requests": len(entries),
+        "total_requests": len(api_entries),
         "read_operations": reads,
         "write_operations": writes,
-        "is_read_only": writes == 0 or all(
-            # Check if writes are just analytics/tracking
-            any(x in e.get("url", "") for x in ["/analytics", "/pixel", "/beacon", "/rum", "cdn-cgi/", "/t/", "/e/"])
-            for e in entries if e.get("method") in ("POST", "PUT", "PATCH", "DELETE")
-        ),
+        "is_read_only": writes == 0,
         "methods": dict(methods),
         "status_codes": dict(statuses),
         "top_mime_types": dict(mime_types.most_common(5)),
@@ -642,13 +743,14 @@ def analyze(entries: list[dict]) -> dict:
     protections = detect_protections(entries)
     endpoints = group_endpoints(entries)
     rate_limits = detect_rate_limits(entries)
+    pagination = detect_pagination(entries)
     stats = compute_stats(entries)
     suggestions = suggest_commands(endpoints, protocol)
 
     return {
         "_meta": {
             "tool": "analyze-traffic.py",
-            "version": "1.1.0",
+            "version": "1.2.0",
             "description": "Auto-generated traffic analysis. Fields marked 'unknown' need manual agent analysis.",
         },
         "protocol": protocol,
@@ -656,6 +758,7 @@ def analyze(entries: list[dict]) -> dict:
         "protections": protections,
         "endpoints": endpoints,
         "rate_limits": rate_limits,
+        "pagination": pagination,
         "stats": stats,
         "suggested_commands": suggestions,
     }
@@ -717,7 +820,11 @@ def main():
         if p.get("websocket_library"):
             print(f"WebSocket library: {p['websocket_library']}")
         if report["protections"]["has_protection"]:
-            print(f"Protections: {', '.join(k for k,v in report['protections']['protections'].items() if v)}")
+            print(f"Protections: {', '.join(report['protections']['protections'].keys())}")
+            print(f"Recommended client: {report['protections']['recommended_client']}")
+        if report["pagination"]["has_pagination"]:
+            ep_list = ", ".join(ep["prefix"] for ep in report["pagination"]["paginated_endpoints"][:3])
+            print(f"Pagination detected: {ep_list}")
         if report["rate_limits"]["has_rate_limiting"]:
             print(f"Rate limiting: {report['rate_limits']['status_429_count']} x 429 responses")
         print(f"Domains: {', '.join(s['unique_domains'][:5])}")
