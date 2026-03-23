@@ -32,19 +32,36 @@ from urllib.parse import urlparse, parse_qs, unquote
 def _is_noise_url(url: str) -> bool:
     """Check if a URL is analytics/tracking/CDN noise — not a real API call."""
     NOISE = [
+        # Google analytics / ads
         "google-analytics", "analytics.google.com", "googletagmanager.com",
+        "googlesyndication", "google.com/ads", "google.com/pagead",
+        "doubleclick.net", "google.co.", "gstatic.com",
+        "googleapis.com/css", "fonts.googleapis.com",
+        "play.google.com/log", "signaler-pa.clients6",
+        "accounts.google.com/gsi", "apis.google.com",
+        # Cloudflare
         "cdn-cgi/", "cloudflareinsights", "static.cloudflareinsights",
-        "facebook.com/tr", "twitter.com", "analytics.twitter.com",
-        "doubleclick.net", "googlesyndication", "google.com/ads", "google.co.",
-        "gstatic.com", "googleapis.com/css", "fonts.googleapis.com",
-        "datadoghq.com", "browser-intake-datadoghq", "cookiebot.com",
-        "segment.prod", "bidr.io", "cnv.event.prod", "liftdsp.com",
-        "statcounter.com", "play.google.com/log", "signaler-pa.clients6",
-        "/manifest.json", "avatars.githubusercontent.com", "collector.github.com",
-        "api.github.com/_private", "/beacon", "/pixel", "/rum",
+        # Social / ad networks
+        "facebook.com/tr", "facebook.net",
+        "twitter.com", "analytics.twitter.com",
+        "taboola.com", "optable.co", "admedo.com",
+        "scorecardresearch.com", "statcounter.com",
+        "liftdsp.com", "bidr.io", "cnv.event.prod",
+        # Monitoring / analytics SDKs
+        "datadoghq.com", "browser-intake-datadoghq",
+        "fullstory.com", "segment.prod",
+        # CRM / marketing automation
+        "hubspot.com", "hscollectedforms.net", "hsforms.com",
+        "cookiebot.com",
+        # Generic tracking patterns (same-site endpoints)
+        "/ht/event", "/hubspot",
+        # GitHub internal
+        "avatars.githubusercontent.com", "collector.github.com",
+        "api.github.com/_private",
+        # Generic noise patterns
+        "/manifest.json", "/beacon", "/pixel", "/rum",
         "slinksuggestion.com", "drainpaste.com",
         "e.producthunt.com", "t.producthunt.com",
-        "accounts.google.com/gsi", "apis.google.com",
     ]
     return any(x in url for x in NOISE)
 
@@ -519,27 +536,35 @@ def _normalize_segment(segment: str) -> str:
     return segment
 
 
+_STATIC_MIME_PREFIXES = (
+    "image/", "font/", "audio/", "video/",
+    "text/css", "application/javascript", "application/x-javascript",
+    "text/javascript",
+)
+_STATIC_EXTENSIONS = (
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico",
+    ".woff", ".woff2", ".ttf", ".eot",
+    ".css", ".js", ".map",
+)
+
+
+def _is_static_asset(entry: dict) -> bool:
+    """Return True if the entry is a static asset (image, font, CSS, JS)."""
+    mime = entry.get("mime_type", "").split(";")[0].strip().lower()
+    if any(mime.startswith(p) for p in _STATIC_MIME_PREFIXES):
+        return True
+    url = entry.get("url", "").split("?")[0].lower()
+    if any(url.endswith(ext) for ext in _STATIC_EXTENSIONS):
+        return True
+    return False
+
+
 def group_endpoints(entries: list[dict]) -> list[dict]:
     """Group API requests by URL prefix into resource groups."""
-    # Filter to API-like URLs (skip tracking, CDN, analytics, ads)
-    NOISE_PATTERNS = [
-        "/analytics", "/pixel", "/beacon", "/rum", "/collect",
-        "google-analytics", "googletagmanager.com", "cdn-cgi/",
-        "facebook.com", "twitter.com", "doubleclick.net",
-        "googlesyndication", "google.com/ads", "google.co.",
-        "gstatic.com", "googleapis.com/css", "datadoghq.com",
-        "cloudflareinsights.com", "cookiebot.com", "segment.prod",
-        "bidr.io", "liftdsp.com", "statcounter.com",
-        "play.google.com/log", "signaler-pa.clients6",
-        "/manifest.json", "drainpaste.com", "slinksuggestion.com",
-        "avatars.githubusercontent.com",
+    api_entries = [
+        e for e in entries
+        if not _is_noise_url(e.get("url", "")) and not _is_static_asset(e)
     ]
-    api_entries = []
-    for e in entries:
-        url = e.get("url", "")
-        if any(x in url for x in NOISE_PATTERNS):
-            continue
-        api_entries.append(e)
 
     # Parse URLs and group by prefix
     groups = defaultdict(lambda: {"methods": Counter(), "urls": set(), "count": 0})
