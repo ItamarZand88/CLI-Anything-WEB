@@ -374,7 +374,7 @@ def detect_auth(entries: list[dict]) -> dict:
         if not has_auth:
             no_auth_count += 1
 
-    total = len(entries) or 1
+    total = (bearer_count + api_key_count + cookie_count + no_auth_count) or 1
     patterns = {}
     if bearer_count > 0:
         patterns["bearer"] = round(bearer_count / total * 100, 1)
@@ -419,7 +419,13 @@ def detect_protections(entries: list[dict]) -> dict:
         "captcha": False,
         "rate_limited": False,
     }
+    details_seen = set()
     details = []
+
+    def _add_detail(msg: str) -> None:
+        if msg not in details_seen:
+            details_seen.add(msg)
+            details.append(msg)
 
     for e in entries:
         status = e.get("status", 0)
@@ -434,12 +440,12 @@ def detect_protections(entries: list[dict]) -> dict:
             protections["cloudflare"] = True
         if "just a moment" in body_str and "cloudflare" in body_str:
             protections["cloudflare"] = True
-            details.append("Cloudflare challenge page detected")
+            _add_detail("Cloudflare challenge page detected")
 
         # AWS WAF — 202 JS challenge or x-amzn-waf-* response headers
         if status == 202 and "aws-waf-token" in body_str:
             protections["aws_waf"] = True
-            details.append("AWS WAF JavaScript challenge detected (202 response)")
+            _add_detail("AWS WAF JavaScript challenge detected (202 response)")
         if any(h.lower().startswith("x-amzn-waf") for h in headers):
             protections["aws_waf"] = True
         if "aws-waf-token" in cookie:
@@ -450,14 +456,14 @@ def detect_protections(entries: list[dict]) -> dict:
             protections["akamai"] = True
         if "akamai" in body_str and ("access denied" in body_str or "reference #" in body_str):
             protections["akamai"] = True
-            details.append("Akamai access denial detected")
+            _add_detail("Akamai access denial detected")
 
         # DataDome
         if any(h.lower() in ("x-dd-b", "x-datadome") for h in headers):
             protections["datadome"] = True
         if "datadome.co" in body_str or "datadome" in body_str:
             protections["datadome"] = True
-            details.append("DataDome bot protection detected")
+            _add_detail("DataDome bot protection detected")
 
         # PerimeterX
         if "_pxhd" in cookie or "_px3" in cookie:
@@ -466,18 +472,18 @@ def detect_protections(entries: list[dict]) -> dict:
             protections["perimeterx"] = True
         if "perimeterx" in body_str or "px-captcha" in body_str:
             protections["perimeterx"] = True
-            details.append("PerimeterX bot protection detected")
+            _add_detail("PerimeterX bot protection detected")
 
         # CAPTCHA
         if any(x in body_str for x in ["g-recaptcha", "h-captcha"]):
             protections["captcha"] = True
-            details.append("CAPTCHA detected in response")
+            _add_detail("CAPTCHA detected in response")
 
         # Rate limiting
         if status == 429:
             protections["rate_limited"] = True
             retry_after = headers.get("retry-after", headers.get("Retry-After", ""))
-            details.append(f"429 Too Many Requests (Retry-After: {retry_after or 'not specified'})")
+            _add_detail(f"429 Too Many Requests (Retry-After: {retry_after or 'not specified'})")
 
     active = {k: v for k, v in protections.items() if v}
     return {
@@ -582,7 +588,7 @@ def group_endpoints(entries: list[dict]) -> list[dict]:
 
 _PAGINATION_PARAMS = {
     "page", "offset", "limit", "cursor", "after", "before",
-    "skip", "take", "per_page", "pageSize", "page_size", "startIndex",
+    "skip", "take", "per_page", "pagesize", "page_size", "startindex",
 }
 
 
