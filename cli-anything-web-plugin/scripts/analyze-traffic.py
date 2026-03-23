@@ -49,6 +49,35 @@ def _is_noise_url(url: str) -> bool:
     return any(x in url for x in NOISE)
 
 
+def _detect_ws_library(url: str) -> str | None:
+    """Fingerprint WebSocket library from URL patterns."""
+    if "socket.io" in url or "EIO=" in url:
+        return "socket.io"
+    if "/sockjs/" in url or "sockjs" in url:
+        return "sockjs"
+    if "/cable" in url:
+        return "action-cable"
+    if "/phoenix/" in url or "phoenix" in url:
+        return "phoenix-channels"
+    if "/signalr/" in url.lower():
+        return "signalr"
+    return None
+
+
+def _infer_ws_purpose(urls: list) -> str | None:
+    """Infer WebSocket purpose from URL patterns."""
+    joined = " ".join(urls).lower()
+    if any(x in joined for x in ["chat", "message", "msg"]):
+        return "chat/messaging"
+    if any(x in joined for x in ["stream", "feed", "live"]):
+        return "streaming"
+    if any(x in joined for x in ["notify", "notif", "alert", "event"]):
+        return "notifications/events"
+    if any(x in joined for x in ["realtime", "real-time"]):
+        return "real-time updates"
+    return None
+
+
 def detect_protocol(entries: list[dict]) -> dict:
     """Detect the API protocol type from traffic patterns.
 
@@ -70,7 +99,12 @@ def detect_protocol(entries: list[dict]) -> dict:
 
     graphql_ops = []
     batchexecute_methods = []
-    websocket_urls = []
+    batchexecute_rpc_details = {}
+    batchexecute_service = None
+    batchexecute_bl = None
+    websocket_url_set = set()
+    websocket_subprotocols = set()
+    websocket_libraries = set()
     sse_urls = []
     json_rpc_methods = []
     trpc_procedures = []
@@ -111,25 +145,71 @@ def detect_protocol(entries: list[dict]) -> dict:
         # --- Google batchexecute ---
         if "batchexecute" in url and not is_noise:
             signals["batchexecute"] += 5
-            if "rpcids=" in url:
-                parsed = urlparse(url)
-                params = parse_qs(parsed.query)
-                rpcid = params.get("rpcids", [""])[0]
-                if rpcid:
-                    batchexecute_methods.append(rpcid)
+            parsed_url = urlparse(url)
+            url_params = parse_qs(parsed_url.query)
+            rpcid = url_params.get("rpcids", [""])[0]
+            if rpcid:
+                batchexecute_methods.append(rpcid)
+
+                # Parse f.req from POST body to extract param structure per RPC ID
+                if body and "f.req=" in body:
+                    try:
+                        body_params = parse_qs(body)
+                        freq_str = body_params.get("f.req", [""])[0]
+                        if freq_str:
+                            outer = json.loads(freq_str)
+                            # Structure: [[[rpc_id, params_json, null, "generic"]]]
+                            inner = outer[0][0] if outer and outer[0] and outer[0][0] else None
+                            if inner and len(inner) >= 2 and inner[1]:
+                                try:
+                                    params_data = json.loads(inner[1])
+                                except (json.JSONDecodeError, TypeError):
+                                    params_data = inner[1][:200]  # keep raw string as fallback
+                                if rpcid not in batchexecute_rpc_details:
+                                    batchexecute_rpc_details[rpcid] = {
+                                        "call_count": 0,
+                                        "example_params": params_data,
+                                    }
+                                batchexecute_rpc_details[rpcid]["call_count"] += 1
+                    except (json.JSONDecodeError, TypeError, IndexError, KeyError):
+                        pass
+
+            # Extract service name: /_/ServiceName/data/batchexecute
+            if not batchexecute_service:
+                m = re.search(r'/_/([^/]+)/data/batchexecute', url)
+                if m:
+                    batchexecute_service = m.group(1)
+
+            # Extract build label (bl) as a reference value
+            if not batchexecute_bl:
+                bl = url_params.get("bl", [""])[0]
+                if bl:
+                    batchexecute_bl = bl
 
         # --- gRPC-Web ---
         if "application/grpc" in content_type and not is_noise:
             signals["grpc_web"] += 5
 
         # --- WebSocket ---
-        if url.startswith("wss://") or url.startswith("ws://"):
-            signals["websocket"] += 5
-            websocket_urls.append(url)
+        is_ws_url = url.startswith("wss://") or url.startswith("ws://")
         upgrade = headers.get("upgrade", headers.get("Upgrade", ""))
-        if upgrade.lower() == "websocket":
-            signals["websocket"] += 5
-            websocket_urls.append(url)
+        has_ws_upgrade = upgrade.lower() == "websocket"
+        if is_ws_url or has_ws_upgrade:
+            signals["websocket"] += 5  # once per entry regardless of which signal triggered
+            websocket_url_set.add(url)
+            # Sub-protocol extraction (e.g. "graphql-ws", "stomp", "mqtt")
+            subproto = headers.get(
+                "sec-websocket-protocol",
+                headers.get("Sec-WebSocket-Protocol", "")
+            )
+            for sp in (subproto.split(",") if subproto else []):
+                sp = sp.strip()
+                if sp:
+                    websocket_subprotocols.add(sp)
+            # Library fingerprint from URL
+            lib = _detect_ws_library(url)
+            if lib:
+                websocket_libraries.add(lib)
 
         # --- Server-Sent Events (SSE) ---
         resp_ct = resp_headers.get("content-type", resp_headers.get("Content-Type", ""))
@@ -220,9 +300,22 @@ def detect_protocol(entries: list[dict]) -> dict:
 
     if batchexecute_methods:
         result["batchexecute_rpc_ids"] = sorted(set(batchexecute_methods))
+    if batchexecute_rpc_details:
+        result["batchexecute_rpc_details"] = batchexecute_rpc_details
+    if batchexecute_service:
+        result["batchexecute_service"] = batchexecute_service
+    if batchexecute_bl:
+        result["batchexecute_build_label"] = batchexecute_bl
 
-    if websocket_urls:
-        result["websocket_urls"] = sorted(set(websocket_urls))[:10]
+    if websocket_url_set:
+        result["websocket_urls"] = sorted(websocket_url_set)[:10]
+        if websocket_subprotocols:
+            result["websocket_subprotocols"] = sorted(websocket_subprotocols)
+        if websocket_libraries:
+            result["websocket_library"] = sorted(websocket_libraries)[0]
+        purpose = _infer_ws_purpose(list(websocket_url_set))
+        if purpose:
+            result["websocket_purpose"] = purpose
 
     if sse_urls:
         result["sse_urls"] = sorted(set(sse_urls))[:10]
@@ -485,6 +578,29 @@ def compute_stats(entries: list[dict]) -> dict:
 
 def suggest_commands(endpoint_groups: list[dict], protocol: dict) -> list[dict]:
     """Suggest CLI command groups based on endpoint patterns."""
+    # For batchexecute: generate RPC-based suggestions instead of REST-based
+    if protocol.get("protocol") == "batchexecute":
+        rpc_ids = protocol.get("batchexecute_rpc_ids", [])
+        rpc_details = protocol.get("batchexecute_rpc_details", {})
+        service = protocol.get("batchexecute_service", "rpc")
+        if rpc_ids:
+            commands = []
+            for rpc_id in rpc_ids[:20]:
+                detail = rpc_details.get(rpc_id, {})
+                count = detail.get("call_count", 1)
+                commands.append({
+                    "name": rpc_id,
+                    "method": "POST",
+                    "call_count": count,
+                    "description": f"RPC {rpc_id} (captured {count}x) — verify params in batchexecute_rpc_details",
+                })
+            return [{
+                "group": service,
+                "prefix": f"/_/{service}/data/batchexecute",
+                "note": "Map RPC IDs to CLI commands. See batchexecute_rpc_details for param structures.",
+                "commands": commands,
+            }]
+
     suggestions = []
 
     for group in endpoint_groups[:10]:
@@ -532,7 +648,7 @@ def analyze(entries: list[dict]) -> dict:
     return {
         "_meta": {
             "tool": "analyze-traffic.py",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "description": "Auto-generated traffic analysis. Fields marked 'unknown' need manual agent analysis.",
         },
         "protocol": protocol,
@@ -590,6 +706,16 @@ def main():
             print(f"GraphQL operations: {', '.join(op['name'] for op in p['graphql_operations'])}")
         if p.get("batchexecute_rpc_ids"):
             print(f"batchexecute RPC IDs: {', '.join(p['batchexecute_rpc_ids'])}")
+        if p.get("batchexecute_service"):
+            print(f"batchexecute service: {p['batchexecute_service']}")
+        if p.get("batchexecute_rpc_details"):
+            for rid, detail in list(p["batchexecute_rpc_details"].items())[:5]:
+                params_preview = str(detail.get("example_params", "?"))[:80]
+                print(f"  {rid} ({detail.get('call_count', '?')}x): {params_preview}")
+        if p.get("websocket_subprotocols"):
+            print(f"WebSocket sub-protocols: {', '.join(p['websocket_subprotocols'])}")
+        if p.get("websocket_library"):
+            print(f"WebSocket library: {p['websocket_library']}")
         if report["protections"]["has_protection"]:
             print(f"Protections: {', '.join(k for k,v in report['protections']['protections'].items() if v)}")
         if report["rate_limits"]["has_rate_limiting"]:

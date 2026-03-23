@@ -247,9 +247,24 @@ def create_project(self) -> Optional[Project]:
 the CLI help text: "This operation requires browser interaction. Use `auth login`
 to open a browser session." Don't fail silently.
 
-### RPC Parameter Verification Script
+### RPC Parameter Verification
 
-Before implementing a batchexecute command, verify the exact params sent by the browser:
+`traffic-analysis.json` (produced by `analyze-traffic.py`) already contains pre-extracted param structures:
+
+```json
+{
+  "protocol": {
+    "batchexecute_rpc_details": {
+      "wXbhsf": { "call_count": 3, "example_params": [null, 1, null, [2]] },
+      "CCqFvf": { "call_count": 1, "example_params": ["My Notebook", null, [2]] }
+    },
+    "batchexecute_service": "LaminatApp",
+    "batchexecute_build_label": "cfb2h"
+  }
+}
+```
+
+Start there. Use the manual script below only when you need the full raw **response** structure to verify parser indices:
 
 ```bash
 # Find all requests for a specific RPC method in raw-traffic.json
