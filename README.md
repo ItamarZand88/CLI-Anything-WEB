@@ -99,33 +99,35 @@ The agent opens a browser, asks you to log in if needed, captures traffic, and g
 <summary><strong>Try them yourself</strong></summary>
 
 ```bash
+# Pick any CLI below — each is independent
+
 # GitHub Trending — no auth, great first test
-cd gh-trending/agent-harness && pip install -e .
-cli-web-gh-trending --json repos list --language python --since weekly
+pip install -e gh-trending/agent-harness
+cli-web-gh-trending repos list --language python --since weekly --json
 
 # FUTBIN — search EA FC players
-cd futbin/agent-harness && pip install -e .
+pip install -e futbin/agent-harness
 cli-web-futbin players search --name "Messi" --json
 
 # NotebookLM — requires Google login
-cd notebooklm/agent-harness && pip install -e .
+pip install -e notebooklm/agent-harness
 cli-web-notebooklm auth login
 cli-web-notebooklm notebooks list --json
 
 # Product Hunt — no auth, bypasses Cloudflare
-cd producthunt/agent-harness && pip install -e .
+pip install -e producthunt/agent-harness
 cli-web-producthunt posts list --json
 
 # Unsplash — photo search
-cd unsplash/agent-harness && pip install -e .
+pip install -e unsplash/agent-harness
 cli-web-unsplash photos search "mountains" --json
 
 # Booking.com — hotel search
-cd booking/agent-harness && pip install -e .
+pip install -e booking/agent-harness
 cli-web-booking search find "Paris" --json
 
 # Google Stitch — requires Google SSO login
-cd stitch/agent-harness && pip install -e .
+pip install -e stitch/agent-harness
 cli-web-stitch auth login
 cli-web-stitch projects list --json
 ```
@@ -136,15 +138,18 @@ Every generated CLI drops into an **interactive REPL** when run with no argument
 
 ```
 $ cli-web-gh-trending
-╭──────────────────────────────────────────╮
-│ ◆  cli-web · GitHub Trending             │
-│    Type help for commands, quit to exit   │
-╰──────────────────────────────────────────╯
 
-◆ gh-trending ❯ repos list --language rust --since monthly
-◆ gh-trending ❯ developers list --language python
-◆ gh-trending ❯ quit
+  cli-web . GitHub Trending
+  v0.1.0
+
+  Type help for commands, quit to exit
+
+gh-trending > repos list --language rust --since monthly
+gh-trending > developers list --language python
+gh-trending > quit
 ```
+
+<br>
 
 ### Agent-Native: Claude uses the CLIs automatically
 
