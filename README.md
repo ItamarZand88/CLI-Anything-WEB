@@ -45,7 +45,7 @@
 Most web apps don't have public APIs. **CLI-Anything-Web** changes that:
 
 <p align="center">
-  <img src="assets/demo.gif" alt="CLI-Anything-Web Demo" width="100%">
+  <video src="https://github.com/ItamarZand88/CLI-Anything-WEB/raw/main/assets/demo.mp4" autoplay loop muted playsinline width="100%"></video>
 </p>
 
 > **No API docs needed. No reverse-engineering by hand. Just point and generate.**
@@ -139,7 +139,7 @@ cli-web-stitch projects list --json
 Generated CLIs come with Claude Code skills — Claude loads them on demand to answer your questions:
 
 <p align="center">
-  <img src="assets/agentic-demo.gif" alt="Agentic Pattern Demo" width="100%">
+  <video src="https://github.com/ItamarZand88/CLI-Anything-WEB/raw/main/assets/agentic-demo.mp4" autoplay loop muted playsinline width="100%"></video>
 </p>
 
 <br>
