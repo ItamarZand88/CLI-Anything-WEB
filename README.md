@@ -22,6 +22,13 @@
   <img src="https://img.shields.io/badge/claude%20code-plugin-blueviolet" alt="Claude Code Plugin">
 </p>
 
+<p align="center">
+  <a href="#-quick-start"><img src="https://img.shields.io/badge/Quick_Start-blue?style=for-the-badge" alt="Quick Start"></a>
+  <a href="#-examples"><img src="https://img.shields.io/badge/7_CLIs-brightgreen?style=for-the-badge" alt="Examples"></a>
+  <a href="#-supported-protocols"><img src="https://img.shields.io/badge/6_Protocols-orange?style=for-the-badge" alt="Protocols"></a>
+  <a href="#-contributing"><img src="https://img.shields.io/badge/Contributing-purple?style=for-the-badge" alt="Contributing"></a>
+</p>
+
 ---
 
 **CLI-Anything-Web** is a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin that generates production-grade Python CLIs for **any** web application by capturing its live HTTP traffic. Point it at a URL, and get a fully working CLI on your PATH — with auth, REPL mode, `--json` output, and tests.
@@ -37,6 +44,13 @@
 > - **For personal use** — Best suited for prototyping, automation, research, and personal productivity
 >
 > Generated CLIs interact with real production services. Use them responsibly and in accordance with each website's terms of service.
+
+## 📰 News
+
+- **2026-03-23** — `cli-web-stitch` added: AI UI design with Google Stitch (batchexecute RPC, 17 commands, design themes)
+- **2026-03-22** — Agentic pattern demo: Claude Code automatically uses CLI skills to answer questions
+- **2026-03-20** — `cli-web-booking` added: hotel search with GraphQL + AWS WAF bypass
+- **2026-03-18** — `cli-web-unsplash` added: photo search with curl_cffi Cloudflare bypass
 
 <br>
 
@@ -173,6 +187,22 @@ The plugin runs a 4-phase pipeline, fully automated by Claude:
 | **Tests** | Unit (mocked HTTP) + E2E (live API) + subprocess (`_resolve_cli`) |
 | **Installable** | `pip install -e .` puts it on your PATH immediately |
 
+## ✅ Test Results
+
+Every CLI ships with unit + E2E + subprocess tests:
+
+```
+cli-web-futbin        52 tests passed
+cli-web-notebooklm   127 tests passed
+cli-web-gh-trending    43 tests passed
+cli-web-producthunt    38 tests passed
+cli-web-unsplash       45 tests passed
+cli-web-booking        67 tests passed
+cli-web-stitch        116 tests passed
+─────────────────────────────────
+Total                 488 tests
+```
+
 <br>
 
 ## 📋 Commands
@@ -262,23 +292,16 @@ We're actively building more CLIs and improving the plugin:
 
 ## 🤝 Contributing
 
-We'd love your help! Here are the highest-impact ways to contribute:
+We'd love your help! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full guide.
 
-| What | How | Impact |
-|------|-----|--------|
-| **Build a new CLI** | Run `/cli-anything-web <url>` on a site you use, submit a PR | Becomes a reference implementation |
-| **Improve the plugin** | Add patterns to `cli-anything-web-plugin/skills/` | Makes ALL future CLIs better |
-| **Report bugs** | [Open an issue](https://github.com/ItamarZand88/CLI-Anything-WEB/issues) with `--json` output | Helps us fix and prevent regressions |
-| **Fix a broken CLI** | Website changed? Update the scraper/client | Keeps existing CLIs alive |
+The quickest ways to contribute:
 
-```bash
-git clone https://github.com/ItamarZand88/CLI-Anything-WEB.git
-cd CLI-Anything-WEB
-git checkout -b feat/my-feature
-# ... make changes ...
-bash cli-anything-web-plugin/verify-plugin.sh  # validate
-# Open a PR
-```
+| What | How |
+|------|-----|
+| **Build a new CLI** | Run `/cli-anything-web <url>` on any website, submit a PR |
+| **Improve the plugin** | Add patterns to `cli-anything-web-plugin/skills/` |
+| **Report bugs** | [Open an issue](https://github.com/ItamarZand88/CLI-Anything-WEB/issues) with `--json` output |
+| **Fix a broken CLI** | Website changed? Update the scraper/client |
 
 <br>
 

@@ -1,0 +1,75 @@
+{
+  "version": "1.0.0",
+  "clis": [
+    {
+      "name": "cli-web-futbin",
+      "website": "futbin.com",
+      "protocol": "HTML + JSON API",
+      "auth": "none",
+      "directory": "futbin/agent-harness",
+      "namespace": "cli_web.futbin",
+      "commands": ["players search", "players get", "players compare"],
+      "install": "pip install -e futbin/agent-harness"
+    },
+    {
+      "name": "cli-web-notebooklm",
+      "website": "notebooklm.google.com",
+      "protocol": "batchexecute RPC",
+      "auth": "google_sso",
+      "directory": "notebooklm/agent-harness",
+      "namespace": "cli_web.notebooklm",
+      "commands": ["notebooks list", "notebooks create", "sources add", "chat ask", "artifacts generate"],
+      "install": "pip install -e notebooklm/agent-harness"
+    },
+    {
+      "name": "cli-web-gh-trending",
+      "website": "github.com/trending",
+      "protocol": "HTML scraping",
+      "auth": "none",
+      "directory": "gh-trending/agent-harness",
+      "namespace": "cli_web.gh_trending",
+      "commands": ["repos list", "developers list"],
+      "install": "pip install -e gh-trending/agent-harness"
+    },
+    {
+      "name": "cli-web-producthunt",
+      "website": "producthunt.com",
+      "protocol": "HTML scraping (curl_cffi)",
+      "auth": "none",
+      "directory": "producthunt/agent-harness",
+      "namespace": "cli_web.producthunt",
+      "commands": ["posts list", "posts get"],
+      "install": "pip install -e producthunt/agent-harness"
+    },
+    {
+      "name": "cli-web-unsplash",
+      "website": "unsplash.com",
+      "protocol": "REST API (curl_cffi)",
+      "auth": "none",
+      "directory": "unsplash/agent-harness",
+      "namespace": "cli_web.unsplash",
+      "commands": ["photos search", "photos get", "photos download", "topics list"],
+      "install": "pip install -e unsplash/agent-harness"
+    },
+    {
+      "name": "cli-web-booking",
+      "website": "booking.com",
+      "protocol": "GraphQL + HTML (curl_cffi)",
+      "auth": "waf_cookies",
+      "directory": "booking/agent-harness",
+      "namespace": "cli_web.booking",
+      "commands": ["search find", "property get", "destinations resolve"],
+      "install": "pip install -e booking/agent-harness"
+    },
+    {
+      "name": "cli-web-stitch",
+      "website": "stitch.withgoogle.com",
+      "protocol": "batchexecute RPC",
+      "auth": "google_sso",
+      "directory": "stitch/agent-harness",
+      "namespace": "cli_web.stitch",
+      "commands": ["projects list", "projects create", "projects rename", "projects duplicate", "projects delete", "projects download", "screens list", "screens get", "screens download", "design generate", "design theme", "design history"],
+      "install": "pip install -e stitch/agent-harness"
+    }
+  ]
+}
