@@ -146,6 +146,14 @@ $ cli-web-gh-trending
 ◆ gh-trending ❯ quit
 ```
 
+### Agent-Native: Claude uses the CLIs automatically
+
+Generated CLIs come with Claude Code skills — Claude loads them on demand to answer your questions:
+
+<p align="center">
+  <img src="assets/agentic-demo.gif" alt="Agentic Pattern Demo" width="100%">
+</p>
+
 <br>
 
 ## ⚙️ How It Works
