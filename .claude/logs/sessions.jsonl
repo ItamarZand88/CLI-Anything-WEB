@@ -178,3 +178,21 @@
     "untracked_files": 0
   }
 }
+{
+  "timestamp": "2026-03-24T08:08:26Z",
+  "session_id": "67788a9e-73f7-4228-89c6-701824d1db86",
+  "project": "CLI-Anything-WEB",
+  "event": "session_start",
+  "environment": {
+    "permission_mode": "unknown",
+    "cwd": "/home/user/CLI-Anything-WEB",
+    "total_tracked_files": 285
+  },
+  "git": {
+    "branch": "claude/evaluate-automation-stack-SE08N",
+    "dirty": "dirty",
+    "last_commit": "7747f72 chore: update session logs",
+    "uncommitted_files": 1,
+    "untracked_files": 0
+  }
+}
