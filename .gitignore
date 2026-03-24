@@ -30,6 +30,7 @@ Thumbs.db
 # Claude Code local state (settings.json is committed)
 .claude/*.local.md
 .claude/*.local.json
+.claude/logs/
 
 # Internal dev
 cli-anything-web-plugin-workspace/
