@@ -255,8 +255,8 @@ to open a browser session." Don't fail silently.
 {
   "protocol": {
     "batchexecute_rpc_details": {
-      "wXbhsf": { "call_count": 3, "example_params": [null, 1, null, [2]] },
-      "CCqFvf": { "call_count": 1, "example_params": ["My Notebook", null, [2]] }
+      "wXbhsf": { "call_count": 3, "example_params": [[null, 1, null, [2]]] },
+      "CCqFvf": { "call_count": 1, "example_params": [["My Notebook", null, [2]]] }
     },
     "batchexecute_service": "LaminatApp",
     "batchexecute_build_label": "cfb2h"

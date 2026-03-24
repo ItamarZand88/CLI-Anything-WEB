@@ -7,7 +7,9 @@ Reads the output of parse-trace.py and auto-detects:
 - Endpoint grouping by URL prefix
 - GraphQL operation names and types
 - Rate limit signals (429s, Retry-After headers)
-- Protection/WAF signals (Cloudflare, CAPTCHA)
+- Protection/WAF signals (Cloudflare, AWS WAF, Akamai, DataDome, PerimeterX, CAPTCHA)
+- Pagination pattern detection
+- WebSocket library/sub-protocol fingerprinting
 - Read vs write operation breakdown
 - Suggested CLI command structure
 
@@ -35,7 +37,7 @@ def _is_noise_url(url: str) -> bool:
         # Google analytics / ads
         "google-analytics", "analytics.google.com", "googletagmanager.com",
         "googlesyndication", "google.com/ads", "google.com/pagead",
-        "doubleclick.net", "google.co.", "gstatic.com",
+        "doubleclick.net", "www.google.co.", "gstatic.com",
         "googleapis.com/css", "fonts.googleapis.com",
         "play.google.com/log", "signaler-pa.clients6",
         "accounts.google.com/gsi", "apis.google.com",
@@ -67,16 +69,17 @@ def _is_noise_url(url: str) -> bool:
 
 
 def _detect_ws_library(url: str) -> str | None:
-    """Fingerprint WebSocket library from URL patterns."""
-    if "socket.io" in url or "EIO=" in url:
+    """Fingerprint WebSocket library from URL path patterns."""
+    path = urlparse(url).path.lower()
+    if "socket.io" in path or "EIO=" in url:
         return "socket.io"
-    if "/sockjs/" in url or "sockjs" in url:
+    if "/sockjs/" in path:
         return "sockjs"
-    if "/cable" in url:
+    if "/cable" in path:  # Rails ActionCable convention
         return "action-cable"
-    if "/phoenix/" in url or "phoenix" in url:
+    if "/phoenix/" in path or path.endswith("/websocket"):
         return "phoenix-channels"
-    if "/signalr/" in url.lower():
+    if "/signalr/" in path:
         return "signalr"
     return None
 
@@ -156,8 +159,10 @@ def detect_protocol(entries: list[dict]) -> dict:
                     op_type = "mutation" if query and "mutation" in query[:50].lower() else "query"
                     if op:
                         graphql_ops.append({"name": op, "type": op_type, "method": "POST"})
-                except (json.JSONDecodeError, TypeError):
-                    pass
+                except json.JSONDecodeError:
+                    pass  # Non-JSON body on GraphQL endpoint (e.g., multipart upload)
+                except TypeError as exc:
+                    print(f"Warning: unexpected type in GraphQL body parse for {url}: {exc}", file=sys.stderr)
 
         # --- Google batchexecute ---
         if "batchexecute" in url and not is_noise:
@@ -181,15 +186,24 @@ def detect_protocol(entries: list[dict]) -> dict:
                                 try:
                                     params_data = json.loads(inner[1])
                                 except (json.JSONDecodeError, TypeError):
-                                    params_data = inner[1][:200]  # keep raw string as fallback
+                                    params_data = inner[1][:200] if isinstance(inner[1], str) else str(inner[1])[:200]
                                 if rpcid not in batchexecute_rpc_details:
                                     batchexecute_rpc_details[rpcid] = {
                                         "call_count": 0,
-                                        "example_params": params_data,
+                                        "example_params": [params_data],
                                     }
+                                else:
+                                    # Store distinct param structures (up to 3) per RPC ID
+                                    existing = batchexecute_rpc_details[rpcid]["example_params"]
+                                    if len(existing) < 3 and params_data not in existing:
+                                        existing.append(params_data)
                                 batchexecute_rpc_details[rpcid]["call_count"] += 1
-                    except (json.JSONDecodeError, TypeError, IndexError, KeyError):
-                        pass
+                    except (json.JSONDecodeError, TypeError, IndexError, KeyError) as exc:
+                        print(
+                            f"Warning: failed to parse f.req body for RPC {rpcid}: "
+                            f"{type(exc).__name__}: {exc}",
+                            file=sys.stderr,
+                        )
 
             # Extract service name: /_/ServiceName/data/batchexecute
             if not batchexecute_service:
@@ -246,14 +260,16 @@ def detect_protocol(entries: list[dict]) -> dict:
                     if "jsonrpc" in parsed_body and "method" in parsed_body:
                         signals["json_rpc"] += 5
                         json_rpc_methods.append(parsed_body["method"])
-                elif isinstance(parsed_body, list) and parsed_body:
-                    if "jsonrpc" in parsed_body[0] and "method" in parsed_body[0]:
+                elif isinstance(parsed_body, list) and len(parsed_body) > 0:
+                    if isinstance(parsed_body[0], dict) and "jsonrpc" in parsed_body[0] and "method" in parsed_body[0]:
                         signals["json_rpc"] += 5
                         for item in parsed_body:
                             if isinstance(item, dict) and "method" in item:
                                 json_rpc_methods.append(item["method"])
-            except (json.JSONDecodeError, TypeError, IndexError):
-                pass
+            except json.JSONDecodeError:
+                pass  # Non-JSON body — expected for non-RPC POST requests
+            except TypeError as exc:
+                print(f"Warning: unexpected type in JSON-RPC parse: {exc}", file=sys.stderr)
 
         # --- tRPC ---
         if ("/api/trpc/" in url or "/trpc/" in url) and not is_noise:
@@ -391,7 +407,9 @@ def detect_auth(entries: list[dict]) -> dict:
         if not has_auth:
             no_auth_count += 1
 
-    total = (bearer_count + api_key_count + cookie_count + no_auth_count) or 1
+    # Use actual count of non-noise entries as denominator (a request may have
+    # both bearer and cookie, so summing individual counters would inflate total)
+    total = sum(1 for _ in (e for e in entries if not _is_noise_url(e.get("url", "")))) or 1
     patterns = {}
     if bearer_count > 0:
         patterns["bearer"] = round(bearer_count / total * 100, 1)
@@ -526,9 +544,10 @@ _RE_HASH_ID = re.compile(r'^[0-9a-f]{16,}$', re.I)  # long hex IDs
 
 
 def _normalize_segment(segment: str) -> str:
-    """Replace dynamic path segments (IDs, UUIDs) with a placeholder."""
+    """Replace dynamic path segments (UUIDs, numeric IDs, hex hashes) with ``{id}``."""
     if _RE_UUID.match(segment):
         return "{id}"
+    # Skip short numbers that could be version segments (v1, v2, api/2)
     if _RE_NUMERIC_ID.match(segment) and len(segment) >= 4:
         return "{id}"
     if _RE_HASH_ID.match(segment) and len(segment) >= 16:
@@ -627,7 +646,7 @@ def detect_pagination(entries: list[dict]) -> dict:
             continue
         parsed = urlparse(url)
         params = parse_qs(parsed.query)
-        found = {p for p in params if p.lower() in _PAGINATION_PARAMS}
+        found = {p.lower() for p in params if p.lower() in _PAGINATION_PARAMS}
         if found:
             # Normalize the path for grouping
             segments = [_normalize_segment(s) for s in parsed.path.strip("/").split("/") if s]
@@ -679,7 +698,7 @@ def detect_rate_limits(entries: list[dict]) -> dict:
 
 
 def compute_stats(entries: list[dict]) -> dict:
-    """Compute basic traffic statistics (noise URLs excluded from method/write counts)."""
+    """Compute basic traffic statistics. Noise URLs excluded from method/status/MIME counts; domains include all entries."""
     api_entries = [e for e in entries if not _is_noise_url(e.get("url", ""))]
 
     methods = Counter(e.get("method", "GET") for e in api_entries)
@@ -781,7 +800,7 @@ def analyze(entries: list[dict]) -> dict:
     return {
         "_meta": {
             "tool": "analyze-traffic.py",
-            "version": "1.2.0",
+            "version": "1.2.1",
             "description": "Auto-generated traffic analysis. Fields marked 'unknown' need manual agent analysis.",
         },
         "protocol": protocol,
@@ -819,7 +838,15 @@ def main():
         print(f"Error: input file not found: {input_path}", file=sys.stderr)
         sys.exit(1)
 
-    entries = json.loads(input_path.read_text(encoding="utf-8"))
+    try:
+        entries = json.loads(input_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        print(
+            f"Error: failed to parse {input_path}: {exc}\n"
+            f"Ensure this is the JSON output of parse-trace.py.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     if not isinstance(entries, list):
         print("Error: input must be a JSON array of request entries", file=sys.stderr)
         sys.exit(1)
@@ -844,8 +871,10 @@ def main():
             print(f"batchexecute service: {p['batchexecute_service']}")
         if p.get("batchexecute_rpc_details"):
             for rid, detail in list(p["batchexecute_rpc_details"].items())[:5]:
-                params_preview = str(detail.get("example_params", "?"))[:80]
-                print(f"  {rid} ({detail.get('call_count', '?')}x): {params_preview}")
+                params_list = detail.get("example_params", ["?"])
+                params_preview = str(params_list[0] if params_list else "?")[:80]
+                variants = f", {len(params_list)} variant(s)" if len(params_list) > 1 else ""
+                print(f"  {rid} ({detail.get('call_count', '?')}x{variants}): {params_preview}")
         if p.get("websocket_subprotocols"):
             print(f"WebSocket sub-protocols: {', '.join(p['websocket_subprotocols'])}")
         if p.get("websocket_library"):
