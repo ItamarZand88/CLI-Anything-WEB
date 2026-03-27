@@ -367,7 +367,7 @@ class {AppName}Client:
         kwargs.setdefault("cookies", self._cookies)
         try:
             resp = self._session.request(method, url, **kwargs)
-        except (ConnectionError, TimeoutError, OSError) as exc:
+        except Exception as exc:
             raise NetworkError(f"Connection failed: {{exc}}")
 
         if resp.status_code in (401, 403) and retry_on_auth:
