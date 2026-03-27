@@ -14,6 +14,13 @@ Adapt class names to the target app (e.g., NotebookLMError, FutbinError).
 class AppError(Exception):
     """Base exception for all CLI errors."""
 
+    def to_dict(self):
+        return {
+            "error": True,
+            "code": error_code_for(self),
+            "message": str(self),
+        }
+
 
 class AuthError(AppError):
     """Authentication failed — expired cookies, invalid tokens, session timeout.
@@ -36,6 +43,12 @@ class RateLimitError(AppError):
     def __init__(self, message: str, retry_after: float | None = None):
         self.retry_after = retry_after
         super().__init__(message)
+
+    def to_dict(self):
+        d = super().to_dict()
+        if self.retry_after is not None:
+            d["retry_after"] = self.retry_after
+        return d
 
 
 class NetworkError(AppError):
@@ -77,7 +90,7 @@ STATUS_CODE_MAP = {
     401: lambda msg: AuthError(msg, recoverable=True),
     403: lambda msg: AuthError(msg, recoverable=True),
     404: lambda msg: NotFoundError(msg),
-    429: lambda msg: RateLimitError(msg),
+    # 429 handled separately below to extract Retry-After header
     # 5xx handled by range check in client
 }
 

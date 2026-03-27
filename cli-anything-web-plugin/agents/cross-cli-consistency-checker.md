@@ -128,7 +128,19 @@ diff {cli_dir}/utils/repl_skin.py {plugin_dir}/scripts/repl_skin.py
 ```
 Any differences = FAIL (stale copy).
 
-### Check 12: setup.py Namespaces (Important)
+### Check 12: Google Cookie Domain Priority (Important, google-sso CLIs only)
+
+For CLIs with Google SSO auth, verify that `.google.com` cookies take
+priority over regional ccTLD duplicates (`.google.co.il`, `.google.de`, etc.):
+```
+Read core/auth.py
+Look for cookie domain priority logic — sorting or filtering that prefers
+.google.com over regional domains
+If auth uses Google SSO but no domain priority logic exists → FAIL
+N/A for non-Google-SSO CLIs.
+```
+
+### Check 13: setup.py Namespaces (Important)
 
 ```
 Grep for 'find_namespace_packages' in setup.py
@@ -142,15 +154,15 @@ Format as a matrix table:
 ```
 Cross-CLI Consistency Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                  ExcH  UTF8  REPL  Disp  NS    HErr  NoClk JSON  Auth  Chmd  Skin  Setup
-futbin            PASS  FAIL  PASS  PASS  PASS  PASS  PASS  PASS  N/A   N/A   FAIL  PASS
-reddit            PASS  PASS  PASS  PASS  PASS  FAIL  FAIL  PASS  PASS  PASS  PASS  PASS
+                  ExcH  UTF8  REPL  Disp  NS    HErr  NoClk JSON  Auth  Chmd  Cook  Skin  Setup
+futbin            PASS  FAIL  PASS  PASS  PASS  PASS  PASS  PASS  N/A   N/A   N/A   FAIL  PASS
+reddit            PASS  PASS  PASS  PASS  PASS  FAIL  FAIL  PASS  PASS  PASS  N/A   PASS  PASS
 ...
 
 Legend: ExcH=Exception Hierarchy, UTF8=UTF-8 Fix, REPL=shlex.split, Disp=REPL Dispatch,
         NS=Namespace Package, HErr=handle_errors, NoClk=No click.ClickException,
-        JSON=JSON Error Format, Auth=Auth Env Var, Chmd=Auth chmod, Skin=repl_skin version,
-        Setup=setup.py namespaces
+        JSON=JSON Error Format, Auth=Auth Env Var, Chmd=Auth chmod, Cook=Cookie Domain Priority,
+        Skin=repl_skin version, Setup=setup.py namespaces
 
 Summary: X Critical, Y Important, Z Minor findings across N CLIs
 

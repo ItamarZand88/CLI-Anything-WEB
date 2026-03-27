@@ -21,11 +21,11 @@ be supplied by the calling skill.
 | Parameter | Type | Source | Example |
 |-----------|------|--------|---------|
 | `app_name` | str | From CLI name (`cli-web-<app>` -> `<app>`) | `hackernews` |
-| `APP_NAME` | str | UPPER_SNAKE of app_name | `HACKERNEWS` |
+| `APP_NAME` | str | UPPER_SNAKE of app_name (replace hyphens with underscores before uppercasing, e.g., `gh-trending` -> `GH_TRENDING`) | `HACKERNEWS` |
 | `AppName` | str | PascalCase of app_name | `HackerNews` |
 | `protocol` | enum | Traffic analysis: `rest`, `graphql`, `html-scraping`, `batchexecute` | `rest` |
 | `http_client` | enum | Traffic analysis: `httpx`, `curl_cffi` | `httpx` |
-| `auth_type` | enum | Site profile: `none`, `cookie`, `api-key`, `oauth` | `cookie` |
+| `auth_type` | enum | Site profile: `none`, `cookie`, `api-key`, `google-sso` | `cookie` |
 | `resources` | list[str] | From `<APP>.md` endpoint groups | `["stories", "users", "search"]` |
 | `has_polling` | bool | Any async/long-running operations? | `false` |
 | `has_context` | bool | Does the CLI need `use <id>` / `status` context? | `false` |
@@ -165,7 +165,7 @@ _CODE_MAP = {{
     401: lambda msg: AuthError(msg, recoverable=True),
     403: lambda msg: AuthError(msg, recoverable=True),
     404: lambda msg: NotFoundError(msg),
-    429: lambda msg: RateLimitError(msg),
+    # 429 handled separately below to extract Retry-After header
 }}
 
 
@@ -367,7 +367,7 @@ class {AppName}Client:
         kwargs.setdefault("cookies", self._cookies)
         try:
             resp = self._session.request(method, url, **kwargs)
-        except Exception as exc:
+        except (ConnectionError, TimeoutError, OSError) as exc:
             raise NetworkError(f"Connection failed: {{exc}}")
 
         if resp.status_code in (401, 403) and retry_on_auth:
@@ -511,6 +511,8 @@ import json
 import sys
 from contextlib import contextmanager
 
+import click
+
 from ..core.exceptions import {AppName}Error, _error_code_for
 
 
@@ -543,13 +545,22 @@ def handle_errors(json_mode: bool = False):
     """
     try:
         yield
+    except KeyboardInterrupt:
+        raise SystemExit(130)
+    except (click.exceptions.Exit, click.UsageError):
+        raise
     except {AppName}Error as exc:
         if json_mode:
             print_json(exc.to_dict())
         else:
-            import click
             click.secho(f"Error: {{exc}}", fg="red", err=True)
         raise SystemExit(1)
+    except Exception as exc:
+        if json_mode:
+            print_json({{"error": True, "code": "INTERNAL_ERROR", "message": str(exc)}})
+        else:
+            click.secho(f"Error: {{exc}}", fg="red", err=True)
+        raise SystemExit(2)
 
 
 def print_json(data) -> None:
@@ -652,7 +663,7 @@ import json
 
 def json_success(data, **extra) -> str:
     """Format a successful result as JSON string."""
-    payload = {{"error": False, "data": data}}
+    payload = {{"success": True, "data": data}}
     payload.update(extra)
     return json.dumps(payload, indent=2, ensure_ascii=False, default=str)
 
