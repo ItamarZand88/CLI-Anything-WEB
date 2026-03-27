@@ -149,6 +149,7 @@ Sites protected by AWS WAF return a 202 JavaScript challenge page to raw HTTP cl
 | `cli-web-futbin` | `futbin/` | HTML + JSON API | HTML scraping with httpx |
 | `cli-web-gh-trending` | `gh-trending/` | HTML scraping | Simple SSR, no auth |
 | `cli-web-youtube` | `youtube/` | InnerTube REST API (httpx) | Internal POST API, no auth, search/video/channel |
+| `cli-web-hackernews` | `hackernews/` | REST API (httpx) | Firebase + Algolia API, cookie auth, stories/search/users/upvote/submit/comment |
 
 ## Reference Examples
 
