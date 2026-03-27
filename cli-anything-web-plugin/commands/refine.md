@@ -23,10 +23,9 @@ Focus area: $2
 
 1. **Read existing SOP**: Load `<app>/agent-harness/<APP>.md`
 2. **Read existing CLI**: Scan implemented commands in `cli_web/<app>/commands/`
-3. **Gap analysis**:
-   - Compare known endpoints vs implemented commands
-   - If focus area specified, concentrate on that domain
-   - If no focus, do broad gap analysis across all capabilities
+3. **Gap analysis**: Read `${CLAUDE_PLUGIN_ROOT}/skills/gap-analyzer/SKILL.md` and
+   follow its instructions to produce a structured gap report. If a focus area is
+   specified, filter the report to that domain.
 4. **Present gap report**: Show the user the gap analysis results and confirm which gaps to address before proceeding with any recording or implementation
 5. **Record new traffic**: Use playwright-cli (see HARNESS.md Phase 1) or chrome-devtools-mcp fallback
 6. **Analyze new endpoints**: Add to API map in `<APP>.md`
