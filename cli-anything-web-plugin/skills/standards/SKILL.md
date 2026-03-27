@@ -183,7 +183,9 @@ After smoke tests pass, these tasks remain — all independent, dispatch in para
 │           ALSO copy to cli_web/<app>/skills/SKILL.md (package-portable)
 ├─ Agent 2: Update repository README.md (add CLI to examples table)
 ├─ Agent 3: Write/update cli_web/<app>/README.md (package docs)
-└─ Agent 4: Update registry.json + CLAUDE.md Generated CLIs table
+├─ Agent 4: Update registry.json + CLAUDE.md Generated CLIs table
+└─ Agent 5: Add CLI to CI test matrix (.github/workflows/tests.yml)
+│           + Add entry to CHANGELOG.md under [Unreleased]
 All are independent — launch in one message with run_in_background: true
 ```
 
@@ -274,6 +276,20 @@ The pipeline is NOT done until ALL of these are checked:
 - [ ] `CLAUDE.md` — new row in Generated CLIs table
 - [ ] `registry.json` — entry with name, website, protocol, auth, commands, install
 - [ ] `docs/registry/index.html` — entry added to JS data array with correct category
+- [ ] `CHANGELOG.md` — entry added under [Unreleased] → Added
+- [ ] `.github/workflows/tests.yml` — new CLI added to CI test matrix (see below)
+
+### CI Test Matrix Update (MANDATORY)
+
+Every new CLI MUST be added to `.github/workflows/tests.yml` so unit tests run
+on every push/PR. Add a new entry to the `matrix.cli` array:
+
+```yaml
+- { name: <app>, dir: <app>/agent-harness, pkg: <app_underscore> }
+```
+
+Where `<app_underscore>` replaces hyphens with underscores (e.g., `gh-trending` → `gh_trending`).
+Verify the entry runs: `python -m pytest <dir>/cli_web/<pkg>/tests/test_core.py -v`
 
 All key rules (naming, auth, --json, REPL, rate limits) are defined in
 HARNESS.md "Critical Rules" and CLAUDE.md "Critical Conventions".

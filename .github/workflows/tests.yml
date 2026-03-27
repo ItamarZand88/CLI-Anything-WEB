@@ -23,6 +23,8 @@ jobs:
           - { name: pexels,      dir: pexels/agent-harness,      pkg: pexels }
           - { name: reddit,      dir: reddit/agent-harness,      pkg: reddit }
           - { name: gai,         dir: gai/agent-harness,         pkg: gai }
+          - { name: youtube,     dir: youtube/agent-harness,     pkg: youtube }
+          - { name: hackernews,  dir: hackernews/agent-harness,  pkg: hackernews }
 
     name: ${{ matrix.cli.name }}
 
