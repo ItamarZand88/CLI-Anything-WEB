@@ -249,8 +249,15 @@ class RedditClient:
 
     def post_detail(self, subreddit: str, post_id: str, slug: str = "",
                     comment_limit: int = 50) -> list:
-        """Get post + comments. Returns [post_listing, comments_listing]."""
-        path = f"/r/{subreddit}/comments/{post_id}/{slug}.json"
+        """Get post + comments. Returns [post_listing, comments_listing].
+
+        If subreddit is empty, uses /comments/{id}.json which works without
+        knowing the subreddit (Reddit redirects internally).
+        """
+        if subreddit:
+            path = f"/r/{subreddit}/comments/{post_id}/{slug}.json"
+        else:
+            path = f"/comments/{post_id}.json"
         return self._get(path, params={"limit": comment_limit})
 
     # ── Authenticated: Me ────────────────────────────────────────
