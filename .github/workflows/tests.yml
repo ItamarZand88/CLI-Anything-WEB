@@ -2,9 +2,15 @@ name: Unit Tests
 
 on:
   push:
-    branches: [main, release-please--branches--main]
+    branches: [main]
   pull_request:
     branches: [main]
+  # Allow release-please workflow to trigger tests
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: false
 
 jobs:
   test:
@@ -31,6 +37,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - uses: actions/setup-python@v5
         with:

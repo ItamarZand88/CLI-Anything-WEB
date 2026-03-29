@@ -7,12 +7,17 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      pr: ${{ steps.rp.outputs.pr }}
+      pr_branch: ${{ steps.rp.outputs.prs_created == 'true' && 'release-please--branches--main' || '' }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - id: rp
+        uses: googleapis/release-please-action@v4
         with:
           release-type: simple
           changelog-types: |
@@ -24,3 +29,11 @@ jobs:
               {"type": "perf", "section": "Performance", "hidden": false},
               {"type": "refactor", "section": "Code Refactoring", "hidden": true}
             ]
+
+  # Run tests on the release-please PR branch so required checks pass
+  run-tests:
+    needs: release-please
+    if: always()
+    uses: ./.github/workflows/tests.yml
+    with:
+      ref: release-please--branches--main
