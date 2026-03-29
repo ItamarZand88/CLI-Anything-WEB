@@ -1,7 +1,7 @@
-"""Player commands: search, get, list, compare."""
+"""Player commands: search, get, list, compare, price-history."""
 import click
 from ..core.client import FutbinClient
-from ..utils.output import print_json, print_table, print_players_rich, print_comparison, coins_display
+from ..utils.output import print_json, print_table, print_players_rich, print_comparison, coins_display, print_price_history
 from ..utils.helpers import handle_errors, require_year
 
 
@@ -117,3 +117,19 @@ def compare(player1_id, player2_id, year, use_json):
         with FutbinClient() as client:
             comp = client.compare_players(player1_id, player2_id, year=yr)
         print_comparison(comp, json_mode=use_json)
+
+
+@players.command("price-history")
+@click.argument("player_id", type=int)
+@click.option("--year", type=int, default=None, help="Game year.")
+@click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
+def price_history(player_id, year, use_json):
+    """Show price history and trends for a player."""
+    with handle_errors(json_mode=use_json):
+        yr = require_year(year)
+        with FutbinClient() as client:
+            history = client.get_price_history(player_id, year=yr)
+        if not history.ps_prices and not history.pc_prices:
+            from ..core.exceptions import NotFoundError
+            raise NotFoundError(f"No price data for player {player_id}")
+        print_price_history(history, json_mode=use_json)

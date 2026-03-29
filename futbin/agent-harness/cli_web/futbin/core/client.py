@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup
 
-from cli_web.futbin.core.models import Player, SBC, Evolution, MarketItem
+from cli_web.futbin.core.models import Player, SBC, Evolution, MarketItem, MarketDetail, PriceHistory, FodderTier
 from .exceptions import (
     FutbinError, NetworkError, RateLimitError, ServerError,
     NotFoundError, ParsingError, InvalidInputError,
@@ -162,71 +162,80 @@ class FutbinClient:
         try:
             soup = self._soup(f"/{year}/player/{player_id}/player")
             return self._parse_player_detail(soup, player_id, year,
-                                             f"{BASE_URL}/{year}/player/{player_id}")
+                                             f"/{year}/player/{player_id}")
         except (NotFoundError, ParsingError):
             return None
 
     def _parse_player_detail(
         self, soup: BeautifulSoup, player_id: int, year: int, url: str
     ) -> Player:
-        """Parse player detail page."""
-        # Name from title
-        title = soup.find("title")
+        """Parse player detail page.
+
+        The page contains multiple player cards (different versions).
+        The FIRST card is the one matching the URL. We also extract
+        the price from the first .price-box-original-player element.
+        """
+        # Name from title: "Kylian Mbappé EA FC 26 - 91 - Rating and Price | FUTBIN"
         name = ""
+        title = soup.find("title")
         if title:
-            # "Kylian Mbappé EA FC 26 - 91 - Rating and Price | FUTBIN"
             name = title.text.split(" EA FC")[0].strip()
 
-        # Rating from page
+        # Rating — first playercard rating element on page (matches the URL's card)
         rating = 0
-        rating_el = soup.find(class_=re.compile(r"rating|player-rating"))
+        rating_el = soup.find(class_=re.compile(r"playercard-\d+-rating$"))
         if rating_el:
             try:
                 rating = int(rating_el.get_text(strip=True))
             except ValueError:
                 pass
 
-        # Stats
-        stats = {}
-        for stat_name in ("pac", "sho", "pas", "dri", "def", "phy"):
-            el = soup.find(attrs={"data-stat": stat_name}) or soup.find(
-                class_=re.compile(rf"\b{stat_name}\b", re.IGNORECASE)
-            )
-            if el:
-                try:
-                    stats[stat_name] = int(el.get_text(strip=True))
-                except ValueError:
-                    pass
-
-        # Prices — look for ps/xbox price spans
-        ps_price = None
-        xbox_price = None
-        for el in soup.find_all(attrs={"data-platform": True}):
-            platform = el.get("data-platform", "").lower()
-            price_text = el.get_text(strip=True).replace(",", "").replace(".", "")
-            val = _coin_str_to_int(price_text)
-            if "ps" in platform:
-                ps_price = val
-            elif "xbox" in platform or "xb" in platform:
-                xbox_price = val
-
-        # Club/nation from meta or structured data
-        club = ""
-        nation = ""
-        desc = soup.find("meta", attrs={"name": "description"})
-        if desc:
-            content = desc.get("content", "")
-            # "Kylian Mbappé Gold Rare - EA FC 26 - 91 rating, prices..."
-            pass  # not reliable for club/nation
-
-        # Position
+        # Position — first playercard position element
         position = ""
-        pos_el = soup.find(class_=re.compile(r"player-position|position"))
+        pos_el = soup.find(class_=re.compile(r"playercard-\d+-position$"))
         if pos_el:
             position = pos_el.get_text(strip=True)
 
-        # Version from URL or page structure
+        # Stats — from the first set of playercard stat-number elements
+        stats = {}
+        stat_pairs = soup.find_all(class_="playercard-stats")
+        stat_names = ["pac", "sho", "pas", "dri", "def", "phy"]
+        for i, stat_name in enumerate(stat_names):
+            if i < len(stat_pairs):
+                num_el = stat_pairs[i].find(class_="playercard-stat-number")
+                if num_el:
+                    try:
+                        stats[stat_name] = int(num_el.get_text(strip=True))
+                    except ValueError:
+                        pass
+
+        # Prices — from the first .price-box-original-player for each platform
+        ps_price = None
+        xbox_price = None  # PC price
+        ps_box = soup.find(class_=lambda c: c and "price-box-original-player" in c and "platform-ps-only" in c)
+        if ps_box:
+            price_el = ps_box.find(class_="lowest-price-1")
+            if price_el:
+                ps_price = _coin_str_to_int(price_el.get_text(strip=True))
+        pc_box = soup.find(class_=lambda c: c and "price-box-original-player" in c and "platform-pc-only" in c)
+        if pc_box:
+            price_el = pc_box.find(class_="lowest-price-1")
+            if price_el:
+                xbox_price = _coin_str_to_int(price_el.get_text(strip=True))
+
+        # Version — from meta description ("Gold Rare", "TOTY", etc.)
         version = ""
+        desc_el = soup.find("meta", attrs={"name": "description"})
+        if desc_el:
+            content = desc_el.get("content", "")
+            # "Kylian Mbappé Gold Rare - EA FC 26 ..."
+            m = re.search(r"(?:Mbappé|" + re.escape(name.split()[-1] if name else "") + r")\s+(.+?)\s*-\s*EA FC", str(content))
+            if m:
+                version = m.group(1).strip()
+
+        # Club/nation — not reliably available from the detail page HTML
+        club = ""
+        nation = ""
 
         return Player(
             id=player_id,
@@ -292,7 +301,7 @@ class FutbinClient:
         if rating_min is not None or rating_max is not None:
             lo = rating_min or 40
             hi = rating_max or 99
-            params["overall"] = f"{lo}-{hi}"
+            params["player_rating"] = f"{lo}-{hi}"
         if version:
             params["version"] = version
         if min_skills is not None:
@@ -430,16 +439,17 @@ class FutbinClient:
                             pass
 
                 # Prices — td.platform-ps-only / td.platform-pc-only
+                # or td.table-cross-price (used on /latest page)
                 ps_price = None
                 xbox_price = None
-                ps_cell = row.find("td", class_=lambda c: c and "platform-ps-only" in c)
+                ps_cell = row.find("td", class_=lambda c: c and ("platform-ps-only" in c or "table-cross-price" in c))
                 if ps_cell:
                     price_text = ps_cell.get_text(strip=True)
                     # Price text may include % change suffix — take first part
                     price_part = re.split(r'[+-]?\d+\.\d+%', price_text)[0].strip()
                     if price_part:
                         ps_price = _coin_str_to_int(price_part)
-                pc_cell = row.find("td", class_=lambda c: c and "platform-pc-only" in c)
+                pc_cell = row.find("td", class_=lambda c: c and ("platform-pc-only" in c or "table-pc-price" in c))
                 if pc_cell:
                     price_text = pc_cell.get_text(strip=True)
                     price_part = re.split(r'[+-]?\d+\.\d+%', price_text)[0].strip()
@@ -487,6 +497,306 @@ class FutbinClient:
                     )
                 )
         return items
+
+    def get_market_detail(self, rating: str) -> MarketDetail:
+        """Fetch detailed market index for a rating tier (e.g. '83', '100', 'icons').
+
+        Returns current value plus open/lowest/highest from /market/{rating}.
+        """
+        # Normalize: "icons" -> "Icons", "100" -> base /market
+        rating_path = rating
+        if rating.lower() == "icons":
+            rating_path = "Icons"
+        path = "/market" if rating in ("100", "index") else f"/market/{rating_path}"
+        soup = self._soup(path)
+        html = str(soup)
+
+        # Current value + change %
+        current = ""
+        change_pct = ""
+        # The index table on the page has the current values too
+        items = []
+        rows = soup.find_all("tr")
+        for row in rows[1:]:
+            cells = row.find_all("td")
+            if len(cells) >= 3:
+                name_el = cells[0].find("a") or cells[0]
+                row_name = name_el.get_text(strip=True)
+                if rating in row_name.lower() or (rating == "100" and "100" in row_name):
+                    current = cells[1].get_text(strip=True)
+                    change_pct = cells[2].get_text(strip=True)
+                    break
+
+        # Open / Lowest / Highest from page text
+        open_value = ""
+        lowest = ""
+        highest = ""
+        m = re.search(r"Open:\s*([\d.]+)", html)
+        if m:
+            open_value = m.group(1)
+        m = re.search(r"Lowest:\s*([\d.]+)", html)
+        if m:
+            lowest = m.group(1)
+        m = re.search(r"Highest:\s*([\d.]+)", html)
+        if m:
+            highest = m.group(1)
+
+        # Name for display
+        name = f"Index {rating.upper()}" if not rating.isdigit() else f"Index {rating}"
+
+        return MarketDetail(
+            name=name, rating=rating, current=current,
+            change_pct=change_pct, open_value=open_value,
+            lowest=lowest, highest=highest,
+        )
+
+    # ──────────────────────────────────────────────
+    # Popular Players
+    # ──────────────────────────────────────────────
+
+    def get_popular_players(self, limit: int = 50) -> list[Player]:
+        """Fetch trending/popular players from /popular page."""
+        soup = self._soup("/popular")
+        return self._parse_playercard_grid(soup, limit=limit)
+
+    # ──────────────────────────────────────────────
+    # Latest Players
+    # ──────────────────────────────────────────────
+
+    def get_latest_players(self, page: int = 1) -> tuple[list[Player], bool]:
+        """Fetch newly added players from /latest page. Returns (players, has_next)."""
+        params = {}
+        if page > 1:
+            params["page"] = str(page)
+        soup = self._soup("/latest", params)
+        players = self._parse_player_table(soup, DEFAULT_YEAR)
+        has_next = False
+        next_link = soup.find("a", attrs={"rel": "next"})
+        if not next_link:
+            for item in soup.find_all("li", class_="page-item"):
+                link = item.find("a")
+                if link and ("next" in link.get("rel", []) or "next" in link.get("aria-label", "").lower() or "»" in link.get_text()):
+                    has_next = True
+                    break
+        else:
+            has_next = True
+        return (players, has_next)
+
+    # ──────────────────────────────────────────────
+    # Price History
+    # ──────────────────────────────────────────────
+
+    def get_price_history(self, player_id: int, year: int = DEFAULT_YEAR) -> PriceHistory:
+        """Fetch price history from player detail page data attributes."""
+        # Search to find the player slug URL
+        results = self.search_players(str(player_id), year=year)
+        player = next((p for p in results if p.id == player_id), None)
+
+        if player and player.url:
+            path = player.url if player.url.startswith("/") else f"/{player.url}"
+        else:
+            path = f"/{year}/player/{player_id}/player"
+
+        soup = self._soup(path)
+
+        ps_data = []
+        pc_data = []
+
+        # Extract from data-ps-data / data-pc-data attributes on graph elements
+        ps_el = soup.find(attrs={"data-ps-data": True})
+        if ps_el:
+            try:
+                import json as _json
+                ps_data = _json.loads(ps_el["data-ps-data"])
+            except (ValueError, KeyError):
+                pass
+
+        pc_el = soup.find(attrs={"data-pc-data": True})
+        if pc_el:
+            try:
+                import json as _json
+                pc_data = _json.loads(pc_el["data-pc-data"])
+            except (ValueError, KeyError):
+                pass
+
+        # Get player name from title
+        name = ""
+        title_el = soup.find("title")
+        if title_el:
+            name = title_el.text.split(" EA FC")[0].strip()
+
+        return PriceHistory(
+            player_id=player_id,
+            player_name=name,
+            year=year,
+            ps_prices=ps_data,
+            pc_prices=pc_data,
+        )
+
+    # ──────────────────────────────────────────────
+    # SBC Fodder (cheapest by rating)
+    # ──────────────────────────────────────────────
+
+    def get_sbc_fodder(self) -> list["FodderTier"]:
+        """Fetch cheapest players per rating tier from /squad-building-challenges/cheapest."""
+        from .models import FodderPlayer
+        soup = self._soup("/squad-building-challenges/cheapest")
+        tiers = []
+        seen_ratings = set()
+
+        columns = soup.find_all(class_="stc-player-column")
+        for col in columns:
+            col_classes = col.get("class", [])
+            if "hide-not-pc" not in col_classes:
+                continue
+
+            rating_el = col.find(class_="stc-rating")
+            if not rating_el:
+                continue
+            try:
+                rating = int(rating_el.get_text(strip=True))
+            except ValueError:
+                continue
+            if rating in seen_ratings:
+                continue
+            seen_ratings.add(rating)
+
+            players = []
+            links = col.find_all("a", href=re.compile(r"/player/"))
+            for link in links:
+                href = link.get("href", "")
+                parts = href.strip("/").split("/")
+                if len(parts) < 3:
+                    continue
+                try:
+                    pid = int(parts[2])
+                except ValueError:
+                    continue
+                text = link.get_text(" ", strip=True)
+                m = re.match(r"(.+?)\s*\((\w+)\)\s*([\d,.]+[KkMm]?)", text)
+                if m:
+                    players.append(FodderPlayer(
+                        id=pid, name=m.group(1).strip(),
+                        position=m.group(2), price=m.group(3),
+                    ))
+
+            if players:
+                tiers.append(FodderTier(rating=rating, players=players))
+
+        tiers.sort(key=lambda t: t.rating)
+        return tiers
+
+    # ──────────────────────────────────────────────
+    # Market Movers (risers / fallers)
+    # ──────────────────────────────────────────────
+
+    def get_market_movers(
+        self, direction: str = "risers", platform: str = "ps",
+        page: int = 1, rating_min: int = 80,
+        min_price: int = 1000, max_price: int = 15_000_000,
+    ) -> tuple[list[Player], bool]:
+        """Fetch biggest price movers. direction='risers' or 'fallers'."""
+        price_field = f"{platform}_price" if platform == "ps" else "pc_price"
+        order = "desc" if direction == "risers" else "asc"
+        params: dict[str, Any] = {
+            "sort": f"{price_field}_change",
+            "order": order,
+            f"{price_field}": f"{min_price}-{max_price}",
+            "player_rating": f"{rating_min}-99",
+        }
+        if page > 1:
+            params["page"] = str(page)
+
+        soup = self._soup("/players", params)
+        players = self._parse_player_table(soup, DEFAULT_YEAR)
+        has_next = False
+        next_link = soup.find("a", attrs={"rel": "next"})
+        if not next_link:
+            for item in soup.find_all("li", class_="page-item"):
+                link = item.find("a")
+                if link and ("next" in link.get("rel", []) or "»" in link.get_text()):
+                    has_next = True
+                    break
+        else:
+            has_next = True
+        return (players, has_next)
+
+    # ──────────────────────────────────────────────
+    # Playercard grid parser (used by /popular)
+    # ──────────────────────────────────────────────
+
+    def _parse_playercard_grid(self, soup: BeautifulSoup, limit: int = 50) -> list[Player]:
+        """Parse playercard-wrapper links from grid pages (/popular, etc.)."""
+        players = []
+        cards = soup.find_all("a", class_="playercard-wrapper", limit=limit)
+        for card in cards:
+            href = card.get("href", "")
+            parts = href.strip("/").split("/")
+            if len(parts) < 3 or parts[1] != "player":
+                continue
+            try:
+                pid = int(parts[2])
+            except ValueError:
+                continue
+
+            rating = 0
+            rating_el = card.find(class_=re.compile(r"playercard-\d+-rating$"))
+            if rating_el:
+                try:
+                    rating = int(rating_el.get_text(strip=True))
+                except ValueError:
+                    pass
+
+            position = ""
+            pos_el = card.find(class_=re.compile(r"playercard-\d+-position"))
+            if pos_el:
+                position = pos_el.get_text(strip=True)
+
+            # Get name from URL slug (full name) since card only shows last name
+            name = parts[-1].replace("-", " ").title() if len(parts) > 3 else ""
+            if not name:
+                # Fallback: try card name element
+                name_el = card.find(class_="text-ellipsis")
+                if name_el:
+                    name = name_el.get_text(strip=True)
+            if not name:
+                name = f"Player {pid}"
+
+            ps_price = None
+            ps_el = card.find(class_="platform-ps-only")
+            if ps_el:
+                ps_price = _coin_str_to_int(ps_el.get_text(strip=True))
+
+            pc_price = None
+            pc_el = card.find(class_="platform-pc-only")
+            if pc_el:
+                pc_price = _coin_str_to_int(pc_el.get_text(strip=True))
+
+            # Stats from card (PAC/SHO/PAS/DRI/DEF/PHY)
+            stats = {}
+            text = card.get_text(" ", strip=True)
+            for stat_name in ("Pac", "Sho", "Pas", "Dri", "Def", "Phy"):
+                m = re.search(rf"(\d+)\s*{stat_name}", text)
+                if m:
+                    stats[stat_name.lower()] = int(m.group(1))
+
+            players.append(
+                Player(
+                    id=pid,
+                    name=name,
+                    position=position,
+                    version="",
+                    rating=rating,
+                    club="",
+                    nation="",
+                    year=DEFAULT_YEAR,
+                    url=href,
+                    ps_price=ps_price,
+                    xbox_price=pc_price,
+                    stats=stats,
+                )
+            )
+        return players
 
     # ──────────────────────────────────────────────
     # SBCs

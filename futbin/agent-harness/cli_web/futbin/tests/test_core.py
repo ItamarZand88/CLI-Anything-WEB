@@ -434,3 +434,43 @@ def test_player_comparison_to_dict():
     d = comp.to_dict()
     assert d["stat_diffs"]["pac"]["diff"] == 10
     assert d["player1"]["name"] == "A"
+
+
+def test_price_history_to_dict():
+    from cli_web.futbin.core.models import PriceHistory
+    h = PriceHistory(
+        player_id=40,
+        player_name="Mbappé",
+        year=26,
+        ps_prices=[[1700000000000, 500000], [1700086400000, 480000], [1700172800000, 520000]],
+        pc_prices=[[1700000000000, 450000], [1700086400000, 430000]],
+    )
+    d = h.to_dict()
+    assert d["player_id"] == 40
+    assert d["ps_current"] == 520000
+    assert d["ps_min"] == 480000
+    assert d["ps_max"] == 520000
+    assert d["pc_current"] == 430000
+    assert d["data_points"] == 3
+
+
+def test_fodder_tier_to_dict():
+    from cli_web.futbin.core.models import FodderTier, FodderPlayer
+    tier = FodderTier(rating=88, players=[
+        FodderPlayer(id=63, name="Lewandowski", position="ST", price="4.8K"),
+        FodderPlayer(id=32, name="Saka", position="RW", price="5K"),
+    ])
+    d = tier.to_dict()
+    assert d["rating"] == 88
+    assert d["cheapest_price"] == "4.8K"
+    assert len(d["players"]) == 2
+    assert d["players"][0]["name"] == "Lewandowski"
+
+
+def test_price_history_empty():
+    from cli_web.futbin.core.models import PriceHistory
+    h = PriceHistory(player_id=999, player_name="Unknown", year=26)
+    d = h.to_dict()
+    assert d["ps_current"] is None
+    assert d["pc_current"] is None
+    assert d["data_points"] == 0

@@ -152,6 +152,40 @@ def print_sbc_detail(sbc, json_mode=False):
             print(f"  - {r.get('text', '')}")
 
 
+def print_price_history(history, json_mode=False):
+    """Print player price history — summary with min/max/current."""
+    if json_mode:
+        print_json(history.to_dict())
+        return
+    from datetime import datetime
+    print(f"Price History: {history.player_name} (ID: {history.player_id})")
+    print()
+    for platform, prices in [("PS/Xbox", history.ps_prices), ("PC", history.pc_prices)]:
+        if not prices:
+            continue
+        current = prices[-1][1]
+        lowest = min(p[1] for p in prices)
+        highest = max(p[1] for p in prices)
+        first = prices[0][1]
+        change = current - first
+        change_pct = (change / first * 100) if first else 0
+        # Recent trend (last 7 data points)
+        recent = prices[-7:] if len(prices) >= 7 else prices
+        recent_change = recent[-1][1] - recent[0][1]
+        trend = "rising" if recent_change > 0 else ("falling" if recent_change < 0 else "stable")
+        # Format dates
+        first_date = datetime.fromtimestamp(prices[0][0] / 1000).strftime("%Y-%m-%d")
+        last_date = datetime.fromtimestamp(prices[-1][0] / 1000).strftime("%Y-%m-%d")
+        print(f"  {platform}:")
+        print(f"    Current:  {coins_display(current)}")
+        print(f"    Lowest:   {coins_display(lowest)}")
+        print(f"    Highest:  {coins_display(highest)}")
+        print(f"    Change:   {coins_display(abs(change))} ({'+'if change >= 0 else '-'}{abs(change_pct):.1f}%)")
+        print(f"    Trend:    {trend} (last {len(recent)} days)")
+        print(f"    Period:   {first_date} to {last_date} ({len(prices)} data points)")
+        print()
+
+
 def print_evolution_detail(evo, json_mode=False):
     """Print structured evolution detail."""
     if json_mode:

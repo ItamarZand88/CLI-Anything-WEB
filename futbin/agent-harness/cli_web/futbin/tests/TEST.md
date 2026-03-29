@@ -180,3 +180,62 @@ Total:  32 passed
 | test_cli_list_players_cheapest | PASS |
 
 **Total: 32/32 PASS (100%)**
+
+---
+
+## Part 4: Market & Trading Features (Refine)
+
+**Date:** 2026-03-29
+
+Added market analysis commands for finding deals: popular players, latest cards,
+cheapest by rating, price history, SBC fodder prices, market movers. Also fixed
+`players get` and `players compare` HTML scraping (broken by FUTBIN site redesign).
+
+### New Commands Added
+
+| Command | Description |
+|---------|-------------|
+| `market popular` | Trending/most-viewed players |
+| `market latest` | Newly released cards |
+| `market cheapest` | Cheapest players by rating |
+| `market movers` | Biggest price risers/fallers |
+| `market fodder` | SBC fodder prices per rating tier |
+| `market index --rating` | Detailed index for specific tier |
+| `players price-history` | Historical price data with trends |
+
+### Bugs Fixed
+
+| Bug | Fix |
+|-----|-----|
+| `players get` returned rating=0, stats={}, price=None | Rewrote `_parse_player_detail` with current CSS classes |
+| `players compare` returned no diffs | Fixed (depends on `get`) |
+| `player_rating` vs `overall` param | FUTBIN uses `player_rating` server-side, not `overall` |
+| `/latest` page prices null | Added `table-cross-price` / `table-pc-price` CSS classes |
+
+### Test Results
+
+```
+Unit:   35/35 passed in 0.5s
+E2E:    29/29 passed in 34s
+Total:  64 passed
+```
+
+| New Test | Status |
+|----------|--------|
+| test_price_history_to_dict | PASS |
+| test_fodder_tier_to_dict | PASS |
+| test_price_history_empty | PASS |
+| test_cli_market_popular_json | PASS |
+| test_cli_market_latest_json | PASS |
+| test_cli_market_cheapest_json | PASS |
+| test_cli_players_price_history_json | PASS |
+| test_cli_market_fodder_json | PASS |
+| test_cli_market_movers_json | PASS |
+| test_cli_market_movers_fallers_json | PASS |
+| test_popular_players_live | PASS |
+| test_latest_players_live | PASS |
+| test_price_history_live | PASS |
+| test_sbc_fodder_live | PASS |
+| test_market_movers_live | PASS |
+
+**Total: 64/64 PASS (100%)**

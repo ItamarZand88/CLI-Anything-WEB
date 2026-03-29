@@ -60,8 +60,37 @@ Side-by-side stats with color-coded diffs in Rich table output.
 ### Market Index
 
 ```bash
-cli-web-futbin market index --json
+cli-web-futbin market index --json                     # all tiers overview
+cli-web-futbin market index --rating 83 --json          # detail for 83-rated (open/low/high)
 ```
+
+Available `--rating` tiers: 81, 82, 83, 84, 85, 86, 100, icons
+
+### Market — Popular, Latest, Cheapest
+
+```bash
+cli-web-futbin market popular --limit 20 --json         # trending players
+cli-web-futbin market latest --json                     # newly released cards
+cli-web-futbin market cheapest --rating-min 88 --json   # cheapest by rating
+```
+
+### Market — Movers & SBC Fodder
+
+```bash
+cli-web-futbin market movers --json                     # biggest price risers
+cli-web-futbin market movers --fallers --json            # biggest fallers
+cli-web-futbin market movers --rating-min 85 --min-price 5000 --json
+cli-web-futbin market fodder --json                     # cheapest per rating tier (81-99)
+cli-web-futbin market fodder --rating-min 88 --json      # only 88+ tiers
+```
+
+### Player Price History
+
+```bash
+cli-web-futbin players price-history 40 --json           # Mbappé price over time
+```
+
+Shows current, lowest, highest, trend direction, and full [timestamp, price] series.
 
 ### Squad Building Challenges
 

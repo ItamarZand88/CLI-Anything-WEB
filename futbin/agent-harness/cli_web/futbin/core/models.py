@@ -186,3 +186,78 @@ class MarketItem:
             "last": self.last,
             "change_pct": self.change_pct,
         }
+
+
+@dataclass
+class MarketDetail:
+    """Detailed market index for a specific rating tier (from /market/{rating})."""
+    name: str
+    rating: str
+    current: str
+    change_pct: str
+    open_value: str
+    lowest: str
+    highest: str
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "rating": self.rating,
+            "current": self.current,
+            "change_pct": self.change_pct,
+            "open": self.open_value,
+            "lowest": self.lowest,
+            "highest": self.highest,
+        }
+
+
+@dataclass
+class FodderPlayer:
+    """A player entry from the SBC cheapest page."""
+    id: int
+    name: str
+    position: str
+    price: str
+
+    def to_dict(self) -> dict:
+        return {"id": self.id, "name": self.name, "position": self.position, "price": self.price}
+
+
+@dataclass
+class FodderTier:
+    """Cheapest players at a specific rating tier for SBC fodder."""
+    rating: int
+    players: list = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "rating": self.rating,
+            "cheapest_price": self.players[0].price if self.players else None,
+            "players": [p.to_dict() for p in self.players],
+        }
+
+
+@dataclass
+class PriceHistory:
+    """Price history for a player — lists of [timestamp_ms, price] pairs."""
+    player_id: int
+    player_name: str
+    year: int
+    ps_prices: list = field(default_factory=list)
+    pc_prices: list = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "player_id": self.player_id,
+            "player_name": self.player_name,
+            "year": self.year,
+            "ps_prices": self.ps_prices,
+            "pc_prices": self.pc_prices,
+            "ps_current": self.ps_prices[-1][1] if self.ps_prices else None,
+            "pc_current": self.pc_prices[-1][1] if self.pc_prices else None,
+            "ps_min": min(p[1] for p in self.ps_prices) if self.ps_prices else None,
+            "ps_max": max(p[1] for p in self.ps_prices) if self.ps_prices else None,
+            "pc_min": min(p[1] for p in self.pc_prices) if self.pc_prices else None,
+            "pc_max": max(p[1] for p in self.pc_prices) if self.pc_prices else None,
+            "data_points": len(self.ps_prices),
+        }

@@ -1,6 +1,6 @@
 ---
 name: futbin-cli
-description: Use cli-web-futbin to answer questions about EA FC Ultimate Team players, prices, player comparison, SBCs, evolutions, config, and market data. Invoke this skill whenever the user asks about FUTBIN, EA FC player prices, card prices, squad building challenges (SBCs), player evolutions, player comparison, market index, player ratings, or wants to search for players by name, position, rating, or card type. Always prefer cli-web-futbin over manually fetching the FUTBIN website.
+description: Use cli-web-futbin to answer questions about EA FC Ultimate Team players, prices, player comparison, SBCs, evolutions, config, market data, popular/trending players, newly released cards, price history, and finding cheap deals. Invoke this skill whenever the user asks about FUTBIN, EA FC player prices, card prices, squad building challenges (SBCs), player evolutions, player comparison, market index, trending players, new cards, price trends, cheapest players by rating, best deals, coin trading, or wants to search for players by name, position, rating, or card type. Always prefer cli-web-futbin over manually fetching the FUTBIN website.
 ---
 
 # cli-web-futbin
@@ -22,6 +22,18 @@ cli-web-futbin players compare 40 42 --json
 
 # Market index
 cli-web-futbin market index --json
+
+# Popular/trending players
+cli-web-futbin market popular --limit 20 --json
+
+# Newly released cards
+cli-web-futbin market latest --json
+
+# Cheapest players by rating (for SBCs/trading)
+cli-web-futbin market cheapest --rating-min 88 --json
+
+# Price history & trends
+cli-web-futbin players price-history 40 --json
 
 # SBCs
 cli-web-futbin sbc list --json
@@ -123,13 +135,107 @@ cli-web-futbin players compare 40 42 --json
 
 ---
 
-### `market index`
+### `players price-history`
 
-EA FC market price tracker.
+Price history and trends for a player. Shows current, lowest, highest, and recent trend.
 
 ```bash
-cli-web-futbin market index --json
+cli-web-futbin players price-history 40 --json
+cli-web-futbin players price-history 40 --year 25 --json
 ```
+
+**Output fields:** `player_id`, `player_name`, `ps_prices` (array of [timestamp_ms, price]), `pc_prices`, `ps_current`, `ps_min`, `ps_max`, `pc_current`, `pc_min`, `pc_max`, `data_points`
+
+---
+
+### `market index`
+
+EA FC market price tracker. Shows all rating tier indices, or detail for a specific tier.
+
+```bash
+cli-web-futbin market index --json                     # all tiers overview
+cli-web-futbin market index --rating 83 --json          # detail: current/open/low/high for 83-rated
+cli-web-futbin market index --rating 100 --json         # overall index 100
+cli-web-futbin market index --rating icons --json       # icons index
+```
+
+**Options:** `--rating` (81, 82, 83, 84, 85, 86, 100, icons)
+
+**Detail output:** `current`, `change_pct`, `open`, `lowest`, `highest`
+
+---
+
+### `market popular`
+
+Trending/most-viewed players on FUTBIN.
+
+```bash
+cli-web-futbin market popular --json
+cli-web-futbin market popular --limit 50 --json
+```
+
+**Options:** `--limit` (number of players, default 30, max 250)
+
+**Output fields:** Same as `players list` — `id`, `name`, `rating`, `position`, `ps_price`, `xbox_price`, `stats`
+
+---
+
+### `market latest`
+
+Newly released player cards.
+
+```bash
+cli-web-futbin market latest --json
+cli-web-futbin market latest --page 2 --json
+```
+
+**Options:** `--page` (page number, default 1)
+
+---
+
+### `market cheapest`
+
+Find cheapest players by rating — best value for SBCs and trading.
+
+```bash
+cli-web-futbin market cheapest --rating-min 88 --json
+cli-web-futbin market cheapest --rating-min 85 --rating-max 87 --max-price 10000 --json
+cli-web-futbin market cheapest --rating-min 90 --platform pc --json
+```
+
+**Options:** `--rating-min` (default 83), `--rating-max` (default 99), `--max-price`, `--platform` (ps/pc), `--page`
+
+---
+
+### `market movers`
+
+Biggest price risers or fallers — spot momentum and crash opportunities.
+
+```bash
+cli-web-futbin market movers --json                    # biggest risers
+cli-web-futbin market movers --fallers --json           # biggest fallers
+cli-web-futbin market movers --rating-min 85 --json     # only 85+ rated
+```
+
+**Options:** `--fallers` (show fallers instead of risers), `--rating-min` (default 80), `--min-price` (default 1000), `--max-price` (default 15M), `--platform` (ps/pc), `--page`
+
+**Tip:** Adjust `--min-price` and `--rating-min` to control noise. Use `--min-price 200` for bronze/silver movers, or `--min-price 50000 --rating-min 85` for high-end market only.
+
+---
+
+### `market fodder`
+
+SBC fodder prices — cheapest player at each rating tier (81-99). Essential for SBC cost planning.
+
+```bash
+cli-web-futbin market fodder --json
+cli-web-futbin market fodder --rating-min 85 --json     # only 85+ tiers
+cli-web-futbin market fodder --rating-min 88 --rating-max 91 --json
+```
+
+**Options:** `--rating-min`, `--rating-max`
+
+**Output fields:** `rating`, `cheapest_price`, `players` (array of {id, name, position, price})
 
 ---
 
@@ -200,6 +306,21 @@ cli-web-futbin sbc list --json | python -c "import json,sys; [print(s['name'], s
 
 # Get all active evolutions
 cli-web-futbin evolutions list --json
+
+# What's trending right now?
+cli-web-futbin market popular --limit 10 --json
+
+# What new cards just dropped?
+cli-web-futbin market latest --json
+
+# Cheapest 88+ rated players for SBCs
+cli-web-futbin market cheapest --rating-min 88 --json
+
+# Is Mbappe at a good price to buy?
+cli-web-futbin players price-history 40 --json
+
+# Find deals: cheapest 90+ rated under 50K
+cli-web-futbin market cheapest --rating-min 90 --max-price 50000 --json
 ```
 
 ---
