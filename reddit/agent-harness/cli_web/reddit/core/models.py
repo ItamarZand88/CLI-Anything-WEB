@@ -72,6 +72,7 @@ def format_comment(child: dict) -> dict:
     d = child.get("data", child)
     return {
         "id": d.get("id", ""),
+        "parent_id": d.get("parent_id", ""),
         "author": d.get("author", "[deleted]"),
         "body": d.get("body", ""),
         "score": d.get("score", 0),

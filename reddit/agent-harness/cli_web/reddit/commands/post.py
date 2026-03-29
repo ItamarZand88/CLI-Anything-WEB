@@ -23,14 +23,18 @@ def _parse_post_url(url_or_id: str) -> tuple[str, str, str]:
     Accepts:
       - Full URL: https://www.reddit.com/r/python/comments/abc123/my_post/
       - Short path: r/python/comments/abc123/my_post
-      - Just the post ID: abc123 (requires --sub option)
+      - Just the post ID: abc123 (subreddit resolved by Reddit API)
+      - Fullname: t3_abc123 (stripped to abc123)
     """
     # Full URL or path with /r/sub/comments/id/slug pattern
     match = re.search(r"r/([^/]+)/comments/([^/]+)(?:/([^/?]+))?", url_or_id)
     if match:
         return match.group(1), match.group(2), match.group(3) or ""
-    # Just an ID — caller must provide subreddit
-    return "", url_or_id.strip("/"), ""
+    # Strip t3_ prefix if present
+    post_id = url_or_id.strip("/")
+    if post_id.startswith("t3_"):
+        post_id = post_id[3:]
+    return "", post_id, ""
 
 
 @post.command("get")
@@ -50,9 +54,7 @@ def get(url_or_id, sub, comment_limit, use_json):
     use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         subreddit, post_id, slug = _parse_post_url(url_or_id)
-        if not subreddit:
-            if not sub:
-                raise click.UsageError("Provide a full URL or use --sub to specify the subreddit.")
+        if not subreddit and sub:
             subreddit = sub
 
         client = RedditClient()
