@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.3.0...v0.4.0) (2026-03-29)
+
+
+### Features
+
+* **codewiki:** add CLI for Google Code Wiki with Gemini chat ([bab05a9](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/bab05a9935e886f6d482d491522cd7149d04a55b))
+* **codewiki:** add CLI for Google Code Wiki with Gemini chat ([66a291a](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/66a291add8024b046b48b85cb98c15afe6f1da7f))
+* **futbin:** market trading commands, price history, and fix player scraping ([#8](https://github.com/ItamarZand88/CLI-Anything-WEB/issues/8)) ([5e547ba](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/5e547ba1dcd725da179f8bfcf6b4f20906610dea))
+
 ## [0.3.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.2.0...v0.3.0) (2026-03-29)
 
 
