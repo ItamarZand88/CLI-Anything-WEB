@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.2.0...v0.3.0) (2026-03-29)
+
+
+### Features
+
+* add mitmproxy-based traffic capture (opt-in --mitmproxy flag) ([3867e02](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/3867e02524de5c1b877a5520d7690d9e900a79a6))
+* add mitmproxy-based traffic capture and enhanced traffic analysis ([9857f99](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/9857f996702db448dd76ce78834a1d27f25a4ae7))
+* add plugin agents, skills, and reddit newline fix ([32e024f](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/32e024f0d9d24dc02af179321d142a20ddf92f9c))
+* **plugin:** add 3 review agents, replace review-agents.md reference ([c1466bd](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/c1466bd4a23174e9f7de7f6edd1a89eb0052b11e))
+* **plugin:** add boilerplate generator skill for core/ scaffolding ([d9851a8](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/d9851a8eec05c1327c8467a740e2a0198793263e))
+* **plugin:** add cross-CLI consistency checker agent ([ab20302](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/ab20302cd5f4c6b5d311d40c63bba1dd7963f11e))
+* **plugin:** add gap analyzer skill for structured refine workflow ([2b7b6e3](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/2b7b6e39b63fdb1c9356a7116a4fe6f4e5fcba1b))
+* **plugin:** add review agents, boilerplate skill, consistency checker, gap analyzer + fix reddit newline escape ([ed665b9](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/ed665b929196f9551e0623b9c067915648b3379c))
+
+
+### Bug Fixes
+
+* add youtube + hackernews to CI test matrix, add CI step to Phase 4 ([59ddc63](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/59ddc6398f4e7c867ec4a734096d614c54bd6088))
+* **plugin:** address review findings across new agents and skills ([614fe4c](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/614fe4c135511a3373d713b07742b75235c3e7a9))
+* **plugin:** revert curl_cffi except narrowing — keep broad catch ([a8d0adc](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/a8d0adcf4f609ce505b01ca9662d0863484be78b))
+* **reddit:** post get works with just ID, t3_ prefix, and includes parent_id ([#7](https://github.com/ItamarZand88/CLI-Anything-WEB/issues/7)) ([4fdc8b9](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/4fdc8b9c5844190d602ccd4800b77c59dc252b9b))
+
 ## [0.2.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.1.0...v0.2.0) (2026-03-27)
 
 
