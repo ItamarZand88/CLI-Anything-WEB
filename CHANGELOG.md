@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.4.0...v0.4.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* **reddit:** improve comment tree display with box-drawing indent characters ([bddecc4](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/bddecc4fae66b29eaed0c5dd78d6cafb1a090ca6))
+
 ## [0.4.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.3.0...v0.4.0) (2026-03-29)
 
 
