@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.2](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.4.1...v0.4.2) (2026-03-30)
+
+
+### Bug Fixes
+
+* **registry:** update CLI count from 12 to 13 ([5b060e5](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/5b060e59f4405d54cabf26a257b6829747f0d56e))
+
 ## [0.4.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.4.0...v0.4.1) (2026-03-29)
 
 
