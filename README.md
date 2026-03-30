@@ -267,7 +267,8 @@ CLI-Anything-WEB/
 ├── futbin/                      # 🎮 FUTBIN (HTML + JSON)
 ├── gh-trending/                 # 📈 GitHub Trending (HTML scraping)
 ├── youtube/                     # 🎬 YouTube (InnerTube REST API)
-└── hackernews/                  # 📰 Hacker News (Firebase + Algolia API)
+├── hackernews/                  # 📰 Hacker News (Firebase + Algolia API)
+└── codewiki/                    # 📚 Google Code Wiki (batchexecute RPC)
 ```
 
 <br>
