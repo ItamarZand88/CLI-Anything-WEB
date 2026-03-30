@@ -43,28 +43,99 @@ def format_post_summary(child: dict) -> dict:
     }
 
 
-def format_post_detail(post_data: dict, comments_data: dict | None = None) -> dict:
-    """Full post detail with comments for --json output."""
+def format_post_detail(post_data: dict, comments_data: dict | None = None,
+                       more_children_fn=None, link_id: str = "",
+                       thread_fn=None, post_id: str = "") -> dict:
+    """Full post detail with comments for --json output.
+
+    Args:
+        more_children_fn: Optional callable(link_id, child_ids) -> list[dict]
+            to fetch collapsed 'more' comment objects.
+        link_id: Post fullname (t3_xxx) for fetching 'more' children.
+        thread_fn: Optional callable(post_id, comment_id) -> list to fetch
+            'continue this thread' deep comment chains.
+        post_id: Post ID (without t3_ prefix) for thread_fn calls.
+    """
     post = format_post_summary(post_data)
     post["selftext"] = (post_data.get("data", post_data)).get("selftext", "")
 
-    comments = []
+    comments: list[dict] = []
+    more_ids: list[str] = []
+    continue_thread_parents: list[str] = []
     if comments_data:
-        _collect_comments(comments_data.get("data", {}).get("children", []), comments)
+        _collect_comments(
+            comments_data.get("data", {}).get("children", []),
+            comments,
+            more_ids,
+            continue_thread_parents,
+        )
+
+    # Fetch collapsed 'more' comments (have IDs)
+    if more_ids and more_children_fn and link_id:
+        try:
+            extra = more_children_fn(link_id, more_ids)
+            for thing in extra:
+                if thing.get("kind") == "t1":
+                    comments.append(format_comment(thing))
+        except Exception:
+            pass
+
+    # Fetch 'continue this thread' deep chains (empty IDs)
+    if continue_thread_parents and thread_fn and post_id:
+        for parent_id in continue_thread_parents[:5]:  # Limit to 5 expansions
+            try:
+                # parent_id is like "t1_od80pbe" — strip prefix for comment_id
+                comment_id = parent_id.replace("t1_", "")
+                thread_data = thread_fn(post_id, comment_id)
+                if len(thread_data) > 1:
+                    thread_comments: list[dict] = []
+                    _collect_comments(
+                        thread_data[1].get("data", {}).get("children", []),
+                        thread_comments,
+                    )
+                    # Only add comments we don't already have
+                    existing_ids = {c["id"] for c in comments}
+                    for c in thread_comments:
+                        if c["id"] not in existing_ids:
+                            comments.append(c)
+            except Exception:
+                pass
 
     post["comments"] = comments
     return post
 
 
-def _collect_comments(children: list[dict], comments: list[dict]) -> None:
-    """Flatten Reddit comment trees while preserving depth."""
+def _collect_comments(children: list[dict], comments: list[dict],
+                      more_ids: list[str] | None = None,
+                      continue_thread_parents: list[str] | None = None) -> None:
+    """Flatten Reddit comment trees while preserving depth.
+
+    Collects 'more' object child IDs into more_ids for later fetching.
+    Collects parent IDs of 'continue this thread' links into continue_thread_parents.
+    """
     for child in children:
-        if child.get("kind") != "t1":
-            continue
-        comments.append(format_comment(child))
-        replies = child.get("data", {}).get("replies")
-        if isinstance(replies, dict):
-            _collect_comments(replies.get("data", {}).get("children", []), comments)
+        kind = child.get("kind")
+        if kind == "t1":
+            comments.append(format_comment(child))
+            replies = child.get("data", {}).get("replies")
+            if isinstance(replies, dict):
+                _collect_comments(
+                    replies.get("data", {}).get("children", []),
+                    comments,
+                    more_ids,
+                    continue_thread_parents,
+                )
+        elif kind == "more":
+            more_data = child.get("data", {})
+            child_ids = more_data.get("children", [])
+            if child_ids and more_ids is not None:
+                # Normal collapsed comments — fetch via morechildren API
+                more_ids.extend(child_ids)
+            elif not child_ids and continue_thread_parents is not None:
+                # "Continue this thread" — empty IDs, need permalink fetch
+                parent = more_data.get("parent_id", "")
+                if parent:
+                    continue_thread_parents.append(parent)
 
 
 def format_comment(child: dict) -> dict:

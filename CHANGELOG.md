@@ -82,6 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Flair support for cli-web-reddit** — `submit flairs <subreddit>` lists available flairs, `--flair ID` on `submit text`/`submit link`.
 
 ### Fixed
+- **reddit**: Deep comments bug — `post get` now fetches all deeply nested comments by expanding Reddit's "more" objects via `/api/morechildren.json` and "continue this thread" chains via permalink `.json`. Previously comments deeper than ~10 levels were silently dropped.
 - **gh-trending**: Added missing UTF-8 stderr fix for Windows, `handle_errors()` context manager, correct error codes (AUTH_EXPIRED, RATE_LIMITED), `RateLimitError.to_dict()` includes retry_after, `ServerError` stores status_code, REPL banner shows "GitHub Trending" instead of "Gh Trending".
 - **reddit**: Added auth retry on recoverable AuthError, `RedditError.to_dict()`, replaced `click.ClickException` with `SubmitError` in submit/comment commands, fixed stderr UTF-8, added `load_cookies()` plain dict handling, removed dead client methods.
 - **pexels**: Replaced `click.ClickException` with `NotFoundError` in videos/photos download, added `to_dict()` to `PexelsError`, added retry_after to JSON errors, fixed stderr UTF-8, removed duplicate normalizers from client.py, removed dead `raise_for_status()`.

@@ -248,7 +248,7 @@ class RedditClient:
     # ── Post detail ──────────────────────────────────────────────
 
     def post_detail(self, subreddit: str, post_id: str, slug: str = "",
-                    comment_limit: int = 50) -> list:
+                    comment_limit: int = 50, depth: int | None = None) -> list:
         """Get post + comments. Returns [post_listing, comments_listing].
 
         If subreddit is empty, uses /comments/{id}.json which works without
@@ -258,7 +258,40 @@ class RedditClient:
             path = f"/r/{subreddit}/comments/{post_id}/{slug}.json"
         else:
             path = f"/comments/{post_id}.json"
-        return self._get(path, params={"limit": comment_limit})
+        params: dict = {"limit": comment_limit}
+        if depth is not None:
+            params["depth"] = depth
+        return self._get(path, params=params)
+
+    def more_children(self, link_id: str, children_ids: list[str]) -> list[dict]:
+        """Fetch collapsed/hidden comment children via /api/morechildren.json.
+
+        Reddit returns 'more' objects when comments are too deeply nested.
+        This fetches the actual comment data for those IDs.
+        """
+        if not children_ids:
+            return []
+        path = "/api/morechildren.json"
+        params = {
+            "api_type": "json",
+            "link_id": link_id if link_id.startswith("t3_") else f"t3_{link_id}",
+            "children": ",".join(children_ids[:100]),  # Reddit limit: 100 per call
+        }
+        resp = self._get(path, params=params)
+        # Response: {"json": {"data": {"things": [{"kind": "t1", "data": {...}}, ...]}}}
+        if isinstance(resp, dict):
+            return resp.get("json", {}).get("data", {}).get("things", [])
+        return []
+
+    def comment_thread(self, post_id: str, comment_id: str,
+                       context: int = 0, depth: int = 20) -> list:
+        """Fetch a specific comment thread via permalink .json.
+
+        Used to expand 'continue this thread' links (more objects with empty IDs).
+        Returns [post_listing, comment_listing] like post_detail.
+        """
+        path = f"/comments/{post_id}/_/{comment_id}.json"
+        return self._get(path, params={"context": context, "depth": depth})
 
     # ── Authenticated: Me ────────────────────────────────────────
 

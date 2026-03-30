@@ -58,7 +58,8 @@ def get(url_or_id, sub, comment_limit, use_json):
             subreddit = sub
 
         client = RedditClient()
-        data = client.post_detail(subreddit, post_id, slug=slug, comment_limit=comment_limit)
+        data = client.post_detail(subreddit, post_id, slug=slug,
+                                  comment_limit=comment_limit, depth=50)
 
         # Reddit returns [post_listing, comments_listing]
         post_listing = data[0] if len(data) > 0 else {}
@@ -67,7 +68,16 @@ def get(url_or_id, sub, comment_limit, use_json):
         post_children = post_listing.get("data", {}).get("children", [])
         post_data = post_children[0] if post_children else {}
 
-        result = format_post_detail(post_data, comments_listing)
+        # Extract link_id for fetching collapsed comments
+        link_id = post_data.get("data", {}).get("name", "") or f"t3_{post_id}"
+
+        result = format_post_detail(
+            post_data, comments_listing,
+            more_children_fn=client.more_children,
+            link_id=link_id,
+            thread_fn=client.comment_thread,
+            post_id=post_id,
+        )
 
         if use_json:
             print_json(result)
