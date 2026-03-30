@@ -67,6 +67,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **cli-web-chatgpt** — 14th CLI. Ask questions, generate/download images, list conversations, browse models. Hybrid architecture: curl_cffi for read-only API, Camoufox stealth Firefox for chat/image generation (fully headless, bypasses Cloudflare). OpenAI SSO auth via browser login. 53 tests (34 unit + 19 E2E).
 - **cli-web-hackernews** — 12th CLI. Browse stories (top/new/best/ask/show/jobs), search via Algolia, view comments, user profiles. Auth-enabled: upvote, submit, comment, favorite, hide, view favorites/submissions/threads. Uses Firebase REST API + Algolia search + HN web forms. 61 tests (31 unit + 30 E2E).
 - **cli-web-youtube** — 11th CLI. Search videos, get video details (views, duration, keywords), browse trending by category, explore channels. Uses YouTube's InnerTube REST API. No auth required.
 - **Review step in Phase 4** — Standards skill now dispatches 3 parallel review agents (Traffic Fidelity, HARNESS Compliance, Output & UX) before the structural checklist and publish steps.
