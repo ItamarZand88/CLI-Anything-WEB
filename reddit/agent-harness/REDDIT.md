@@ -79,7 +79,11 @@
 ### Post — public
 | Command | Endpoint | Params |
 |---------|----------|--------|
-| `post get <permalink>` | `/{permalink}.json` | `limit` (comments) |
+| `post get <permalink>` | `/{permalink}.json` | `limit`, `depth` (comments) |
+
+Deep comment expansion: automatically fetches collapsed "more" objects via
+`/api/morechildren.json` and "continue this thread" chains via
+`/comments/{id}/_/{comment_id}.json`. No comments are silently dropped.
 
 ### Auth — CLI only
 | Command | Description |

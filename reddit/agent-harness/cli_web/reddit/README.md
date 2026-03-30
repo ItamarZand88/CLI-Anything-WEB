@@ -33,7 +33,7 @@ cli-web-reddit search subs "python" --json
 # User profile
 cli-web-reddit user info spez --json
 
-# Post detail with comments
+# Post detail with comments (auto-expands deeply nested threads)
 cli-web-reddit post get https://www.reddit.com/r/python/comments/abc123/my_post/ --json
 
 # Interactive REPL mode
@@ -48,7 +48,7 @@ cli-web-reddit
 | `sub` | `hot`, `new`, `top`, `info`, `rules`, `search` | Subreddit operations |
 | `search` | `posts`, `subs` | Search posts and subreddits |
 | `user` | `info`, `posts`, `comments` | User profiles and activity |
-| `post` | `get` | Post detail with comments |
+| `post` | `get` | Post detail with comments (auto-expands deep threads) |
 | `vote` | `up`, `down`, `unvote` | Vote on posts/comments (auth required) |
 | `submit` | `text`, `link` | Submit new posts (auth required) |
 | `comment` | `add`, `edit`, `delete` | Comment on posts (auth required) |
