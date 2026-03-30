@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.4.2...v0.5.0) (2026-03-30)
+
+
+### Features
+
+* **futbin:** add market analysis, arbitrage, scan, versions commands + trading knowledge base ([45aba74](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/45aba749a8054e7b5c8f34bf05cd962750d7a735))
+
 ## [0.4.2](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.4.1...v0.4.2) (2026-03-30)
 
 
