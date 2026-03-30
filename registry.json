@@ -110,6 +110,16 @@
       "namespace": "cli_web.codewiki",
       "commands": ["repos featured", "repos search", "wiki get", "wiki sections", "wiki section", "chat ask"],
       "install": "pip install -e codewiki/agent-harness"
+    },
+    {
+      "name": "cli-web-chatgpt",
+      "website": "chatgpt.com",
+      "protocol": "REST API + Camoufox browser",
+      "auth": "browser (OpenAI SSO)",
+      "directory": "chatgpt/agent-harness",
+      "namespace": "cli_web.chatgpt",
+      "commands": ["chat ask", "chat image", "conversations list", "conversations get", "images list", "images download", "images styles", "models", "me", "auth login", "auth status", "auth logout"],
+      "install": "pip install -e chatgpt/agent-harness"
     }
   ]
 }

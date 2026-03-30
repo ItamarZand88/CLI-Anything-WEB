@@ -19,14 +19,14 @@
   <a href="https://github.com/ItamarZand88/CLI-Anything-WEB/stargazers"><img src="https://img.shields.io/github/stars/ItamarZand88/CLI-Anything-WEB?style=social" alt="GitHub Stars"></a>
   <a href="https://github.com/ItamarZand88/CLI-Anything-WEB/issues"><img src="https://img.shields.io/github/issues/ItamarZand88/CLI-Anything-WEB" alt="Issues"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
-  <img src="https://img.shields.io/badge/CLIs_generated-13-brightgreen" alt="13 CLIs">
+  <img src="https://img.shields.io/badge/CLIs_generated-14-brightgreen" alt="13 CLIs">
   <img src="https://img.shields.io/badge/claude%20code-plugin-blueviolet" alt="Claude Code Plugin">
   <a href="https://itamarzand88.github.io/CLI-Anything-WEB/registry/"><img src="https://img.shields.io/badge/registry-live-orange" alt="CLI Registry"></a>
 </p>
 
 <p align="center">
   <a href="#-quick-start"><img src="https://img.shields.io/badge/Quick_Start-blue?style=for-the-badge" alt="Quick Start"></a>
-  <a href="#-examples"><img src="https://img.shields.io/badge/13_CLIs-brightgreen?style=for-the-badge" alt="Examples"></a>
+  <a href="#-examples"><img src="https://img.shields.io/badge/14_CLIs-brightgreen?style=for-the-badge" alt="Examples"></a>
   <a href="#-supported-protocols"><img src="https://img.shields.io/badge/7_Protocols-orange?style=for-the-badge" alt="Protocols"></a>
   <a href="#-contributing"><img src="https://img.shields.io/badge/Contributing-purple?style=for-the-badge" alt="Contributing"></a>
 </p>
@@ -107,6 +107,7 @@ The agent opens a browser, asks you to log in if needed, captures traffic, and g
 | [`cli-web-youtube`](youtube/) | YouTube | InnerTube REST API | None | [📖 Skill](.claude/skills/youtube-cli/SKILL.md) | Search videos, video details, trending, channel info |
 | [`cli-web-hackernews`](hackernews/) | Hacker News | REST API (Firebase + Algolia) | Cookie (optional) | [📖 Skill](.claude/skills/hackernews-cli/SKILL.md) | Stories, search, comments, users, upvote, submit, comment, favorite |
 | [`cli-web-codewiki`](codewiki/) | Google Code Wiki | batchexecute RPC | None | [📖 Skill](.claude/skills/codewiki-cli/SKILL.md) | AI-generated repo docs, wiki sections, Gemini chat, download as .md |
+| [`cli-web-chatgpt`](chatgpt/) | ChatGPT | REST API + Camoufox | Browser (OpenAI SSO) | [📖 Skill](.claude/skills/chatgpt-cli/SKILL.md) | Ask questions, generate/download images, conversations, models |
 
 <details>
 <summary><strong>Try them yourself</strong></summary>
@@ -160,6 +161,11 @@ cli-web-hackernews stories top -n 5 --json
 pip install -e codewiki/agent-harness
 cli-web-codewiki wiki sections excalidraw/excalidraw --json
 cli-web-codewiki chat ask "How does rendering work?" --repo excalidraw/excalidraw --json
+
+# ChatGPT — ask questions, generate images
+pip install -e chatgpt/agent-harness
+cli-web-chatgpt chat ask "Explain quantum computing in one sentence" --json
+cli-web-chatgpt chat image "A sunset over mountains" -o sunset.png --json
 
 # Google AI Mode — AI-powered search
 cd gai/agent-harness && pip install -e . && playwright install chromium
@@ -268,7 +274,8 @@ CLI-Anything-WEB/
 ├── gh-trending/                 # 📈 GitHub Trending (HTML scraping)
 ├── youtube/                     # 🎬 YouTube (InnerTube REST API)
 ├── hackernews/                  # 📰 Hacker News (Firebase + Algolia API)
-└── codewiki/                    # 📚 Google Code Wiki (batchexecute RPC)
+├── codewiki/                    # 📚 Google Code Wiki (batchexecute RPC)
+└── chatgpt/                     # 🤖 ChatGPT (REST API + Camoufox)
 ```
 
 <br>

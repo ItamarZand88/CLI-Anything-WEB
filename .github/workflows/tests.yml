@@ -32,6 +32,7 @@ jobs:
           - { name: youtube,     dir: youtube/agent-harness,     pkg: youtube }
           - { name: hackernews,  dir: hackernews/agent-harness,  pkg: hackernews }
           - { name: codewiki,    dir: codewiki/agent-harness,    pkg: codewiki }
+          - { name: chatgpt,    dir: chatgpt/agent-harness,    pkg: chatgpt }
 
     name: ${{ matrix.cli.name }}
 
