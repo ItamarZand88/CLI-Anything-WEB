@@ -4,26 +4,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
-
-
-### Features
-
-* **futbin:** add `market analyze` — deep price analysis with BUY/SELL/HOLD signal, 30d avg, trend, volatility
-* **futbin:** add `market scan` — bulk undervalue detection across rating tiers with threshold filtering
-* **futbin:** add `market arbitrage` — cross-platform PS vs PC price gap finder
-* **futbin:** add `players versions` — all card versions compared with value score (stats per coin)
-* **futbin:** enhanced `players compare` — now includes total_stats, coins_per_stat, value_winner
-* **futbin:** enhanced `players get` — now returns skill_moves, weak_foot, height, foot, trend, price_range, bin_listings
-* **futbin:** add market knowledge base reference — weekly cycles, EA tax formulas, FC 26 promo calendar, fodder investment rules, mass bidding strategy, 4 CLI trading workflows
-
-### Bug Fixes
-
-* **futbin:** fix evolutions `expires` field leaking raw HTML text (regex too greedy)
-* **futbin:** fix `evolutions get` returning 404 (URL needed slug + int cast)
-* **futbin:** fix SBC `expires` regex matching too broadly
-* **futbin:** fix `players versions` returning different players with similar names
-
 ## [0.4.2](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.4.1...v0.4.2) (2026-03-30)
 
 
