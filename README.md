@@ -124,62 +124,84 @@ playwright install chromium        # for CLIs that require browser-based auth or
 python -m camoufox fetch           # for CLIs that use stealth browser (anti-bot bypass)
 ```
 
+**GitHub Trending** — no auth, great first test
 ```bash
-# Pick any CLI below — each is independent
-
-# GitHub Trending — no auth, great first test
 pip install -e gh-trending/agent-harness
 cli-web-gh-trending repos list --language python --since weekly --json
+```
 
-# FUTBIN — search EA FC players
+**FUTBIN** — search EA FC players
+```bash
 pip install -e futbin/agent-harness
 cli-web-futbin players search --name "Messi" --json
+```
 
-# NotebookLM — requires Google login
+**NotebookLM** — requires Google login
+```bash
 pip install -e notebooklm/agent-harness
 cli-web-notebooklm auth login
 cli-web-notebooklm notebooks list --json
+```
 
-# Product Hunt — no auth, bypasses Cloudflare
+**Product Hunt** — no auth, bypasses Cloudflare
+```bash
 pip install -e producthunt/agent-harness
 cli-web-producthunt posts list --json
+```
 
-# Unsplash — photo search
+**Unsplash** — photo search
+```bash
 pip install -e unsplash/agent-harness
 cli-web-unsplash photos search "mountains" --json
+```
 
-# Booking.com — hotel search
+**Booking.com** — hotel search
+```bash
 pip install -e booking/agent-harness
 cli-web-booking search find "Paris" --json
+```
 
-# Google Stitch — requires Google SSO login
+**Google Stitch** — requires Google SSO login
+```bash
 pip install -e stitch/agent-harness
 cli-web-stitch auth login
 cli-web-stitch projects list --json
+```
 
-# Pexels — free stock photos & videos
+**Pexels** — free stock photos & videos
+```bash
 pip install -e pexels/agent-harness
 cli-web-pexels photos search "mountains" --json
+```
 
-# Reddit — feeds, search, vote, comment, submit
+**Reddit** — feeds, search, vote, comment, submit
+```bash
 pip install -e reddit/agent-harness
 cli-web-reddit feed hot --limit 5 --json
+```
 
-# Hacker News — stories, search, upvote, submit
+**Hacker News** — stories, search, upvote, submit
+```bash
 pip install -e hackernews/agent-harness
 cli-web-hackernews stories top -n 5 --json
+```
 
-# Google Code Wiki — AI-generated repo docs + Gemini chat
+**Google Code Wiki** — AI-generated repo docs + Gemini chat
+```bash
 pip install -e codewiki/agent-harness
 cli-web-codewiki wiki sections excalidraw/excalidraw --json
 cli-web-codewiki chat ask "How does rendering work?" --repo excalidraw/excalidraw --json
+```
 
-# ChatGPT — ask questions, generate images
+**ChatGPT** — ask questions, generate images
+```bash
 pip install -e chatgpt/agent-harness
 cli-web-chatgpt chat ask "Explain quantum computing in one sentence" --json
 cli-web-chatgpt chat image "A sunset over mountains" -o sunset.png --json
+```
 
-# Google AI Mode — AI-powered search (requires Playwright browser)
+**Google AI Mode** — AI-powered search (requires Playwright browser)
+```bash
 pip install -e gai/agent-harness
 playwright install chromium
 cli-web-gai search ask "What is quantum computing" --json
