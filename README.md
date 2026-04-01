@@ -109,8 +109,20 @@ The agent opens a browser, asks you to log in if needed, captures traffic, and g
 | [`cli-web-codewiki`](codewiki/) | Google Code Wiki | batchexecute RPC | None | [📖 Skill](.claude/skills/codewiki-cli/SKILL.md) | AI-generated repo docs, wiki sections, Gemini chat, download as .md |
 | [`cli-web-chatgpt`](chatgpt/) | ChatGPT | REST API + Camoufox | Browser (OpenAI SSO) | [📖 Skill](.claude/skills/chatgpt-cli/SKILL.md) | Ask questions, generate/download images, conversations, models |
 
-<details>
-<summary><strong>Try them yourself</strong></summary>
+### Try them yourself
+
+```bash
+# Install all CLIs at once
+pip install -e stitch/agent-harness -e reddit/agent-harness -e booking/agent-harness \
+  -e gai/agent-harness -e notebooklm/agent-harness -e pexels/agent-harness \
+  -e unsplash/agent-harness -e producthunt/agent-harness -e futbin/agent-harness \
+  -e gh-trending/agent-harness -e youtube/agent-harness -e hackernews/agent-harness \
+  -e codewiki/agent-harness -e chatgpt/agent-harness
+
+# Required browsers
+playwright install chromium        # for CLIs that require browser-based auth or rendering
+python -m camoufox fetch           # for CLIs that use stealth browser (anti-bot bypass)
+```
 
 ```bash
 # Pick any CLI below — each is independent
@@ -167,12 +179,11 @@ pip install -e chatgpt/agent-harness
 cli-web-chatgpt chat ask "Explain quantum computing in one sentence" --json
 cli-web-chatgpt chat image "A sunset over mountains" -o sunset.png --json
 
-# Google AI Mode — AI-powered search
-cd gai/agent-harness && pip install -e . && playwright install chromium
+# Google AI Mode — AI-powered search (requires Playwright browser)
+pip install -e gai/agent-harness
+playwright install chromium
 cli-web-gai search ask "What is quantum computing" --json
 ```
-
-</details>
 
 ### Agent-Native: Claude uses the CLIs automatically
 
