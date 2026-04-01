@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 
 from ..core.client import ChatGPTClient
-from ..utils.helpers import handle_errors, print_json, truncate
+from ..utils.helpers import handle_errors, print_json, resolve_json_mode, truncate
 
 
 @click.group("images")
@@ -17,10 +17,11 @@ def images_group():
 
 @images_group.command("list")
 @click.option("--limit", "-n", default=10, help="Number of images to show.")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def list_images(ctx, limit: int) -> None:
+def list_images(ctx, limit: int, json_mode: bool) -> None:
     """List recently generated images."""
-    json_mode = ctx.obj.get("json", False) if ctx.obj else False
+    json_mode = resolve_json_mode(json_mode)
 
     with handle_errors(json_mode=json_mode):
         with ChatGPTClient() as client:
@@ -50,10 +51,11 @@ def list_images(ctx, limit: int) -> None:
 @click.argument("file_id")
 @click.option("--conversation", "-c", required=True, help="Conversation ID containing the image.")
 @click.option("--output", "-o", default=None, type=click.Path(), help="Output file path.")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def download_image(ctx, file_id: str, conversation: str, output: str | None) -> None:
+def download_image(ctx, file_id: str, conversation: str, output: str | None, json_mode: bool) -> None:
     """Download a generated image by file ID."""
-    json_mode = ctx.obj.get("json", False) if ctx.obj else False
+    json_mode = resolve_json_mode(json_mode)
 
     with handle_errors(json_mode=json_mode):
         with ChatGPTClient() as client:
@@ -88,10 +90,11 @@ def download_image(ctx, file_id: str, conversation: str, output: str | None) -> 
 
 
 @images_group.command("styles")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def list_styles(ctx) -> None:
+def list_styles(ctx, json_mode: bool) -> None:
     """List available image styles."""
-    json_mode = ctx.obj.get("json", False) if ctx.obj else False
+    json_mode = resolve_json_mode(json_mode)
 
     with handle_errors(json_mode=json_mode):
         with ChatGPTClient() as client:

@@ -22,6 +22,13 @@ def json_error(code: str, message: str, **extra) -> str:
     return json.dumps({"error": True, "code": code, "message": message, **extra})
 
 
+def resolve_json_mode(json_mode: bool) -> bool:
+    """Return True if --json was passed locally or inherited from the parent group."""
+    ctx = click.get_current_context(silent=True)
+    parent_json = (ctx.obj or {}).get("json", False) if ctx else False
+    return json_mode or parent_json
+
+
 @contextmanager
 def handle_errors(json_mode: bool = False):
     try:

@@ -197,7 +197,7 @@ cli-web-codewiki chat ask "How does rendering work?" --repo excalidraw/excalidra
 ```bash
 pip install -e chatgpt/agent-harness
 cli-web-chatgpt chat ask "Explain quantum computing in one sentence" --json
-cli-web-chatgpt chat image "A sunset over mountains" -o sunset.png --json
+cli-web-chatgpt chat image "A sunset over mountains" --output sunset.png --json
 ```
 
 **Google AI Mode** — AI-powered search (requires Playwright browser)

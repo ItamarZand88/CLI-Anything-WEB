@@ -5,14 +5,15 @@ from __future__ import annotations
 import click
 
 from ..core.client import ChatGPTClient
-from ..utils.helpers import handle_errors, print_json
+from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
 
 @click.command("me")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def me(ctx) -> None:
+def me(ctx, json_mode: bool) -> None:
     """Show current user info."""
-    json_mode = ctx.obj.get("json", False) if ctx.obj else False
+    json_mode = resolve_json_mode(json_mode)
 
     with handle_errors(json_mode=json_mode):
         with ChatGPTClient() as client:
@@ -32,10 +33,11 @@ def me(ctx) -> None:
 
 
 @click.command("models")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def models(ctx) -> None:
+def models(ctx, json_mode: bool) -> None:
     """List available models."""
-    json_mode = ctx.obj.get("json", False) if ctx.obj else False
+    json_mode = resolve_json_mode(json_mode)
 
     with handle_errors(json_mode=json_mode):
         with ChatGPTClient() as client:

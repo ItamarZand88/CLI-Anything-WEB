@@ -5,7 +5,7 @@ from __future__ import annotations
 import click
 
 from ..core.client import ChatGPTClient
-from ..utils.helpers import handle_errors, print_json, truncate
+from ..utils.helpers import handle_errors, print_json, resolve_json_mode, truncate
 
 
 @click.group("conversations")
@@ -17,10 +17,11 @@ def conversations_group():
 @click.option("--limit", "-n", default=20, help="Number of conversations to show.")
 @click.option("--archived", is_flag=True, help="Show archived conversations.")
 @click.option("--starred", is_flag=True, help="Show starred conversations only.")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def list_conversations(ctx, limit: int, archived: bool, starred: bool) -> None:
+def list_conversations(ctx, limit: int, archived: bool, starred: bool, json_mode: bool) -> None:
     """List recent conversations."""
-    json_mode = ctx.obj.get("json", False) if ctx.obj else False
+    json_mode = resolve_json_mode(json_mode)
 
     with handle_errors(json_mode=json_mode):
         with ChatGPTClient() as client:
@@ -48,10 +49,11 @@ def list_conversations(ctx, limit: int, archived: bool, starred: bool) -> None:
 
 @conversations_group.command("get")
 @click.argument("conversation_id")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def get_conversation(ctx, conversation_id: str) -> None:
+def get_conversation(ctx, conversation_id: str, json_mode: bool) -> None:
     """View a conversation by ID."""
-    json_mode = ctx.obj.get("json", False) if ctx.obj else False
+    json_mode = resolve_json_mode(json_mode)
 
     with handle_errors(json_mode=json_mode):
         with ChatGPTClient() as client:

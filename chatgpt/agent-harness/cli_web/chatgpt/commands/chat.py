@@ -5,7 +5,7 @@ from __future__ import annotations
 import click
 
 from ..core.client import ChatGPTClient
-from ..utils.helpers import handle_errors, print_json
+from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
 try:
     from rich.console import Console
@@ -25,10 +25,11 @@ def chat_group():
 @click.argument("question")
 @click.option("--model", default=None, help="Model slug (e.g. gpt-5-4-thinking). Use 'models' command to list.")
 @click.option("--conversation", default=None, help="Continue an existing conversation by ID.")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def ask(ctx, question: str, model: str | None, conversation: str | None) -> None:
+def ask(ctx, question: str, model: str | None, conversation: str | None, json_mode: bool) -> None:
     """Ask ChatGPT a question."""
-    json_mode = ctx.obj.get("json", False) if ctx.obj else False
+    json_mode = resolve_json_mode(json_mode)
 
     with handle_errors(json_mode=json_mode):
         with ChatGPTClient() as client:
@@ -71,10 +72,11 @@ def ask(ctx, question: str, model: str | None, conversation: str | None) -> None
 @click.option("--style", default=None, help="Image style to prepend to prompt.")
 @click.option("--output", "-o", default=None, type=click.Path(), help="Save image to file.")
 @click.option("--conversation", default=None, help="Continue an existing conversation by ID.")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def image(ctx, prompt: str, style: str | None, output: str | None, conversation: str | None) -> None:
+def image(ctx, prompt: str, style: str | None, output: str | None, conversation: str | None, json_mode: bool) -> None:
     """Generate an image with ChatGPT."""
-    json_mode = ctx.obj.get("json", False) if ctx.obj else False
+    json_mode = resolve_json_mode(json_mode)
     full_prompt = f"{style} style: {prompt}" if style else prompt
 
     with handle_errors(json_mode=json_mode):
