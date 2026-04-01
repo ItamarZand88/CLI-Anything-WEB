@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.6.0...v0.6.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* **reddit:** fetch deeply nested comments ([0a4a207](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/0a4a20751f2890dcb6aaa97b4f2ee0c9bd8acd58))
+* **reddit:** fetch deeply nested comments that were silently dropped ([aa47181](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/aa47181176f8ff953ec61d91cc90a48d9b9a25e7))
+
 ## [0.6.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.5.0...v0.6.0) (2026-03-30)
 
 
