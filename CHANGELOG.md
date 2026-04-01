@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.2](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.6.1...v0.6.2) (2026-04-01)
+
+
+### Bug Fixes
+
+* **chatgpt:** add --json flag to all subcommands for consistency ([824c48d](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/824c48def26068d44647dd08e0d011e3a6a6115f))
+
 ## [0.6.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.6.0...v0.6.1) (2026-03-30)
 
 
