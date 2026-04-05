@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.6.2...v0.7.0) (2026-04-05)
+
+
+### Features
+
+* add cli-web-airbnb, cli-web-amazon, cli-web-tripadvisor (17 CLIs total) ([736da77](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/736da77bf7c6b3db86090c07a71be62e914b90f4))
+
 ## [0.7.0] — 2026-04-05
 
 ### Added
