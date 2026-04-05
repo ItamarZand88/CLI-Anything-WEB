@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] — 2026-04-05
+
+### Added
+
+- **cli-web-airbnb**: Airbnb stays search, listing details, guest reviews, availability calendars, and location autocomplete (no-auth, SSR HTML + niobeClientData, curl_cffi Akamai/DataDome bypass)
+- **cli-web-amazon**: Amazon product search, bestsellers, suggest, and product detail (SSR HTML + REST JSON, no auth required — public endpoints only)
+- **cli-web-tripadvisor**: TripAdvisor location search, hotels, restaurants, and attractions search + detail (no-auth, SSR HTML + JSON-LD, DataDome bypass via curl_cffi)
+
+### Removed
+
+- **cli-web-amazon**: Removed auth system (login/status/logout commands, cookie management, auth retry) — all implemented commands use public Amazon endpoints that require no authentication
+
 ## [0.6.2](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.6.1...v0.6.2) (2026-04-01)
 
 
@@ -90,6 +102,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **cli-web-tripadvisor** — Search TripAdvisor locations, hotels, restaurants, and attractions. No auth required. Bypasses DataDome bot protection via curl_cffi Safari iOS impersonation. Extracts data from SSR HTML JSON-LD (schema.org).
+- **cli-web-airbnb** — 15th CLI. Search Airbnb stays by location, dates, guests, and filters; get full listing details (rating, host, amenities, description); autocomplete location names. No auth required. Bypasses Akamai/DataDome bot protection via curl_cffi Chrome impersonation. Extracts data from SSR HTML niobeClientData (inline GraphQL). 71 tests (51 unit + 20 E2E).
 - **cli-web-chatgpt** — 14th CLI. Ask questions, generate/download images, list conversations, browse models. Hybrid architecture: curl_cffi for read-only API, Camoufox stealth Firefox for chat/image generation (fully headless, bypasses Cloudflare). OpenAI SSO auth via browser login. 53 tests (34 unit + 19 E2E).
 - **cli-web-hackernews** — 12th CLI. Browse stories (top/new/best/ask/show/jobs), search via Algolia, view comments, user profiles. Auth-enabled: upvote, submit, comment, favorite, hide, view favorites/submissions/threads. Uses Firebase REST API + Algolia search + HN web forms. 61 tests (31 unit + 30 E2E).
 - **cli-web-youtube** — 11th CLI. Search videos, get video details (views, duration, keywords), browse trending by category, explore channels. Uses YouTube's InnerTube REST API. No auth required.

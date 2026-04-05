@@ -153,6 +153,9 @@ Sites protected by AWS WAF return a 202 JavaScript challenge page to raw HTTP cl
 | `cli-web-hackernews` | `hackernews/` | REST API (httpx) | Firebase + Algolia API, cookie auth, stories/search/users/upvote/submit/comment |
 | `cli-web-codewiki` | `codewiki/` | batchexecute RPC (httpx) | No auth, Gemini-powered wiki/chat, repos/wiki/chat |
 | `cli-web-chatgpt` | `chatgpt/` | REST API + Camoufox browser | OpenAI SSO, chat/ask, image generation/download, headless Cloudflare bypass |
+| `cli-web-airbnb` | `airbnb/` | SSR HTML + niobeClientData (curl_cffi) | No auth, Akamai/DataDome bypass, search/listings/reviews/availability/autocomplete |
+| `cli-web-amazon` | `amazon/` | SSR HTML + REST JSON | No auth, public endpoints only — search/product/bestsellers/suggest |
+| `cli-web-tripadvisor` | `tripadvisor/` | SSR HTML + JSON-LD (curl_cffi) | No auth, DataDome bypass, locations/hotels/restaurants/attractions |
 
 ## Reference Examples
 

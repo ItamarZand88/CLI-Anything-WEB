@@ -61,7 +61,7 @@ def parse_network_file(network_path: Path, resources_dir: Path, filter_static: b
                     body = json.loads(body_file.read_text(encoding="utf-8"))
                 except (json.JSONDecodeError, UnicodeDecodeError):
                     try:
-                        body = body_file.read_text(encoding="utf-8")[:3000]
+                        body = body_file.read_text(encoding="utf-8")
                     except Exception:
                         body = "[binary content]"
 

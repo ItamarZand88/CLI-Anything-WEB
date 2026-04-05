@@ -27,3 +27,6 @@ venv/
 
 # Pipeline state
 **/phase-state.json
+
+# Skill IDs (local registration metadata, not for version control)
+**/.skill_id

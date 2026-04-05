@@ -33,6 +33,9 @@ jobs:
           - { name: hackernews,  dir: hackernews/agent-harness,  pkg: hackernews }
           - { name: codewiki,    dir: codewiki/agent-harness,    pkg: codewiki }
           - { name: chatgpt,    dir: chatgpt/agent-harness,    pkg: chatgpt }
+          - { name: airbnb,       dir: airbnb/agent-harness,       pkg: airbnb }
+          - { name: amazon,       dir: amazon/agent-harness,       pkg: amazon }
+          - { name: tripadvisor,  dir: tripadvisor/agent-harness,  pkg: tripadvisor }
 
     name: ${{ matrix.cli.name }}
 

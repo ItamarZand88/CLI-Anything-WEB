@@ -8,7 +8,30 @@
       "auth": "none",
       "directory": "futbin/agent-harness",
       "namespace": "cli_web.futbin",
-      "commands": ["players search", "players get", "players list", "players compare", "players price-history", "players versions", "market index", "market popular", "market latest", "market cheapest", "market movers", "market fodder", "market analyze", "market scan", "market arbitrage", "sbc list", "sbc get", "evolutions list", "evolutions get", "config set", "config show", "config reset"],
+      "commands": [
+        "players search",
+        "players get",
+        "players list",
+        "players compare",
+        "players price-history",
+        "players versions",
+        "market index",
+        "market popular",
+        "market latest",
+        "market cheapest",
+        "market movers",
+        "market fodder",
+        "market analyze",
+        "market scan",
+        "market arbitrage",
+        "sbc list",
+        "sbc get",
+        "evolutions list",
+        "evolutions get",
+        "config set",
+        "config show",
+        "config reset"
+      ],
       "install": "pip install -e futbin/agent-harness"
     },
     {
@@ -18,7 +41,13 @@
       "auth": "google_sso",
       "directory": "notebooklm/agent-harness",
       "namespace": "cli_web.notebooklm",
-      "commands": ["notebooks list", "notebooks create", "sources add", "chat ask", "artifacts generate"],
+      "commands": [
+        "notebooks list",
+        "notebooks create",
+        "sources add",
+        "chat ask",
+        "artifacts generate"
+      ],
       "install": "pip install -e notebooklm/agent-harness"
     },
     {
@@ -28,7 +57,10 @@
       "auth": "none",
       "directory": "gh-trending/agent-harness",
       "namespace": "cli_web.gh_trending",
-      "commands": ["repos list", "developers list"],
+      "commands": [
+        "repos list",
+        "developers list"
+      ],
       "install": "pip install -e gh-trending/agent-harness"
     },
     {
@@ -38,7 +70,10 @@
       "auth": "none",
       "directory": "producthunt/agent-harness",
       "namespace": "cli_web.producthunt",
-      "commands": ["posts list", "posts get"],
+      "commands": [
+        "posts list",
+        "posts get"
+      ],
       "install": "pip install -e producthunt/agent-harness"
     },
     {
@@ -48,7 +83,12 @@
       "auth": "none",
       "directory": "unsplash/agent-harness",
       "namespace": "cli_web.unsplash",
-      "commands": ["photos search", "photos get", "photos download", "topics list"],
+      "commands": [
+        "photos search",
+        "photos get",
+        "photos download",
+        "topics list"
+      ],
       "install": "pip install -e unsplash/agent-harness"
     },
     {
@@ -58,7 +98,11 @@
       "auth": "waf_cookies",
       "directory": "booking/agent-harness",
       "namespace": "cli_web.booking",
-      "commands": ["search find", "property get", "destinations resolve"],
+      "commands": [
+        "search find",
+        "property get",
+        "destinations resolve"
+      ],
       "install": "pip install -e booking/agent-harness"
     },
     {
@@ -68,7 +112,20 @@
       "auth": "google_sso",
       "directory": "stitch/agent-harness",
       "namespace": "cli_web.stitch",
-      "commands": ["projects list", "projects create", "projects rename", "projects duplicate", "projects delete", "projects download", "screens list", "screens get", "screens download", "design generate", "design theme", "design history"],
+      "commands": [
+        "projects list",
+        "projects create",
+        "projects rename",
+        "projects duplicate",
+        "projects delete",
+        "projects download",
+        "screens list",
+        "screens get",
+        "screens download",
+        "design generate",
+        "design theme",
+        "design history"
+      ],
       "install": "pip install -e stitch/agent-harness"
     },
     {
@@ -78,7 +135,18 @@
       "auth": "none",
       "directory": "pexels/agent-harness",
       "namespace": "cli_web.pexels",
-      "commands": ["photos search", "photos get", "photos download", "videos search", "videos get", "videos download", "users get", "users media", "collections get", "collections discover"],
+      "commands": [
+        "photos search",
+        "photos get",
+        "photos download",
+        "videos search",
+        "videos get",
+        "videos download",
+        "users get",
+        "users media",
+        "collections get",
+        "collections discover"
+      ],
       "install": "pip install -e pexels/agent-harness"
     },
     {
@@ -88,7 +156,45 @@
       "auth": "optional (OAuth via token_v2)",
       "directory": "reddit/agent-harness",
       "namespace": "cli_web.reddit",
-      "commands": ["feed hot", "feed new", "feed top", "feed rising", "feed popular", "sub hot", "sub new", "sub top", "sub info", "sub rules", "sub search", "sub join", "sub leave", "search posts", "search subs", "user info", "user posts", "user comments", "post get", "auth login", "auth logout", "auth status", "me profile", "me saved", "me upvoted", "me subscriptions", "me inbox", "vote up", "vote down", "vote unvote", "submit text", "submit link", "comment add", "comment edit", "comment delete", "saved save", "saved unsave"],
+      "commands": [
+        "feed hot",
+        "feed new",
+        "feed top",
+        "feed rising",
+        "feed popular",
+        "sub hot",
+        "sub new",
+        "sub top",
+        "sub info",
+        "sub rules",
+        "sub search",
+        "sub join",
+        "sub leave",
+        "search posts",
+        "search subs",
+        "user info",
+        "user posts",
+        "user comments",
+        "post get",
+        "auth login",
+        "auth logout",
+        "auth status",
+        "me profile",
+        "me saved",
+        "me upvoted",
+        "me subscriptions",
+        "me inbox",
+        "vote up",
+        "vote down",
+        "vote unvote",
+        "submit text",
+        "submit link",
+        "comment add",
+        "comment edit",
+        "comment delete",
+        "saved save",
+        "saved unsave"
+      ],
       "install": "pip install -e reddit/agent-harness"
     },
     {
@@ -98,7 +204,10 @@
       "auth": "none",
       "directory": "gai/agent-harness",
       "namespace": "cli_web.gai",
-      "commands": ["search ask", "search followup"],
+      "commands": [
+        "search ask",
+        "search followup"
+      ],
       "install": "pip install -e gai/agent-harness"
     },
     {
@@ -108,7 +217,14 @@
       "auth": "none",
       "directory": "codewiki/agent-harness",
       "namespace": "cli_web.codewiki",
-      "commands": ["repos featured", "repos search", "wiki get", "wiki sections", "wiki section", "chat ask"],
+      "commands": [
+        "repos featured",
+        "repos search",
+        "wiki get",
+        "wiki sections",
+        "wiki section",
+        "chat ask"
+      ],
       "install": "pip install -e codewiki/agent-harness"
     },
     {
@@ -118,8 +234,65 @@
       "auth": "browser (OpenAI SSO)",
       "directory": "chatgpt/agent-harness",
       "namespace": "cli_web.chatgpt",
-      "commands": ["chat ask", "chat image", "conversations list", "conversations get", "images list", "images download", "images styles", "models", "me", "auth login", "auth status", "auth logout"],
+      "commands": [
+        "chat ask",
+        "chat image",
+        "conversations list",
+        "conversations get",
+        "images list",
+        "images download",
+        "images styles",
+        "models",
+        "me",
+        "auth login",
+        "auth status",
+        "auth logout"
+      ],
       "install": "pip install -e chatgpt/agent-harness"
+    },
+    {
+      "name": "cli-web-airbnb",
+      "website": "airbnb.com",
+      "protocol": "SSR HTML + niobeClientData (curl_cffi)",
+      "auth": "none",
+      "directory": "airbnb/agent-harness",
+      "namespace": "cli_web.airbnb",
+      "commands": [
+        "search stays",
+        "listings get",
+        "listings reviews",
+        "listings availability",
+        "autocomplete locations"
+      ],
+      "install": "pip install -e airbnb/agent-harness"
+    },
+    {
+      "name": "cli-web-amazon",
+      "website": "https://www.amazon.com",
+      "protocol": "SSR HTML + REST JSON",
+      "auth": "none",
+      "directory": "amazon/agent-harness",
+      "namespace": "cli_web.amazon",
+      "commands": ["search", "suggest", "product get", "bestsellers"],
+      "install": "pip install -e amazon/agent-harness"
+    },
+    {
+      "name": "cli-web-tripadvisor",
+      "website": "https://www.tripadvisor.com",
+      "protocol": "SSR HTML + JSON-LD (curl_cffi)",
+      "auth": "none",
+      "directory": "tripadvisor/agent-harness",
+      "namespace": "cli_web.tripadvisor",
+      "commands": [
+        "locations search",
+        "hotels search",
+        "hotels get",
+        "restaurants search",
+        "restaurants get",
+        "attractions search",
+        "attractions get"
+      ],
+      "install": "pip install -e tripadvisor/agent-harness"
     }
   ]
 }
