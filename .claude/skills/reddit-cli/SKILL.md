@@ -137,5 +137,7 @@ cli-web-reddit user posts spez --limit 5 --json
 - Public read commands work without auth (uses Reddit's .json API with curl_cffi)
 - Write operations (vote, comment, submit, save) require `auth login` first
 - Auth uses `token_v2` cookie extracted via Playwright browser login
+- **Token auto-refresh**: when `token_v2` expires (~15-30 min), the CLI silently launches a headless browser with the saved profile to refresh it — no manual re-login needed
+- HTTP 403 on specific endpoints (e.g., flair fetch on some subreddits) is correctly reported as "Permission denied" rather than "AUTH_EXPIRED"
 - Rate limits: ~60 requests/minute for public API, ~600/minute with OAuth
 - All commands support `--json` for structured output

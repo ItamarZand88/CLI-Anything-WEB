@@ -96,6 +96,61 @@ def get_cookies() -> dict:
     return auth.get("cookies", {})
 
 
+def refresh_token() -> str | None:
+    """Silently refresh token_v2 using the persistent browser profile.
+
+    Launches a headless browser with the saved profile, navigates to Reddit
+    (which auto-refreshes the token_v2 cookie), extracts and saves the new token.
+    Returns the new token or None if refresh failed.
+    """
+    profile_dir = AUTH_DIR / "browser-profile"
+    if not profile_dir.exists():
+        return None
+
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        return None
+
+    try:
+        with sync_playwright() as p:
+            context = p.chromium.launch_persistent_context(
+                user_data_dir=str(profile_dir),
+                headless=True,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-first-run",
+                    "--no-default-browser-check",
+                ],
+            )
+
+            page = context.pages[0] if context.pages else context.new_page()
+            page.goto("https://www.reddit.com/", wait_until="domcontentloaded")
+            page.wait_for_timeout(3000)
+
+            cookies = context.cookies()
+            token = ""
+            cookie_dict = {}
+
+            for c in cookies:
+                if "reddit.com" in c.get("domain", ""):
+                    cookie_dict[c["name"]] = c["value"]
+                    if c["name"] == "token_v2":
+                        token = c["value"]
+
+            context.close()
+
+        if token:
+            save_auth(token, cookie_dict)
+            return token
+        return None
+    except Exception:
+        return None
+
+
 def login_browser() -> dict:
     """Open browser for Reddit login, extract cookies and token.
 

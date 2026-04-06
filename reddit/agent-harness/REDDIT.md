@@ -14,7 +14,8 @@
 ## Auth
 - Login via Python Playwright (`auth login` command)
 - Token stored at `~/.config/cli-web-reddit/auth.json`
-- Bearer token extracted from `token_v2` cookie
+- Bearer token extracted from `token_v2` cookie (expires ~15-30 min)
+- **Auto-refresh**: on token expiry, a headless browser silently navigates to reddit.com using the saved persistent profile to get a fresh `token_v2` — no manual re-login needed
 - Env var override: `CLI_WEB_REDDIT_AUTH_JSON`
 
 ## Data Model

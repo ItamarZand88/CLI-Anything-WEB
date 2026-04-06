@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from curl_cffi import requests as curl_requests
 
-from .auth import get_bearer_token, get_cookies, load_auth
+from .auth import get_bearer_token, get_cookies, load_auth, refresh_token
 from .exceptions import (
     AuthError,
     NetworkError,
@@ -107,23 +107,53 @@ class RedditClient:
 
     def _oauth_request(self, method: str, path: str, params: dict | None = None,
                        data: dict | None = None) -> dict | list:
-        """Execute an authenticated request with single retry on recoverable AuthError."""
+        """Execute an authenticated request with auto-refresh on token expiry.
+
+        Flow: try → if 401/403 retry once → if still failing, refresh token_v2
+        via headless browser → retry with new token → if still 403, check if
+        it's a permission issue (token valid but endpoint denied).
+        """
         url = f"{OAUTH_URL}{path}"
-        for attempt in range(2):
+        last_resp = None
+        for attempt in range(3):  # 0=first try, 1=quick retry, 2=after refresh
             try:
                 if method == "GET":
-                    resp = self._session.get(url, headers=self._oauth_headers(), params=params)
+                    last_resp = self._session.get(url, headers=self._oauth_headers(), params=params)
                 else:
-                    resp = self._session.post(url, headers=self._oauth_headers(), data=data)
+                    last_resp = self._session.post(url, headers=self._oauth_headers(), data=data)
             except AuthError:
+                if attempt < 2:
+                    # Token might be missing — try refresh
+                    new_token = refresh_token()
+                    if new_token and attempt == 1:
+                        continue
                 raise
             except Exception as exc:
                 raise NetworkError(f"Request failed: {exc}") from exc
             try:
-                return self._handle_response(resp, path)
+                return self._handle_response(last_resp, path)
             except AuthError as exc:
                 if attempt == 0 and exc.recoverable:
-                    continue  # retry once
+                    continue  # quick retry
+                if attempt == 1 and exc.recoverable:
+                    # Token truly expired — try headless browser refresh
+                    new_token = refresh_token()
+                    if new_token:
+                        continue  # retry with refreshed token
+                # After all retries failed on 403, distinguish permission vs auth
+                if last_resp is not None and last_resp.status_code == 403:
+                    try:
+                        me_resp = self._session.get(
+                            f"{OAUTH_URL}/api/v1/me",
+                            headers=self._oauth_headers(),
+                        )
+                        if me_resp.status_code == 200:
+                            raise RedditError(
+                                f"Permission denied for {path}. "
+                                f"Your account may not have access to this resource."
+                            ) from exc
+                    except (AuthError, NetworkError):
+                        pass  # token truly expired
                 raise
 
     def _oauth_get_listing(

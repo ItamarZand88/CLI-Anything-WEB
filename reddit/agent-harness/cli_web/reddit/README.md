@@ -62,6 +62,7 @@ All commands support `--json` for structured output and `--limit N` for paginati
 
 - **Reading is public** — feeds, subreddits, search, and user profiles work without auth
 - **Writing requires auth** — vote, comment, submit, save, and inbox commands need OAuth login (`cli-web-reddit auth login`)
+- **Token auto-refresh** — the `token_v2` session cookie expires every ~15-30 min, but the CLI silently refreshes it using a headless browser with the saved profile. No manual re-login needed.
 - Uses `curl_cffi` with Chrome impersonation (Reddit blocks plain HTTP clients)
 - Pagination via `--after` cursor (shown in output)
 - Time filters: `hour`, `day`, `week`, `month`, `year`, `all`
