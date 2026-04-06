@@ -182,6 +182,15 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 | `analyze-traffic.py` | Analyze raw-traffic.json → protocol/endpoint detection. v1.3.0 adds request sequence, session lifecycle, and endpoint size analysis when enhanced fields are present. | Auto-run by parse-trace.py or mitmproxy-capture.py |
 | `extract-browser-cookies.py` | Cookie extraction utility | During auth implementation |
 
+### Pipeline Automation Scripts (`scripts/`)
+
+| Script | Purpose | When to use |
+|--------|---------|-------------|
+| `scaffold-cli.py` | Generate full boilerplate structure from templates (exceptions, client, config, auth, CLI entry, setup.py) | Phase 2 — Step B.0, before implementing endpoint methods |
+| `validate-checklist.py` | Run ~58 mechanical checks from the quality checklist (AST + regex) | Phase 4 — before manual review, or via `/validate` command |
+| `generate-test-docs.py` | AST-parse test files for TEST.md Part 1 (plan), run pytest for Part 2 (results) | Phase 3 — after writing tests |
+| `smoke-test.py` | Post-install CLI validation (--help, --version, --json, protocol leak detection) | Phase 4 — after `pip install -e .` |
+
 ### Methodology References (`skills/methodology/references/`)
 
 | Reference | When to read | Used in |

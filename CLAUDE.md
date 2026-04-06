@@ -14,7 +14,9 @@ cli-anything-web-plugin/          # The plugin itself
 ├── HARNESS.md                    # Core methodology SOP (read this first)
 ├── commands/                     # Slash commands (/cli-anything-web, /record, /refine, etc.)
 ├── skills/                       # 4-phase skill system (capture → methodology → testing → standards)
-└── scripts/                      # parse-trace.py, mitmproxy-capture.py, analyze-traffic.py (v1.3.0), site-fingerprint.js, capture-checkpoint.py, phase-state.py, repl_skin.py
+├── scripts/                      # parse-trace.py, mitmproxy-capture.py, analyze-traffic.py (v1.3.0), site-fingerprint.js, capture-checkpoint.py, phase-state.py, repl_skin.py
+│                                 # Pipeline automation: scaffold-cli.py, validate-checklist.py, generate-test-docs.py, smoke-test.py
+└── templates/                    # .tpl files used by scaffold-cli.py (exceptions, client, auth, CLI entry, setup, RPC, etc.)
 ```
 
 Generated CLIs live in their own directories (e.g., `futbin/agent-harness/`) with namespace packages under `cli_web/`.
