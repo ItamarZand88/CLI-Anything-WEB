@@ -118,7 +118,10 @@ def raise_for_status(response) -> None:
         if hasattr(response, "headers"):
             raw = response.headers.get("Retry-After")
             if raw:
-                retry_after = float(raw)
+                try:
+                    retry_after = float(raw)
+                except ValueError:
+                    retry_after = None  # HTTP-date format, ignore
         raise RateLimitError(msg, retry_after=retry_after)
 
     # 5xx range

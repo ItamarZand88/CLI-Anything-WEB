@@ -92,8 +92,8 @@ class SmokeTest:
             return True
 
         # Try python -m
-        module = self.cli_name.replace("cli-web-", "cli_web.").replace("-", "_")
-        module += "." + self.cli_name.split("-")[-1].replace("-", "_") + "_cli"
+        app_name = self.cli_name.replace("cli-web-", "").replace("-", "_")
+        module = f"cli_web.{app_name}.{app_name}_cli"
         test_code, _, _ = run_cli([sys.executable, "-m", module], ["--help"])
         if test_code == 0:
             self.cli_cmd = [sys.executable, "-m", module]

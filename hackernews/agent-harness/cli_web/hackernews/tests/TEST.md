@@ -120,3 +120,24 @@
 - `test_get_submissions` — get submissions
 - `test_favorite_and_list` — favorite and list
 - `test_auth_validate` — auth validate
+
+---
+
+## Part 2: Test Results
+
+```
+============================= 31 passed in 0.32s ==============================
+(test_core.py — all unit tests pass)
+
+============================= 30 passed in 159.47s ============================
+(test_e2e.py — all E2E + subprocess + auth tests pass)
+```
+
+**Pass Rate: 61/61 (100%)**
+
+### Notes
+- E2E tests hit live Firebase API, Algolia search API, and HN web endpoints
+- Subprocess tests use `_resolve_cli()` with `CLI_WEB_FORCE_INSTALLED=1`
+- Auth E2E tests require valid `auth.json` (fail, not skip, without it)
+- Auth actions (upvote, favorite) scrape CSRF tokens from page HTML
+- Parallel HTTP fetching via asyncio in client

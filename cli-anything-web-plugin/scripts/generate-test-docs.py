@@ -193,11 +193,13 @@ def generate_results(tests_dir: Path, app_name: str) -> str:
     except FileNotFoundError:
         output = "ERROR: pytest not found. Install with: pip install pytest"
 
-    # Parse results
-    passed = len(re.findall(r"PASSED", output))
-    failed = len(re.findall(r"FAILED", output))
-    errors = len(re.findall(r"ERROR", output))
-    skipped = len(re.findall(r"SKIPPED", output))
+    # Parse results from pytest summary line (e.g., "3 passed, 1 failed in 0.5s")
+    summary_match = re.search(r"=+\s*(.*?)\s*=+\s*$", output, re.MULTILINE)
+    summary = summary_match.group(1) if summary_match else ""
+    passed = int(m.group(1)) if (m := re.search(r"(\d+) passed", summary)) else 0
+    failed = int(m.group(1)) if (m := re.search(r"(\d+) failed", summary)) else 0
+    errors = int(m.group(1)) if (m := re.search(r"(\d+) error", summary)) else 0
+    skipped = int(m.group(1)) if (m := re.search(r"(\d+) skipped", summary)) else 0
     total = passed + failed + errors + skipped
 
     # Time extraction
