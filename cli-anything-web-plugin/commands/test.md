@@ -44,7 +44,12 @@ This command invokes the `testing` skill for Phase 3.
      the installed package is being tested, not the source fallback
    - If this line is absent, the installed CLI was not found in PATH
 5. Parse test output: count passed, failed, skipped, errors
-6. Update `TEST.md` with results in standard format
+6. **Generate TEST.md** using the automated generator:
+   ```bash
+   python ${CLAUDE_PLUGIN_ROOT}/scripts/generate-test-docs.py full \
+     <app>/agent-harness/cli_web/<app>/tests --app-name <app>
+   ```
+   This produces both Part 1 (test plan from AST) and Part 2 (results from pytest).
 7. If failures exist, analyze and suggest fixes
 
 See the `testing` skill for detailed testing patterns and the

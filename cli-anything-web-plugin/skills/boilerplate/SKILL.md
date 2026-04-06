@@ -7,6 +7,16 @@ user-invocable: false
 
 # Boilerplate Generator
 
+> **Preferred method:** Use `scripts/scaffold-cli.py` instead of following this
+> skill manually. Run:
+> ```bash
+> python ${CLAUDE_PLUGIN_ROOT}/scripts/scaffold-cli.py <output-dir> \
+>   --app-name <app> --protocol <proto> --http-client <client> --auth-type <auth> \
+>   --resources <resources> [--has-polling] [--has-context] [--has-partial-ids]
+> ```
+> This generates all files below deterministically. Use this skill as fallback
+> documentation only if the script is unavailable.
+
 This skill generates the core/ and utils/ module scaffolds that are 80% identical
 across all cli-web-* CLIs. The methodology skill invokes this before writing
 implementation-specific code.

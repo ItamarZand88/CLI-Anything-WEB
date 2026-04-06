@@ -174,9 +174,24 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 
 ### Step B.0: Scaffold Core Modules
 
-Before writing implementation code, read `${CLAUDE_PLUGIN_ROOT}/skills/boilerplate/SKILL.md`
-and follow its instructions to scaffold the core/ modules. This generates exceptions.py,
-client.py skeleton, helpers.py, config.py, and (for batchexecute) the rpc/ subpackage.
+Run the scaffold generator script to create all boilerplate files:
+
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/scaffold-cli.py <app>/agent-harness \
+  --app-name <app> \
+  --protocol <rest|graphql|html-scraping|batchexecute> \
+  --http-client <httpx|curl_cffi> \
+  --auth-type <none|cookie|api-key|google-sso> \
+  --resources <comma-separated-resources> \
+  [--has-polling] [--has-context] [--has-partial-ids]
+```
+
+This generates exceptions.py, client.py skeleton, helpers.py, config.py, output.py,
+the CLI entry point with REPL, setup.py, conftest.py, repl_skin.py, and (for
+batchexecute) the rpc/ subpackage.
+
+> **Fallback**: If the script is unavailable, read `${CLAUDE_PLUGIN_ROOT}/skills/boilerplate/SKILL.md`
+> and follow its instructions to scaffold manually.
 
 After scaffolding, review the generated files and customize `client.py` with actual
 endpoint methods from `<APP>.md`.

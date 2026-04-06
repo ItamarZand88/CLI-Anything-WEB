@@ -84,9 +84,19 @@ Each agent scores findings on a 0-100 confidence scale. When all 3 return:
 
 ## Step 2: Structural Quality Checklist (75 checks)
 
-Run the 75-check quality checklist from `references/quality-checklist.md`.
-This covers directory structure, required files, CLI patterns, core modules,
-tests, documentation, packaging, code quality, REPL, error handling, and UX.
+Run the automated checklist validator first to catch mechanical issues:
+
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/validate-checklist.py \
+  <app>/agent-harness --app-name <app> --auth-type <auth-type>
+```
+
+This checks ~65 of the 75 items automatically (directory structure, required files,
+CLI patterns, packaging, code quality, REPL, error handling). Fix any FAIL results
+before proceeding.
+
+For the remaining ~10 judgment-based checks (documentation quality, error message
+guidance, fixture realism), review manually per `references/quality-checklist.md`.
 
 ---
 
@@ -102,6 +112,15 @@ tests, documentation, packaging, code quality, REPL, error handling, and UX.
 4. Test help: `cli-web-<app> --help`
 
 ### Step 4: End-User Smoke Test (MANDATORY)
+
+Run the automated smoke test first for quick validation:
+
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/smoke-test.py cli-web-<app> --auth-type <auth-type>
+```
+
+This checks CLI binary resolution, --help, --version, auth status, and --json
+output for protocol leaks. Then proceed with manual verification below.
 
 This is the most critical verification step. The agent MUST simulate what a real
 end user would do after `pip install cli-web-<app>`. If this fails, the pipeline

@@ -43,6 +43,11 @@ check "scripts/repl_skin.py exists" "$([ -f "$SCRIPT_DIR/scripts/repl_skin.py" ]
 # scripts/parse-trace.py
 check "scripts/parse-trace.py exists" "$([ -f "$SCRIPT_DIR/scripts/parse-trace.py" ] && echo true || echo false)"
 
+# Pipeline automation scripts
+for script in scaffold-cli.py validate-checklist.py generate-test-docs.py smoke-test.py; do
+    check "scripts/$script exists" "$([ -f "$SCRIPT_DIR/scripts/$script" ] && echo true || echo false)"
+done
+
 # scripts/setup.sh executable
 if [ -f "$SCRIPT_DIR/scripts/setup.sh" ] && [ -x "$SCRIPT_DIR/scripts/setup.sh" ]; then
     check "scripts/setup.sh is executable" "true"

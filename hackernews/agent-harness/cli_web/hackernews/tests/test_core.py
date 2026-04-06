@@ -104,52 +104,42 @@ class TestClientHTTPErrors:
         return resp
 
     def test_rate_limit_raises(self):
-        with patch("httpx.Client") as mock_client_cls:
-            mock_client = MagicMock()
-            mock_client_cls.return_value.__enter__.return_value = mock_client
-            mock_client.get.return_value = self._mock_response(
-                429, headers={"retry-after": "30"}
-            )
-            client = HackerNewsClient()
-            with pytest.raises(RateLimitError) as exc_info:
-                client._get_json("https://hacker-news.firebaseio.com/v0/topstories.json")
-            assert exc_info.value.retry_after == 30
+        client = HackerNewsClient()
+        client._client = MagicMock()
+        client._client.get.return_value = self._mock_response(
+            429, headers={"retry-after": "30"}
+        )
+        with pytest.raises(RateLimitError) as exc_info:
+            client._get_json("https://hacker-news.firebaseio.com/v0/topstories.json")
+        assert exc_info.value.retry_after == 30
 
     def test_server_error_raises(self):
-        with patch("httpx.Client") as mock_client_cls:
-            mock_client = MagicMock()
-            mock_client_cls.return_value.__enter__.return_value = mock_client
-            mock_client.get.return_value = self._mock_response(503)
-            client = HackerNewsClient()
-            with pytest.raises(ServerError):
-                client._get_json("https://hacker-news.firebaseio.com/v0/topstories.json")
+        client = HackerNewsClient()
+        client._client = MagicMock()
+        client._client.get.return_value = self._mock_response(503)
+        with pytest.raises(ServerError):
+            client._get_json("https://hacker-news.firebaseio.com/v0/topstories.json")
 
     def test_404_raises_not_found(self):
-        with patch("httpx.Client") as mock_client_cls:
-            mock_client = MagicMock()
-            mock_client_cls.return_value.__enter__.return_value = mock_client
-            mock_client.get.return_value = self._mock_response(404)
-            client = HackerNewsClient()
-            with pytest.raises(NotFoundError):
-                client._get_json("https://hacker-news.firebaseio.com/v0/item/999999999.json")
+        client = HackerNewsClient()
+        client._client = MagicMock()
+        client._client.get.return_value = self._mock_response(404)
+        with pytest.raises(NotFoundError):
+            client._get_json("https://hacker-news.firebaseio.com/v0/item/999999999.json")
 
     def test_network_error_raises(self):
-        with patch("httpx.Client") as mock_client_cls:
-            mock_client = MagicMock()
-            mock_client_cls.return_value.__enter__.return_value = mock_client
-            mock_client.get.side_effect = httpx.ConnectError("Connection refused")
-            client = HackerNewsClient()
-            with pytest.raises(NetworkError):
-                client._get_json("https://hacker-news.firebaseio.com/v0/topstories.json")
+        client = HackerNewsClient()
+        client._client = MagicMock()
+        client._client.get.side_effect = httpx.ConnectError("Connection refused")
+        with pytest.raises(NetworkError):
+            client._get_json("https://hacker-news.firebaseio.com/v0/topstories.json")
 
     def test_timeout_raises_network_error(self):
-        with patch("httpx.Client") as mock_client_cls:
-            mock_client = MagicMock()
-            mock_client_cls.return_value.__enter__.return_value = mock_client
-            mock_client.get.side_effect = httpx.TimeoutException("Timed out")
-            client = HackerNewsClient()
-            with pytest.raises(NetworkError):
-                client._get_json("https://hacker-news.firebaseio.com/v0/topstories.json")
+        client = HackerNewsClient()
+        client._client = MagicMock()
+        client._client.get.side_effect = httpx.TimeoutException("Timed out")
+        with pytest.raises(NetworkError):
+            client._get_json("https://hacker-news.firebaseio.com/v0/topstories.json")
 
 
 # ─── Client data parsing tests ──────────────────────────────────────────────
@@ -299,12 +289,10 @@ class TestAuthModule:
             assert len(stories) == 2
 
     def test_authenticated_get_html_403_raises_auth_error(self):
-        with patch("httpx.Client") as mock_client_cls:
-            mock_client = MagicMock()
-            mock_client_cls.return_value.__enter__.return_value = mock_client
-            resp = MagicMock()
-            resp.status_code = 403
-            mock_client.get.return_value = resp
-            client = HackerNewsClient(user_cookie="expired_cookie")
-            with pytest.raises(AuthError):
-                client._get_html("https://news.ycombinator.com/item?id=1")
+        client = HackerNewsClient(user_cookie="expired_cookie")
+        resp = MagicMock()
+        resp.status_code = 403
+        client._web_client = MagicMock()
+        client._web_client.request.return_value = resp
+        with pytest.raises(AuthError):
+            client._get_html("https://news.ycombinator.com/item?id=1")
