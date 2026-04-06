@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.7.0...v0.8.0) (2026-04-06)
+
+
+### Features
+
+* add pipeline automation scripts and boilerplate templates ([e0e4cc4](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/e0e4cc44811392fae358f901e93e445d69e06a2f))
+* add pipeline automation scripts and boilerplate templates ([a7ca2ae](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/a7ca2aeaa8fc8e0b056b12fbad719c8ad32cb2b6))
+
+
+### Bug Fixes
+
+* address code review findings on PR [#21](https://github.com/ItamarZand88/CLI-Anything-WEB/issues/21) ([f78ed53](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/f78ed5300121df3c006fc19adfa04dc8661561f7))
+* make setup.sh executable and add context manager + auth retry to hackernews client ([6c00a4b](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/6c00a4b2e22dcdf6e0224036919eefc81f2e3376))
+* **reddit:** auto-refresh token_v2 on expiry + fix 403 misreported as AUTH_EXPIRED ([e56c3ea](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/e56c3ead10e4684486a860c096f86083216a9ea6))
+* wire new scripts into commands and verify-plugin.sh ([b3a3e7f](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b3a3e7f34b5ad73b5ff2e7777af374d44cff2975))
+
 ## [0.7.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.6.2...v0.7.0) (2026-04-05)
 
 
