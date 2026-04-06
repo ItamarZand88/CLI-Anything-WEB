@@ -285,8 +285,16 @@ See `references/resolve-cli-pattern.md` for the complete helper function and
 
 ### TEST.md Part 1 — Write As You Go
 
-As you write the tests, create `tests/TEST.md` documenting what you built.
-Write this alongside the tests, not before or after:
+After writing all tests, generate the test plan automatically:
+
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/generate-test-docs.py plan \
+  <app>/agent-harness/cli_web/<app>/tests/ --app-name <app>
+```
+
+This parses test files via AST and creates TEST.md Part 1 with test inventory,
+class breakdowns, and method listings. Review and enhance the generated plan
+with additional context:
 
 1. **Test Inventory** — List test files and actual test counts
 2. **Unit Test Plan** — For each core module: functions tested, edge cases covered
@@ -359,10 +367,15 @@ def test_create_via_list_diff(self):
 
 Part 2 is **appended** to the existing Part 1. Never overwrite.
 
-**Append** Part 2 to existing `TEST.md`:
-- Full `pytest -v --tb=no` output showing ALL tests passing
-- Summary: total tests, pass rate, execution date
-- Any gaps with explanation
+Generate Part 2 automatically after all tests pass:
+
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/generate-test-docs.py results \
+  <app>/agent-harness/cli_web/<app>/tests/ --app-name <app>
+```
+
+This runs pytest, captures output, and appends Part 2 with summary metrics and
+raw output. Review the generated results for accuracy.
 
 Include example CLI usage in README.md.
 
