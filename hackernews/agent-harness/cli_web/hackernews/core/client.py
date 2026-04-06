@@ -51,16 +51,32 @@ class HackerNewsClient:
     def __init__(self, timeout: float = 30.0, user_cookie: str | None = None):
         self._timeout = timeout
         self._user_cookie = user_cookie
+        self._client = httpx.Client(
+            headers=DEFAULT_HEADERS,
+            follow_redirects=True,
+            timeout=timeout,
+        )
+        self._web_client = httpx.Client(
+            headers=WEB_HEADERS,
+            follow_redirects=True,
+            timeout=timeout,
+        )
+
+    def close(self):
+        """Close underlying HTTP clients."""
+        self._client.close()
+        self._web_client.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
 
     def _get_json(self, url: str, params: dict[str, Any] | None = None) -> Any:
         """Fetch a URL and return parsed JSON."""
         try:
-            with httpx.Client(
-                headers=DEFAULT_HEADERS,
-                follow_redirects=True,
-                timeout=self._timeout,
-            ) as client:
-                response = client.get(url, params=params)
+            response = self._client.get(url, params=params)
         except httpx.TimeoutException as exc:
             raise NetworkError(f"Request timed out: {url}") from exc
         except httpx.RequestError as exc:
@@ -179,23 +195,19 @@ class HackerNewsClient:
             raise AuthError()
         return self._user_cookie
 
-    def _get_html(self, url: str, params: dict[str, str] | None = None) -> str:
+    def _get_html(
+        self, url: str, params: dict[str, str] | None = None, *, retry_on_auth: bool = True,
+    ) -> str:
         """Fetch a URL with auth cookie and return HTML body."""
         cookie = self._require_auth()
         try:
-            with httpx.Client(
-                headers=WEB_HEADERS,
-                cookies={"user": cookie},
-                follow_redirects=True,
-                timeout=self._timeout,
-            ) as client:
-                response = client.get(url, params=params)
+            response = self._web_client.get(url, params=params, cookies={"user": cookie})
         except httpx.TimeoutException as exc:
             raise NetworkError(f"Request timed out: {url}") from exc
         except httpx.RequestError as exc:
             raise NetworkError(f"Network error: {exc}") from exc
 
-        if response.status_code == 403:
+        if response.status_code in (401, 403) and retry_on_auth:
             raise AuthError("Auth cookie expired. Run: cli-web-hackernews auth login", recoverable=False)
         if response.status_code >= 500:
             raise ServerError(response.status_code)
@@ -204,23 +216,22 @@ class HackerNewsClient:
 
         return response.text
 
-    def _post_form(self, url: str, data: dict[str, str]) -> str:
+    def _post_form(
+        self, url: str, data: dict[str, str], *, retry_on_auth: bool = True,
+    ) -> str:
         """POST form data with auth cookie, return response text."""
         cookie = self._require_auth()
         try:
-            with httpx.Client(
-                headers={**WEB_HEADERS, "Content-Type": "application/x-www-form-urlencoded"},
-                cookies={"user": cookie},
-                follow_redirects=True,
-                timeout=self._timeout,
-            ) as client:
-                response = client.post(url, data=data)
+            response = self._web_client.post(
+                url, data=data, cookies={"user": cookie},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
         except httpx.TimeoutException as exc:
             raise NetworkError(f"Request timed out: {url}") from exc
         except httpx.RequestError as exc:
             raise NetworkError(f"Network error: {exc}") from exc
 
-        if response.status_code == 403:
+        if response.status_code in (401, 403) and retry_on_auth:
             raise AuthError("Auth cookie expired. Run: cli-web-hackernews auth login", recoverable=False)
         if response.status_code >= 500:
             raise ServerError(response.status_code)
