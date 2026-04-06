@@ -22,9 +22,18 @@ Target: $ARGUMENTS
 
 1. Parse the target path to extract `<app>` name
 2. Resolve the `agent-harness/` root and `cli_web/<app>/` package path
-3. Run all 11 categories of checks below
-4. Print the report in the format shown at the bottom
-5. Exit with summary: PASS if all 75 checks pass, FAIL otherwise
+3. **Run the automated checklist first** to catch mechanical issues:
+   ```bash
+   python ${CLAUDE_PLUGIN_ROOT}/scripts/validate-checklist.py \
+     <app>/agent-harness --app-name <app> --auth-type <auth-type>
+   ```
+4. **Run the smoke test** for post-install validation:
+   ```bash
+   python ${CLAUDE_PLUGIN_ROOT}/scripts/smoke-test.py cli-web-<app> --auth-type <auth-type>
+   ```
+5. Review remaining judgment-based checks manually per the standards skill
+6. Print the report in the format shown at the bottom
+7. Exit with summary: PASS if all checks pass, FAIL otherwise
 
 ## Prerequisites
 
