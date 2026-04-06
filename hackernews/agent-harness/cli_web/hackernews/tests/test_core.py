@@ -293,6 +293,6 @@ class TestAuthModule:
         resp = MagicMock()
         resp.status_code = 403
         client._web_client = MagicMock()
-        client._web_client.get.return_value = resp
+        client._web_client.request.return_value = resp
         with pytest.raises(AuthError):
             client._get_html("https://news.ycombinator.com/item?id=1")

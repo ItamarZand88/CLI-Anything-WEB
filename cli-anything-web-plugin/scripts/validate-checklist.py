@@ -72,6 +72,7 @@ class Validator:
         self.pkg_dir = harness_dir / "cli_web" / self.app_underscore
         self.results: list[CheckResult] = []
         self._file_cache: dict[Path, str | None] = {}
+        self._py_files_cache: dict[Path, list[Path]] = {}
 
     def check(self, category: str, check_id: str, description: str) -> CheckResult:
         r = CheckResult(category, check_id, description)
@@ -92,11 +93,18 @@ class Validator:
             return False
         return bool(re.search(pattern, content))
 
+    def _py_files(self, directory: Path) -> list[Path]:
+        """Return all .py files under directory (cached)."""
+        if directory not in self._py_files_cache:
+            if directory.exists():
+                self._py_files_cache[directory] = list(directory.rglob("*.py"))
+            else:
+                self._py_files_cache[directory] = []
+        return self._py_files_cache[directory]
+
     def _any_py_contains(self, directory: Path, pattern: str) -> bool:
         """Check if any .py file in directory (recursively) matches pattern."""
-        if not directory.exists():
-            return False
-        for f in directory.rglob("*.py"):
+        for f in self._py_files(directory):
             content = self._read_file(f)
             if content and re.search(pattern, content):
                 return True
@@ -384,7 +392,7 @@ class Validator:
         r = self.check(cat, "7.4", "Imports use cli_web.<app>.* prefix")
         # Check a sample of files for correct imports
         violations = []
-        for py in self.pkg_dir.rglob("*.py"):
+        for py in self._py_files(self.pkg_dir):
             content = self._read_file(py) or ""
             # Look for bare imports that should be namespaced
             if re.search(r"^from\s+core\b", content, re.MULTILINE):
@@ -409,9 +417,12 @@ class Validator:
         # Syntax check
         r = self.check(cat, "8.1", "No syntax errors in Python files")
         errors = []
-        for py in self.pkg_dir.rglob("*.py"):
+        for py in self._py_files(self.pkg_dir):
+            content = self._read_file(py)
+            if content is None:
+                continue
             try:
-                ast.parse(py.read_text(encoding="utf-8"))
+                ast.parse(content)
             except SyntaxError as e:
                 errors.append(f"{py.name}:{e.lineno}")
         if errors:
@@ -427,7 +438,7 @@ class Validator:
             r'password\s*=\s*["\'][^"\']{8,}["\']',
         ]
         found = []
-        for py in self.pkg_dir.rglob("*.py"):
+        for py in self._py_files(self.pkg_dir):
             if "test" in py.name:
                 continue
             content = self._read_file(py) or ""
@@ -443,7 +454,7 @@ class Validator:
         # Bare except
         r = self.check(cat, "8.3", "No bare except: blocks")
         bare = []
-        for py in self.pkg_dir.rglob("*.py"):
+        for py in self._py_files(self.pkg_dir):
             content = self._read_file(py) or ""
             if re.search(r"^\s*except\s*:", content, re.MULTILINE):
                 bare.append(py.name)

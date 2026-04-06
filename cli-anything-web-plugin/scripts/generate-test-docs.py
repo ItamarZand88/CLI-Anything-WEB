@@ -53,29 +53,18 @@ def parse_test_file(path: Path) -> list[dict]:
     else:
         default_layer = "Unit"
 
-    # Collect top-level test functions (not in classes)
+    # Single pass: collect top-level test functions and test classes
     top_funcs = []
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
             top_funcs.append(node.name)
-
-    if top_funcs:
-        results.append({
-            "class": f"(module-level in {filename})",
-            "methods": top_funcs,
-            "layer": default_layer,
-        })
-
-    # Collect test classes
-    for node in ast.iter_child_nodes(tree):
-        if isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
+        elif isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
             methods = [
                 n.name for n in ast.iter_child_nodes(node)
                 if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
                 and n.name.startswith("test_")
             ]
             if methods:
-                # Detect layer from class name
                 layer = default_layer
                 if "Subprocess" in node.name:
                     layer = "Subprocess"
@@ -89,6 +78,14 @@ def parse_test_file(path: Path) -> list[dict]:
                     "methods": methods,
                     "layer": layer,
                 })
+
+    if top_funcs:
+        # Prepend module-level functions before classes
+        results.insert(0, {
+            "class": f"(module-level in {filename})",
+            "methods": top_funcs,
+            "layer": default_layer,
+        })
 
     return results
 

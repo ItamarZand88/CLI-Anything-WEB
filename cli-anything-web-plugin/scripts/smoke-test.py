@@ -103,11 +103,29 @@ class SmokeTest:
         self._record("CLI binary found", False, f"{self.cli_name} not in PATH and python -m failed")
         return False
 
+    @staticmethod
+    def _parse_commands_from_help(help_output: str) -> list[str]:
+        """Extract subcommand names from Click --help output."""
+        commands = []
+        in_commands = False
+        for line in help_output.splitlines():
+            if re.match(r"^\s*Commands:", line, re.IGNORECASE):
+                in_commands = True
+                continue
+            if in_commands:
+                m = re.match(r"^\s+(\w[\w-]*)", line)
+                if m:
+                    commands.append(m.group(1))
+                elif line.strip() == "":
+                    break
+        return commands
+
     def check_help(self):
         """Check --help works."""
         code, out, err = run_cli(self.cli_cmd, ["--help"])
         passed = code == 0 and len(out) > 10
         self._record("--help responds", passed, f"exit={code}, output={len(out)} chars")
+        self._help_output = out if passed else ""
 
     def check_version(self):
         """Check --version works."""
@@ -132,24 +150,8 @@ class SmokeTest:
             self._record("Auth status --json", False, f"exit={code}, stderr={err[:200]}")
 
     def discover_commands(self) -> list[str]:
-        """Discover available subcommands from --help output."""
-        code, out, _ = run_cli(self.cli_cmd, ["--help"])
-        if code != 0:
-            return []
-
-        commands = []
-        in_commands = False
-        for line in out.splitlines():
-            if re.match(r"^\s*Commands:", line, re.IGNORECASE):
-                in_commands = True
-                continue
-            if in_commands:
-                m = re.match(r"^\s+(\w[\w-]*)", line)
-                if m:
-                    commands.append(m.group(1))
-                elif line.strip() == "":
-                    break
-        return commands
+        """Discover available subcommands from cached --help output."""
+        return self._parse_commands_from_help(getattr(self, "_help_output", ""))
 
     def check_command_json(self, cmd: str):
         """Check that a command with --json returns valid JSON."""
@@ -160,18 +162,7 @@ class SmokeTest:
             return
 
         # Check if this is a group with subcommands
-        subcmds = []
-        in_commands = False
-        for line in help_out.splitlines():
-            if re.match(r"^\s*Commands:", line, re.IGNORECASE):
-                in_commands = True
-                continue
-            if in_commands:
-                m = re.match(r"^\s+(\w[\w-]*)", line)
-                if m:
-                    subcmds.append(m.group(1))
-                elif line.strip() == "":
-                    break
+        subcmds = self._parse_commands_from_help(help_out)
 
         if subcmds:
             # Test first subcommand
