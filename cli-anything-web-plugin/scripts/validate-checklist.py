@@ -71,6 +71,7 @@ class Validator:
         self.has_auth = auth_type != "none"
         self.pkg_dir = harness_dir / "cli_web" / self.app_underscore
         self.results: list[CheckResult] = []
+        self._file_cache: dict[Path, str | None] = {}
 
     def check(self, category: str, check_id: str, description: str) -> CheckResult:
         r = CheckResult(category, check_id, description)
@@ -78,10 +79,12 @@ class Validator:
         return r
 
     def _read_file(self, path: Path) -> str | None:
-        try:
-            return path.read_text(encoding="utf-8")
-        except (FileNotFoundError, OSError):
-            return None
+        if path not in self._file_cache:
+            try:
+                self._file_cache[path] = path.read_text(encoding="utf-8")
+            except (FileNotFoundError, OSError):
+                self._file_cache[path] = None
+        return self._file_cache[path]
 
     def _file_contains(self, path: Path, pattern: str) -> bool:
         content = self._read_file(path)

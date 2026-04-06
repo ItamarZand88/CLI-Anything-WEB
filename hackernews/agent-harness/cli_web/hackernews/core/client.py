@@ -196,7 +196,7 @@ class HackerNewsClient:
         return self._user_cookie
 
     def _get_html(
-        self, url: str, params: dict[str, str] | None = None, *, retry_on_auth: bool = True,
+        self, url: str, params: dict[str, str] | None = None,
     ) -> str:
         """Fetch a URL with auth cookie and return HTML body."""
         cookie = self._require_auth()
@@ -207,7 +207,7 @@ class HackerNewsClient:
         except httpx.RequestError as exc:
             raise NetworkError(f"Network error: {exc}") from exc
 
-        if response.status_code in (401, 403) and retry_on_auth:
+        if response.status_code in (401, 403):
             raise AuthError("Auth cookie expired. Run: cli-web-hackernews auth login", recoverable=False)
         if response.status_code >= 500:
             raise ServerError(response.status_code)
@@ -217,7 +217,7 @@ class HackerNewsClient:
         return response.text
 
     def _post_form(
-        self, url: str, data: dict[str, str], *, retry_on_auth: bool = True,
+        self, url: str, data: dict[str, str],
     ) -> str:
         """POST form data with auth cookie, return response text."""
         cookie = self._require_auth()
@@ -231,7 +231,7 @@ class HackerNewsClient:
         except httpx.RequestError as exc:
             raise NetworkError(f"Network error: {exc}") from exc
 
-        if response.status_code in (401, 403) and retry_on_auth:
+        if response.status_code in (401, 403):
             raise AuthError("Auth cookie expired. Run: cli-web-hackernews auth login", recoverable=False)
         if response.status_code >= 500:
             raise ServerError(response.status_code)

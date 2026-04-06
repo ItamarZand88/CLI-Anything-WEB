@@ -27,7 +27,6 @@ import re
 import shutil
 import sys
 from pathlib import Path
-from string import Template
 
 # Resolve template dir relative to this script
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -93,39 +92,97 @@ def write_file(path: Path, content: str) -> None:
 # Client variant selection
 # ---------------------------------------------------------------------------
 
-def select_client_template(protocol: str, http_client: str) -> str:
-    """Return the template filename for the client variant."""
+def build_client(variables: dict, protocol: str, http_client: str) -> str:
+    """Render client.py from a base template + conditional method injection."""
+    valid_protocols = ("rest", "graphql", "html-scraping", "batchexecute")
+    if protocol not in valid_protocols:
+        raise ValueError(f"Unknown protocol '{protocol}'. Must be one of: {', '.join(valid_protocols)}")
+
     if protocol == "batchexecute":
-        return "client_batchexecute.py.tpl"
+        return render_template(TEMPLATES_DIR / "client_batchexecute.py.tpl", variables)
+
+    # REST-based protocols: select base by http_client, then inject extra methods
+    base_tpl = "client_rest_curl.py.tpl" if http_client == "curl_cffi" else "client_rest_httpx.py.tpl"
+    content = render_template(TEMPLATES_DIR / base_tpl, variables)
+
+    # Inject protocol-specific helper methods before the close() method
+    extra_methods = ""
+    if protocol == "html-scraping":
+        extra_methods = '''
+    def _parse_html(self, html: str):
+        """Parse HTML response with BeautifulSoup."""
+        from bs4 import BeautifulSoup
+        return BeautifulSoup(html, "html.parser")
+
+    def _get_html(self, path: str, **kwargs):
+        """GET a page and return parsed HTML."""
+        resp = self._request("GET", path, **kwargs)
+        return self._parse_html(resp.text)
+
+'''
     elif protocol == "graphql":
-        if http_client == "curl_cffi":
-            return "client_graphql_curl.py.tpl"
-        return "client_graphql_httpx.py.tpl"
-    elif protocol == "html-scraping":
-        if http_client == "curl_cffi":
-            return "client_html_curl.py.tpl"
-        return "client_html_httpx.py.tpl"
-    else:  # rest (default)
-        if http_client == "curl_cffi":
-            return "client_rest_curl.py.tpl"
-        return "client_rest_httpx.py.tpl"
+        extra_methods = '''
+    def _graphql(self, query: str, variables: dict | None = None, **kwargs):
+        """Execute a GraphQL query/mutation."""
+        payload = {"query": query}
+        if variables:
+            payload["variables"] = variables
+        resp = self._request("POST", "/graphql", json=payload, **kwargs)
+        data = resp.json()
+        if "errors" in data:
+            raise ${AppName}Error(data["errors"][0].get("message", "GraphQL error"))
+        return data.get("data", data)
+
+'''
+        # Replace the placeholder with the actual variable
+        extra_methods = extra_methods.replace("${AppName}", variables["AppName"])
+
+    if extra_methods:
+        content = content.replace(
+            "    def close(self):",
+            extra_methods + "    def close(self):",
+        )
+
+    return content
 
 
 # ---------------------------------------------------------------------------
 # Config template selection
 # ---------------------------------------------------------------------------
 
-def select_config_template(auth_type: str, has_context: bool) -> str:
-    """Return the template filename for config.py."""
+def build_config(variables: dict, auth_type: str, has_context: bool) -> str:
+    """Generate config.py with conditional auth/context sections."""
     has_auth = auth_type != "none"
-    if has_auth and has_context:
-        return "config_auth_context.py.tpl"
-    elif has_auth:
-        return "config_auth.py.tpl"
-    elif has_context:
-        return "config_context.py.tpl"
-    else:
-        return "config.py.tpl"
+    lines = [
+        f'"""Configuration constants for cli-web-{variables["app_name"]}."""',
+        "from pathlib import Path",
+        "",
+        f'APP_NAME = "cli-web-{variables["app_name"]}"',
+        "CONFIG_DIR = Path.home() / \".config\" / APP_NAME",
+    ]
+    if has_auth:
+        lines.append('AUTH_FILE = "auth.json"')
+        lines.append(f'AUTH_ENV_VAR = "CLI_WEB_{variables["APP_NAME"]}_AUTH_JSON"')
+    if has_context:
+        lines.append('CONTEXT_FILE = "context.json"')
+    lines.extend([
+        "",
+        "",
+        "def get_config_dir() -> Path:",
+        '    """Return (and create) the config directory."""',
+        "    CONFIG_DIR.mkdir(parents=True, exist_ok=True)",
+        "    return CONFIG_DIR",
+    ])
+    if has_auth:
+        lines.extend([
+            "",
+            "",
+            "def get_auth_path() -> Path:",
+            '    """Return the path to auth.json, creating config dir if needed."""',
+            "    return get_config_dir() / AUTH_FILE",
+        ])
+    lines.append("")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -327,17 +384,15 @@ def scaffold(
     )
 
     # config.py (conditional on auth_type + has_context)
-    config_tpl = select_config_template(auth_type, has_context)
     write_file(
         core_dir / "config.py",
-        render_template(TEMPLATES_DIR / config_tpl, variables),
+        build_config(variables, auth_type, has_context),
     )
 
     # client.py (variant based on protocol + http_client)
-    client_tpl = select_client_template(protocol, http_client)
     write_file(
         core_dir / "client.py",
-        render_template(TEMPLATES_DIR / client_tpl, variables),
+        build_client(variables, protocol, http_client),
     )
 
     # auth.py (conditional)
