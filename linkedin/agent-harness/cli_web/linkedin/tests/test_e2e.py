@@ -62,7 +62,9 @@ def client():
     """Create a LinkedinClient instance.  Fails (not skips) if auth missing."""
     from cli_web.linkedin.core.client import LinkedinClient
 
-    return LinkedinClient()
+    c = LinkedinClient()
+    yield c
+    c.close()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -220,21 +222,20 @@ class TestProfileE2E:
 
 @pytest.mark.e2e
 class TestCompanyE2E:
-    """Live company API tests."""
+    """Live company search API tests."""
 
-    def test_company_anthropic(self, client):
-        data = client.get_company("anthropic")
+    def test_company_search_anthropic(self, client):
+        data = client.search_companies("anthropic", count=1)
         assert isinstance(data, dict), f"Expected dict, got {type(data)}"
-        assert "data" in data or "included" in data or "elements" in data, (
-            f"Company response missing expected keys: {list(data.keys())}"
+        assert "data" in data or "included" in data, (
+            f"Company search response missing expected keys: {list(data.keys())}"
         )
 
-    def test_company_has_organization_key(self, client):
-        data = client.get_company("anthropic")
-        raw = json.dumps(data)
-        assert "organizationDashCompaniesByUniversalName" in raw or "universalName" in raw, (
-            "Company response missing organization identifier"
-        )
+    def test_company_search_has_results(self, client):
+        data = client.search_companies("anthropic", count=1)
+        included = data.get("included", [])
+        has_entity = any("EntityResult" in i.get("$type", "") for i in included)
+        assert has_entity, "Company search returned no EntityResult items"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

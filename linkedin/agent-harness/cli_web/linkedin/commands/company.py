@@ -4,20 +4,7 @@ from __future__ import annotations
 import click
 
 from ..core.client import LinkedinClient
-from ..utils.helpers import handle_errors, print_json, resolve_json_mode
-
-
-def _get_text(obj, *keys) -> str:
-    """Safely drill into nested dicts and return a string."""
-    current = obj
-    for k in keys:
-        if isinstance(current, dict):
-            current = current.get(k)
-        else:
-            return ""
-    if isinstance(current, dict):
-        return current.get("text", str(current))
-    return str(current) if current else ""
+from ..utils.helpers import get_text, handle_errors, print_json, resolve_json_mode
 
 
 @click.group("company", invoke_without_command=True)
@@ -72,9 +59,9 @@ def company(ctx, name, json_mode):
             click.echo(f"Company '{name}' not found.")
             return
 
-        display_name = _get_text(comp, "title", "text") or _get_text(comp, "title") or name
-        industry = _get_text(comp, "primarySubtitle", "text") or _get_text(comp, "primarySubtitle")
-        info = _get_text(comp, "secondarySubtitle", "text") or _get_text(comp, "secondarySubtitle")
+        display_name = get_text(comp, "title", "text") or get_text(comp, "title") or name
+        industry = get_text(comp, "primarySubtitle", "text") or get_text(comp, "primarySubtitle")
+        info = get_text(comp, "secondarySubtitle", "text") or get_text(comp, "secondarySubtitle")
 
         click.echo(f"Company:     {display_name}")
         if industry:

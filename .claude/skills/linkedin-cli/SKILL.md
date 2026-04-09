@@ -131,6 +131,17 @@ cli-web-linkedin messaging list --json
 cli-web-linkedin messaging read "urn:li:msg_conversation:123" --json
 ```
 
+## Rate Limit Warning
+
+LinkedIn aggressively rate-limits and flags automated access. To avoid
+account restrictions:
+
+- **Do NOT batch commands** in tight loops (e.g., `for user in list; do cli-web-linkedin profile get $user; done`). Each subprocess invocation bypasses the built-in inter-request delay.
+- **Space out requests** — add `sleep 3` between commands if scripting
+- **Limit volume** — stay under ~50 profile views/day, ~150 searches/day
+- **Use the REPL** for interactive sessions — it enforces inter-command delays automatically
+- The CLI has built-in Gaussian random delays between API calls within a single session, but this does NOT protect across separate process invocations
+
 ## Notes
 
 - Auth required — run `cli-web-linkedin auth login` first (browser-based LinkedIn SSO)
@@ -138,6 +149,6 @@ cli-web-linkedin messaging read "urn:li:msg_conversation:123" --json
 - Token auto-refresh: on 401/403, reloads cookies from disk, then silently refreshes via headless browser
 - CSRF token derived from `JSESSIONID` cookie
 - PerimeterX bypassed via curl_cffi Chrome TLS impersonation (no custom User-Agent)
-- Gaussian random delay between API calls to avoid bot detection
+- Gaussian random delay between API calls within a session
 - All search uses GraphQL API (no browser needed)
 - All commands support `--json` for structured output

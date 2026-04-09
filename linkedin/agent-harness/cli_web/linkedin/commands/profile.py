@@ -58,9 +58,6 @@ def _print_profile(prof: dict, fallback_name: str = "") -> None:
     if slug:
         click.echo(f"Profile URL: https://www.linkedin.com/in/{slug}")
 
-    # Show positions if available in the same included array
-    return prof
-
 
 def _print_positions(data: dict) -> None:
     """Print work experience from included array."""
@@ -117,7 +114,7 @@ def my_profile(ctx, json_mode):
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
         with LinkedinClient() as client:
-            data = client._rest_get("me")
+            data = client.get_me()
 
         if json_mode:
             print_json(data)

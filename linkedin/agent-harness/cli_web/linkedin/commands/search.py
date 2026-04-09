@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ..core.client import LinkedinClient
-from ..utils.helpers import handle_errors, print_json, resolve_json_mode
+from ..utils.helpers import get_text, handle_errors, print_json, resolve_json_mode
 
 console = Console()
 
@@ -93,19 +93,6 @@ def _extract_elements(data) -> list[dict]:
     return elements
 
 
-def _get_text(obj, *keys) -> str:
-    """Safely drill into nested dicts / text accessors and return a string."""
-    current = obj
-    for k in keys:
-        if isinstance(current, dict):
-            current = current.get(k)
-        else:
-            return ""
-    if isinstance(current, dict):
-        return current.get("text", str(current))
-    return str(current) if current else ""
-
-
 def _truncate(text: str, length: int = 60) -> str:
     if len(text) <= length:
         return text
@@ -156,8 +143,8 @@ def search_all(ctx, query, limit, json_mode):
         table.add_column("URN", style="dim", max_width=50)
 
         for idx, el in enumerate(results[:limit], 1):
-            title = _get_text(el, "title", "text") or _get_text(el, "title")
-            subtitle = _get_text(el, "primarySubtitle", "text") or _get_text(el, "primarySubtitle")
+            title = get_text(el, "title", "text") or get_text(el, "title")
+            subtitle = get_text(el, "primarySubtitle", "text") or get_text(el, "primarySubtitle")
             urn = el.get("entityUrn", el.get("trackingUrn", ""))
             table.add_row(str(idx), _truncate(title), _truncate(subtitle), _truncate(urn, 50))
 
@@ -205,9 +192,9 @@ def search_people(ctx, query, limit, json_mode):
         table.add_column("Location", max_width=25)
 
         for idx, el in enumerate(results[:limit], 1):
-            name = _get_text(el, "title", "text") or _get_text(el, "title")
-            headline = _get_text(el, "primarySubtitle", "text") or _get_text(el, "primarySubtitle")
-            location = _get_text(el, "secondarySubtitle", "text") or _get_text(el, "secondarySubtitle")
+            name = get_text(el, "title", "text") or get_text(el, "title")
+            headline = get_text(el, "primarySubtitle", "text") or get_text(el, "primarySubtitle")
+            location = get_text(el, "secondarySubtitle", "text") or get_text(el, "secondarySubtitle")
             table.add_row(str(idx), _truncate(name, 30), _truncate(headline, 50), _truncate(location, 25))
 
         console.print(table)
@@ -254,9 +241,9 @@ def search_jobs(ctx, query, limit, json_mode):
         table.add_column("Location", max_width=25)
 
         for idx, el in enumerate(results[:limit], 1):
-            title = _get_text(el, "jobPostingTitle") or _get_text(el, "title") or ""
-            company = _get_text(el, "primaryDescription", "text") or _get_text(el, "primaryDescription") or ""
-            location = _get_text(el, "secondaryDescription", "text") or _get_text(el, "secondaryDescription") or ""
+            title = get_text(el, "jobPostingTitle") or get_text(el, "title") or ""
+            company = get_text(el, "primaryDescription", "text") or get_text(el, "primaryDescription") or ""
+            location = get_text(el, "secondaryDescription", "text") or get_text(el, "secondaryDescription") or ""
             table.add_row(str(idx), _truncate(title, 40), _truncate(company, 30), _truncate(location, 25))
 
         console.print(table)
@@ -303,9 +290,9 @@ def search_companies(ctx, query, limit, json_mode):
         table.add_column("Info", max_width=30)
 
         for idx, el in enumerate(results[:limit], 1):
-            name = _get_text(el, "title", "text") or _get_text(el, "title")
-            industry = _get_text(el, "primarySubtitle", "text") or _get_text(el, "primarySubtitle")
-            info = _get_text(el, "secondarySubtitle", "text") or _get_text(el, "secondarySubtitle")
+            name = get_text(el, "title", "text") or get_text(el, "title")
+            industry = get_text(el, "primarySubtitle", "text") or get_text(el, "primarySubtitle")
+            info = get_text(el, "secondarySubtitle", "text") or get_text(el, "secondarySubtitle")
             table.add_row(str(idx), _truncate(name, 35), _truncate(industry, 30), _truncate(info, 30))
 
         console.print(table)

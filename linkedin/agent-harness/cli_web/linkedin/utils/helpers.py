@@ -8,7 +8,7 @@ from contextlib import contextmanager
 
 import click
 
-from ..core.exceptions import LinkedinError, _error_code_for
+from ..core.exceptions import LinkedinError
 
 
 # --- Windows UTF-8 fix (always include) ---
@@ -71,3 +71,20 @@ def resolve_json_mode(json_mode: bool, ctx: click.Context | None = None) -> bool
 def print_json(data) -> None:
     """Print data as formatted JSON to stdout."""
     print(json.dumps(data, indent=2, ensure_ascii=False, default=str))
+
+
+def get_text(obj, *keys) -> str:
+    """Safely drill into nested dicts and return a string.
+
+    Handles LinkedIn's TextViewModel pattern where values are either
+    plain strings or ``{"text": "...", ...}`` dicts.
+    """
+    current = obj
+    for k in keys:
+        if isinstance(current, dict):
+            current = current.get(k)
+        else:
+            return ""
+    if isinstance(current, dict):
+        return current.get("text", str(current))
+    return str(current) if current else ""

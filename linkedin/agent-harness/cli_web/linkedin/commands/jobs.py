@@ -4,20 +4,7 @@ from __future__ import annotations
 import click
 
 from ..core.client import LinkedinClient
-from ..utils.helpers import handle_errors, print_json, resolve_json_mode
-
-
-def _get_text(obj, *keys) -> str:
-    """Safely drill into nested dicts."""
-    current = obj
-    for k in keys:
-        if isinstance(current, dict):
-            current = current.get(k)
-        else:
-            return ""
-    if isinstance(current, dict):
-        return current.get("text", str(current))
-    return str(current) if current else ""
+from ..utils.helpers import get_text, handle_errors, print_json, resolve_json_mode
 
 
 def _extract_job_cards(data: dict) -> list[dict]:
@@ -78,9 +65,9 @@ def search_jobs(ctx, query, limit, json_mode):
                 "count": len(cards),
                 "jobs": [
                     {
-                        "title": _get_text(c, "jobPostingTitle") or _get_text(c, "title"),
-                        "company": _get_text(c, "primaryDescription") or _get_text(c, "companyName"),
-                        "location": _get_text(c, "secondaryDescription") or _get_text(c, "formattedLocation"),
+                        "title": get_text(c, "jobPostingTitle") or get_text(c, "title"),
+                        "company": get_text(c, "primaryDescription") or get_text(c, "companyName"),
+                        "location": get_text(c, "secondaryDescription") or get_text(c, "formattedLocation"),
                         "urn": c.get("entityUrn", ""),
                         "job_id": c.get("entityUrn", "").split("(")[1].split(",")[0]
                             if "(" in c.get("entityUrn", "") else "",
@@ -96,9 +83,9 @@ def search_jobs(ctx, query, limit, json_mode):
 
         click.echo(f"Jobs for '{query}':\n")
         for i, c in enumerate(cards[:limit], 1):
-            title = _get_text(c, "jobPostingTitle") or _get_text(c, "title")
-            company = _get_text(c, "primaryDescription") or _get_text(c, "companyName")
-            location = _get_text(c, "secondaryDescription") or _get_text(c, "formattedLocation")
+            title = get_text(c, "jobPostingTitle") or get_text(c, "title")
+            company = get_text(c, "primaryDescription") or get_text(c, "companyName")
+            location = get_text(c, "secondaryDescription") or get_text(c, "formattedLocation")
             urn = c.get("entityUrn", "")
             job_id = urn.split("(")[1].split(",")[0] if "(" in urn else ""
             click.echo(f"  {i}. {title}")
@@ -126,8 +113,8 @@ def get_job(ctx, job_id, json_mode):
         # The dash job posting endpoint returns fields directly in data
         job = data.get("data", data)
 
-        title = _get_text(job, "title")
-        location = _get_text(job, "formattedLocation")
+        title = get_text(job, "title")
+        location = get_text(job, "formattedLocation")
 
         # Company name may be in included or in companyResolutionResult
         company = ""
