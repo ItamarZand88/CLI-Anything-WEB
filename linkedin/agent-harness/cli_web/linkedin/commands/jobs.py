@@ -113,7 +113,7 @@ def search_jobs(ctx, query, limit, json_mode):
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
 def get_job(ctx, job_id, json_mode):
-    """View job details by ID (from search results)."""
+    """View full job details by ID."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
         with LinkedinClient() as client:
@@ -123,17 +123,32 @@ def get_job(ctx, job_id, json_mode):
             print_json(data)
             return
 
-        title = _get_text(data, "jobPostingTitle") or _get_text(data, "title")
-        company = _get_text(data, "primaryDescription") or _get_text(data, "companyName")
-        location = _get_text(data, "secondaryDescription") or _get_text(data, "formattedLocation")
+        # The dash job posting endpoint returns fields directly in data
+        job = data.get("data", data)
 
-        click.echo(f"  Title:    {title}")
-        click.echo(f"  Company:  {company}")
-        click.echo(f"  Location: {location}")
+        title = _get_text(job, "title")
+        location = _get_text(job, "formattedLocation")
 
-        # Show footer items (benefits, workplace type, etc.)
-        for item in data.get("footerItems", []):
-            if isinstance(item, dict):
-                label = _get_text(item, "title")
-                if label:
-                    click.echo(f"  Info:     {label}")
+        # Company name may be in included or in companyResolutionResult
+        company = ""
+        for inc in data.get("included", []):
+            if inc.get("name") and "Company" in inc.get("$type", ""):
+                company = inc["name"]
+                break
+
+        click.echo(f"  Title:       {title or job_id}")
+        if company:
+            click.echo(f"  Company:     {company}")
+        if location:
+            click.echo(f"  Location:    {location}")
+
+        # Description
+        desc = job.get("description", "")
+        if isinstance(desc, dict):
+            desc = desc.get("text", "")
+        if desc:
+            click.echo(f"\n  Description:")
+            for line in desc[:500].split("\n"):
+                click.echo(f"    {line}")
+            if len(desc) > 500:
+                click.echo("    ...")

@@ -158,6 +158,7 @@ Sites protected by AWS WAF return a 202 JavaScript challenge page to raw HTTP cl
 | `cli-web-airbnb` | `airbnb/` | SSR HTML + niobeClientData (curl_cffi) | No auth, Akamai/DataDome bypass, search/listings/reviews/availability/autocomplete |
 | `cli-web-amazon` | `amazon/` | SSR HTML + REST JSON | No auth, public endpoints only — search/product/bestsellers/suggest |
 | `cli-web-tripadvisor` | `tripadvisor/` | SSR HTML + JSON-LD (curl_cffi) | No auth, DataDome bypass, locations/hotels/restaurants/attractions |
+| `cli-web-linkedin` | `linkedin/` | GraphQL + Voyager REST (curl_cffi) | Cookie auth (li_at), PerimeterX bypass, feed/profile/search/jobs/post/edit/delete/react/unreact/comment/edit-comment/delete-comment/notifications/network/messaging (26 cmds) |
 
 ## Reference Examples
 

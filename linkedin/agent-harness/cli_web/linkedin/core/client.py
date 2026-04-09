@@ -30,7 +30,6 @@ QUERY_IDS = {
     "feed": "voyagerFeedDashMainFeed.923020905727c01516495a0ac90bb475",
     "profile_by_identity": "voyagerIdentityDashProfiles.b5c27c04968c409fc0ed3546575b9b7a",
     "profile_by_urn": "voyagerIdentityDashProfiles.da93c92bffce3da586a992376e42a305",
-    "company": "voyagerOrganizationDashCompanies.148b1aebfadd0a455f32806df656c3c1",
     "job_cards": "voyagerJobsDashJobCards.11efe66ab8e00aabdc31cf0a7f095a32",
     "job_posting": "voyagerJobsDashJobPostings.891aed7916d7453a37e4bbf5f1f60de4",
     "topics": "voyagerFeedDashTopics.9075cab8b59e14d62b497b48f77d5e12",
@@ -295,18 +294,6 @@ class LinkedinClient:
     # Company
     # ------------------------------------------------------------------
 
-    def get_company(self, name: str) -> dict:
-        """Get a company page by its universal name (URL slug).
-
-        Args:
-            name: Company universal name (e.g. ``google``).
-
-        Returns:
-            Company data dict.
-        """
-        variables = f"(universalName:{name})"
-        return self._graphql_get(QUERY_IDS["company"], variables)
-
     # ------------------------------------------------------------------
     # Search
     # ------------------------------------------------------------------
@@ -380,23 +367,16 @@ class LinkedinClient:
     # ------------------------------------------------------------------
 
     def get_job(self, job_id: str) -> dict:
-        """Get job posting details by searching for the specific job."""
-        # Strip URN prefix if provided
+        """Get full job posting details via ``voyagerJobsDashJobPostings``."""
         if job_id.startswith("urn:"):
             job_id = job_id.split(":")[-1]
-        # Search with the job ID as keyword to find it
-        result = self.search_jobs(job_id, count=5)
-        for el in result.get("elements", []):
-            card = el.get("jobCardUnion", {}).get("jobPostingCard", {})
-            if card and job_id in str(card.get("entityUrn", "")):
-                return card
-        # Return first result as fallback
-        for el in result.get("elements", []):
-            card = el.get("jobCardUnion", {}).get("jobPostingCard", {})
-            if card:
-                return card
-        from .exceptions import NotFoundError
-        raise NotFoundError(f"Job {job_id} not found")
+        encoded_urn = quote(f"urn:li:fsd_jobPosting:{job_id}", safe="")
+        url = f"{VOYAGER_API}/voyagerJobsDashJobPostings/{encoded_urn}"
+        resp = self._request(
+            "GET", url,
+            headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
+        return resp.json()
 
     # ------------------------------------------------------------------
     # Reactions
@@ -553,8 +533,22 @@ class LinkedinClient:
     # Network / Connections
     # ------------------------------------------------------------------
 
-    def get_connections(self, start: int = 0, count: int = 20) -> dict:
-        """Get connections summary."""
+    def get_connections(self, start: int = 0, count: int = 40) -> dict:
+        """Get connections list via the REST endpoint."""
+        url = (
+            f"{VOYAGER_API}/relationships/dash/connections"
+            f"?decorationId=com.linkedin.voyager.dash.deco.web.mynetwork.ConnectionListWithProfile-5"
+            f"&count={count}&start={start}"
+            f"&q=search&sortType=RECENTLY_ADDED"
+        )
+        resp = self._request(
+            "GET", url,
+            headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
+        return resp.json()
+
+    def get_connection_count(self) -> dict:
+        """Get connections summary (count only)."""
         url = f"{VOYAGER_API}/relationships/connectionsSummary"
         resp = self._request("GET", url)
         return resp.json()
@@ -576,6 +570,32 @@ class LinkedinClient:
         if message:
             payload["message"] = message
         return self._rest_post("relationships/invitations", data=payload)
+
+    def accept_invitation(self, invitation_urn: str) -> dict:
+        """Accept a pending connection invitation."""
+        encoded = quote(invitation_urn, safe="")
+        url = f"{VOYAGER_API}/relationships/invitations/{encoded}?action=accept"
+        resp = self._request(
+            "POST", url,
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            return resp.json()
+        except Exception:
+            return {}
+
+    def decline_invitation(self, invitation_urn: str) -> dict:
+        """Decline a pending connection invitation."""
+        encoded = quote(invitation_urn, safe="")
+        url = f"{VOYAGER_API}/relationships/invitations/{encoded}?action=decline"
+        resp = self._request(
+            "POST", url,
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            return resp.json()
+        except Exception:
+            return {}
 
     # ------------------------------------------------------------------
     # Messaging

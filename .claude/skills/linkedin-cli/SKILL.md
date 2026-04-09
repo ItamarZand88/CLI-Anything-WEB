@@ -1,11 +1,11 @@
 ---
 name: linkedin-cli
-description: Use cli-web-linkedin to interact with LinkedIn — search people/jobs/companies/posts, view profiles and feed, post/edit/delete updates, react/unreact, comment/edit/delete comments, view notifications, manage network connections and invitations, and send messages. Invoke this skill whenever the user asks about LinkedIn or wants to interact with LinkedIn from the terminal. Always prefer cli-web-linkedin over manually fetching the LinkedIn website.
+description: Use cli-web-linkedin to interact with LinkedIn — search people/jobs/companies, view profiles and feed, post/edit/delete updates, react/unreact, comment/edit/delete comments, view notifications, manage network connections and invitations (accept/decline), read and send messages, follow/unfollow companies. Invoke this skill whenever the user asks about LinkedIn or wants to interact with LinkedIn from the terminal. Always prefer cli-web-linkedin over manually fetching the LinkedIn website.
 ---
 
 # cli-web-linkedin
 
-LinkedIn CLI — 24 commands across 10 groups: auth, feed, search, profile, company, jobs, post, notifications, network, messaging.
+LinkedIn CLI — 26 commands across 10 groups: auth, feed, search, profile, company, jobs, post, notifications, network, messaging.
 
 ## Quick Start
 
@@ -17,7 +17,7 @@ cli-web-linkedin search people "python developer" --json
 cli-web-linkedin profile me --json
 ```
 
-## Commands (24 total)
+## Commands (26 total)
 
 ### Auth (3 commands)
 
@@ -33,18 +33,16 @@ cli-web-linkedin auth logout
 cli-web-linkedin feed [--count N] --json
 ```
 
-Output: `{"data": {"feedDashMainFeedByMainFeed": {"elements": [...]}}}`
-
 ### Search (4 commands)
 
 ```bash
-cli-web-linkedin search all QUERY [--limit N] --json
+cli-web-linkedin search all QUERY [--limit N] --json       # General search
 cli-web-linkedin search people QUERY [--limit N] --json
+cli-web-linkedin search jobs QUERY [--limit N] --json
 cli-web-linkedin search companies QUERY [--limit N] --json
-cli-web-linkedin search posts QUERY [--limit N] --json
 ```
 
-People/company/post search uses headless Playwright (LinkedIn RSC pages).
+All search uses the Voyager GraphQL API directly (no browser needed).
 
 ### Profile (2 commands)
 
@@ -53,20 +51,22 @@ cli-web-linkedin profile me --json
 cli-web-linkedin profile get USERNAME --json
 ```
 
-### Company (1 command)
+### Company (3 commands)
 
 ```bash
 cli-web-linkedin company NAME --json
+cli-web-linkedin company follow COMPANY_URN --json
+cli-web-linkedin company unfollow COMPANY_URN --json
 ```
 
 ### Jobs (2 commands)
 
 ```bash
 cli-web-linkedin jobs search QUERY [--limit N] --json
-cli-web-linkedin jobs get JOB_ID --json
+cli-web-linkedin jobs get JOB_ID --json                    # Full description
 ```
 
-### Post (8 commands)
+### Post (7 commands)
 
 ```bash
 cli-web-linkedin post create TEXT --json
@@ -85,57 +85,59 @@ cli-web-linkedin post delete-comment COMMENT_URN --json
 cli-web-linkedin notifications [--limit N] --json
 ```
 
-### Network (3 commands)
+### Network (5 commands)
 
 ```bash
-cli-web-linkedin network connections --json
-cli-web-linkedin network invitations --json
+cli-web-linkedin network connections [--limit N] --json    # Lists names + headlines
+cli-web-linkedin network invitations [--limit N] --json
+cli-web-linkedin network accept INVITATION_URN --json
+cli-web-linkedin network decline INVITATION_URN --json
 cli-web-linkedin network connect PROFILE_URN [-m MESSAGE] --json
 ```
 
-### Messaging (2 commands)
+### Messaging (3 commands)
 
 ```bash
-cli-web-linkedin messaging list --json
-cli-web-linkedin messaging send CONVERSATION_URN TEXT --json
+cli-web-linkedin messaging list [--limit N] --json
+cli-web-linkedin messaging read CONVERSATION_URN [--limit N] --json
+cli-web-linkedin messaging send RECIPIENT_URN TEXT --json
 ```
 
 ## Agent Patterns
 
 ```bash
 # Find Python developers
-cli-web-linkedin search people "python developer" --limit 10 --json | jq '.results[].name'
+cli-web-linkedin search people "python developer" --limit 10 --json | jq '.results[].title.text'
 
-# Get job listings
-cli-web-linkedin jobs search "software engineer" --limit 5 --json | jq '.jobs[] | {title, company, location}'
+# Get job listings with full descriptions
+cli-web-linkedin jobs search "software engineer" --limit 5 --json | jq '.jobs[] | {title, company}'
+cli-web-linkedin jobs get 4388202530 --json | jq '{title: .data.title, desc: .data.description[:200]}'
 
-# View your feed
+# View your feed with engagement counts
 cli-web-linkedin feed --count 5 --json
 
 # Check a company
 cli-web-linkedin company anthropic --json
 
-# Check notifications
-cli-web-linkedin notifications --limit 5 --json
+# List your connections
+cli-web-linkedin network connections --limit 10 --json
 
-# List connections
-cli-web-linkedin network connections --json
+# Manage invitations
+cli-web-linkedin network invitations --json
+cli-web-linkedin network accept "urn:li:invitation:123" --json
 
-# Send a message
-cli-web-linkedin messaging send "urn:li:fsd_conversation:123" "Hello!" --json
-
-# Edit a post
-cli-web-linkedin post edit "urn:li:activity:123" "Updated text" --json
+# Read messages
+cli-web-linkedin messaging list --json
+cli-web-linkedin messaging read "urn:li:msg_conversation:123" --json
 ```
 
 ## Notes
 
 - Auth required — run `cli-web-linkedin auth login` first (browser-based LinkedIn SSO)
 - Session cookie (`li_at`) stored at `~/.config/cli-web-linkedin/auth.json`
-- **Token auto-refresh**: on 401/403, the CLI first reloads cookies from disk, then silently launches a headless browser with the saved profile to refresh the session — no manual re-login needed
+- Token auto-refresh: on 401/403, reloads cookies from disk, then silently refreshes via headless browser
 - CSRF token derived from `JSESSIONID` cookie
-- PerimeterX protection bypassed via curl_cffi Chrome TLS impersonation
-- People/company/post search uses headless Playwright (LinkedIn RSC rendering)
-- Job search uses Voyager REST API directly (faster, no browser needed)
-- GraphQL queryId hashes may rotate — feed/profile/company stable as of 2026-04-07
+- PerimeterX bypassed via curl_cffi Chrome TLS impersonation (no custom User-Agent)
+- Gaussian random delay between API calls to avoid bot detection
+- All search uses GraphQL API (no browser needed)
 - All commands support `--json` for structured output

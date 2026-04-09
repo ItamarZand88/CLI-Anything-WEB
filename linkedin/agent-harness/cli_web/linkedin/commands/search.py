@@ -133,13 +133,12 @@ def search(ctx):
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
 def search_all(ctx, query, limit, json_mode):
-    """Run a general LinkedIn search for QUERY across all verticals."""
+    """Run a general LinkedIn search for QUERY (unfiltered, returns people by default)."""
     json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
-            # Unified search uses people search as default
-            data = client.search_people(query, count=limit)
+            data = client._search(query, vertical="", count=limit)
         results = _extract_elements(data)
 
         if json_mode:
