@@ -14,6 +14,7 @@ from .exceptions import (
     LinkedinError,
     AuthError,
     NetworkError,
+    RateLimitError,
     raise_for_status,
 )
 
@@ -25,23 +26,26 @@ BASE_URL = "https://www.linkedin.com"
 VOYAGER_API = f"{BASE_URL}/voyager/api"
 GRAPHQL_URL = f"{VOYAGER_API}/graphql"
 
-# GraphQL query IDs captured from LinkedIn traffic
 QUERY_IDS = {
     "feed": "voyagerFeedDashMainFeed.923020905727c01516495a0ac90bb475",
     "search_clusters": "voyagerSearchDashClusters.b0928897b71bd00a5a7291755dcd64f0",
 }
 
-# LinkedIn li-track header payload
-LI_TRACK = json.dumps(
-    {
+
+def _build_li_track() -> str:
+    """Build the x-li-track header with the system timezone offset."""
+    try:
+        tz_offset = -time.timezone // 60  # minutes, sign matches JS convention
+    except Exception:
+        tz_offset = 0
+    return json.dumps({
         "clientVersion": "1.13.0",
         "mpVersion": "1.13.0",
         "osName": "web",
-        "timezoneOffset": 0,
+        "timezoneOffset": tz_offset,
         "deviceFormFactor": "DESKTOP",
         "mpName": "voyager-web",
-    }
-)
+    })
 
 
 def _extract_csrf(cookies: dict) -> str:
@@ -65,6 +69,9 @@ def _extract_csrf(cookies: dict) -> str:
 class LinkedinClient:
     """REST + GraphQL client using curl_cffi Chrome TLS impersonation."""
 
+    # Minimum seconds between headless browser refresh attempts
+    _REFRESH_COOLDOWN = 300  # 5 minutes
+
     def __init__(self, cookies: dict | None = None):
         if cookies is None:
             auth_data = load_auth()
@@ -73,18 +80,20 @@ class LinkedinClient:
         self._session = curl_requests.Session(impersonate="chrome")
 
         csrf = _extract_csrf(self._cookies)
-        # Do NOT set User-Agent — curl_cffi injects a matching Chrome UA
-        # via impersonation. Overriding it breaks TLS/UA consistency.
+        # Do NOT set User-Agent or accept-language — curl_cffi injects
+        # matching headers via impersonation. Overriding breaks consistency.
         self._session.headers.update(
             {
                 "csrf-token": csrf,
                 "x-restli-protocol-version": "2.0.0",
-                "x-li-track": LI_TRACK,
+                "x-li-track": _build_li_track(),
                 "x-li-lang": "en_US",
-                "accept-language": "en-US,en;q=0.9",
+                "Origin": BASE_URL,
             }
         )
         self._request_count = 0
+        self._my_urn: str | None = None
+        self._last_refresh: float = 0
 
     # ------------------------------------------------------------------
     # Low-level request helpers
@@ -108,19 +117,25 @@ class LinkedinClient:
         _attempt: int = 0,
         **kwargs,
     ):
-        """Issue an HTTP request with auto-refresh on token expiry.
+        """Issue an HTTP request with retry on auth expiry and rate limits.
 
-        Flow (matches Reddit CLI pattern):
-          attempt 0: try with current cookies
-          attempt 1: reload cookies from disk (user may have re-logged in)
-          attempt 2: headless browser refresh (silently navigate to linkedin.com)
+        Retry flow:
+          attempt 0 → 401/403 → reload cookies from disk
+          attempt 1 → 401/403 → headless browser refresh
+          attempt 2 → 401/403 → raise AuthError
 
-        After all retries fail, raises AuthError.
+        On 429: sleep for Retry-After (max 300s) and retry once.
         """
         # Jitter between consecutive requests (skip the first one)
         if self._request_count > 0 and _attempt == 0:
             self._human_delay()
         self._request_count += 1
+
+        # Inject Referer for the current request context
+        hdrs = kwargs.get("headers", {}) or {}
+        if "Referer" not in hdrs:
+            hdrs["Referer"] = f"{BASE_URL}/feed/"
+            kwargs["headers"] = hdrs
 
         kwargs.setdefault("cookies", self._cookies)
         try:
@@ -128,12 +143,23 @@ class LinkedinClient:
         except Exception as exc:
             raise NetworkError(f"Connection failed: {exc}")
 
+        # Rate limit — honour Retry-After and retry once
+        if resp.status_code == 429 and _attempt < 1:
+            retry_after = 60.0
+            raw = resp.headers.get("Retry-After")
+            if raw:
+                try:
+                    retry_after = float(raw)
+                except ValueError:
+                    pass
+            time.sleep(min(retry_after, 300))
+            return self._request(method, url, _attempt=_attempt + 1, **kwargs)
+
+        # Auth expiry — reload cookies or refresh via browser
         if resp.status_code in (401, 403) and _attempt < 2:
             if _attempt == 0:
-                # First retry: reload cookies from disk
                 self._reload_cookies_from_disk()
             elif _attempt == 1:
-                # Second retry: headless browser refresh
                 self._refresh_via_browser()
             kwargs.pop("cookies", None)
             kwargs["cookies"] = self._cookies
@@ -154,6 +180,14 @@ class LinkedinClient:
 
     def _refresh_via_browser(self) -> None:
         """Silently refresh cookies by delegating to ``refresh_auth()``."""
+        now = time.time()
+        if now - self._last_refresh < self._REFRESH_COOLDOWN:
+            raise AuthError(
+                "Session expired (refresh on cooldown). "
+                "Run: cli-web-linkedin auth login",
+                recoverable=False,
+            )
+        self._last_refresh = now
         auth_data = refresh_auth()
         if auth_data:
             self._cookies = auth_data.get("cookies", {})
@@ -609,13 +643,15 @@ class LinkedinClient:
         return resp.json()
 
     def get_my_profile_urn(self) -> str:
-        """Get the current user's profile URN."""
+        """Get the current user's profile URN (cached after first call)."""
+        if self._my_urn:
+            return self._my_urn
         data = self._rest_get("me")
         mp = data.get("miniProfile", data)
-        # Check included array (REST.li pointer pattern)
         if not mp.get("dashEntityUrn") and data.get("included"):
             mp = data["included"][0]
-        return mp.get("dashEntityUrn", mp.get("entityUrn", ""))
+        self._my_urn = mp.get("dashEntityUrn", mp.get("entityUrn", ""))
+        return self._my_urn
 
     def get_conversations(self, count: int = 20) -> dict:
         """Get messaging conversations list."""
