@@ -62,6 +62,52 @@ def list_conversations(ctx, limit, json_mode):
         click.echo("  No conversations found.")
 
 
+@messaging.command("read")
+@click.argument("conversation_urn")
+@click.option("--limit", default=20, type=int, help="Max messages.")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
+@click.pass_context
+def read_messages(ctx, conversation_urn, limit, json_mode):
+    """Read messages in a conversation by URN."""
+    json_mode = resolve_json_mode(json_mode, ctx)
+    with handle_errors(json_mode):
+        with LinkedinClient() as client:
+            data = client.get_conversation_messages(conversation_urn, count=limit)
+
+        if json_mode:
+            print_json(data)
+            return
+
+        # Extract messages from GraphQL response
+        gql_data = data.get("data", {})
+        for key, val in gql_data.items():
+            if isinstance(val, dict) and "elements" in val:
+                elements = val["elements"]
+                if not elements:
+                    click.echo("  No messages.")
+                    return
+                for el in elements[:limit]:
+                    sender = ""
+                    s = el.get("sender", {})
+                    member = (s.get("participantType") or {}).get("member", {})
+                    if member:
+                        fn = member.get("firstName", {})
+                        ln = member.get("lastName", {})
+                        first = fn.get("text", "") if isinstance(fn, dict) else str(fn or "")
+                        last = ln.get("text", "") if isinstance(ln, dict) else str(ln or "")
+                        sender = f"{first} {last}".strip()
+                    body = ""
+                    for part in el.get("body", {}).get("parts", []):
+                        txt = part.get("text", {})
+                        body += txt.get("text", "") if isinstance(txt, dict) else str(txt or "")
+                    click.secho(f"  {sender or 'Unknown'}:", fg="cyan", bold=True)
+                    click.echo(f"    {body[:200]}")
+                    click.echo()
+                return
+
+        click.echo("  No messages found.")
+
+
 @messaging.command("send")
 @click.argument("recipient")
 @click.argument("text")

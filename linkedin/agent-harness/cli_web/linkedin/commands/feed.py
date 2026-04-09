@@ -19,11 +19,13 @@ def _extract_posts(data: dict) -> list[dict]:
     The ``*elements`` array contains URN pointers resolved from ``included``.
     """
     # Build included index for pointer resolution
+    # Index by both entityUrn and urn (social counts use 'urn' field)
     included_index: dict[str, dict] = {}
     for inc in data.get("included", []):
-        urn = inc.get("entityUrn", "")
-        if urn:
-            included_index[urn] = inc
+        for key in ("entityUrn", "urn"):
+            u = inc.get(key, "")
+            if u:
+                included_index[u] = inc
 
     # Navigate to the feed container (handle double-nested data.data)
     gql = data.get("data", {})
@@ -54,11 +56,22 @@ def _extract_posts(data: dict) -> list[dict]:
         text_obj = commentary.get("text", {})
         text = text_obj.get("text", "") if isinstance(text_obj, dict) else str(text_obj or "")
 
-        # Social counts
+        # Social counts — resolve from included via activity URN
+        likes = 0
+        comments_count = 0
         social = item.get("socialDetail", {}) or {}
         counts = social.get("totalSocialActivityCounts", {}) or {}
-        likes = counts.get("numLikes", 0) or 0
-        comments_count = counts.get("numComments", 0) or 0
+        if counts:
+            likes = counts.get("numLikes", 0) or 0
+            comments_count = counts.get("numComments", 0) or 0
+        else:
+            # Counts are factored into included, keyed by activity URN
+            import re
+            m = re.search(r"urn:li:activity:\d+", entity_urn)
+            if m and m.group(0) in included_index:
+                sc = included_index[m.group(0)]
+                likes = sc.get("numLikes", 0) or 0
+                comments_count = sc.get("numComments", 0) or 0
 
         if not text and not author_name:
             continue
@@ -118,11 +131,8 @@ def feed(ctx, count, json_mode):
     json_mode = _resolve_json_mode(ctx, json_mode)
 
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        try:
+        with LinkedinClient() as client:
             data = client.get_feed(count=count)
-        finally:
-            client.close()
 
         if json_mode:
             print_json(data)
