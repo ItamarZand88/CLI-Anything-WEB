@@ -19,7 +19,7 @@
   <a href="https://github.com/ItamarZand88/CLI-Anything-WEB/stargazers"><img src="https://img.shields.io/github/stars/ItamarZand88/CLI-Anything-WEB?style=social" alt="GitHub Stars"></a>
   <a href="https://github.com/ItamarZand88/CLI-Anything-WEB/issues"><img src="https://img.shields.io/github/issues/ItamarZand88/CLI-Anything-WEB" alt="Issues"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
-  <img src="https://img.shields.io/badge/CLIs_generated-17-brightgreen" alt="17 CLIs">
+  <img src="https://img.shields.io/badge/CLIs_generated-18-brightgreen" alt="18 CLIs">
   <img src="https://img.shields.io/badge/claude%20code-plugin-blueviolet" alt="Claude Code Plugin">
   <a href="https://itamarzand88.github.io/CLI-Anything-WEB/registry/"><img src="https://img.shields.io/badge/registry-live-orange" alt="CLI Registry"></a>
 </p>
@@ -111,6 +111,7 @@ The agent opens a browser, asks you to log in if needed, captures traffic, and g
 | [`cli-web-airbnb`](airbnb/) | Airbnb | SSR HTML + niobeClientData | None | [📖 Skill](.claude/skills/airbnb-cli/SKILL.md) | Search stays, listing details, amenities, host info, autocomplete locations |
 | [`cli-web-amazon`](amazon/) | amazon.com | SSR HTML + REST JSON | None | [📖 Skill](.claude/skills/amazon-cli/SKILL.md) | Search products, view details, browse bestsellers |
 | [`cli-web-tripadvisor`](tripadvisor/) | TripAdvisor | SSR HTML + JSON-LD (curl_cffi) | None | [📖 Skill](.claude/skills/tripadvisor-cli/SKILL.md) | Search locations, hotels, restaurants, and attractions |
+| [`cli-web-linkedin`](linkedin/) | LinkedIn | GraphQL + Voyager REST (curl_cffi) | Cookie (li_at) | [📖 Skill](.claude/skills/linkedin-cli/SKILL.md) | Search, feed, profiles, jobs, posts, reactions, comments, network, messaging (26 cmds) |
 
 ### Try them yourself
 
@@ -244,6 +245,21 @@ cli-web-amazon product get B0GRZ78683 --json
 cli-web-amazon bestsellers electronics --json
 ```
 
+**LinkedIn** — search people/jobs/companies, feed, profiles, post, network, messaging (auth required)
+```bash
+pip install -e linkedin/agent-harness
+cli-web-linkedin auth login        # required — browser-based LinkedIn SSO
+
+# Search people and jobs
+cli-web-linkedin search people "python developer" --limit 5 --json
+cli-web-linkedin jobs search "software engineer" --json
+
+# View feed, profile, connections
+cli-web-linkedin feed --count 5 --json
+cli-web-linkedin profile me --json
+cli-web-linkedin network connections --limit 10 --json
+```
+
 ### Agent-Native: Claude uses the CLIs automatically
 
 Every generated CLI comes with a **skill file** (`.claude/skills/<app>-cli/SKILL.md`) that Claude Code loads automatically. The skill tells Claude exactly how to use the CLI — every command, every option, every output format. When you ask Claude a question like *"find me a hotel in Paris"*, it reads the booking skill and runs `cli-web-booking search find "Paris"` on its own.
@@ -375,7 +391,7 @@ Together they cover the full spectrum: **CLI-Anything** for desktop, **CLI-Anyth
 
 We're actively building more CLIs and improving the plugin:
 
-- 🎯 **More CLIs** — Jira, Notion, Monday.com, Spotify, LinkedIn
+- 🎯 **More CLIs** — Jira, Notion, Monday.com, Spotify
 - 🎵 **Content generation** — Suno, ElevenLabs, Midjourney
 - 🧠 **Smarter analysis** — Auto-detect auth flows, pagination, WebSocket streams
 - 🔄 **CI/CD integration** — Run CLIs in GitHub Actions with env-var auth
