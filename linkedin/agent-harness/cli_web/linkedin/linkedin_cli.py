@@ -184,10 +184,14 @@ def _print_repl_help() -> None:
 
 
 def _run_repl(ctx: click.Context) -> None:
+    import random
+    import time
+
     _skin.print_banner()
     _print_repl_help()
 
     pt_session = _skin.create_prompt_session()
+    last_cmd_time: float = 0  # track inter-command timing
 
     while True:
         try:
@@ -216,6 +220,14 @@ def _run_repl(ctx: click.Context) -> None:
         if ctx.obj.get("json"):
             args = ["--json"] + args
 
+        # Inter-command delay — avoids machine-speed request bursts in REPL
+        now = time.time()
+        if last_cmd_time > 0:
+            elapsed = now - last_cmd_time
+            min_gap = max(0.5, random.gauss(1.0, 0.3))
+            if elapsed < min_gap:
+                time.sleep(min_gap - elapsed)
+
         try:
             cli.main(args=args, standalone_mode=False)
         except SystemExit:
@@ -226,6 +238,8 @@ def _run_repl(ctx: click.Context) -> None:
                 click.echo(_json.dumps(exc.to_dict()))
             else:
                 _skin.error(str(exc))
+        finally:
+            last_cmd_time = time.time()
 
 
 def main():
