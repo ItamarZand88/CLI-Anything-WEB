@@ -537,7 +537,7 @@ footer a:hover { color: var(--text); }
   <div class="hero-glow"></div>
   <div class="hero-badge">
     <span class="dot"></span>
-    17 CLIs
+    18 CLIs
     <span class="sep">|</span>
     Updated today
   </div>
@@ -594,6 +594,7 @@ const data = [
   { name:"airbnb", icon:"🏠", site:"airbnb.com", desc:"Airbnb — search stays by location/dates/filters, get full listing details (host, amenities, rating), read guest reviews, check availability calendars, autocomplete location names. No auth required.", category:"Travel & Booking", tags:["travel","search","rentals"], proto:"SSR HTML + niobeClientData", cmds:["search stays","listings get","listings reviews","listings availability","autocomplete locations"], install:"pip install git+https://github.com/ItamarZand88/CLI-Anything-WEB.git#subdirectory=airbnb/agent-harness", n:15 },
   { name:"amazon", icon:"A", site:"amazon.com", desc:"Search Amazon products, view details, browse Best Sellers and get autocomplete suggestions. No auth required.", category:"Shopping", tags:["shopping"], proto:"SSR HTML + REST JSON", auth:"none", cmds:["search","suggest","product get","bestsellers"], install:"pip install -e amazon/agent-harness", n:4 },
   { name:"tripadvisor", icon:"🌍", site:"tripadvisor.com", desc:"Search TripAdvisor hotels, restaurants, attractions and locations. No auth required. DataDome bypass via curl_cffi.", category:"Travel & Booking", tags:["travel","search"], proto:"SSR HTML + JSON-LD (curl_cffi)", cmds:["locations search","hotels search","hotels get","restaurants search","restaurants get","attractions search","attractions get"], install:"pip install -e tripadvisor/agent-harness", n:7 },
+  { name:"linkedin", icon:"in", site:"linkedin.com", desc:"LinkedIn — search people/jobs/companies, view feed and profiles, post/edit/delete updates, react, comment, manage network connections (accept/decline invitations), read and send messages, follow companies. PerimeterX bypass via curl_cffi.", category:"Social", tags:["social","jobs"], proto:"GraphQL + Voyager REST (curl_cffi)", cmds:["auth login","auth status","auth logout","feed","search all","search people","search companies","search jobs","profile get","profile me","company","company follow","company unfollow","jobs search","jobs get","post create","post edit","post delete","post react","post unreact","post comment","post edit-comment","post delete-comment","notifications","network connections","network invitations","network accept","network decline","network connect","messaging list","messaging read","messaging send"], install:"pip install -e linkedin/agent-harness", n:32 },
 ];
 
 const grid = document.getElementById('grid');

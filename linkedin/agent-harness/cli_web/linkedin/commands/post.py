@@ -4,12 +4,7 @@ from __future__ import annotations
 import click
 
 from ..core.client import LinkedinClient
-from ..utils.helpers import handle_errors, print_json
-
-
-def _resolve_json_mode(ctx: click.Context, json_mode: bool) -> bool:
-    """Return True if --json was passed on this command or the parent group."""
-    return json_mode or (ctx.obj or {}).get("json", False)
+from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
 
 @click.group("post")
@@ -23,7 +18,7 @@ def post():
 @click.pass_context
 def create_post(ctx, text, json_mode):
     """Publish a new text post."""
-    json_mode = _resolve_json_mode(ctx, json_mode)
+    json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
@@ -54,7 +49,7 @@ def create_post(ctx, text, json_mode):
 @click.pass_context
 def react(ctx, post_urn, reaction_type, json_mode):
     """React to a post."""
-    json_mode = _resolve_json_mode(ctx, json_mode)
+    json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
@@ -75,7 +70,7 @@ def react(ctx, post_urn, reaction_type, json_mode):
 @click.pass_context
 def comment(ctx, post_urn, text, json_mode):
     """Comment on a post."""
-    json_mode = _resolve_json_mode(ctx, json_mode)
+    json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
@@ -98,7 +93,7 @@ def comment(ctx, post_urn, text, json_mode):
 @click.pass_context
 def edit_post(ctx, post_urn, text, json_mode):
     """Edit an existing post."""
-    json_mode = _resolve_json_mode(ctx, json_mode)
+    json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
             result = client.edit_post(post_urn, text)
@@ -114,7 +109,7 @@ def edit_post(ctx, post_urn, text, json_mode):
 @click.pass_context
 def delete_post(ctx, post_urn, json_mode):
     """Delete a post."""
-    json_mode = _resolve_json_mode(ctx, json_mode)
+    json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
             client.delete_post(post_urn)
@@ -130,7 +125,7 @@ def delete_post(ctx, post_urn, json_mode):
 @click.pass_context
 def unreact(ctx, post_urn, json_mode):
     """Remove your reaction from a post."""
-    json_mode = _resolve_json_mode(ctx, json_mode)
+    json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
             client.unreact(post_urn)
@@ -147,7 +142,7 @@ def unreact(ctx, post_urn, json_mode):
 @click.pass_context
 def edit_comment(ctx, comment_urn, text, json_mode):
     """Edit a comment."""
-    json_mode = _resolve_json_mode(ctx, json_mode)
+    json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
             client.edit_comment(comment_urn, text)
@@ -163,7 +158,7 @@ def edit_comment(ctx, comment_urn, text, json_mode):
 @click.pass_context
 def delete_comment(ctx, comment_urn, json_mode):
     """Delete a comment."""
-    json_mode = _resolve_json_mode(ctx, json_mode)
+    json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
             client.delete_comment(comment_urn)

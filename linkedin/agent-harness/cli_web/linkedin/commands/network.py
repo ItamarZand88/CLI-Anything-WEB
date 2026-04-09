@@ -7,19 +7,6 @@ from ..core.client import LinkedinClient
 from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
 
-def _get_text(obj, *keys) -> str:
-    """Safely drill into nested dicts and return a string."""
-    current = obj
-    for k in keys:
-        if isinstance(current, dict):
-            current = current.get(k)
-        else:
-            return ""
-    if isinstance(current, dict):
-        return current.get("text", str(current))
-    return str(current) if current else ""
-
-
 @click.group("network")
 def network():
     """View connections, invitations, and manage your network."""

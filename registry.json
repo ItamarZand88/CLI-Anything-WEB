@@ -273,7 +273,12 @@
       "auth": "none",
       "directory": "amazon/agent-harness",
       "namespace": "cli_web.amazon",
-      "commands": ["search", "suggest", "product get", "bestsellers"],
+      "commands": [
+        "search",
+        "suggest",
+        "product get",
+        "bestsellers"
+      ],
       "install": "pip install -e amazon/agent-harness"
     },
     {
@@ -293,6 +298,49 @@
         "attractions get"
       ],
       "install": "pip install -e tripadvisor/agent-harness"
+    },
+    {
+      "name": "cli-web-linkedin",
+      "website": "https://www.linkedin.com",
+      "protocol": "GraphQL + Voyager REST (curl_cffi)",
+      "auth": "cookie",
+      "directory": "linkedin/agent-harness",
+      "namespace": "cli_web.linkedin",
+      "commands": [
+        "auth login",
+        "auth status",
+        "auth logout",
+        "feed",
+        "search all",
+        "search people",
+        "search companies",
+        "search jobs",
+        "profile get",
+        "profile me",
+        "company",
+        "company follow",
+        "company unfollow",
+        "jobs search",
+        "jobs get",
+        "post create",
+        "post edit",
+        "post delete",
+        "post react",
+        "post unreact",
+        "post comment",
+        "post edit-comment",
+        "post delete-comment",
+        "notifications",
+        "network connections",
+        "network invitations",
+        "network accept",
+        "network decline",
+        "network connect",
+        "messaging list",
+        "messaging read",
+        "messaging send"
+      ],
+      "install": "pip install -e linkedin/agent-harness"
     }
   ]
 }

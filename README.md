@@ -364,7 +364,8 @@ CLI-Anything-WEB/
 ├── chatgpt/                     # 🤖 ChatGPT (REST API + Camoufox)
 ├── airbnb/                      # 🏠 Airbnb (SSR HTML + niobeClientData)
 ├── amazon/                      # 🛒 Amazon (SSR HTML + REST JSON)
-└── tripadvisor/                 # 🌍 TripAdvisor (SSR HTML + JSON-LD, curl_cffi)
+├── tripadvisor/                 # 🌍 TripAdvisor (SSR HTML + JSON-LD, curl_cffi)
+└── linkedin/                    # 💼 LinkedIn (GraphQL + Voyager REST, curl_cffi)
 ```
 
 <br>

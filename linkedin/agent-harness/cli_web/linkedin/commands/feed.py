@@ -4,12 +4,7 @@ from __future__ import annotations
 import click
 
 from ..core.client import LinkedinClient
-from ..utils.helpers import handle_errors, print_json
-
-
-def _resolve_json_mode(ctx: click.Context, json_mode: bool) -> bool:
-    """Return True if --json was passed on this command or the parent group."""
-    return json_mode or (ctx.obj or {}).get("json", False)
+from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
 
 def _extract_posts(data: dict) -> list[dict]:
@@ -128,7 +123,7 @@ def _print_feed(posts: list[dict]) -> None:
 @click.pass_context
 def feed(ctx, count, json_mode):
     """View your LinkedIn feed."""
-    json_mode = _resolve_json_mode(ctx, json_mode)
+    json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:

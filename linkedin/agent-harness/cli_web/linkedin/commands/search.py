@@ -119,7 +119,7 @@ def _truncate(text: str, length: int = 60) -> str:
 @click.group("search")
 @click.pass_context
 def search(ctx):
-    """Search LinkedIn for people, jobs, companies, and posts."""
+    """Search LinkedIn for people, jobs, and companies."""
     ctx.ensure_object(dict)
 
 
@@ -138,7 +138,7 @@ def search_all(ctx, query, limit, json_mode):
 
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
-            data = client._search(query, vertical="", count=limit)
+            data = client.search(query, vertical="", count=limit)
         results = _extract_elements(data)
 
         if json_mode:

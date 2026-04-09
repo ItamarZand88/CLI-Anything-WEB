@@ -28,11 +28,6 @@ GRAPHQL_URL = f"{VOYAGER_API}/graphql"
 # GraphQL query IDs captured from LinkedIn traffic
 QUERY_IDS = {
     "feed": "voyagerFeedDashMainFeed.923020905727c01516495a0ac90bb475",
-    "profile_by_identity": "voyagerIdentityDashProfiles.b5c27c04968c409fc0ed3546575b9b7a",
-    "profile_by_urn": "voyagerIdentityDashProfiles.da93c92bffce3da586a992376e42a305",
-    "job_cards": "voyagerJobsDashJobCards.11efe66ab8e00aabdc31cf0a7f095a32",
-    "job_posting": "voyagerJobsDashJobPostings.891aed7916d7453a37e4bbf5f1f60de4",
-    "topics": "voyagerFeedDashTopics.9075cab8b59e14d62b497b48f77d5e12",
     "search_clusters": "voyagerSearchDashClusters.b0928897b71bd00a5a7291755dcd64f0",
 }
 
@@ -158,12 +153,7 @@ class LinkedinClient:
             pass  # Fall through to browser refresh
 
     def _refresh_via_browser(self) -> None:
-        """Silently refresh cookies using headless browser.
-
-        Launches headless Chromium with the persistent browser profile,
-        navigates to LinkedIn (which refreshes the session cookies),
-        extracts and saves the new cookies. No user interaction needed.
-        """
+        """Silently refresh cookies by delegating to ``refresh_auth()``."""
         auth_data = refresh_auth()
         if auth_data:
             self._cookies = auth_data.get("cookies", {})
@@ -291,10 +281,6 @@ class LinkedinClient:
         )
 
     # ------------------------------------------------------------------
-    # Company
-    # ------------------------------------------------------------------
-
-    # ------------------------------------------------------------------
     # Search
     # ------------------------------------------------------------------
 
@@ -315,38 +301,31 @@ class LinkedinClient:
         )
         return resp.json()
 
-    def _search(
+    def search(
         self,
         query: str,
         vertical: str = "PEOPLE",
         start: int = 0,
         count: int = 10,
     ) -> dict:
-        """Universal search via the ``voyagerSearchDashClusters`` GraphQL endpoint.
+        """Search via the ``voyagerSearchDashClusters`` GraphQL endpoint.
 
         Args:
             query: Search keywords.
-            vertical: One of ``PEOPLE``, ``COMPANIES``, ``CONTENT``, ``JOBS``.
+            vertical: ``PEOPLE``, ``COMPANIES``, ``JOBS``, or ``""`` for unfiltered.
             start: Pagination offset.
             count: Number of results.
-
-        Returns:
-            Raw GraphQL response dict.
         """
         encoded_query = quote(query, safe="")
-        type_filter = ""
-        if vertical == "PEOPLE":
-            type_filter = "(key:resultType,value:List(PEOPLE))"
-        elif vertical == "COMPANIES":
-            type_filter = "(key:resultType,value:List(COMPANIES))"
-        elif vertical == "CONTENT":
-            type_filter = "(key:resultType,value:List(CONTENT))"
-        elif vertical == "JOBS":
-            type_filter = "(key:resultType,value:List(JOBS))"
+        type_filter = {
+            "PEOPLE": "(key:resultType,value:List(PEOPLE))",
+            "COMPANIES": "(key:resultType,value:List(COMPANIES))",
+            "JOBS": "(key:resultType,value:List(JOBS))",
+        }.get(vertical, "")
 
         filters = f",queryParameters:List({type_filter})" if type_filter else ""
         variables = (
-            f"(start:{start},origin:GLOBAL_SEARCH_HEADER,"
+            f"(start:{start},count:{count},origin:GLOBAL_SEARCH_HEADER,"
             f"query:(keywords:{encoded_query},"
             f"flagshipSearchIntent:SEARCH_SRP"
             f"{filters},"
@@ -355,12 +334,12 @@ class LinkedinClient:
         return self._graphql_get(QUERY_IDS["search_clusters"], variables)
 
     def search_people(self, query: str, start: int = 0, count: int = 10) -> dict:
-        """Search for people via the Voyager GraphQL search endpoint."""
-        return self._search(query, vertical="PEOPLE", start=start, count=count)
+        """Search for people."""
+        return self.search(query, vertical="PEOPLE", start=start, count=count)
 
     def search_companies(self, query: str, start: int = 0, count: int = 10) -> dict:
-        """Search for companies via the Voyager GraphQL search endpoint."""
-        return self._search(query, vertical="COMPANIES", start=start, count=count)
+        """Search for companies."""
+        return self.search(query, vertical="COMPANIES", start=start, count=count)
 
     # ------------------------------------------------------------------
     # Jobs
@@ -482,7 +461,7 @@ class LinkedinClient:
     def delete_comment(self, comment_urn: str) -> dict:
         """Delete a comment."""
         url = f"{VOYAGER_API}/feed/dash/comments/{quote(comment_urn, safe='')}"
-        resp = self._request("DELETE", url)
+        self._request("DELETE", url)
         return {}
 
     # ------------------------------------------------------------------
@@ -504,14 +483,14 @@ class LinkedinClient:
     def delete_post(self, post_urn: str) -> dict:
         """Delete a post."""
         url = f"{VOYAGER_API}/feed/dash/posts/{quote(post_urn, safe='')}"
-        resp = self._request("DELETE", url)
+        self._request("DELETE", url)
         return {}
 
     def unreact(self, entity_urn: str) -> dict:
         """Remove a reaction from a post."""
         encoded = quote(entity_urn, safe="")
         url = f"{VOYAGER_API}/reactions/{encoded}"
-        resp = self._request("DELETE", url)
+        self._request("DELETE", url)
         return {}
 
     # ------------------------------------------------------------------
@@ -526,7 +505,10 @@ class LinkedinClient:
             f"&count={count}&start={start}"
             f"&q=filterVanityName"
         )
-        resp = self._request("GET", url)
+        resp = self._request(
+            "GET", url,
+            headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
         return resp.json()
 
     # ------------------------------------------------------------------
@@ -620,19 +602,25 @@ class LinkedinClient:
             f"?queryId={query_id}"
             f"&variables={encoded_vars}"
         )
-        resp = self._request("GET", url)
+        resp = self._request(
+            "GET", url,
+            headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
         return resp.json()
 
     def get_my_profile_urn(self) -> str:
-        """Get the current user's profile URN for messaging."""
+        """Get the current user's profile URN."""
         data = self._rest_get("me")
         mp = data.get("miniProfile", data)
+        # Check included array (REST.li pointer pattern)
+        if not mp.get("dashEntityUrn") and data.get("included"):
+            mp = data["included"][0]
         return mp.get("dashEntityUrn", mp.get("entityUrn", ""))
 
     def get_conversations(self, count: int = 20) -> dict:
         """Get messaging conversations list."""
         profile_urn = self.get_my_profile_urn()
-        variables = f"(mailboxUrn:{profile_urn})"
+        variables = f"(mailboxUrn:{profile_urn},count:{count})"
         return self._messaging_graphql(
             "messengerConversations.0d5e6781bbee71c3e51c8843c6519f48",
             variables,
@@ -640,7 +628,7 @@ class LinkedinClient:
 
     def get_conversation_messages(self, conversation_urn: str, count: int = 20) -> dict:
         """Get messages in a conversation."""
-        variables = f"(conversationUrn:{conversation_urn})"
+        variables = f"(conversationUrn:{conversation_urn},count:{count})"
         return self._messaging_graphql(
             "messengerMessages.5846eeb71c981f11e0134cb6626cc314",
             variables,
