@@ -18,25 +18,36 @@ console = Console()
 
 def _extract_elements(data) -> list[dict]:
     """Pull search-result elements from various LinkedIn response formats."""
-    # If data is already a list (from scrape_search), return as-is
     if isinstance(data, list):
         return data
 
     elements: list[dict] = []
 
-    # Format 1: Job search — elements[].jobCardUnion.jobPostingCard
+    # Format 1: GraphQL searchDashClusters — data.searchDashClustersByAll.elements[].items[].item.entityResult
+    gql = data.get("data", {})
+    for key, val in gql.items():
+        if isinstance(val, dict) and "elements" in val:
+            for el in val["elements"]:
+                for item in el.get("items", []):
+                    entity = item.get("item", {}).get("entityResult", {})
+                    if entity:
+                        elements.append(entity)
+            if elements:
+                return elements
+
+    # Format 2: Job search — elements[].jobCardUnion.jobPostingCard
     for el in data.get("elements", []):
         card = el.get("jobCardUnion", {}).get("jobPostingCard", {})
         if card:
             elements.append(card)
             continue
-        # Format 2: Clusters — elements[].items[].item.entityResult
+        # Format 3: Clusters at top level
         for item in el.get("items", []):
             entity = item.get("item", {}).get("entityResult", item.get("entityResult", {}))
             if entity:
                 elements.append(entity)
 
-    # Format 3: included array with typed entities
+    # Format 4: included array with typed entities
     if not elements:
         for inc in data.get("included", []):
             if inc.get("$type", ""):
@@ -89,9 +100,9 @@ def search_all(ctx, query, limit, json_mode):
     json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        # Unified search uses people search as default
-        data = client.search_people(query, count=limit)
+        with LinkedinClient() as client:
+            # Unified search uses people search as default
+            data = client.search_people(query, count=limit)
         results = _extract_elements(data)
 
         if json_mode:
@@ -139,8 +150,8 @@ def search_people(ctx, query, limit, json_mode):
     json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        data = client.search_people(query, count=limit)
+        with LinkedinClient() as client:
+            data = client.search_people(query, count=limit)
         results = _extract_elements(data)
 
         if json_mode:
@@ -188,8 +199,8 @@ def search_jobs(ctx, query, limit, json_mode):
     json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        data = client.search_jobs(query, count=limit)
+        with LinkedinClient() as client:
+            data = client.search_jobs(query, count=limit)
         results = _extract_elements(data)
 
         if json_mode:
@@ -237,8 +248,8 @@ def search_companies(ctx, query, limit, json_mode):
     json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        data = client.search_companies(query, count=limit)
+        with LinkedinClient() as client:
+            data = client.search_companies(query, count=limit)
         results = _extract_elements(data)
 
         if json_mode:
@@ -286,8 +297,8 @@ def search_posts(ctx, query, limit, json_mode):
     json_mode = resolve_json_mode(json_mode, ctx)
 
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        data = client.search_posts(query, count=limit)
+        with LinkedinClient() as client:
+            data = client.search_posts(query, count=limit)
         results = _extract_elements(data)
 
         if json_mode:

@@ -44,8 +44,8 @@ def search_jobs(ctx, query, limit, json_mode):
     """Search for jobs."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
-        client = LinkedinClient()
-        data = client.search_jobs(query, count=limit)
+        with LinkedinClient() as client:
+            data = client.search_jobs(query, count=limit)
         cards = _extract_job_cards(data)
 
         if json_mode:
@@ -92,8 +92,8 @@ def get_job(ctx, job_id, json_mode):
     """View job details by ID (from search results)."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
-        client = LinkedinClient()
-        data = client.get_job(job_id)
+        with LinkedinClient() as client:
+            data = client.get_job(job_id)
 
         if json_mode:
             print_json(data)

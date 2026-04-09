@@ -15,8 +15,8 @@ def company(ctx, name, json_mode):
     """View a company page."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
-        client = LinkedinClient()
-        data = client.get_company(name)
+        with LinkedinClient() as client:
+            data = client.get_company(name)
 
         if json_mode:
             print_json(data)

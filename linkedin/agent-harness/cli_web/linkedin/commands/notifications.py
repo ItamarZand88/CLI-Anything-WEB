@@ -15,8 +15,8 @@ def notifications(ctx, limit, json_mode):
     """View your notifications."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
-        client = LinkedinClient()
-        data = client.get_notifications(count=limit)
+        with LinkedinClient() as client:
+            data = client.get_notifications(count=limit)
 
         if json_mode:
             print_json(data)

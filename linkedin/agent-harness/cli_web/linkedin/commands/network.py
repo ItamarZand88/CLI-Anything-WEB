@@ -20,8 +20,8 @@ def connections(ctx, limit, json_mode):
     """List your connections."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
-        client = LinkedinClient()
-        data = client.get_connections(count=limit)
+        with LinkedinClient() as client:
+            data = client.get_connections(count=limit)
 
         if json_mode:
             print_json(data)
@@ -42,8 +42,8 @@ def invitations(ctx, limit, json_mode):
     """View pending connection invitations."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
-        client = LinkedinClient()
-        data = client.get_invitations(count=limit)
+        with LinkedinClient() as client:
+            data = client.get_invitations(count=limit)
 
         if json_mode:
             print_json(data)
@@ -70,8 +70,8 @@ def connect(ctx, profile_urn, message, json_mode):
     """Send a connection request."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
-        client = LinkedinClient()
-        result = client.send_connection(profile_urn, message=message)
+        with LinkedinClient() as client:
+            result = client.send_connection(profile_urn, message=message)
         if json_mode:
             print_json({"success": True, "result": result})
         else:

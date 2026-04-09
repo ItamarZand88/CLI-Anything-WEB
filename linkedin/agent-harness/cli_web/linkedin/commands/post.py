@@ -26,11 +26,8 @@ def create_post(ctx, text, json_mode):
     json_mode = _resolve_json_mode(ctx, json_mode)
 
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        try:
+        with LinkedinClient() as client:
             result = client.create_post(text)
-        finally:
-            client.close()
 
         if json_mode:
             print_json(result)
@@ -60,11 +57,8 @@ def react(ctx, post_urn, reaction_type, json_mode):
     json_mode = _resolve_json_mode(ctx, json_mode)
 
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        try:
+        with LinkedinClient() as client:
             result = client.react(post_urn, reaction_type)
-        finally:
-            client.close()
 
         if json_mode:
             print_json({"success": True, "reaction": reaction_type, "post_urn": post_urn})
@@ -84,11 +78,8 @@ def comment(ctx, post_urn, text, json_mode):
     json_mode = _resolve_json_mode(ctx, json_mode)
 
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        try:
+        with LinkedinClient() as client:
             result = client.add_comment(post_urn, text)
-        finally:
-            client.close()
 
         if json_mode:
             print_json(result if result else {"success": True, "post_urn": post_urn})
@@ -109,8 +100,8 @@ def edit_post(ctx, post_urn, text, json_mode):
     """Edit an existing post."""
     json_mode = _resolve_json_mode(ctx, json_mode)
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        result = client.edit_post(post_urn, text)
+        with LinkedinClient() as client:
+            result = client.edit_post(post_urn, text)
         if json_mode:
             print_json({"success": True, "post_urn": post_urn})
         else:
@@ -125,8 +116,8 @@ def delete_post(ctx, post_urn, json_mode):
     """Delete a post."""
     json_mode = _resolve_json_mode(ctx, json_mode)
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        client.delete_post(post_urn)
+        with LinkedinClient() as client:
+            client.delete_post(post_urn)
         if json_mode:
             print_json({"success": True, "deleted": post_urn})
         else:
@@ -141,8 +132,8 @@ def unreact(ctx, post_urn, json_mode):
     """Remove your reaction from a post."""
     json_mode = _resolve_json_mode(ctx, json_mode)
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        client.unreact(post_urn)
+        with LinkedinClient() as client:
+            client.unreact(post_urn)
         if json_mode:
             print_json({"success": True, "unreacted": post_urn})
         else:
@@ -158,8 +149,8 @@ def edit_comment(ctx, comment_urn, text, json_mode):
     """Edit a comment."""
     json_mode = _resolve_json_mode(ctx, json_mode)
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        client.edit_comment(comment_urn, text)
+        with LinkedinClient() as client:
+            client.edit_comment(comment_urn, text)
         if json_mode:
             print_json({"success": True, "comment_urn": comment_urn})
         else:
@@ -174,8 +165,8 @@ def delete_comment(ctx, comment_urn, json_mode):
     """Delete a comment."""
     json_mode = _resolve_json_mode(ctx, json_mode)
     with handle_errors(json_mode=json_mode):
-        client = LinkedinClient()
-        client.delete_comment(comment_urn)
+        with LinkedinClient() as client:
+            client.delete_comment(comment_urn)
         if json_mode:
             print_json({"success": True, "deleted": comment_urn})
         else:

@@ -20,8 +20,8 @@ def get_profile(ctx, username, json_mode):
     """View a LinkedIn profile by username."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
-        client = LinkedinClient()
-        data = client.get_profile(username)
+        with LinkedinClient() as client:
+            data = client.get_profile(username)
 
         if json_mode:
             print_json(data)
@@ -59,8 +59,8 @@ def my_profile(ctx, json_mode):
     """View your own profile."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
-        client = LinkedinClient()
-        data = client._rest_get("me")
+        with LinkedinClient() as client:
+            data = client._rest_get("me")
 
         if json_mode:
             print_json(data)

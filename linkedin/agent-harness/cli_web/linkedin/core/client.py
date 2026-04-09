@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import random
 import re
+import time
 from urllib.parse import quote
 
 from curl_cffi import requests as curl_requests
@@ -77,20 +79,32 @@ class LinkedinClient:
         self._session = curl_requests.Session(impersonate="chrome")
 
         csrf = _extract_csrf(self._cookies)
+        # Do NOT set User-Agent — curl_cffi injects a matching Chrome UA
+        # via impersonation. Overriding it breaks TLS/UA consistency.
         self._session.headers.update(
             {
                 "csrf-token": csrf,
                 "x-restli-protocol-version": "2.0.0",
                 "x-li-track": LI_TRACK,
                 "x-li-lang": "en_US",
-                "Accept": "application/graphql",
-                "User-Agent": "cli-web-linkedin/0.1.0",
+                "accept-language": "en-US,en;q=0.9",
             }
         )
+        self._request_count = 0
 
     # ------------------------------------------------------------------
     # Low-level request helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _human_delay() -> None:
+        """Sleep a short Gaussian-random duration between API calls.
+
+        Avoids fixed-interval timing patterns that LinkedIn's behavioral
+        analysis flags as bot traffic.  Mean ~1.5s, std ~0.5s, min 0.3s.
+        """
+        delay = max(0.3, random.gauss(1.5, 0.5))
+        time.sleep(delay)
 
     def _request(
         self,
@@ -109,6 +123,11 @@ class LinkedinClient:
 
         After all retries fail, raises AuthError.
         """
+        # Jitter between consecutive requests (skip the first one)
+        if self._request_count > 0 and _attempt == 0:
+            self._human_delay()
+        self._request_count += 1
+
         kwargs.setdefault("cookies", self._cookies)
         try:
             resp = self._session.request(method, url, **kwargs)
@@ -180,7 +199,10 @@ class LinkedinClient:
             f"&variables={variables_str}"
             f"&queryId={query_id}"
         )
-        resp = self._request("GET", url)
+        resp = self._request(
+            "GET", url,
+            headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
         data = resp.json()
         if "errors" in data and data["errors"]:
             msg = data["errors"][0].get("message", "GraphQL error")
@@ -198,7 +220,10 @@ class LinkedinClient:
             Parsed JSON response body.
         """
         url = f"{VOYAGER_API}/{path.lstrip('/')}"
-        resp = self._request("GET", url, params=params)
+        resp = self._request(
+            "GET", url, params=params,
+            headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
         return resp.json()
 
     def _rest_post(self, path: str, data: dict | None = None) -> dict:
@@ -212,7 +237,10 @@ class LinkedinClient:
             Parsed JSON response body (empty dict for 201/204).
         """
         url = f"{VOYAGER_API}/{path.lstrip('/')}"
-        headers = {"Content-Type": "application/json"}
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/vnd.linkedin.normalized+json+2.1",
+        }
         resp = self._request("POST", url, json=data, headers=headers)
         if resp.status_code in (201, 204) or not resp.text.strip():
             return {}
@@ -294,158 +322,62 @@ class LinkedinClient:
             f"&query=(origin:JOB_SEARCH_PAGE_OTHER_ENTRY,keywords:{encoded_query},spellCorrectionEnabled:true)"
             f"&start={start}"
         )
-        resp = self._request("GET", url)
+        resp = self._request(
+            "GET", url,
+            headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
+        )
         return resp.json()
 
-    def search_people(self, query: str, start: int = 0, count: int = 10) -> list[dict]:
-        """Search for people by scraping the search results page."""
-        return self._scrape_search("people", query, start)
+    def _search(
+        self,
+        query: str,
+        vertical: str = "PEOPLE",
+        start: int = 0,
+        count: int = 10,
+    ) -> dict:
+        """Universal search via the ``voyagerSearchDashClusters`` GraphQL endpoint.
 
-    def search_posts(self, query: str, start: int = 0, count: int = 10) -> list[dict]:
-        """Search for posts/content by scraping the search results page."""
-        return self._scrape_search("content", query, start)
+        Args:
+            query: Search keywords.
+            vertical: One of ``PEOPLE``, ``COMPANIES``, ``CONTENT``, ``JOBS``.
+            start: Pagination offset.
+            count: Number of results.
 
-    def search_companies(self, query: str, start: int = 0, count: int = 10) -> list[dict]:
-        """Search for companies by scraping the search results page."""
-        return self._scrape_search("companies", query, start)
-
-    def _scrape_search(self, scope: str, query: str, start: int = 0) -> list[dict]:
-        """Search LinkedIn via headless browser rendering.
-
-        LinkedIn moved people/company/post search to RSC (React Server Components).
-        The Voyager REST search API returns 500. We must render the page in a
-        headless browser and extract results from the DOM.
-
-        Uses Playwright with the persistent browser profile (same as auth login)
-        so the session cookies are already present.
+        Returns:
+            Raw GraphQL response dict.
         """
-        import asyncio
-        import sys
-
-        if sys.platform == "win32":
-            asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
-
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError:
-            raise NetworkError(
-                "Playwright required for people/company/post search. "
-                "Install: pip install playwright && playwright install chromium"
-            )
-
-        from .auth import CONFIG_DIR as AUTH_DIR
-
         encoded_query = quote(query, safe="")
-        page_url = (
-            f"{BASE_URL}/search/results/{scope}/"
-            f"?keywords={encoded_query}&origin=SWITCH_SEARCH_VERTICAL"
+        type_filter = ""
+        if vertical == "PEOPLE":
+            type_filter = "(key:resultType,value:List(PEOPLE))"
+        elif vertical == "COMPANIES":
+            type_filter = "(key:resultType,value:List(COMPANIES))"
+        elif vertical == "CONTENT":
+            type_filter = "(key:resultType,value:List(CONTENT))"
+        elif vertical == "JOBS":
+            type_filter = "(key:resultType,value:List(JOBS))"
+
+        filters = f",queryParameters:List({type_filter})" if type_filter else ""
+        variables = (
+            f"(start:{start},origin:GLOBAL_SEARCH_HEADER,"
+            f"query:(keywords:{encoded_query},"
+            f"flagshipSearchIntent:SEARCH_SRP"
+            f"{filters},"
+            f"includeFiltersInResponse:false))"
         )
-        if start > 0:
-            page_url += f"&page={start // 10 + 1}"
+        return self._graphql_get(QUERY_IDS["search_clusters"], variables)
 
-        profile_dir = AUTH_DIR / "browser-profile"
-        profile_dir.mkdir(parents=True, exist_ok=True)
+    def search_people(self, query: str, start: int = 0, count: int = 10) -> dict:
+        """Search for people via the Voyager GraphQL search endpoint."""
+        return self._search(query, vertical="PEOPLE", start=start, count=count)
 
-        results = []
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=True,
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--no-first-run",
-                    "--no-default-browser-check",
-                ],
-            )
-            context = browser.new_context()
-            # Inject cookies from auth.json
-            cookie_list = []
-            for name, value in self._cookies.items():
-                cookie_list.append({
-                    "name": name,
-                    "value": value,
-                    "domain": ".linkedin.com",
-                    "path": "/",
-                })
-            context.add_cookies(cookie_list)
-            page = context.new_page()
-            page.goto(page_url, wait_until="domcontentloaded")
-            # Wait for search results to render
-            page.wait_for_timeout(5000)
+    def search_posts(self, query: str, start: int = 0, count: int = 10) -> dict:
+        """Search for posts/content via the Voyager GraphQL search endpoint."""
+        return self._search(query, vertical="CONTENT", start=start, count=count)
 
-            if scope == "people":
-                results = page.evaluate("""() => {
-                    var links = document.querySelectorAll('a[href*="/in/"]');
-                    var seen = {};
-                    var results = [];
-                    for (var i = 0; i < links.length; i++) {
-                        var a = links[i];
-                        var href = a.href.split('?')[0];
-                        if (seen[href]) continue;
-                        seen[href] = true;
-                        var rawText = a.textContent.trim();
-                        if (rawText.length < 3 || rawText.length > 200) continue;
-                        var name = rawText;
-                        var headline = '';
-                        var bulletIdx = rawText.indexOf('\u2022');
-                        if (bulletIdx > 0) {
-                            name = rawText.substring(0, bulletIdx).trim();
-                            var rest = rawText.substring(bulletIdx + 1).trim();
-                            rest = rest.replace(/^(1st|2nd|3rd)/i, '').trim();
-                            var cutIdx = rest.search(/Connect|Message|Follow/);
-                            headline = cutIdx > 0 ? rest.substring(0, cutIdx).trim() : rest.trim();
-                        }
-                        if (name === 'LinkedIn' || name.length > 60) continue;
-                        results.push({name: name, headline: headline.substring(0, 100), url: href});
-                    }
-                    return results;
-                }""")
-            elif scope == "companies":
-                results = page.evaluate("""() => {
-                    var links = document.querySelectorAll('a[href*="/company/"]');
-                    var companies = {};
-                    for (var i = 0; i < links.length; i++) {
-                        var a = links[i];
-                        var href = a.href.split('?')[0];
-                        if (!companies[href]) companies[href] = [];
-                        var t = a.textContent.trim();
-                        if (t.length > 1) companies[href].push(t);
-                    }
-                    var results = [];
-                    for (var href in companies) {
-                        var texts = companies[href];
-                        texts.sort(function(a, b) { return a.length - b.length; });
-                        var name = texts[0] || '';
-                        if (name === 'LinkedIn' || name.length < 2) continue;
-                        var info = texts.length > 2 ? texts[2] : '';
-                        if (info.indexOf('follow') >= 0) info = '';
-                        results.push({name: name, info: info.substring(0, 100), url: href});
-                    }
-                    return results;
-                }""")
-            else:
-                # content/posts
-                results = page.evaluate("""() => {
-                    var links = document.querySelectorAll('a[href*="/in/"], a[href*="/posts/"]');
-                    var seen = {};
-                    var results = [];
-                    for (var i = 0; i < links.length; i++) {
-                        var a = links[i];
-                        var href = a.href.split('?')[0];
-                        if (seen[href]) continue;
-                        seen[href] = true;
-                        var rawText = a.textContent.trim();
-                        if (rawText.length < 5 || rawText.length > 200) continue;
-                        if (rawText === 'LinkedIn') continue;
-                        results.push({name: rawText.substring(0, 60), url: href});
-                    }
-                    return results;
-                }""")
-
-            context.close()
-            browser.close()
-
-        # Filter out empty results
-        return [r for r in results if any(v for k, v in r.items() if k != "urn")]
+    def search_companies(self, query: str, start: int = 0, count: int = 10) -> dict:
+        """Search for companies via the Voyager GraphQL search endpoint."""
+        return self._search(query, vertical="COMPANIES", start=start, count=count)
 
     # ------------------------------------------------------------------
     # Jobs
@@ -660,8 +592,13 @@ class LinkedinClient:
         /voyager/api/voyagerMessagingGraphQL/graphql.
         URNs in variables MUST be URL-encoded.
         """
-        # URN colons must be encoded as %3A but structure chars (parens, commas) kept literal
-        encoded_vars = variables_str.replace("urn:", "urn%3A").replace("li:", "li%3A").replace("fsd_profile:", "fsd_profile%3A").replace("msg_conversation:", "msg_conversation%3A")
+        # Encode colons inside URN identifiers (urn:li:...:value) while
+        # preserving structural chars (parens, commas).
+        encoded_vars = re.sub(
+            r"urn:li:[\w]+:[^,)]+",
+            lambda m: quote(m.group(0), safe=""),
+            variables_str,
+        )
         url = (
             f"{VOYAGER_API}/voyagerMessagingGraphQL/graphql"
             f"?queryId={query_id}"
