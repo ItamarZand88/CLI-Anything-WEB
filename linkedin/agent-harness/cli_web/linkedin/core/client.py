@@ -34,7 +34,7 @@ QUERY_IDS = {
     "job_cards": "voyagerJobsDashJobCards.11efe66ab8e00aabdc31cf0a7f095a32",
     "job_posting": "voyagerJobsDashJobPostings.891aed7916d7453a37e4bbf5f1f60de4",
     "topics": "voyagerFeedDashTopics.9075cab8b59e14d62b497b48f77d5e12",
-    "search_clusters": "voyagerSearchDashClusters.b0928897b71bd00a5a7291c2a2e5f8b0",
+    "search_clusters": "voyagerSearchDashClusters.b0928897b71bd00a5a7291755dcd64f0",
 }
 
 # LinkedIn li-track header payload

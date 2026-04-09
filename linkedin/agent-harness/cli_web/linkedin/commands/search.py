@@ -16,41 +16,78 @@ console = Console()
 # Helpers to extract display fields from LinkedIn search result elements
 # ---------------------------------------------------------------------------
 
+def _resolve_pointer(obj: dict, key: str, index: dict) -> dict | None:
+    """Resolve a REST.li ``*key`` pointer against the included index."""
+    # Direct value
+    direct = obj.get(key)
+    if isinstance(direct, dict):
+        return direct
+    # Pointer: *key → URN in included
+    ptr = obj.get(f"*{key}", "")
+    if ptr and ptr in index:
+        return index[ptr]
+    return None
+
+
 def _extract_elements(data) -> list[dict]:
-    """Pull search-result elements from various LinkedIn response formats."""
+    """Pull search-result elements from various LinkedIn response formats.
+
+    LinkedIn's REST.li responses use ``*field`` pointers that reference
+    objects in the ``included`` array by ``entityUrn``.  We resolve these
+    to get the actual display objects (EntityResultViewModel, JobPostingCard).
+    """
     if isinstance(data, list):
         return data
 
+    # Build a lookup of included entities by URN for pointer resolution
+    included_index: dict[str, dict] = {}
+    for inc in data.get("included", []):
+        urn = inc.get("entityUrn", "")
+        if urn:
+            included_index[urn] = inc
+
     elements: list[dict] = []
 
-    # Format 1: GraphQL searchDashClusters — data.searchDashClustersByAll.elements[].items[].item.entityResult
+    # Format 1: GraphQL searchDashClusters —
+    #   data.data.searchDashClustersByAll.elements[].items[].item.*entityResult
     gql = data.get("data", {})
+    # Handle double-nested data (GraphQL wraps in data.data)
+    if "data" in gql and isinstance(gql["data"], dict):
+        gql = gql["data"]
     for key, val in gql.items():
         if isinstance(val, dict) and "elements" in val:
             for el in val["elements"]:
                 for item in el.get("items", []):
-                    entity = item.get("item", {}).get("entityResult", {})
+                    inner = item.get("item", {})
+                    entity = _resolve_pointer(inner, "entityResult", included_index)
                     if entity:
                         elements.append(entity)
             if elements:
                 return elements
 
-    # Format 2: Job search — elements[].jobCardUnion.jobPostingCard
-    for el in data.get("elements", []):
-        card = el.get("jobCardUnion", {}).get("jobPostingCard", {})
-        if card:
-            elements.append(card)
-            continue
+    # Format 2: Job search — data.elements[].jobCardUnion.*jobPostingCard
+    top_elements = data.get("elements", [])
+    if not top_elements:
+        top_elements = data.get("data", {}).get("elements", [])
+    for el in top_elements:
+        jcu = el.get("jobCardUnion", {})
+        if jcu:
+            card = _resolve_pointer(jcu, "jobPostingCard", included_index)
+            if card:
+                elements.append(card)
+                continue
         # Format 3: Clusters at top level
         for item in el.get("items", []):
-            entity = item.get("item", {}).get("entityResult", item.get("entityResult", {}))
+            inner = item.get("item", {})
+            entity = _resolve_pointer(inner, "entityResult", included_index)
             if entity:
                 elements.append(entity)
 
-    # Format 4: included array with typed entities
+    # Format 4: included array — EntityResultViewModel objects
     if not elements:
         for inc in data.get("included", []):
-            if inc.get("$type", ""):
+            t = inc.get("$type", "")
+            if "EntityResult" in t and "title" in inc:
                 elements.append(inc)
 
     return elements

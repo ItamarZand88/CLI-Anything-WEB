@@ -66,8 +66,13 @@ def my_profile(ctx, json_mode):
             print_json(data)
             return
 
-        # /me response has data in miniProfile sub-object
-        mp = data.get("miniProfile", data)
+        # /me response: miniProfile is in included[] or data.miniProfile
+        mp = data.get("miniProfile", {})
+        if not mp and data.get("included"):
+            mp = data["included"][0]
+        if not mp:
+            mp = data
+
         name_parts = []
         if mp.get("firstName"):
             name_parts.append(mp["firstName"])

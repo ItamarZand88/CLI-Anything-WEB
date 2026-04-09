@@ -21,12 +21,36 @@ def _get_text(obj, *keys) -> str:
 
 
 def _extract_job_cards(data: dict) -> list[dict]:
-    """Extract job cards from the Voyager job search response."""
+    """Extract job cards from the Voyager job search response.
+
+    Handles both direct values and REST.li ``*jobPostingCard`` pointers
+    that reference objects in the ``included`` array.
+    """
+    # Build included index for pointer resolution
+    included_index: dict[str, dict] = {}
+    for inc in data.get("included", []):
+        urn = inc.get("entityUrn", "")
+        if urn:
+            included_index[urn] = inc
+
+    elements = data.get("elements", [])
+    if not elements:
+        elements = data.get("data", {}).get("elements", [])
+
     cards = []
-    for el in data.get("elements", []):
-        card = el.get("jobCardUnion", {}).get("jobPostingCard", {})
-        if card:
+    for el in elements:
+        jcu = el.get("jobCardUnion", {})
+        if not jcu:
+            continue
+        # Direct value
+        card = jcu.get("jobPostingCard")
+        if isinstance(card, dict):
             cards.append(card)
+            continue
+        # Pointer: *jobPostingCard → resolve from included
+        ptr = jcu.get("*jobPostingCard", "")
+        if ptr and ptr in included_index:
+            cards.append(included_index[ptr])
     return cards
 
 
@@ -54,9 +78,9 @@ def search_jobs(ctx, query, limit, json_mode):
                 "count": len(cards),
                 "jobs": [
                     {
-                        "title": _get_text(c, "jobPostingTitle"),
-                        "company": _get_text(c, "primaryDescription"),
-                        "location": _get_text(c, "secondaryDescription"),
+                        "title": _get_text(c, "jobPostingTitle") or _get_text(c, "title"),
+                        "company": _get_text(c, "primaryDescription") or _get_text(c, "companyName"),
+                        "location": _get_text(c, "secondaryDescription") or _get_text(c, "formattedLocation"),
                         "urn": c.get("entityUrn", ""),
                         "job_id": c.get("entityUrn", "").split("(")[1].split(",")[0]
                             if "(" in c.get("entityUrn", "") else "",
@@ -72,9 +96,9 @@ def search_jobs(ctx, query, limit, json_mode):
 
         click.echo(f"Jobs for '{query}':\n")
         for i, c in enumerate(cards[:limit], 1):
-            title = _get_text(c, "jobPostingTitle")
-            company = _get_text(c, "primaryDescription")
-            location = _get_text(c, "secondaryDescription")
+            title = _get_text(c, "jobPostingTitle") or _get_text(c, "title")
+            company = _get_text(c, "primaryDescription") or _get_text(c, "companyName")
+            location = _get_text(c, "secondaryDescription") or _get_text(c, "formattedLocation")
             urn = c.get("entityUrn", "")
             job_id = urn.split("(")[1].split(",")[0] if "(" in urn else ""
             click.echo(f"  {i}. {title}")
@@ -99,9 +123,9 @@ def get_job(ctx, job_id, json_mode):
             print_json(data)
             return
 
-        title = _get_text(data, "jobPostingTitle")
-        company = _get_text(data, "primaryDescription")
-        location = _get_text(data, "secondaryDescription")
+        title = _get_text(data, "jobPostingTitle") or _get_text(data, "title")
+        company = _get_text(data, "primaryDescription") or _get_text(data, "companyName")
+        location = _get_text(data, "secondaryDescription") or _get_text(data, "formattedLocation")
 
         click.echo(f"  Title:    {title}")
         click.echo(f"  Company:  {company}")

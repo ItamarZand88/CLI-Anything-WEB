@@ -15,14 +15,28 @@ def _resolve_json_mode(ctx: click.Context, json_mode: bool) -> bool:
 def _extract_posts(data: dict) -> list[dict]:
     """Pull a flat list of post summaries from the feed GraphQL response.
 
-    Feed data lives at data.feedDashMainFeedByMainFeed.elements[].
-    Each element has actor, commentary, socialDetail with nested dicts.
+    Feed data lives at data.data.feedDashMainFeedByMainFeed.*elements[].
+    The ``*elements`` array contains URN pointers resolved from ``included``.
     """
-    feed = (
-        data.get("data", {})
-        .get("feedDashMainFeedByMainFeed", {})
-        .get("elements", [])
-    )
+    # Build included index for pointer resolution
+    included_index: dict[str, dict] = {}
+    for inc in data.get("included", []):
+        urn = inc.get("entityUrn", "")
+        if urn:
+            included_index[urn] = inc
+
+    # Navigate to the feed container (handle double-nested data.data)
+    gql = data.get("data", {})
+    if "data" in gql and isinstance(gql["data"], dict):
+        gql = gql["data"]
+    feed_container = gql.get("feedDashMainFeedByMainFeed", {})
+
+    # Resolve elements: try direct elements[], then *elements[] pointers
+    feed = feed_container.get("elements", [])
+    if not feed:
+        ptrs = feed_container.get("*elements", [])
+        feed = [included_index[p] for p in ptrs if p in included_index]
+
     posts: list[dict] = []
 
     for item in feed:
