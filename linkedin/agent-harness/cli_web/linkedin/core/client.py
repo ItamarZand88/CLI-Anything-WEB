@@ -371,10 +371,6 @@ class LinkedinClient:
         """Search for people via the Voyager GraphQL search endpoint."""
         return self._search(query, vertical="PEOPLE", start=start, count=count)
 
-    def search_posts(self, query: str, start: int = 0, count: int = 10) -> dict:
-        """Search for posts/content via the Voyager GraphQL search endpoint."""
-        return self._search(query, vertical="CONTENT", start=start, count=count)
-
     def search_companies(self, query: str, start: int = 0, count: int = 10) -> dict:
         """Search for companies via the Voyager GraphQL search endpoint."""
         return self._search(query, vertical="COMPANIES", start=start, count=count)

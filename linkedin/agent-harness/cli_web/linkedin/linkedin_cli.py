@@ -131,7 +131,6 @@ def _print_repl_help() -> None:
     print("  search people QUERY           Search people")
     print("  search jobs QUERY             Search jobs")
     print("  search companies QUERY        Search companies")
-    print("  search posts QUERY            Search posts/content")
     print("    --limit N                     Max results (default: 10)")
     print()
     print("  feed                          View your feed")
