@@ -180,156 +180,44 @@ def build_client(variables: dict, protocol: str, http_client: str) -> str:
         # Route injected methods through the same substitution pipeline so any
         # ${placeholder} resolves consistently and write_file's validator runs.
         extra_methods = render_string(extra_methods, variables)
-        content = content.replace(
-            "    def close(self):",
-            extra_methods + "    def close(self):",
-        )
+        anchor = "    def close(self):"
+        if anchor not in content:
+            raise ValueError(
+                f"Base client template {base_tpl!r} is missing required anchor "
+                f"{anchor!r} — protocol={protocol} injection would be silently "
+                f"dropped. If you renamed close(), update build_client()."
+            )
+        content = content.replace(anchor, extra_methods + anchor)
 
     return content
-
-
-# ---------------------------------------------------------------------------
-# Config template selection
-# ---------------------------------------------------------------------------
-
-def build_config(variables: dict, auth_type: str, has_context: bool) -> str:
-    """Generate config.py with conditional auth/context sections."""
-    has_auth = auth_type != "none"
-    lines = [
-        f'"""Configuration constants for cli-web-{variables["app_name"]}."""',
-        "from pathlib import Path",
-        "",
-        f'APP_NAME = "cli-web-{variables["app_name"]}"',
-        "CONFIG_DIR = Path.home() / \".config\" / APP_NAME",
-    ]
-    if has_auth:
-        lines.append('AUTH_FILE = "auth.json"')
-        lines.append(f'AUTH_ENV_VAR = "CLI_WEB_{variables["APP_NAME"]}_AUTH_JSON"')
-    if has_context:
-        lines.append('CONTEXT_FILE = "context.json"')
-    lines.extend([
-        "",
-        "",
-        "def get_config_dir() -> Path:",
-        '    """Return (and create) the config directory."""',
-        "    CONFIG_DIR.mkdir(parents=True, exist_ok=True)",
-        "    return CONFIG_DIR",
-    ])
-    if has_auth:
-        lines.extend([
-            "",
-            "",
-            "def get_auth_path() -> Path:",
-            '    """Return the path to auth.json, creating config dir if needed."""',
-            "    return get_config_dir() / AUTH_FILE",
-        ])
-    lines.append("")
-    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
 # Helpers.py conditional sections
 # ---------------------------------------------------------------------------
 
+# Each feature flag maps to a fragment template under templates/. Fragments
+# are rendered via the normal template pipeline (validated for unresolved
+# placeholders, no f-string quote hazards). Add a new flag by creating a
+# `helpers_<flag>.py.tpl` file and registering it here.
+_HELPER_FRAGMENTS = [
+    ("has_partial_ids", "helpers_partial_ids.py.tpl"),
+    ("has_polling", "helpers_polling.py.tpl"),
+    ("has_context", "helpers_context.py.tpl"),
+]
+
+
 def build_helpers(variables: dict, has_polling: bool, has_context: bool, has_partial_ids: bool) -> str:
-    """Render helpers.py with conditional sections included/excluded."""
+    """Render helpers.py by composing the base template with feature fragments."""
+    flags = {
+        "has_partial_ids": has_partial_ids,
+        "has_polling": has_polling,
+        "has_context": has_context,
+    }
     content = render_template(TEMPLATES_DIR / "helpers.py.tpl", variables)
-
-    # Add conditional sections
-    sections = []
-
-    if has_partial_ids:
-        sections.append(f'''
-
-def resolve_partial_id(partial: str, items: list[dict], key: str = "id") -> dict:
-    """Resolve a partial ID prefix to a single item.
-
-    Raises {variables["AppName"]}Error if zero or multiple matches.
-    """
-    from ..core.exceptions import {variables["AppName"]}Error
-
-    matches = [item for item in items if str(item.get(key, "")).startswith(partial)]
-    if len(matches) == 0:
-        raise {variables["AppName"]}Error(f"No item found matching '{{partial}}'")
-    if len(matches) > 1:
-        ids = [str(m.get(key, "")) for m in matches[:5]]
-        raise {variables["AppName"]}Error(f"Ambiguous ID '{{partial}}', matches: {{', '.join(ids)}}")
-    return matches[0]''')
-
-    if has_polling:
-        sections.append(f'''
-
-def poll_until_complete(
-    check_fn,
-    *,
-    timeout: float = 300.0,
-    initial_delay: float = 2.0,
-    max_delay: float = 10.0,
-    backoff_factor: float = 1.5,
-):
-    """Poll check_fn with exponential backoff until it returns a truthy value.
-
-    Args:
-        check_fn: Callable that returns a result (truthy = done) or None/falsy.
-        timeout: Maximum total wait time in seconds.
-        initial_delay: First sleep interval.
-        max_delay: Cap on sleep interval.
-        backoff_factor: Multiplier per iteration.
-
-    Returns:
-        The truthy result from check_fn.
-
-    Raises:
-        {variables["AppName"]}Error if timeout is exceeded.
-    """
-    import time
-
-    from ..core.exceptions import {variables["AppName"]}Error
-
-    elapsed = 0.0
-    delay = initial_delay
-    while elapsed < timeout:
-        result = check_fn()
-        if result:
-            return result
-        time.sleep(delay)
-        elapsed += delay
-        delay = min(delay * backoff_factor, max_delay)
-    raise {variables["AppName"]}Error(f"Operation timed out after {{timeout}}s")''')
-
-    if has_context:
-        sections.append('''
-
-def get_context_value(key: str) -> str | None:
-    """Read a value from the persistent context file."""
-    import json as _json
-
-    from ..core.config import CONFIG_DIR, CONTEXT_FILE
-
-    path = CONFIG_DIR / CONTEXT_FILE
-    if not path.exists():
-        return None
-    data = _json.loads(path.read_text())
-    return data.get(key)
-
-
-def set_context_value(key: str, value: str) -> None:
-    """Write a value to the persistent context file."""
-    import json as _json
-
-    from ..core.config import CONFIG_DIR, CONTEXT_FILE
-
-    path = CONFIG_DIR / CONTEXT_FILE
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    data = {}
-    if path.exists():
-        data = _json.loads(path.read_text())
-    data[key] = value
-    path.write_text(_json.dumps(data, indent=2))''')
-
-    if sections:
-        content += "\n" + "\n".join(sections) + "\n"
-
+    for flag_name, fragment_name in _HELPER_FRAGMENTS:
+        if flags[flag_name]:
+            content += render_template(TEMPLATES_DIR / fragment_name, variables)
     return content
 
 
@@ -351,14 +239,23 @@ def build_setup_py(variables: dict, http_client: str, auth_type: str, protocol: 
 
     install_requires = "\n        ".join(deps)
 
-    # Build extras_require
+    # Build extras_require as a complete block so we emit nothing when empty
+    # (setup.py treats an empty `extras_require={}` as clutter).
     extras = []
     if auth_type in ("cookie", "google-sso"):
         extras.append('"browser": ["playwright>=1.40.0"],')
 
-    extras_require = "\n        ".join(extras) if extras else ""
+    if extras:
+        extras_body = "\n        ".join(extras)
+        extras_require_block = f"extras_require={{\n        {extras_body}\n    }},"
+    else:
+        extras_require_block = ""
 
-    variables = {**variables, "install_requires": install_requires, "extras_require": extras_require}
+    variables = {
+        **variables,
+        "install_requires": install_requires,
+        "extras_require_block": extras_require_block,
+    }
     return render_template(TEMPLATES_DIR / "setup.py.tpl", variables)
 
 
@@ -425,23 +322,20 @@ def scaffold(
         render_template(TEMPLATES_DIR / "exceptions.py.tpl", variables),
     )
 
-    # config.py (conditional on auth_type + has_context)
-    write_file(
-        core_dir / "config.py",
-        build_config(variables, auth_type, has_context),
-    )
-
     # client.py (variant based on protocol + http_client)
     write_file(
         core_dir / "client.py",
         build_client(variables, protocol, http_client),
     )
 
-    # auth.py (conditional)
+    # auth.py (conditional + variant by auth_type)
+    # google-sso needs the regional-cookie-priority + login_browser scaffold;
+    # cookie and api-key use the generic thin template.
     if auth_type != "none":
+        auth_tpl_name = "auth_google_sso.py.tpl" if auth_type == "google-sso" else "auth.py.tpl"
         write_file(
             core_dir / "auth.py",
-            render_template(TEMPLATES_DIR / "auth.py.tpl", variables),
+            render_template(TEMPLATES_DIR / auth_tpl_name, variables),
         )
 
     # rpc/ subpackage (batchexecute only)
@@ -584,7 +478,24 @@ Examples:
 
     args = parser.parse_args()
 
+    # --app-name must convert to a valid Python identifier — generated code
+    # uses it for package names, module imports, and env var suffixes.
+    app_underscore = to_underscore(args.app_name)
+    if not app_underscore.isidentifier() or app_underscore.startswith("_"):
+        parser.error(
+            f"--app-name {args.app_name!r} converts to {app_underscore!r}, which "
+            f"is not a valid Python package name. Use only letters, digits, "
+            f"underscores, or hyphens; must start with a letter."
+        )
+    if not args.app_name[0].isalpha():
+        parser.error(
+            f"--app-name {args.app_name!r} must start with a letter "
+            f"(generated Python packages cannot start with a digit)."
+        )
+
     resources = [r.strip() for r in args.resources.split(",") if r.strip()]
+    if not resources:
+        parser.error("--resources must not be empty; pass at least one resource name.")
 
     scaffold(
         output_dir=args.output_dir.resolve(),
