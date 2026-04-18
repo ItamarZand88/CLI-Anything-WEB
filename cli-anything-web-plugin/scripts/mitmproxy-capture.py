@@ -58,7 +58,12 @@ if _SCRIPT_DIR not in sys.path:
 
 from traffic_utils import NOISE_PATTERNS, STATIC_EXTENSIONS  # noqa: E402,F401
 from traffic_utils import is_noise_url as _is_noise  # noqa: E402
-from traffic_utils import is_static_asset as _is_static  # noqa: E402
+from traffic_utils import is_static_asset  # noqa: E402
+
+
+def _is_static(url: str) -> bool:
+    """Real-time capture: include media extensions (preserves pre-refactor behavior)."""
+    return is_static_asset(url, include_media=True)
 
 
 # ---------------------------------------------------------------------------

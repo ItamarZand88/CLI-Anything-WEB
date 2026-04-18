@@ -21,15 +21,3 @@ def test_scripts_dir_matches_scripts_location():
 
 def test_templates_dir_exists():
     assert plugin_paths.get_templates_dir().is_dir()
-
-
-def test_skills_dir_exists():
-    assert plugin_paths.get_skills_dir().is_dir()
-
-
-def test_commands_dir_exists():
-    assert plugin_paths.get_commands_dir().is_dir()
-
-
-def test_agents_dir_exists():
-    assert plugin_paths.get_agents_dir().is_dir()

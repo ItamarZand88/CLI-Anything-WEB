@@ -13,10 +13,17 @@ from __future__ import annotations
 
 import re
 
-# File extensions treated as static assets (not API traffic).
+# Web-static assets (fonts, images, JS, CSS, source maps) — never useful
+# as API endpoints. Safe to filter aggressively.
 STATIC_EXTENSIONS: frozenset[str] = frozenset((
     ".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico",
     ".woff", ".woff2", ".ttf", ".eot", ".map", ".webp", ".avif",
+))
+
+# Media extensions — kept SEPARATE because some APIs legitimately serve
+# these as endpoint paths (e.g., a music streaming API returning /songs/123.mp3
+# with `application/json` metadata). Callers opt in to filtering these.
+MEDIA_EXTENSIONS: frozenset[str] = frozenset((
     ".mp4", ".webm", ".mp3", ".ogg",
 ))
 
@@ -143,15 +150,31 @@ NOISE_PATTERNS: list[re.Pattern[str]] = [
 ]
 
 
-def is_noise_url(url: str) -> bool:
-    """Return True if a URL matches any noise pattern (ads/tracking/CDN)."""
+def is_noise_url(url: str | None) -> bool:
+    """Return True if a URL matches any noise pattern (ads/tracking/CDN).
+
+    Returns False for None or empty string — a missing URL is not noise,
+    it's a malformed entry the caller should handle separately.
+    """
+    if not url:
+        return False
     return any(p.search(url) for p in NOISE_PATTERNS)
 
 
-def is_static_asset(url: str) -> bool:
-    """Return True if a URL points to a static asset by file extension."""
+def is_static_asset(url: str, include_media: bool = False) -> bool:
+    """Return True if a URL points to a static asset by file extension.
+
+    By default only checks `STATIC_EXTENSIONS` (web-static). Pass
+    `include_media=True` to also treat MEDIA_EXTENSIONS (.mp3/.mp4/.webm/.ogg)
+    as static — appropriate for real-time capture where media is usually noise,
+    but NOT appropriate for offline trace parsing where a music-streaming API
+    might legitimately serve an endpoint with a media extension.
+    """
+    if not url:
+        return False
     path = url.split("?")[0].split("#")[0]
-    return any(path.endswith(ext) for ext in STATIC_EXTENSIONS)
+    extensions = STATIC_EXTENSIONS | MEDIA_EXTENSIONS if include_media else STATIC_EXTENSIONS
+    return any(path.endswith(ext) for ext in extensions)
 
 
 def normalize_headers(headers) -> dict:

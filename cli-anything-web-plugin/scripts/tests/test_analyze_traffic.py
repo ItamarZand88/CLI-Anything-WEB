@@ -16,47 +16,8 @@ def _entry(url, method="GET", status=200, post_data=None, req_headers=None, resp
     }
 
 
-# --- Header normalization ---
-
-def test_normalize_headers_accepts_dict(analyze_traffic):
-    assert analyze_traffic._normalize_headers({"A": "1"}) == {"A": "1"}
-
-
-def test_normalize_headers_accepts_list_format(analyze_traffic):
-    playwright_style = [{"name": "A", "value": "1"}, {"name": "B", "value": "2"}]
-    assert analyze_traffic._normalize_headers(playwright_style) == {"A": "1", "B": "2"}
-
-
-def test_normalize_headers_handles_none(analyze_traffic):
-    assert analyze_traffic._normalize_headers(None) == {}
-
-
-def test_normalize_headers_handles_malformed_list(analyze_traffic):
-    # Non-dict list items must not crash the normalizer
-    result = analyze_traffic._normalize_headers([{"name": "A", "value": "1"}, "not-a-dict"])
-    assert result == {"A": "1"}
-
-
-# --- Noise detection ---
-
-def test_noise_detects_google_analytics(analyze_traffic):
-    assert analyze_traffic._is_noise_url("https://google-analytics.com/collect") is True
-
-
-def test_noise_detects_facebook_tracking(analyze_traffic):
-    assert analyze_traffic._is_noise_url("https://facebook.com/tr?id=1") is True
-
-
-def test_noise_detects_datadog(analyze_traffic):
-    assert analyze_traffic._is_noise_url("https://browser-intake-datadoghq.com/v1/input") is True
-
-
-def test_noise_rejects_real_api(analyze_traffic):
-    assert analyze_traffic._is_noise_url("https://api.example.com/v1/users") is False
-
-
-def test_noise_rejects_graphql_endpoint(analyze_traffic):
-    assert analyze_traffic._is_noise_url("https://example.com/graphql") is False
+# Noise/header helpers live in traffic_utils and are tested directly in
+# test_traffic_utils.py. Tests here focus on detect_protocol / analyze pipelines.
 
 
 # --- Protocol detection ---
@@ -105,8 +66,29 @@ def test_detect_protocol_ignores_noise(analyze_traffic):
         _entry("https://facebook.com/tr?id=1", method="POST"),
     ]
     result = analyze_traffic.detect_protocol(entries)
-    # With only noise, confidence should be low or protocol "unknown"
-    assert result["confidence"] <= 50 or result["protocol"] in ("unknown", "rest")
+    # With only noise, confidence should be low.
+    assert result["confidence"] <= 50
+
+
+def test_detect_protocol_handles_null_url(analyze_traffic):
+    """Entry with explicit `url: None` must not crash (was a regression)."""
+    entries = [{"url": None, "method": "GET", "status": 200, "request_headers": {}}]
+    result = analyze_traffic.detect_protocol(entries)
+    assert "protocol" in result  # doesn't crash
+
+
+def test_detect_protocol_handles_missing_url_field(analyze_traffic):
+    """Entry without a `url` key at all must not crash."""
+    entries = [{"method": "GET", "status": 200, "request_headers": {}}]
+    result = analyze_traffic.detect_protocol(entries)
+    assert "protocol" in result
+
+
+def test_analyze_handles_null_url_entries(analyze_traffic):
+    """Full analyze() pipeline must survive entries with null URLs."""
+    entries = [{"url": None}, _entry("https://api.example.com/v1/users")]
+    report = analyze_traffic.analyze(entries)
+    assert report["stats"]["total_requests"] == 2
 
 
 # --- End-to-end analyze() ---

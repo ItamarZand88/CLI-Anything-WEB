@@ -43,6 +43,30 @@ def test_is_static_asset_rejects_api():
     assert traffic_utils.is_static_asset("https://api.example.com/v1/users") is False
 
 
+def test_is_static_asset_default_preserves_media_api_endpoints():
+    """Music-streaming APIs like /songs/123.mp3 must NOT be filtered by default."""
+    assert traffic_utils.is_static_asset("https://api.music.com/songs/123.mp3") is False
+    assert traffic_utils.is_static_asset("https://api.example.com/videos/1.mp4") is False
+
+
+def test_is_static_asset_include_media_filters_media():
+    """With include_media=True (real-time capture), media IS filtered."""
+    assert traffic_utils.is_static_asset("https://cdn.example.com/clip.mp4", include_media=True) is True
+    assert traffic_utils.is_static_asset("https://cdn.example.com/audio.mp3", include_media=True) is True
+
+
+def test_is_noise_url_handles_none():
+    assert traffic_utils.is_noise_url(None) is False
+
+
+def test_is_noise_url_handles_empty_string():
+    assert traffic_utils.is_noise_url("") is False
+
+
+def test_is_static_asset_handles_empty_string():
+    assert traffic_utils.is_static_asset("") is False
+
+
 def test_normalize_headers_dict_pass_through():
     assert traffic_utils.normalize_headers({"A": "1"}) == {"A": "1"}
 

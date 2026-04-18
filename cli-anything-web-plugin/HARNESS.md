@@ -175,7 +175,7 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 
 | Script | Purpose | When to use |
 |--------|---------|-------------|
-| `phase-state.py` | Track all 4 pipeline phases — skip completed, retry failed | Before each phase, prevents re-running expensive work |
+| `phase-state.py` | Track all 4 pipeline phases — skip completed, retry failed. Low-level state store; mutated by skills via `complete`/`fail`/`reset`/`check`. | Before each phase, prevents re-running expensive work |
 | `capture-checkpoint.py` | Save/restore capture session state (within Phase 1) | Resume interrupted captures, prevent duplicate work |
 | `parse-trace.py` | Convert trace files → raw-traffic.json | After `tracing-stop` (default capture method) |
 | `mitmproxy-capture.py` | Optional proxy-based capture — no body truncation, real-time noise filtering, dedup, enhanced metadata (timestamps, cookies, body sizes). Supports `start-proxy`/`stop-proxy` for agent-driven browsing. Activated with `--mitmproxy` flag. Requires `pip install mitmproxy` (Python 3.12+). | When `--mitmproxy` flag is passed to `/cli-anything-web` |
@@ -189,12 +189,12 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 | Script | Purpose | When to use |
 |--------|---------|-------------|
 | `scaffold-cli.py` | Generate full boilerplate structure from templates (exceptions, client, config, auth, CLI entry, setup.py) | Phase 2 — Step B.0, before implementing endpoint methods |
-| `validate-checklist.py` | Run ~58 mechanical checks from the quality checklist (AST + regex) | Phase 4 — before manual review, or via `/validate` command |
+| `validate-checklist.py` | Run ~65 mechanical checks from the quality checklist (AST + regex) | Phase 4 — before manual review, or via `/validate` command |
 | `generate-test-docs.py` | AST-parse test files for TEST.md Part 1 (plan), run pytest for Part 2 (results) | Phase 3 — after writing tests |
 | `smoke-test.py` | Post-install CLI validation (--help, --version, --json, protocol leak detection) | Phase 4 — after `pip install -e .` |
 | `repl_skin.py` | Canonical REPL UI (banner, colors, help) — copied verbatim into every generated CLI's `utils/` | Phase 2 — copied by scaffold-cli.py |
 | `setup.sh` | One-time plugin setup — verifies dependencies (playwright, mitmproxy optional) | Plugin install / CI |
-| `run-pipeline.py` | Pipeline orchestrator — `status` view, `parse` (Phase 1 tail), `validate` (Phase 4 tail) | Any phase — `run-pipeline.py status <app-dir>` for next-action guidance |
+| `run-pipeline.py` | Pipeline orchestrator — `status` view (reads phase-state.json and adds next-action guidance), `parse` (Phase 1 tail), `validate` (Phase 4 tail). **Use this for human/agent-facing status**; use `phase-state.py` only to mutate state. | Any phase — `run-pipeline.py status <app-dir>` for next-action guidance |
 
 ### Shared Script Utilities (`scripts/`)
 
@@ -202,8 +202,8 @@ Sibling modules imported by multiple scripts — single source of truth.
 
 | Module | Exports | Consumers |
 |--------|---------|-----------|
-| `plugin_paths.py` | `get_plugin_root()`, `get_scripts_dir()`, `get_templates_dir()`, `get_skills_dir()`, `get_agents_dir()`, `get_commands_dir()` | scaffold-cli.py, run-pipeline.py |
-| `traffic_utils.py` | `NOISE_PATTERNS`, `STATIC_EXTENSIONS`, `is_noise_url()`, `is_static_asset()`, `normalize_headers()` | parse-trace.py, analyze-traffic.py, mitmproxy-capture.py |
+| `plugin_paths.py` | `get_plugin_root()`, `get_scripts_dir()`, `get_templates_dir()` | scaffold-cli.py, run-pipeline.py |
+| `traffic_utils.py` | `NOISE_PATTERNS`, `STATIC_EXTENSIONS`, `MEDIA_EXTENSIONS`, `is_noise_url()`, `is_static_asset(url, include_media=False)`, `normalize_headers()` | parse-trace.py, analyze-traffic.py, mitmproxy-capture.py |
 | `state_utils.py` | `utc_now_iso()`, `load_json_state()`, `save_json_state()` | phase-state.py, capture-checkpoint.py, run-pipeline.py |
 
 ### Pipeline Anatomy — Which Skill Calls Which Script

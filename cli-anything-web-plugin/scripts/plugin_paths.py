@@ -28,18 +28,3 @@ def get_scripts_dir() -> Path:
 def get_templates_dir() -> Path:
     """Return the templates/ directory."""
     return get_plugin_root() / "templates"
-
-
-def get_skills_dir() -> Path:
-    """Return the skills/ directory."""
-    return get_plugin_root() / "skills"
-
-
-def get_agents_dir() -> Path:
-    """Return the agents/ directory."""
-    return get_plugin_root() / "agents"
-
-
-def get_commands_dir() -> Path:
-    """Return the commands/ directory."""
-    return get_plugin_root() / "commands"
