@@ -33,55 +33,13 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, unquote
 
+# Ensure sibling modules resolve whether invoked as a script or via importlib.
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
 
-def _normalize_headers(headers) -> dict:
-    """Normalize headers to dict format.
-
-    Playwright traces may use [{name, value}] arrays while mitmproxy uses
-    flat dicts. This function accepts both and returns a flat dict.
-    """
-    if isinstance(headers, dict):
-        return headers
-    if isinstance(headers, list):
-        return {h.get("name", ""): h.get("value", "") for h in headers if isinstance(h, dict)}
-    return {}
-
-
-def _is_noise_url(url: str) -> bool:
-    """Check if a URL is analytics/tracking/CDN noise — not a real API call."""
-    NOISE = [
-        # Google analytics / ads
-        "google-analytics", "analytics.google.com", "googletagmanager.com",
-        "googlesyndication", "google.com/ads", "google.com/pagead",
-        "doubleclick.net", "www.google.co.", "gstatic.com",
-        "googleapis.com/css", "fonts.googleapis.com",
-        "play.google.com/log", "signaler-pa.clients6",
-        "accounts.google.com/gsi", "apis.google.com",
-        # Cloudflare
-        "cdn-cgi/", "cloudflareinsights", "static.cloudflareinsights",
-        # Social / ad networks
-        "facebook.com/tr", "facebook.net",
-        "twitter.com", "analytics.twitter.com",
-        "taboola.com", "optable.co", "admedo.com",
-        "scorecardresearch.com", "statcounter.com",
-        "liftdsp.com", "bidr.io", "cnv.event.prod",
-        # Monitoring / analytics SDKs
-        "datadoghq.com", "browser-intake-datadoghq",
-        "fullstory.com", "segment.prod",
-        # CRM / marketing automation
-        "hubspot.com", "hscollectedforms.net", "hsforms.com",
-        "cookiebot.com",
-        # Generic tracking patterns (same-site endpoints)
-        "/ht/event", "/hubspot",
-        # GitHub internal
-        "avatars.githubusercontent.com", "collector.github.com",
-        "api.github.com/_private",
-        # Generic noise patterns
-        "/manifest.json", "/beacon", "/pixel", "/rum",
-        "slinksuggestion.com", "drainpaste.com",
-        "e.producthunt.com", "t.producthunt.com",
-    ]
-    return any(x in url for x in NOISE)
+from traffic_utils import is_noise_url as _is_noise_url  # noqa: E402
+from traffic_utils import normalize_headers as _normalize_headers  # noqa: E402
 
 
 def _detect_ws_library(url: str) -> str | None:

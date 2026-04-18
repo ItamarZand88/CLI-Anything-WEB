@@ -28,10 +28,16 @@ import shutil
 import sys
 from pathlib import Path
 
-# Resolve template dir relative to this script
-SCRIPT_DIR = Path(__file__).resolve().parent
-PLUGIN_DIR = SCRIPT_DIR.parent
-TEMPLATES_DIR = PLUGIN_DIR / "templates"
+# Ensure sibling modules resolve whether invoked as a script or via importlib.
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+
+from plugin_paths import get_plugin_root, get_scripts_dir, get_templates_dir  # noqa: E402
+
+SCRIPT_DIR = get_scripts_dir()
+PLUGIN_DIR = get_plugin_root()
+TEMPLATES_DIR = get_templates_dir()
 
 
 # ---------------------------------------------------------------------------
@@ -70,19 +76,54 @@ def to_underscore(name: str) -> str:
     return name.replace("-", "_")
 
 
-def render_template(tpl_path: Path, variables: dict) -> str:
-    """Read a .tpl file and substitute $-variables."""
-    content = tpl_path.read_text(encoding="utf-8")
-    # Use Template for safe substitution (ignores unknown $vars in code)
-    # We need to be careful: Python code has $ in f-strings etc.
-    # Use a custom approach: only replace our known placeholders
+# Matches ${Name}, ${name_thing}, ${APP_NAME}. Python f-strings use {name} (no $),
+# so this only catches genuine template placeholders.
+_PLACEHOLDER_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+
+
+def render_string(content: str, variables: dict[str, str]) -> str:
+    """Substitute ${name} placeholders in a string."""
     for key, value in variables.items():
         content = content.replace(f"${{{key}}}", value)
     return content
 
 
+def find_unresolved_placeholders(content: str) -> list[str]:
+    """Return list of any ${...} placeholders still present in rendered output."""
+    return sorted(set(_PLACEHOLDER_RE.findall(content)))
+
+
+def render_template(tpl_path: Path, variables: dict[str, str]) -> str:
+    """Read a .tpl file, substitute ${name} placeholders, and validate.
+
+    Raises ValueError if the rendered output still contains unresolved ${name}
+    placeholders — this catches typos and newly-added template vars that weren't
+    wired into the variables dict.
+    """
+    content = tpl_path.read_text(encoding="utf-8")
+    rendered = render_string(content, variables)
+    unresolved = find_unresolved_placeholders(rendered)
+    if unresolved:
+        raise ValueError(
+            f"Template {tpl_path.name} has unresolved placeholders after render: "
+            f"{', '.join('${' + p + '}' for p in unresolved)}. "
+            f"Add them to the variables dict or fix the template."
+        )
+    return rendered
+
+
 def write_file(path: Path, content: str) -> None:
-    """Write content to a file, creating parent dirs."""
+    """Write content to a file, creating parent dirs.
+
+    Validates that no ${name} placeholders remain — protects against fragments
+    built without render_template (e.g., build_client's injected methods).
+    """
+    unresolved = find_unresolved_placeholders(content)
+    if unresolved:
+        raise ValueError(
+            f"Refusing to write {path}: unresolved placeholders "
+            f"{', '.join('${' + p + '}' for p in unresolved)}"
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     print(f"  Created: {path}")
@@ -134,10 +175,11 @@ def build_client(variables: dict, protocol: str, http_client: str) -> str:
         return data.get("data", data)
 
 '''
-        # Replace the placeholder with the actual variable
-        extra_methods = extra_methods.replace("${AppName}", variables["AppName"])
 
     if extra_methods:
+        # Route injected methods through the same substitution pipeline so any
+        # ${placeholder} resolves consistently and write_file's validator runs.
+        extra_methods = render_string(extra_methods, variables)
         content = content.replace(
             "    def close(self):",
             extra_methods + "    def close(self):",

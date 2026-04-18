@@ -31,7 +31,6 @@ import argparse
 import asyncio
 import json
 import os
-import re
 import signal
 import subprocess
 import sys
@@ -52,88 +51,14 @@ from mitmproxy.tools.dump import DumpMaster  # noqa: E402
 # Constants
 # ---------------------------------------------------------------------------
 
-STATIC_EXTENSIONS = frozenset((
-    ".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico",
-    ".woff", ".woff2", ".ttf", ".eot", ".map", ".webp", ".avif",
-    ".mp4", ".webm", ".mp3", ".ogg",
-))
+# Ensure sibling modules resolve whether invoked as a script or via importlib.
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
 
-# Noise URL patterns — analytics, tracking, ad networks.
-# Filtered in real-time during capture (not post-hoc).
-NOISE_PATTERNS = [
-    re.compile(r"google-analytics\.com", re.I),
-    re.compile(r"googletagmanager\.com", re.I),
-    re.compile(r"googlesyndication\.com", re.I),
-    re.compile(r"googleadservices\.com", re.I),
-    re.compile(r"doubleclick\.net", re.I),
-    re.compile(r"google\.com/pagead", re.I),
-    re.compile(r"facebook\.net", re.I),
-    re.compile(r"facebook\.com/tr", re.I),
-    re.compile(r"connect\.facebook", re.I),
-    re.compile(r"analytics\.twitter\.com", re.I),
-    re.compile(r"ads-twitter\.com", re.I),
-    re.compile(r"taboola\.com", re.I),
-    re.compile(r"outbrain\.com", re.I),
-    re.compile(r"segment\.io", re.I),
-    re.compile(r"segment\.com/v1", re.I),
-    re.compile(r"amplitude\.com", re.I),
-    re.compile(r"mixpanel\.com", re.I),
-    re.compile(r"hotjar\.com", re.I),
-    re.compile(r"clarity\.ms", re.I),
-    re.compile(r"sentry\.io/api", re.I),
-    re.compile(r"datadoghq\.com", re.I),
-    re.compile(r"rum-http-intake", re.I),
-    re.compile(r"browser-intake-datadoghq", re.I),
-    re.compile(r"hubspot\.com", re.I),
-    re.compile(r"intercom\.io", re.I),
-    re.compile(r"crisp\.chat", re.I),
-    re.compile(r"zendesk\.com", re.I),
-    re.compile(r"newrelic\.com", re.I),
-    re.compile(r"nr-data\.net", re.I),
-    re.compile(r"fontawesome\.com", re.I),
-    re.compile(r"fonts\.googleapis\.com", re.I),
-    re.compile(r"fonts\.gstatic\.com", re.I),
-    re.compile(r"/beacon", re.I),
-    re.compile(r"/pixel", re.I),
-    re.compile(r"/collect\b", re.I),
-    re.compile(r"accounts\.google\.com/gsi/", re.I),
-    re.compile(r"cdn-cgi/rum", re.I),
-    re.compile(r"cdn-cgi/challenge-platform", re.I),
-    # Ad networks / programmatic advertising
-    re.compile(r"rubiconproject\.com", re.I),
-    re.compile(r"criteo\.com", re.I),
-    re.compile(r"adnxs\.com", re.I),
-    re.compile(r"adsrvr\.org", re.I),
-    re.compile(r"sharethrough\.com", re.I),
-    re.compile(r"3lift\.com", re.I),
-    re.compile(r"liadm\.com", re.I),
-    re.compile(r"bidr\.io", re.I),
-    re.compile(r"id5-sync\.com", re.I),
-    re.compile(r"casalemedia\.com", re.I),
-    re.compile(r"kargo\.com", re.I),
-    re.compile(r"unrulymedia\.com", re.I),
-    re.compile(r"lngtd\.com", re.I),
-    re.compile(r"creativecdn\.com", re.I),
-    re.compile(r"cookielaw\.org", re.I),
-    re.compile(r"onetrust\.com", re.I),
-    re.compile(r"adtrafficquality\.google", re.I),
-    re.compile(r"hadron\.ad\.gt", re.I),
-    re.compile(r"googlesyndication", re.I),
-    re.compile(r"moatads\.com", re.I),
-    re.compile(r"amazon-adsystem\.com", re.I),
-    re.compile(r"pubmatic\.com", re.I),
-    re.compile(r"openx\.net", re.I),
-    re.compile(r"indexww\.com", re.I),
-]
-
-
-def _is_noise(url: str) -> bool:
-    return any(p.search(url) for p in NOISE_PATTERNS)
-
-
-def _is_static(url: str) -> bool:
-    path = url.split("?")[0].split("#")[0]
-    return any(path.endswith(ext) for ext in STATIC_EXTENSIONS)
+from traffic_utils import NOISE_PATTERNS, STATIC_EXTENSIONS  # noqa: E402,F401
+from traffic_utils import is_noise_url as _is_noise  # noqa: E402
+from traffic_utils import is_static_asset as _is_static  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
