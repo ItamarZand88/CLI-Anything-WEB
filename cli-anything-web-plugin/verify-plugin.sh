@@ -44,7 +44,7 @@ check "scripts/repl_skin.py exists" "$([ -f "$SCRIPT_DIR/scripts/repl_skin.py" ]
 check "scripts/parse-trace.py exists" "$([ -f "$SCRIPT_DIR/scripts/parse-trace.py" ] && echo true || echo false)"
 
 # Pipeline automation scripts
-for script in scaffold-cli.py validate-checklist.py generate-test-docs.py smoke-test.py run-pipeline.py; do
+for script in scaffold-cli.py validate-checklist.py generate-test-docs.py smoke-test.py run-pipeline.py validate-capture.py; do
     check "scripts/$script exists" "$([ -f "$SCRIPT_DIR/scripts/$script" ] && echo true || echo false)"
 done
 
