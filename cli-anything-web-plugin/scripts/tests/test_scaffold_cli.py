@@ -105,6 +105,32 @@ def test_render_template_succeeds_with_all_variables(scaffold_cli, tmp_path):
 
 # --- End-to-end scaffold (subprocess invocation) ---
 
+def test_batchexecute_client_retries_on_auth_error(tmp_path):
+    """Regression: client_batchexecute.py.tpl must wire _refresh_tokens() into
+    _rpc() on 401/403 (previously a stub method that was never called)."""
+    out_dir = tmp_path / "gen"
+    result = subprocess.run(
+        [
+            sys.executable, str(SCAFFOLD), str(out_dir),
+            "--app-name", "beapp",
+            "--protocol", "batchexecute",
+            "--http-client", "httpx",
+            "--auth-type", "google-sso",
+            "--resources", "notebooks",
+        ],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    client_src = (out_dir / "cli_web" / "beapp" / "core" / "client.py").read_text()
+
+    # Signature must expose retry_on_auth
+    assert "def _rpc(self, method: RPCMethod, params: list, retry_on_auth: bool = True)" in client_src
+    # Retry branch must call _refresh_tokens on 401/403 and recurse with retry_on_auth=False
+    assert "resp.status_code in (401, 403) and retry_on_auth" in client_src
+    assert "self._refresh_tokens()" in client_src
+    assert "retry_on_auth=False" in client_src
+
+
 @pytest.mark.parametrize(
     "protocol,http_client,auth_type",
     [
