@@ -216,9 +216,25 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 ### Auth Resilience
 
 Auth module must support: (1) env var `CLI_WEB_<APP>_AUTH_JSON` for CI/CD,
-(2) auto-refresh with single retry on 401/403 (never more than once),
+(2) **3-attempt auto-refresh on 401/403** (see below), never more,
 (3) `use <id>` / `status` context commands for stateful apps.
 See `auth-strategies.md` for all implementation patterns.
+
+#### Token Auto-Refresh (MANDATORY for auth-required CLIs)
+
+Session cookies expire. The CLI MUST handle this transparently with a 3-attempt
+retry in `client.py._request()`:
+
+| Attempt | Action |
+|---------|--------|
+| 0 | Try with current cookies |
+| 1 | Reload from `auth.json` on disk |
+| 2 | Headless browser refresh via `auth.py:refresh_auth()` |
+
+If all 3 fail → `AuthError("Session expired. Run: cli-web-<app> auth login")`.
+
+The `auth.py.tpl` and `client_rest_*.py.tpl` templates generate this by default.
+See `reddit/core/auth.py` and `linkedin/core/auth.py` for reference implementations.
 
 **CRITICAL: `.google.com` cookies must override regional duplicates** (e.g., `.google.co.il`).
 This is the #1 auth bug for international users. See `auth-strategies.md` "Cookie domain priority".

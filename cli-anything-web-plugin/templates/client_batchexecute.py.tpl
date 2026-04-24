@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import httpx
 
+from .auth import load_auth, refresh_auth
 from .exceptions import (
     ${AppName}Error,
     AuthError,

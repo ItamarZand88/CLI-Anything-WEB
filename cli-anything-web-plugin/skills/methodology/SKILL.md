@@ -214,7 +214,7 @@ endpoint methods from `<APP>.md`.
   - Centralized auth header/cookie injection
   - Automatic JSON parsing with response body verification
   - **Status code → exception mapping**: 401/403→`AuthError`, 404→`NotFoundError`, 429→`RateLimitError`, 5xx→`ServerError`
-  - **Auth retry**: On `AuthError(recoverable=True)`, refresh tokens and retry once
+  - **Auth retry (3-attempt auto-refresh)**: On 401/403: attempt 0 = try current cookies, attempt 1 = reload from `auth.json` on disk, attempt 2 = headless browser refresh via `refresh_auth()` in `auth.py`. See HARNESS.md "Token Auto-Refresh" for the full pattern. The `auth.py.tpl` and `client_rest_*.py.tpl` templates generate this by default.
   - Exponential backoff for rate limits (see `references/polling-backoff-example.py`)
   - For apps with 3+ resource types: split into namespaced sub-clients (`client.notebooks.list()`, `client.sources.add()`)
   - See `references/client-architecture-example.py` for the full pattern

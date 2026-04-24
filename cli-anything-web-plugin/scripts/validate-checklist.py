@@ -272,12 +272,31 @@ class Validator:
             r.fail(f"Only mapped: {mapped}")
 
         r = self.check(cat, "4.4", "Auth retry on 401/403")
-        if "retry_on_auth" in client_content or ("401" in client_content and "retry" in client_content.lower()):
+        if "retry_on_auth" in client_content or ("401" in client_content and "retry" in client_content.lower()) or "_attempt" in client_content:
             r.pass_()
         elif not self.has_auth:
             r.na("No auth")
         else:
             r.fail()
+
+        r = self.check(cat, "4.4b", "Token auto-refresh via headless browser")
+        if not self.has_auth:
+            r.na("No auth")
+        else:
+            auth_path = self.pkg_dir / "core" / "auth.py"
+            auth_content = auth_path.read_text(encoding="utf-8") if auth_path.exists() else ""
+            has_refresh_fn = "refresh_auth" in auth_content or "refresh_token" in auth_content
+            has_headless = "headless" in auth_content
+            has_client_call = "refresh_auth" in client_content or "refresh_token" in client_content or "_refresh_via_browser" in client_content
+            if has_refresh_fn and has_client_call:
+                r.pass_("auth.py has refresh + client calls it on 401/403")
+            else:
+                missing = []
+                if not has_refresh_fn:
+                    missing.append("auth.py missing refresh_auth()/refresh_token()")
+                if not has_client_call:
+                    missing.append("client.py not calling refresh on auth failure")
+                r.fail("; ".join(missing))
 
         r = self.check(cat, "4.5", "Context manager protocol")
         if "__enter__" in client_content and "__exit__" in client_content:
