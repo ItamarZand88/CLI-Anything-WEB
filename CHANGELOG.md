@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.10.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.9.0...v0.10.0) (2026-04-24)
+
+
+### Features
+
+* add capitoltrades CLI to monorepo ([473c8af](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/473c8af6b9f000f08c506294ad0658652367cd09))
+
+
+### Bug Fixes
+
+* **ci:** stop Release Please tests from checking out deleted branch ([383779c](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/383779c95f99941582020242e2bcd4aa64736fc4))
+
 ## [0.9.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.8.0...v0.9.0) (2026-04-24)
 
 
