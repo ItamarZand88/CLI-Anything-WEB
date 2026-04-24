@@ -44,9 +44,17 @@ check "scripts/repl_skin.py exists" "$([ -f "$SCRIPT_DIR/scripts/repl_skin.py" ]
 check "scripts/parse-trace.py exists" "$([ -f "$SCRIPT_DIR/scripts/parse-trace.py" ] && echo true || echo false)"
 
 # Pipeline automation scripts
-for script in scaffold-cli.py validate-checklist.py generate-test-docs.py smoke-test.py; do
+for script in scaffold-cli.py validate-checklist.py generate-test-docs.py smoke-test.py run-pipeline.py validate-capture.py; do
     check "scripts/$script exists" "$([ -f "$SCRIPT_DIR/scripts/$script" ] && echo true || echo false)"
 done
+
+# Shared script utility modules
+for mod in plugin_paths.py traffic_utils.py state_utils.py; do
+    check "scripts/$mod exists" "$([ -f "$SCRIPT_DIR/scripts/$mod" ] && echo true || echo false)"
+done
+
+# Script tests
+check "scripts/tests/ exists" "$([ -d "$SCRIPT_DIR/scripts/tests" ] && echo true || echo false)"
 
 # scripts/setup.sh executable
 if [ -f "$SCRIPT_DIR/scripts/setup.sh" ] && [ -x "$SCRIPT_DIR/scripts/setup.sh" ]; then

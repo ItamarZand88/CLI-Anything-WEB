@@ -175,21 +175,47 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 
 | Script | Purpose | When to use |
 |--------|---------|-------------|
-| `phase-state.py` | Track all 4 pipeline phases — skip completed, retry failed | Before each phase, prevents re-running expensive work |
+| `phase-state.py` | Track all 4 pipeline phases — skip completed, retry failed. Low-level state store; mutated by skills via `complete`/`fail`/`reset`/`check`. | Before each phase, prevents re-running expensive work |
 | `capture-checkpoint.py` | Save/restore capture session state (within Phase 1) | Resume interrupted captures, prevent duplicate work |
 | `parse-trace.py` | Convert trace files → raw-traffic.json | After `tracing-stop` (default capture method) |
 | `mitmproxy-capture.py` | Optional proxy-based capture — no body truncation, real-time noise filtering, dedup, enhanced metadata (timestamps, cookies, body sizes). Supports `start-proxy`/`stop-proxy` for agent-driven browsing. Activated with `--mitmproxy` flag. Requires `pip install mitmproxy` (Python 3.12+). | When `--mitmproxy` flag is passed to `/cli-anything-web` |
 | `analyze-traffic.py` | Analyze raw-traffic.json → protocol/endpoint detection. v1.3.0 adds request sequence, session lifecycle, and endpoint size analysis when enhanced fields are present. | Auto-run by parse-trace.py or mitmproxy-capture.py |
 | `extract-browser-cookies.py` | Cookie extraction utility | During auth implementation |
+| `site-fingerprint.js` | Playwright run-code script — detects SSR framework (Next.js, Nuxt, etc.) and baseline protections | Phase 1 — invoked by capture skill during site assessment |
+| `launch-chrome-debug.sh` | Launch Chrome with a dedicated debug profile + remote-debugging port | Phase 1 — when using `mcp__chrome-devtools__*` as fallback capture |
 
 ### Pipeline Automation Scripts (`scripts/`)
 
 | Script | Purpose | When to use |
 |--------|---------|-------------|
 | `scaffold-cli.py` | Generate full boilerplate structure from templates (exceptions, client, config, auth, CLI entry, setup.py) | Phase 2 — Step B.0, before implementing endpoint methods |
-| `validate-checklist.py` | Run ~58 mechanical checks from the quality checklist (AST + regex) | Phase 4 — before manual review, or via `/validate` command |
+| `validate-checklist.py` | Run ~65 mechanical checks from the quality checklist (AST + regex) | Phase 4 — before manual review, or via `/validate` command |
 | `generate-test-docs.py` | AST-parse test files for TEST.md Part 1 (plan), run pytest for Part 2 (results) | Phase 3 — after writing tests |
 | `smoke-test.py` | Post-install CLI validation (--help, --version, --json, protocol leak detection) | Phase 4 — after `pip install -e .` |
+| `validate-capture.py` | Gate between Phase 1 and Phase 2 — checks entry count, protocol, WRITE ops, error rate, endpoint diversity | Phase 1 — end of Step 4 in capture skill |
+| `repl_skin.py` | Canonical REPL UI (banner, colors, help) — copied verbatim into every generated CLI's `utils/` | Phase 2 — copied by scaffold-cli.py |
+| `setup.sh` | One-time plugin setup — verifies dependencies (playwright, mitmproxy optional) | Plugin install / CI |
+| `run-pipeline.py` | Pipeline orchestrator — `status` view (reads phase-state.json and adds next-action guidance), `parse` (Phase 1 tail), `validate` (Phase 4 tail). **Use this for human/agent-facing status**; use `phase-state.py` only to mutate state. | Any phase — `run-pipeline.py status <app-dir>` for next-action guidance |
+
+### Shared Script Utilities (`scripts/`)
+
+Sibling modules imported by multiple scripts — single source of truth.
+
+| Module | Exports | Consumers |
+|--------|---------|-----------|
+| `plugin_paths.py` | `get_plugin_root()`, `get_scripts_dir()`, `get_templates_dir()` | scaffold-cli.py, run-pipeline.py |
+| `traffic_utils.py` | `NOISE_PATTERNS`, `STATIC_EXTENSIONS`, `MEDIA_EXTENSIONS`, `is_noise_url()`, `is_static_asset(url, include_media=False)`, `normalize_headers()` | parse-trace.py, analyze-traffic.py, mitmproxy-capture.py |
+| `state_utils.py` | `utc_now_iso()`, `load_json_state()`, `save_json_state()` | phase-state.py, capture-checkpoint.py, run-pipeline.py |
+
+### Pipeline Anatomy — Which Skill Calls Which Script
+
+| Phase | Skill | Primary scripts | Auxiliary scripts |
+|-------|-------|-----------------|-------------------|
+| 1. capture | `skills/capture/SKILL.md` | `site-fingerprint.js`, `parse-trace.py` (default) or `mitmproxy-capture.py` (--mitmproxy) | `capture-checkpoint.py` (resume), `launch-chrome-debug.sh` (fallback), `analyze-traffic.py` (auto-run by parse/mitmproxy) |
+| 2. methodology | `skills/methodology/SKILL.md` | `scaffold-cli.py` (Step B.0) | `repl_skin.py` (copied by scaffold-cli) |
+| 3. testing | `skills/testing/SKILL.md` | `generate-test-docs.py` (plan + results) | — |
+| 4. standards | `skills/standards/SKILL.md` | `validate-checklist.py`, `smoke-test.py` | 4 review agents in `agents/` (cross-cli-consistency, harness-compliance, output-ux, traffic-fidelity) |
+| any | — | `phase-state.py` (track), `run-pipeline.py status` (next action) | — |
 
 ### Methodology References (`skills/methodology/references/`)
 

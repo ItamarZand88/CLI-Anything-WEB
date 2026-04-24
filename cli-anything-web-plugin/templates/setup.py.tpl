@@ -13,9 +13,7 @@ setup(
         "rich>=13.0",
         "prompt_toolkit>=3.0",
     ],
-    extras_require={
-        ${extras_require}
-    },
+    ${extras_require_block}
     entry_points={
         "console_scripts": [
             "cli-web-${app_name}=cli_web.${app_name_underscore}.${app_name_underscore}_cli:main",

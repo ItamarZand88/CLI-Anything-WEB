@@ -8,7 +8,7 @@ description: >
   "analyze traffic from URL", "assess site", "site fingerprint", "start capture for",
   "open browser for", or any URL is given as the first step of CLI generation.
   DO NOT trigger for: Phase 2 implementation, test writing, or quality validation.
-version: 0.3.0
+version: 0.4.0
 ---
 
 # Traffic Capture (Phase 1)
@@ -43,16 +43,32 @@ Do NOT start unless:
 
 **Default capture method:** playwright-cli tracing (standard workflow below).
 
-**Optional `--mitmproxy` mode:** If the user passed `--mitmproxy` flag to `/cli-anything-web`, use `mitmproxy-capture.py` instead — it provides no body truncation, real-time noise filtering, deduplication, and enhanced metadata (timestamps, cookies, body sizes). Requires `pip install mitmproxy` (Python 3.12+):
-```
+### Optional `--mitmproxy` mode
+
+Use this when the default `--mitmproxy` flag was passed to `/cli-anything-web`,
+or when you need no body truncation, real-time noise filtering, and enhanced
+metadata (timestamps, cookies, body sizes). Requires `pip install mitmproxy`
+(Python 3.12+).
+
+```bash
+# Start the proxy (generates .playwright/cli.proxy.config.json automatically)
 python ${CLAUDE_PLUGIN_ROOT}/scripts/mitmproxy-capture.py start-proxy --port 8080
-npx @playwright/cli@latest open <url> --config=.playwright/cli.proxy.config.json --headed
-# ... browse the site as normal (snapshot, click, fill, goto) ...
+
+# Open the browser routed through the proxy
+npx @playwright/cli@latest -s=<app> open <url> \
+  --config=.playwright/cli.proxy.config.json --headed
+
+# ... browse normally (snapshot, click, fill, goto) ...
+
 npx @playwright/cli@latest -s=<app> close
-python ${CLAUDE_PLUGIN_ROOT}/scripts/mitmproxy-capture.py stop-proxy --port 8080 -o <app>/traffic-capture/raw-traffic.json
+python ${CLAUDE_PLUGIN_ROOT}/scripts/mitmproxy-capture.py stop-proxy \
+  --port 8080 -o <app>/traffic-capture/raw-traffic.json
 ```
 
-If playwright-cli fails, fall back to chrome-devtools-mcp (see HARNESS.md Tool Hierarchy).
+The `start-proxy` command creates `.playwright/cli.proxy.config.json` as part
+of startup — no manual config file needed. When the default playwright-cli path
+fails entirely (e.g., Node not available), fall back to chrome-devtools-mcp via
+`launch-chrome-debug.sh` — see HARNESS.md Tool Hierarchy.
 
 ### Public API Shortcut
 
@@ -130,51 +146,29 @@ npx @playwright/cli@latest -s=<app> run-code "$(grep -v '^\s*//' ${CLAUDE_PLUGIN
 > **IMPORTANT:** The `site-fingerprint.js` script must be loaded via the command
 > above. Do NOT copy-paste the JS inline — it will fail with SyntaxError.
 > The `grep -v` strips comments and `tr` joins lines for single-line execution.
-```
 
 ### Interpret fingerprint results
 
-**Framework:**
-- `googleBatch: true` → Google batchexecute RPC protocol. Generate `rpc/` subpackage.
-- `nextPages: true` → Next.js Pages Router. Extract `__NEXT_DATA__` + trace `/_next/data/` fetches.
-- `nextApp: true` → Next.js App Router. Trace client navigations for RSC payloads.
-- `nuxt: true` → Nuxt. Extract `__NUXT__` + trace API calls.
-- No framework flags → likely SSR HTML or custom SPA. Check for REST API in probe.
+The fingerprint returns four groups: `framework`, `protection`, `auth`, `iframes`.
+Map each `true` flag to the next action:
 
-**Protection:**
-- `cloudflare: true` → Use `curl_cffi` with `impersonate='chrome'` in generated CLI.
-- `awsWaf: true` → Need WAF token cookie via browser. Use curl_cffi for API calls.
-- `captcha: true` → Add pause-and-prompt to auth flow.
-- `serviceWorker: true` → Site has an active Service Worker that may intercept requests
-  and hide them from traces. Note in assessment.md. Generated CLI's auth.py should use
-  `service_workers="block"` in browser context. See `references/protection-detection.md`.
+| Group | Action |
+|---|---|
+| **framework** | See `references/framework-detection.md` for the full protocol table (`googleBatch` / `nextPages` / `nextApp` / `nuxt` / `spaRoot`). |
+| **protection** | See `references/protection-detection.md` — **always start at the escalation ladder at the top** (plain httpx → curl_cffi → curl_cffi + cookies → camoufox → hybrid). |
+| **auth** | Table below (Auth detection section). |
+| **iframes** | If `iframeCount > 0`, see `references/playwright-cli-advanced.md` for the in-iframe re-run snippet. |
 
-**Iframes:**
-- `iframeCount > 0` → App is iframe-embedded. **Re-run detection inside the iframe:**
+Claude-facing shortcuts:
+- `googleBatch: true` → generate `rpc/` subpackage (batchexecute protocol).
+- `cloudflareManagedChallenge: true` → tier 4 (camoufox) is required; `curl_cffi` alone will fail.
+- `awsWaf: true` → capture `aws-waf-token` cookie; use `curl_cffi` for GraphQL, cookie-only for SSR.
+- `akamai: true` or `datadome: true` → 1–2 s delays between requests are mandatory.
+- `serviceWorker: true` → note in assessment.md; generated CLI uses `service_workers="block"`.
+- `iframeCount > 0` → re-run the fingerprint inside the iframe. Google Labs apps (Stitch / MusicFX / ImageFX) follow this pattern — parent has `WIZ_global_data`, iframe has the real app.
 
-```bash
-npx @playwright/cli@latest -s=<app> run-code "async page => {
-  const frame = page.frames()[1];
-  if (!frame) return { error: 'no iframe found' };
-  return await frame.evaluate(() => ({
-    framework: {
-      nextPages: !!document.getElementById('__NEXT_DATA__'),
-      googleBatch: typeof WIZ_global_data !== 'undefined',
-      spaRoot: document.querySelector('#app, #root')?.id || null,
-      vite: !!document.querySelector('script[type=\"module\"][src*=\"/@vite\"]') || !!document.querySelector('script[type=\"module\"][src*=\"/src/\"]')
-    },
-    title: document.title,
-    bodyPreview: document.body?.textContent?.substring(0, 300) || ''
-  }));
-}"
-```
-
-Common iframe pattern: Google Labs apps (Stitch, MusicFX, ImageFX) embed a
-Vite/React SPA in an iframe. Parent has `WIZ_global_data`, iframe has the real app.
-See `references/playwright-cli-advanced.md` for iframe interaction patterns.
-
-**Note:** `snapshot` and `click <ref>` auto-resolve iframes. Only use `run-code`
-for iframe interaction when built-in commands fail.
+**Note:** `snapshot` and `click <ref>` auto-resolve iframes. Only drop down to
+`run-code` for iframe interaction when built-in commands fail.
 
 ### Auth detection (BEFORE exploration)
 
@@ -189,9 +183,10 @@ Check the fingerprint auth fields:
 **If auth is needed:**
 1. Tell the user: "This site requires login. Please log in in the browser window."
 2. Wait for user confirmation
-3. Save auth state:
+3. Save auth state and tighten permissions (CLAUDE.md mandates `chmod 600`):
 ```bash
 npx @playwright/cli@latest -s=<app> state-save <app>/traffic-capture/<app>-auth.json
+chmod 600 <app>/traffic-capture/<app>-auth.json
 ```
 
 **If NO auth is needed:** Skip directly to Step 2b.
@@ -220,9 +215,16 @@ npx @playwright/cli@latest -s=<app> click <internal-link-2>
 npx @playwright/cli@latest -s=<app> click <internal-link-3>
 npx @playwright/cli@latest -s=<app> tracing-stop
 
-# Quick parse to see what endpoints appeared
-python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --latest --output /tmp/probe.json
+# Quick parse to see what endpoints appeared (saved alongside the full capture
+# so it survives the session — don't output to /tmp).
+python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py .playwright-cli/traces/ --latest \
+  --output <app>/traffic-capture/probe-traffic.json
 ```
+
+This probe trace is separate from the full capture in Step 3 — Step 3 will
+start a fresh trace that overwrites the `.network` file in `.playwright-cli/traces/`.
+The parsed `probe-traffic.json` is kept in `traffic-capture/` so it stays available
+for cross-referencing during Step 4.
 
 Check the probe results — what API patterns did you find?
 See `references/api-discovery.md` for the priority chain and decision tree.
@@ -281,53 +283,21 @@ npx @playwright/cli@latest -s=<app> tracing-start
 
 ### Exploration by site profile
 
-Use the profile-specific checklist from Step 2b:
+Use the **concrete targets** in `references/exploration-checklists.md` for the
+profile identified in Step 2b. Each profile has an explicit entry count,
+distinct-path count, and WRITE-op target that `validate-capture.py` (Step 4)
+will enforce. Minimum bar across all profiles:
 
-**Auth + CRUD:**
-```
-For EACH resource visible in the UI:
-- [ ] List/browse: navigate to list view
-- [ ] Detail: open one item
-- [ ] Create: fill form, submit (capture POST body!)
-- [ ] Update: edit an item, save
-- [ ] Delete: delete a test item
-- [ ] Settings/profile: check app settings
-- [ ] Export: if available, trigger export/download
-```
+- ≥ 15 entries, ≥ 3 distinct URL paths, protocol ≠ `unknown`
+- ≥ 1 WRITE op (unless the site is genuinely read-only — pass `--read-only` to the validator)
+- < 50% error rate (dominant 4xx/5xx means auth or rate-limit failure)
 
-**Auth + Generation:**
-```
-- [ ] Dashboard/projects: navigate to project list
-- [ ] Open existing project: view editor/canvas
-- [ ] Generate new content: type prompt, click generate, WAIT for completion
-- [ ] Edit/iterate: modify generation, re-generate
-- [ ] Export/download: trigger download of generated content
-- [ ] Delete: delete a test project
-- [ ] Settings: check model selection, preferences
-```
+### Pacing for protected sites
 
-**Auth + Read-only:**
-```
-- [ ] Main view: navigate to primary content
-- [ ] Search/filter: use search functionality
-- [ ] Detail pages: open 2-3 different items
-- [ ] Pagination: go to page 2 if available
-- [ ] Export: if available
-```
-
-**No-auth + CRUD:**
-```
-Same as Auth + CRUD, but skip auth-related captures.
-```
-
-**No-auth + Read-only:**
-```
-- [ ] Homepage: capture initial data
-- [ ] Search: try 2-3 different queries
-- [ ] Detail pages: open 2-3 items
-- [ ] Filters: apply different filters
-- [ ] Pagination: check next page
-```
+If any of `cloudflare`, `cloudflareManagedChallenge`, `akamai`, `datadome`,
+`awsWaf`, or `rateLimit` fired in the fingerprint, **leave 1–2 s between
+clicks / form submits**. Faster exploration triggers per-IP challenges within
+~30 requests and corrupts the trace.
 
 ### General interaction rules
 
@@ -335,18 +305,16 @@ Same as Auth + CRUD, but skip auth-related captures.
 - **Refs go stale** — always take a fresh snapshot before clicking
 - **For localized UIs** (Hebrew, Arabic, etc.) — use refs or data-testid, not text
 - **For iframe-embedded apps** — `snapshot` + `click <ref>` auto-resolves iframes
-- **Wait after generation** — if the app generates content async, wait:
+- **Wait after generation** — if the app generates content async, wait for ≥ 15 s
+  before the next action, otherwise the polling loop won't appear in the trace:
   ```bash
   npx @playwright/cli@latest -s=<app> run-code "async page => {
     await page.waitForTimeout(15000);
     return 'waited';
   }"
   ```
-- **The trace MUST contain at least one WRITE operation** (POST/PUT/DELETE) unless
-  the site is genuinely read-only (see exception below)
-
-**Exception for read-only sites:** If the site is genuinely read-only, the trace
-may contain only GET requests. Note "read-only site" in `assessment.md` and proceed.
+- **Debounced inputs** — after typing a search query, pause 1–2 s before the
+  next action; submitting immediately misses the auto-complete endpoint.
 
 ---
 
@@ -369,23 +337,36 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py \
 # parse-trace.py now auto-runs analyze-traffic.py and produces:
 #   - <app>/traffic-capture/raw-traffic.json (raw request/response data)
 #   - <app>/traffic-capture/traffic-analysis.json (auto-detected protocol, auth, endpoints)
-#
-# The analysis output shows: protocol type, auth pattern, endpoint groups,
-# GraphQL operations, batchexecute RPC IDs, and suggested CLI commands.
-# Review the analysis — anything marked "unknown" needs manual investigation.
 
-# You can also run the analyzer separately for more detail:
+# Gate — validate the capture before declaring Phase 1 complete.
+# This check enforces: ≥15 entries, ≥3 distinct paths, protocol ≠ unknown,
+# ≥1 WRITE op (add --read-only if the site is genuinely read-only), <50% error rate.
+python ${CLAUDE_PLUGIN_ROOT}/scripts/validate-capture.py <app>
+# OR for genuinely read-only sites:
+# python ${CLAUDE_PLUGIN_ROOT}/scripts/validate-capture.py <app> --read-only
+```
+
+If `validate-capture.py` returns a non-zero exit code, **do not proceed to Step 5**.
+Re-open the browser (Step 1), continue exploration to fill the gaps the validator
+flagged, then re-run Step 4. Only mark the capture complete after the validator
+passes (or warns, with your explicit sign-off on each warning).
+
+For deeper inspection:
+
+```bash
 python ${CLAUDE_PLUGIN_ROOT}/scripts/analyze-traffic.py \
   <app>/traffic-capture/raw-traffic.json --summary
 ```
 
-> **If `--mitmproxy` mode:** Replace everything above with:
+> **If `--mitmproxy` mode:** Replace the parse/analyze block above with:
 > ```bash
 > # Stop the proxy and save captured traffic (includes auto-analysis)
 > python ${CLAUDE_PLUGIN_ROOT}/scripts/mitmproxy-capture.py stop-proxy \
 >   --port 8080 -o <app>/traffic-capture/raw-traffic.json
 >
-> # The stop-proxy command writes raw-traffic.json directly.
+> # Validate the capture (same gate applies)
+> python ${CLAUDE_PLUGIN_ROOT}/scripts/validate-capture.py <app>
+>
 > # Then run the analyzer for the full report:
 > python ${CLAUDE_PLUGIN_ROOT}/scripts/analyze-traffic.py \
 >   <app>/traffic-capture/raw-traffic.json --summary
@@ -430,7 +411,12 @@ and build the CLI.
 
 ## References
 
-See `references/` for: command syntax (playwright-cli-commands.md), tracing (playwright-cli-tracing.md),
-sessions (playwright-cli-sessions.md), advanced patterns (playwright-cli-advanced.md),
-framework detection (framework-detection.md), protection (protection-detection.md),
-API discovery (api-discovery.md).
+See `references/` for:
+- `playwright-cli-commands.md` — command syntax, timeouts, ESM rules
+- `playwright-cli-tracing.md` — trace file format, recovery protocol
+- `playwright-cli-sessions.md` — named sessions, auth persistence
+- `playwright-cli-advanced.md` — waits, iframes, localized UIs, downloads
+- `framework-detection.md` — framework → protocol table
+- `protection-detection.md` — anti-bot escalation ladder (curl_cffi → camoufox → hybrid)
+- `api-discovery.md` — protocol priority chain, decision tree
+- `exploration-checklists.md` — per-profile capture targets with concrete numbers

@@ -28,8 +28,14 @@ Usage:
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
+
+# Ensure sibling modules resolve whether invoked as a script or via importlib.
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+
+from state_utils import load_json_state, save_json_state, utc_now_iso  # noqa: E402
 
 STATE_FILE = "phase-state.json"
 PHASES = ["capture", "methodology", "testing", "standards"]
@@ -40,23 +46,16 @@ def _state_path(app_dir: str) -> Path:
 
 
 def _load(app_dir: str) -> dict:
-    p = _state_path(app_dir)
-    if not p.exists():
-        return {
-            "app_dir": str(Path(app_dir).resolve()),
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "phases": {phase: {"status": "pending"} for phase in PHASES},
-        }
-    with open(p, "r", encoding="utf-8") as f:
-        return json.load(f)
+    default = {
+        "app_dir": str(Path(app_dir).resolve()),
+        "created_at": utc_now_iso(),
+        "phases": {phase: {"status": "pending"} for phase in PHASES},
+    }
+    return load_json_state(_state_path(app_dir), default=default)
 
 
 def _save(app_dir: str, state: dict) -> None:
-    p = _state_path(app_dir)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    state["updated_at"] = datetime.now(timezone.utc).isoformat()
-    with open(p, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2, ensure_ascii=False)
+    save_json_state(_state_path(app_dir), state)
 
 
 def cmd_status(args: argparse.Namespace) -> None:
@@ -99,7 +98,7 @@ def cmd_complete(args: argparse.Namespace) -> None:
     state = _load(args.app_dir)
     state["phases"][args.phase] = {
         "status": "done",
-        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": utc_now_iso(),
         "output": args.output,
         "notes": args.notes,
     }
@@ -111,7 +110,7 @@ def cmd_fail(args: argparse.Namespace) -> None:
     state = _load(args.app_dir)
     state["phases"][args.phase] = {
         "status": "failed",
-        "failed_at": datetime.now(timezone.utc).isoformat(),
+        "failed_at": utc_now_iso(),
         "error": args.error,
         "error_type": args.error_type or "unknown",
     }

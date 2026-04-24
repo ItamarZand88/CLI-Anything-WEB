@@ -15,11 +15,12 @@ import json
 import sys
 from pathlib import Path
 
+# Ensure sibling modules resolve whether invoked as a script or via importlib.
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
 
-STATIC_EXTENSIONS = (
-    ".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico",
-    ".woff", ".woff2", ".ttf", ".eot", ".map", ".webp", ".avif",
-)
+from traffic_utils import STATIC_EXTENSIONS, is_static_asset  # noqa: E402
 
 
 def parse_network_file(network_path: Path, resources_dir: Path, filter_static: bool = True) -> list[dict]:
@@ -46,10 +47,8 @@ def parse_network_file(network_path: Path, resources_dir: Path, filter_static: b
         url = req.get("url", "")
 
         # Filter static assets
-        if filter_static:
-            url_path = url.split("?")[0].split("#")[0]
-            if any(url_path.endswith(ext) for ext in STATIC_EXTENSIONS):
-                continue
+        if filter_static and is_static_asset(url):
+            continue
 
         # Load response body from resources/
         body = None

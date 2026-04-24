@@ -33,55 +33,13 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, unquote
 
+# Ensure sibling modules resolve whether invoked as a script or via importlib.
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
 
-def _normalize_headers(headers) -> dict:
-    """Normalize headers to dict format.
-
-    Playwright traces may use [{name, value}] arrays while mitmproxy uses
-    flat dicts. This function accepts both and returns a flat dict.
-    """
-    if isinstance(headers, dict):
-        return headers
-    if isinstance(headers, list):
-        return {h.get("name", ""): h.get("value", "") for h in headers if isinstance(h, dict)}
-    return {}
-
-
-def _is_noise_url(url: str) -> bool:
-    """Check if a URL is analytics/tracking/CDN noise — not a real API call."""
-    NOISE = [
-        # Google analytics / ads
-        "google-analytics", "analytics.google.com", "googletagmanager.com",
-        "googlesyndication", "google.com/ads", "google.com/pagead",
-        "doubleclick.net", "www.google.co.", "gstatic.com",
-        "googleapis.com/css", "fonts.googleapis.com",
-        "play.google.com/log", "signaler-pa.clients6",
-        "accounts.google.com/gsi", "apis.google.com",
-        # Cloudflare
-        "cdn-cgi/", "cloudflareinsights", "static.cloudflareinsights",
-        # Social / ad networks
-        "facebook.com/tr", "facebook.net",
-        "twitter.com", "analytics.twitter.com",
-        "taboola.com", "optable.co", "admedo.com",
-        "scorecardresearch.com", "statcounter.com",
-        "liftdsp.com", "bidr.io", "cnv.event.prod",
-        # Monitoring / analytics SDKs
-        "datadoghq.com", "browser-intake-datadoghq",
-        "fullstory.com", "segment.prod",
-        # CRM / marketing automation
-        "hubspot.com", "hscollectedforms.net", "hsforms.com",
-        "cookiebot.com",
-        # Generic tracking patterns (same-site endpoints)
-        "/ht/event", "/hubspot",
-        # GitHub internal
-        "avatars.githubusercontent.com", "collector.github.com",
-        "api.github.com/_private",
-        # Generic noise patterns
-        "/manifest.json", "/beacon", "/pixel", "/rum",
-        "slinksuggestion.com", "drainpaste.com",
-        "e.producthunt.com", "t.producthunt.com",
-    ]
-    return any(x in url for x in NOISE)
+from traffic_utils import is_noise_url as _is_noise_url  # noqa: E402
+from traffic_utils import normalize_headers as _normalize_headers  # noqa: E402
 
 
 def _detect_ws_library(url: str) -> str | None:
@@ -147,7 +105,7 @@ def detect_protocol(entries: list[dict]) -> dict:
     firebase_paths = []
 
     for e in entries:
-        url = e.get("url", "")
+        url = (e.get("url") or "")
         method = e.get("method", "GET")
         mime = e.get("mime_type", "")
         body = e.get("post_data", "") or ""
@@ -399,7 +357,7 @@ def detect_auth(entries: list[dict]) -> dict:
     api_key_headers = set()
     cookie_names = set()
 
-    for e in (e for e in entries if not _is_noise_url(e.get("url", ""))):
+    for e in (e for e in entries if not _is_noise_url((e.get("url") or ""))):
         headers = _normalize_headers(e.get("request_headers", {}))
         has_auth = False
 
@@ -433,7 +391,7 @@ def detect_auth(entries: list[dict]) -> dict:
 
     # Use actual count of non-noise entries as denominator (a request may have
     # both bearer and cookie, so summing individual counters would inflate total)
-    total = sum(1 for _ in (e for e in entries if not _is_noise_url(e.get("url", "")))) or 1
+    total = sum(1 for _ in (e for e in entries if not _is_noise_url((e.get("url") or "")))) or 1
     patterns = {}
     if bearer_count > 0:
         patterns["bearer"] = round(bearer_count / total * 100, 1)
@@ -593,10 +551,10 @@ _STATIC_EXTENSIONS = (
 
 def _is_static_asset(entry: dict) -> bool:
     """Return True if the entry is a static asset (image, font, CSS, JS)."""
-    mime = entry.get("mime_type", "").split(";")[0].strip().lower()
+    mime = (entry.get("mime_type") or "").split(";")[0].strip().lower()
     if any(mime.startswith(p) for p in _STATIC_MIME_PREFIXES):
         return True
-    url = entry.get("url", "").split("?")[0].lower()
+    url = (entry.get("url") or "").split("?")[0].lower()
     if any(url.endswith(ext) for ext in _STATIC_EXTENSIONS):
         return True
     return False
@@ -606,14 +564,14 @@ def group_endpoints(entries: list[dict]) -> list[dict]:
     """Group API requests by URL prefix into resource groups."""
     api_entries = [
         e for e in entries
-        if not _is_noise_url(e.get("url", "")) and not _is_static_asset(e)
+        if not _is_noise_url((e.get("url") or "")) and not _is_static_asset(e)
     ]
 
     # Parse URLs and group by prefix
     groups = defaultdict(lambda: {"methods": Counter(), "urls": set(), "count": 0})
 
     for e in api_entries:
-        url = e.get("url", "")
+        url = (e.get("url") or "")
         method = e.get("method", "GET")
         parsed = urlparse(url)
 
@@ -665,7 +623,7 @@ def detect_pagination(entries: list[dict]) -> dict:
     paginated_endpoints = {}  # prefix → set of pagination params seen
 
     for e in entries:
-        url = e.get("url", "")
+        url = (e.get("url") or "")
         if _is_noise_url(url):
             continue
         parsed = urlparse(url)
@@ -723,7 +681,7 @@ def detect_rate_limits(entries: list[dict]) -> dict:
 
 def compute_stats(entries: list[dict]) -> dict:
     """Compute basic traffic statistics. Noise URLs excluded from method/status/MIME counts; domains include all entries."""
-    api_entries = [e for e in entries if not _is_noise_url(e.get("url", ""))]
+    api_entries = [e for e in entries if not _is_noise_url((e.get("url") or ""))]
 
     methods = Counter(e.get("method", "GET") for e in api_entries)
     statuses = Counter(e.get("status", 0) for e in api_entries)
@@ -735,7 +693,7 @@ def compute_stats(entries: list[dict]) -> dict:
     # Unique domains (from all entries, including noise — useful for awareness)
     domains = set()
     for e in entries:
-        parsed = urlparse(e.get("url", ""))
+        parsed = urlparse((e.get("url") or ""))
         if parsed.hostname:
             domains.add(parsed.hostname)
 
@@ -841,7 +799,7 @@ def detect_request_sequence(entries: list[dict]) -> dict:
     for i, e in enumerate(timed[:20]):
         ts = _ts(e) or 0
         delta_ms = round((ts - prev_ts) * 1000, 1) if i > 0 else 0
-        url = e.get("url", "")
+        url = (e.get("url") or "")
         timeline.append({
             "seq": i + 1,
             "method": e.get("method", "GET"),
@@ -858,7 +816,7 @@ def detect_request_sequence(entries: list[dict]) -> dict:
 
     for i, e in enumerate(timed):
         seq = i + 1
-        url = e.get("url", "")
+        url = (e.get("url") or "")
         method = e.get("method", "GET")
         status = e.get("status", 0)
         resp_cookies = e.get("response_cookies", []) or []
@@ -903,11 +861,11 @@ def detect_request_sequence(entries: list[dict]) -> dict:
     # Build a map of URL → entry for redirect target matching
     url_to_entry = {}
     for e in timed:
-        url_to_entry.setdefault(e.get("url", ""), e)
+        url_to_entry.setdefault((e.get("url") or ""), e)
 
     visited_redirects: set[str] = set()
     for e in timed:
-        url = e.get("url", "")
+        url = (e.get("url") or "")
         status = e.get("status", 0)
         if status not in (301, 302, 303, 307, 308):
             continue
@@ -967,7 +925,7 @@ def detect_session_lifecycle(entries: list[dict]) -> dict:
     seen_set = set()  # dedupe (name, domain) for cookies_set list
 
     for e in entries:
-        url = e.get("url", "")
+        url = (e.get("url") or "")
         parsed = urlparse(url)
         domain = parsed.hostname or ""
 
@@ -1041,7 +999,7 @@ def classify_endpoints_by_size(entries: list[dict]) -> dict:
         if size is None:
             continue
 
-        url = e.get("url", "")
+        url = (e.get("url") or "")
         if _is_noise_url(url) or _is_static_asset(e):
             continue
 

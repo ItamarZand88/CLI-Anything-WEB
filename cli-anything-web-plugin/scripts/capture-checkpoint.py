@@ -23,8 +23,14 @@ Usage:
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
+
+# Ensure sibling modules resolve whether invoked as a script or via importlib.
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+
+from state_utils import load_json_state, save_json_state, utc_now_iso  # noqa: E402
 
 CHECKPOINT_FILE = ".capture-state.json"
 
@@ -45,19 +51,12 @@ def _checkpoint_path(app_dir: str) -> Path:
 
 
 def _load(app_dir: str) -> dict | None:
-    p = _checkpoint_path(app_dir)
-    if not p.exists():
-        return None
-    with open(p, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return load_json_state(_checkpoint_path(app_dir), default=None)
 
 
 def _save(app_dir: str, state: dict) -> None:
     p = _checkpoint_path(app_dir)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    state["updated_at"] = datetime.now(timezone.utc).isoformat()
-    with open(p, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2, ensure_ascii=False)
+    save_json_state(p, state)
     print(f"Checkpoint saved: {p}")
 
 
@@ -66,7 +65,7 @@ def cmd_save(args: argparse.Namespace) -> None:
     state = {
         "app_dir": str(Path(args.app_dir).resolve()),
         "step": args.step or existing.get("step", "setup"),
-        "created_at": existing.get("created_at", datetime.now(timezone.utc).isoformat()),
+        "created_at": existing.get("created_at", utc_now_iso()),
         "session_name": args.session or existing.get("session_name"),
         "url": args.url or existing.get("url"),
         "auth_saved": args.auth_saved or existing.get("auth_saved", False),
@@ -84,7 +83,7 @@ def cmd_save(args: argparse.Namespace) -> None:
             "id": args.trace_id,
             "status": args.trace_status or "active",
             "purpose": args.trace_purpose or "capture",
-            "started_at": datetime.now(timezone.utc).isoformat(),
+            "started_at": utc_now_iso(),
         }
         # Update existing trace or add new
         updated = False
