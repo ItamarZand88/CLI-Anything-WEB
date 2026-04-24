@@ -30,10 +30,12 @@ jobs:
               {"type": "refactor", "section": "Code Refactoring", "hidden": true}
             ]
 
-  # Run tests on the release-please PR branch so required checks pass
+  # Run tests on the release-please PR branch so required checks pass.
+  # Only runs when a release PR branch actually exists — avoids checkout
+  # failures caused by checking out a deleted branch after a release merges.
   run-tests:
     needs: release-please
-    if: always()
+    if: needs.release-please.outputs.pr_branch != ''
     uses: ./.github/workflows/tests.yml
     with:
-      ref: release-please--branches--main
+      ref: ${{ needs.release-please.outputs.pr_branch }}

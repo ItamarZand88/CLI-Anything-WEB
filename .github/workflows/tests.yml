@@ -35,7 +35,9 @@ jobs:
           - { name: chatgpt,    dir: chatgpt/agent-harness,    pkg: chatgpt }
           - { name: airbnb,       dir: airbnb/agent-harness,       pkg: airbnb }
           - { name: amazon,       dir: amazon/agent-harness,       pkg: amazon }
-          - { name: tripadvisor,  dir: tripadvisor/agent-harness,  pkg: tripadvisor }
+          - { name: tripadvisor,    dir: tripadvisor/agent-harness,    pkg: tripadvisor }
+          - { name: linkedin,       dir: linkedin/agent-harness,       pkg: linkedin }
+          - { name: capitoltrades,  dir: capitoltrades/agent-harness,  pkg: capitoltrades }
 
     name: ${{ matrix.cli.name }}
 
