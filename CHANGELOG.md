@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **cli-web-capitoltrades**: US Congressional stock trades CLI for capitoltrades.com (by 2iQ Research). Covers ~35K STOCK Act disclosures, 200+ politicians, 3K+ issuers. Commands: `trades list/get/by-ticker/stats`, `politicians list/top/get`, `issuers list/get/search`, `articles/buzz/press list/get`. No auth required. CloudFront bypass via curl_cffi Chrome136 impersonation. Rich issuer data including 1-year price history from BFF JSON API.
+
 ## [0.8.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.7.0...v0.8.0) (2026-04-06)
 
 

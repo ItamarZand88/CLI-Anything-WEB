@@ -341,6 +341,33 @@
         "messaging send"
       ],
       "install": "pip install -e linkedin/agent-harness"
+    },
+    {
+      "name": "cli-web-capitoltrades",
+      "website": "https://www.capitoltrades.com",
+      "protocol": "SSR HTML + BFF JSON (curl_cffi)",
+      "auth": "none",
+      "directory": "capitoltrades/agent-harness",
+      "namespace": "cli_web.capitoltrades",
+      "commands": [
+        "trades list",
+        "trades get",
+        "trades by-ticker",
+        "trades stats",
+        "politicians list",
+        "politicians top",
+        "politicians get",
+        "issuers list",
+        "issuers get",
+        "issuers search",
+        "articles list",
+        "articles get",
+        "buzz list",
+        "buzz get",
+        "press list",
+        "press get"
+      ],
+      "install": "pip install -e capitoltrades/agent-harness"
     }
   ]
 }
