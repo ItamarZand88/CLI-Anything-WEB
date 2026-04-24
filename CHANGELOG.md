@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.8.0...v0.9.0) (2026-04-24)
+
+
+### Features
+
+* add cli-web-capitoltrades (US congressional stock trades) ([d1b2e18](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/d1b2e181014185e2c1ec6be668b86ec75b040275))
+* **linkedin:** add cli-web-linkedin with 24 commands (pre-review baseline) ([4f81e16](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/4f81e16ca4495298c114d2a3cab701bd2c08a248))
+* **linkedin:** fix all gap analysis issues + rewrite docs ([21ae754](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/21ae754a010c6a419bd683972d1aed0d31b94709))
+
+
+### Bug Fixes
+
+* **linkedin:** address all code review findings + sync all docs ([813c5e0](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/813c5e066c2038d05ad65738156ec6c8129f6741))
+* **linkedin:** anti-bot hardening and code review fixes ([3b0015c](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/3b0015cae91f22e1f56e10217129a1b5907c99ba))
+* **linkedin:** anti-bot hardening from security audit ([96aa037](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/96aa037ff499be5d49d7201d55fa8bff54f784cb))
+* **linkedin:** fix profile display + add REPL inter-command delay ([b04cde8](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b04cde840ff7c085ea72cfbd27984ef17473b580))
+* **linkedin:** resolve empty data and wire up dead code ([3479da1](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/3479da127b91b7fa8fa82220cf30e49365a219b1))
+* **linkedin:** resolve REST.li pointers and fix search queryId ([6e8e5da](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/6e8e5da12624f711732ddbbe0429c6f25f1a4190))
+
 ## [Unreleased]
 
 ### Added
