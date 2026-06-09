@@ -72,226 +72,242 @@ def _infer_ws_purpose(urls: list) -> str | None:
     return None
 
 
-def detect_protocol(entries: list[dict]) -> dict:
-    """Detect the API protocol type from traffic patterns.
+class _ProtocolAcc:
+    """Mutable accumulator shared by the per-protocol detectors.
 
-    Filters out analytics/tracking noise before scoring to avoid
-    false signals from POST-heavy tracking endpoints.
+    Each ``_score_*`` detector reads a single entry's context and updates the
+    cumulative signal scores plus its own collected metadata. Kept as one
+    object so the detectors stay small and the scoring order (which REST
+    depends on) is explicit in ``detect_protocol``.
     """
-    signals = {
-        "graphql": 0,
-        "batchexecute": 0,
-        "rest": 0,
-        "grpc_web": 0,
-        "ssr_html": 0,
-        "websocket": 0,
-        "sse": 0,
-        "json_rpc": 0,
-        "trpc": 0,
-        "firebase": 0,
+
+    _SIGNAL_KEYS = (
+        "graphql", "batchexecute", "rest", "grpc_web", "ssr_html",
+        "websocket", "sse", "json_rpc", "trpc", "firebase",
+    )
+
+    def __init__(self) -> None:
+        self.signals = {k: 0 for k in self._SIGNAL_KEYS}
+        self.graphql_ops: list = []
+        self.batchexecute_methods: list = []
+        self.batchexecute_rpc_details: dict = {}
+        self.batchexecute_service = None
+        self.batchexecute_bl = None
+        self.websocket_url_set: set = set()
+        self.websocket_subprotocols: set = set()
+        self.websocket_libraries: set = set()
+        self.sse_urls: list = []
+        self.json_rpc_methods: list = []
+        self.trpc_procedures: list = []
+        self.firebase_paths: list = []
+
+
+def _entry_context(e: dict) -> dict:
+    """Parse the fields every detector needs from a single traffic entry."""
+    headers = _normalize_headers(e.get("request_headers", {}))
+    resp_headers = _normalize_headers(e.get("response_headers", {}))
+    url = e.get("url") or ""
+    return {
+        "url": url,
+        "method": e.get("method", "GET"),
+        "mime": e.get("mime_type", ""),
+        "body": e.get("post_data", "") or "",
+        "headers": headers,
+        "resp_headers": resp_headers,
+        "content_type": headers.get("content-type", headers.get("Content-Type", "")),
+        "is_noise": _is_noise_url(url),
     }
 
-    graphql_ops = []
-    batchexecute_methods = []
-    batchexecute_rpc_details = {}
-    batchexecute_service = None
-    batchexecute_bl = None
-    websocket_url_set = set()
-    websocket_subprotocols = set()
-    websocket_libraries = set()
-    sse_urls = []
-    json_rpc_methods = []
-    trpc_procedures = []
-    firebase_paths = []
 
-    for e in entries:
-        url = (e.get("url") or "")
-        method = e.get("method", "GET")
-        mime = e.get("mime_type", "")
-        body = e.get("post_data", "") or ""
-        headers = _normalize_headers(e.get("request_headers", {}))
-        resp_headers = _normalize_headers(e.get("response_headers", {}))
-        content_type = headers.get("content-type", headers.get("Content-Type", ""))
-
-        # Skip noise for protocol detection (analytics, tracking, CDN)
-        is_noise = _is_noise_url(url)
-
-        # --- GraphQL ---
-        if "/graphql" in url.lower() and not is_noise:
-            signals["graphql"] += 5
-            if method == "GET" and "operationName=" in url:
-                parsed = urlparse(url)
-                params = parse_qs(parsed.query)
-                op = params.get("operationName", [""])[0]
-                if op:
-                    graphql_ops.append({"name": op, "type": "query", "method": "GET"})
-            elif method == "POST" and body:
-                try:
-                    parsed_body = json.loads(body)
-                    op = parsed_body.get("operationName", "")
-                    query = parsed_body.get("query", "")
-                    op_type = "mutation" if query and "mutation" in query[:50].lower() else "query"
-                    if op:
-                        graphql_ops.append({"name": op, "type": op_type, "method": "POST"})
-                except json.JSONDecodeError:
-                    pass  # Non-JSON body on GraphQL endpoint (e.g., multipart upload)
-                except TypeError as exc:
-                    print(f"Warning: unexpected type in GraphQL body parse for {url}: {exc}", file=sys.stderr)
-
-        # --- Google batchexecute ---
-        if "batchexecute" in url and not is_noise:
-            signals["batchexecute"] += 5
-            parsed_url = urlparse(url)
-            url_params = parse_qs(parsed_url.query)
-            rpcid = url_params.get("rpcids", [""])[0]
-            if rpcid:
-                batchexecute_methods.append(rpcid)
-
-                # Parse f.req from POST body to extract param structure per RPC ID
-                if body and "f.req=" in body:
-                    try:
-                        body_params = parse_qs(body)
-                        freq_str = body_params.get("f.req", [""])[0]
-                        if freq_str:
-                            outer = json.loads(freq_str)
-                            # Structure: [[[rpc_id, params_json, null, "generic"]]]
-                            inner = outer[0][0] if outer and outer[0] and outer[0][0] else None
-                            if inner and len(inner) >= 2 and inner[1]:
-                                try:
-                                    params_data = json.loads(inner[1])
-                                except (json.JSONDecodeError, TypeError):
-                                    params_data = inner[1][:200] if isinstance(inner[1], str) else str(inner[1])[:200]
-                                if rpcid not in batchexecute_rpc_details:
-                                    batchexecute_rpc_details[rpcid] = {
-                                        "call_count": 0,
-                                        "example_params": [params_data],
-                                    }
-                                else:
-                                    # Store distinct param structures (up to 3) per RPC ID
-                                    existing = batchexecute_rpc_details[rpcid]["example_params"]
-                                    if len(existing) < 3 and params_data not in existing:
-                                        existing.append(params_data)
-                                batchexecute_rpc_details[rpcid]["call_count"] += 1
-                    except (json.JSONDecodeError, TypeError, IndexError, KeyError) as exc:
-                        print(
-                            f"Warning: failed to parse f.req body for RPC {rpcid}: "
-                            f"{type(exc).__name__}: {exc}",
-                            file=sys.stderr,
-                        )
-
-            # Extract service name: /_/ServiceName/data/batchexecute
-            if not batchexecute_service:
-                m = re.search(r'/_/([^/]+)/data/batchexecute', url)
-                if m:
-                    batchexecute_service = m.group(1)
-
-            # Extract build label (bl) as a reference value
-            if not batchexecute_bl:
-                bl = url_params.get("bl", [""])[0]
-                if bl:
-                    batchexecute_bl = bl
-
-        # --- gRPC-Web ---
-        if "application/grpc" in content_type and not is_noise:
-            signals["grpc_web"] += 5
-
-        # --- WebSocket ---
-        is_ws_url = url.startswith("wss://") or url.startswith("ws://")
-        upgrade = headers.get("upgrade", headers.get("Upgrade", ""))
-        has_ws_upgrade = upgrade.lower() == "websocket"
-        if is_ws_url or has_ws_upgrade:
-            signals["websocket"] += 5  # once per entry regardless of which signal triggered
-            websocket_url_set.add(url)
-            # Sub-protocol extraction (e.g. "graphql-ws", "stomp", "mqtt")
-            subproto = headers.get(
-                "sec-websocket-protocol",
-                headers.get("Sec-WebSocket-Protocol", "")
-            )
-            for sp in (subproto.split(",") if subproto else []):
-                sp = sp.strip()
-                if sp:
-                    websocket_subprotocols.add(sp)
-            # Library fingerprint from URL
-            lib = _detect_ws_library(url)
-            if lib:
-                websocket_libraries.add(lib)
-
-        # --- Server-Sent Events (SSE) ---
-        resp_ct = resp_headers.get("content-type", resp_headers.get("Content-Type", ""))
-        if "text/event-stream" in resp_ct:
-            signals["sse"] += 5
-            sse_urls.append(url)
-        accept = headers.get("accept", headers.get("Accept", ""))
-        if "text/event-stream" in accept:
-            signals["sse"] += 3
-            sse_urls.append(url)
-
-        # --- JSON-RPC ---
-        if body and not is_noise:
+def _score_graphql(ctx: dict, acc: _ProtocolAcc) -> None:
+    url, method, body = ctx["url"], ctx["method"], ctx["body"]
+    if "/graphql" in url.lower() and not ctx["is_noise"]:
+        acc.signals["graphql"] += 5
+        if method == "GET" and "operationName=" in url:
+            params = parse_qs(urlparse(url).query)
+            op = params.get("operationName", [""])[0]
+            if op:
+                acc.graphql_ops.append({"name": op, "type": "query", "method": "GET"})
+        elif method == "POST" and body:
             try:
                 parsed_body = json.loads(body)
-                if isinstance(parsed_body, dict):
-                    if "jsonrpc" in parsed_body and "method" in parsed_body:
-                        signals["json_rpc"] += 5
-                        json_rpc_methods.append(parsed_body["method"])
-                elif isinstance(parsed_body, list) and len(parsed_body) > 0:
-                    if isinstance(parsed_body[0], dict) and "jsonrpc" in parsed_body[0] and "method" in parsed_body[0]:
-                        signals["json_rpc"] += 5
-                        for item in parsed_body:
-                            if isinstance(item, dict) and "method" in item:
-                                json_rpc_methods.append(item["method"])
+                op = parsed_body.get("operationName", "")
+                query = parsed_body.get("query", "")
+                op_type = "mutation" if query and "mutation" in query[:50].lower() else "query"
+                if op:
+                    acc.graphql_ops.append({"name": op, "type": op_type, "method": "POST"})
             except json.JSONDecodeError:
-                pass  # Non-JSON body — expected for non-RPC POST requests
+                pass  # Non-JSON body on GraphQL endpoint (e.g., multipart upload)
             except TypeError as exc:
-                print(f"Warning: unexpected type in JSON-RPC parse: {exc}", file=sys.stderr)
+                print(f"Warning: unexpected type in GraphQL body parse for {url}: {exc}", file=sys.stderr)
 
-        # --- tRPC ---
-        if ("/api/trpc/" in url or "/trpc/" in url) and not is_noise:
-            signals["trpc"] += 5
-            # Extract procedure name from URL: /api/trpc/post.list
-            parsed = urlparse(url)
-            path = parsed.path
-            trpc_match = re.search(r"/trpc/(.+?)(?:\?|$)", path)
-            if trpc_match:
-                trpc_procedures.append(trpc_match.group(1))
 
-        # --- Firebase Realtime Database ---
-        if "firebaseio.com" in url and not is_noise:
-            signals["firebase"] += 5
-            parsed = urlparse(url)
-            firebase_paths.append(parsed.path)
+def _score_batchexecute(ctx: dict, acc: _ProtocolAcc) -> None:
+    url, body = ctx["url"], ctx["body"]
+    if "batchexecute" not in url or ctx["is_noise"]:
+        return
+    acc.signals["batchexecute"] += 5
+    parsed_url = urlparse(url)
+    url_params = parse_qs(parsed_url.query)
+    rpcid = url_params.get("rpcids", [""])[0]
+    if rpcid:
+        acc.batchexecute_methods.append(rpcid)
+        # Parse f.req from POST body to extract param structure per RPC ID
+        if body and "f.req=" in body:
+            try:
+                body_params = parse_qs(body)
+                freq_str = body_params.get("f.req", [""])[0]
+                if freq_str:
+                    outer = json.loads(freq_str)
+                    # Structure: [[[rpc_id, params_json, null, "generic"]]]
+                    inner = outer[0][0] if outer and outer[0] and outer[0][0] else None
+                    if inner and len(inner) >= 2 and inner[1]:
+                        try:
+                            params_data = json.loads(inner[1])
+                        except (json.JSONDecodeError, TypeError):
+                            params_data = inner[1][:200] if isinstance(inner[1], str) else str(inner[1])[:200]
+                        if rpcid not in acc.batchexecute_rpc_details:
+                            acc.batchexecute_rpc_details[rpcid] = {
+                                "call_count": 0,
+                                "example_params": [params_data],
+                            }
+                        else:
+                            # Store distinct param structures (up to 3) per RPC ID
+                            existing = acc.batchexecute_rpc_details[rpcid]["example_params"]
+                            if len(existing) < 3 and params_data not in existing:
+                                existing.append(params_data)
+                        acc.batchexecute_rpc_details[rpcid]["call_count"] += 1
+            except (json.JSONDecodeError, TypeError, IndexError, KeyError) as exc:
+                print(
+                    f"Warning: failed to parse f.req body for RPC {rpcid}: "
+                    f"{type(exc).__name__}: {exc}",
+                    file=sys.stderr,
+                )
+    # Extract service name: /_/ServiceName/data/batchexecute
+    if not acc.batchexecute_service:
+        m = re.search(r'/_/([^/]+)/data/batchexecute', url)
+        if m:
+            acc.batchexecute_service = m.group(1)
+    # Extract build label (bl) as a reference value
+    if not acc.batchexecute_bl:
+        bl = url_params.get("bl", [""])[0]
+        if bl:
+            acc.batchexecute_bl = bl
 
-        # --- REST --- resource-style URLs or JSON responses to GET/POST
-        is_rest_candidate = False
-        if not is_noise:
-            # Explicit /api/ prefix (strong signal)
-            if re.match(r".*/api/v\d+/", url) or "/api/" in url:
-                is_rest_candidate = True
-            # JSON response to a non-noise request without matching another protocol
-            elif mime and "json" in mime.lower() and method in ("GET", "POST", "PUT", "PATCH", "DELETE"):
-                is_rest_candidate = True
-        if is_rest_candidate:
-            # Don't count if already matched a specific protocol above
-            if signals["graphql"] == 0 and signals["trpc"] == 0:
-                signals["rest"] += 2
 
-        # --- SSR/HTML ---
-        if "text/html" in mime and method == "GET" and not is_noise:
-            signals["ssr_html"] += 2
+def _score_grpc_web(ctx: dict, acc: _ProtocolAcc) -> None:
+    if "application/grpc" in ctx["content_type"] and not ctx["is_noise"]:
+        acc.signals["grpc_web"] += 5
 
-    # Determine primary protocol
-    if not entries:
-        return {"protocol": "unknown", "confidence": 0, "signals": {}}
 
-    # Remove zero signals
-    active_signals = {k: v for k, v in signals.items() if v > 0}
+def _score_websocket(ctx: dict, acc: _ProtocolAcc) -> None:
+    url, headers = ctx["url"], ctx["headers"]
+    is_ws_url = url.startswith("wss://") or url.startswith("ws://")
+    upgrade = headers.get("upgrade", headers.get("Upgrade", ""))
+    has_ws_upgrade = upgrade.lower() == "websocket"
+    if not (is_ws_url or has_ws_upgrade):
+        return
+    acc.signals["websocket"] += 5  # once per entry regardless of which signal triggered
+    acc.websocket_url_set.add(url)
+    # Sub-protocol extraction (e.g. "graphql-ws", "stomp", "mqtt")
+    subproto = headers.get("sec-websocket-protocol", headers.get("Sec-WebSocket-Protocol", ""))
+    for sp in (subproto.split(",") if subproto else []):
+        sp = sp.strip()
+        if sp:
+            acc.websocket_subprotocols.add(sp)
+    # Library fingerprint from URL
+    lib = _detect_ws_library(url)
+    if lib:
+        acc.websocket_libraries.add(lib)
 
+
+def _score_sse(ctx: dict, acc: _ProtocolAcc) -> None:
+    resp_headers, headers, url = ctx["resp_headers"], ctx["headers"], ctx["url"]
+    resp_ct = resp_headers.get("content-type", resp_headers.get("Content-Type", ""))
+    if "text/event-stream" in resp_ct:
+        acc.signals["sse"] += 5
+        acc.sse_urls.append(url)
+    accept = headers.get("accept", headers.get("Accept", ""))
+    if "text/event-stream" in accept:
+        acc.signals["sse"] += 3
+        acc.sse_urls.append(url)
+
+
+def _score_json_rpc(ctx: dict, acc: _ProtocolAcc) -> None:
+    body = ctx["body"]
+    if not (body and not ctx["is_noise"]):
+        return
+    try:
+        parsed_body = json.loads(body)
+        if isinstance(parsed_body, dict):
+            if "jsonrpc" in parsed_body and "method" in parsed_body:
+                acc.signals["json_rpc"] += 5
+                acc.json_rpc_methods.append(parsed_body["method"])
+        elif isinstance(parsed_body, list) and len(parsed_body) > 0:
+            if isinstance(parsed_body[0], dict) and "jsonrpc" in parsed_body[0] and "method" in parsed_body[0]:
+                acc.signals["json_rpc"] += 5
+                for item in parsed_body:
+                    if isinstance(item, dict) and "method" in item:
+                        acc.json_rpc_methods.append(item["method"])
+    except json.JSONDecodeError:
+        pass  # Non-JSON body — expected for non-RPC POST requests
+    except TypeError as exc:
+        print(f"Warning: unexpected type in JSON-RPC parse: {exc}", file=sys.stderr)
+
+
+def _score_trpc(ctx: dict, acc: _ProtocolAcc) -> None:
+    url = ctx["url"]
+    if ("/api/trpc/" in url or "/trpc/" in url) and not ctx["is_noise"]:
+        acc.signals["trpc"] += 5
+        # Extract procedure name from URL: /api/trpc/post.list
+        trpc_match = re.search(r"/trpc/(.+?)(?:\?|$)", urlparse(url).path)
+        if trpc_match:
+            acc.trpc_procedures.append(trpc_match.group(1))
+
+
+def _score_firebase(ctx: dict, acc: _ProtocolAcc) -> None:
+    url = ctx["url"]
+    if "firebaseio.com" in url and not ctx["is_noise"]:
+        acc.signals["firebase"] += 5
+        acc.firebase_paths.append(urlparse(url).path)
+
+
+def _score_rest(ctx: dict, acc: _ProtocolAcc) -> None:
+    """REST is scored last: only when no GraphQL/tRPC signal exists yet."""
+    url, mime, method = ctx["url"], ctx["mime"], ctx["method"]
+    is_rest_candidate = False
+    if not ctx["is_noise"]:
+        # Explicit /api/ prefix (strong signal)
+        if re.match(r".*/api/v\d+/", url) or "/api/" in url:
+            is_rest_candidate = True
+        # JSON response to a non-noise request without matching another protocol
+        elif mime and "json" in mime.lower() and method in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+            is_rest_candidate = True
+    if is_rest_candidate and acc.signals["graphql"] == 0 and acc.signals["trpc"] == 0:
+        acc.signals["rest"] += 2
+
+
+def _score_ssr_html(ctx: dict, acc: _ProtocolAcc) -> None:
+    if "text/html" in ctx["mime"] and ctx["method"] == "GET" and not ctx["is_noise"]:
+        acc.signals["ssr_html"] += 2
+
+
+# Detectors run in this order; REST/SSR are intentionally last because REST
+# scoring inspects the cumulative graphql/trpc signals.
+_PROTOCOL_DETECTORS = (
+    _score_graphql, _score_batchexecute, _score_grpc_web, _score_websocket,
+    _score_sse, _score_json_rpc, _score_trpc, _score_firebase,
+    _score_rest, _score_ssr_html,
+)
+
+
+def _assemble_protocol_result(acc: _ProtocolAcc) -> dict:
+    """Build the result dict (primary protocol, confidence, metadata) from acc."""
+    active_signals = {k: v for k, v in acc.signals.items() if v > 0}
     if not active_signals:
         return {"protocol": "unknown", "confidence": 0, "signals": {}}
 
     # Confidence = top signal's share of total signal weight.
-    # No artificial boosting — the number reflects actual signal dominance.
-    # All signals shown so the agent can judge edge cases.
     max_signal = max(active_signals, key=active_signals.get)
     max_value = active_signals[max_signal]
     total = sum(active_signals.values()) or 1
@@ -303,48 +319,64 @@ def detect_protocol(entries: list[dict]) -> dict:
         "signals": {k: round(v, 1) for k, v in active_signals.items()},
     }
 
-    if graphql_ops:
+    if acc.graphql_ops:
         seen = set()
         unique_ops = []
-        for op in graphql_ops:
+        for op in acc.graphql_ops:
             key = (op["name"], op["type"])
             if key not in seen:
                 seen.add(key)
                 unique_ops.append(op)
         result["graphql_operations"] = unique_ops
 
-    if batchexecute_methods:
-        result["batchexecute_rpc_ids"] = sorted(set(batchexecute_methods))
-    if batchexecute_rpc_details:
-        result["batchexecute_rpc_details"] = batchexecute_rpc_details
-    if batchexecute_service:
-        result["batchexecute_service"] = batchexecute_service
-    if batchexecute_bl:
-        result["batchexecute_build_label"] = batchexecute_bl
+    if acc.batchexecute_methods:
+        result["batchexecute_rpc_ids"] = sorted(set(acc.batchexecute_methods))
+    if acc.batchexecute_rpc_details:
+        result["batchexecute_rpc_details"] = acc.batchexecute_rpc_details
+    if acc.batchexecute_service:
+        result["batchexecute_service"] = acc.batchexecute_service
+    if acc.batchexecute_bl:
+        result["batchexecute_build_label"] = acc.batchexecute_bl
 
-    if websocket_url_set:
-        result["websocket_urls"] = sorted(websocket_url_set)[:10]
-        if websocket_subprotocols:
-            result["websocket_subprotocols"] = sorted(websocket_subprotocols)
-        if websocket_libraries:
-            result["websocket_library"] = sorted(websocket_libraries)[0]
-        purpose = _infer_ws_purpose(list(websocket_url_set))
+    if acc.websocket_url_set:
+        result["websocket_urls"] = sorted(acc.websocket_url_set)[:10]
+        if acc.websocket_subprotocols:
+            result["websocket_subprotocols"] = sorted(acc.websocket_subprotocols)
+        if acc.websocket_libraries:
+            result["websocket_library"] = sorted(acc.websocket_libraries)[0]
+        purpose = _infer_ws_purpose(list(acc.websocket_url_set))
         if purpose:
             result["websocket_purpose"] = purpose
 
-    if sse_urls:
-        result["sse_urls"] = sorted(set(sse_urls))[:10]
-
-    if json_rpc_methods:
-        result["json_rpc_methods"] = sorted(set(json_rpc_methods))
-
-    if trpc_procedures:
-        result["trpc_procedures"] = sorted(set(trpc_procedures))
-
-    if firebase_paths:
-        result["firebase_paths"] = sorted(set(firebase_paths))[:10]
+    if acc.sse_urls:
+        result["sse_urls"] = sorted(set(acc.sse_urls))[:10]
+    if acc.json_rpc_methods:
+        result["json_rpc_methods"] = sorted(set(acc.json_rpc_methods))
+    if acc.trpc_procedures:
+        result["trpc_procedures"] = sorted(set(acc.trpc_procedures))
+    if acc.firebase_paths:
+        result["firebase_paths"] = sorted(set(acc.firebase_paths))[:10]
 
     return result
+
+
+def detect_protocol(entries: list[dict]) -> dict:
+    """Detect the API protocol type from traffic patterns.
+
+    Filters out analytics/tracking noise before scoring to avoid
+    false signals from POST-heavy tracking endpoints. Each protocol is scored
+    by a dedicated ``_score_*`` detector; see ``_PROTOCOL_DETECTORS``.
+    """
+    if not entries:
+        return {"protocol": "unknown", "confidence": 0, "signals": {}}
+
+    acc = _ProtocolAcc()
+    for e in entries:
+        ctx = _entry_context(e)
+        for detector in _PROTOCOL_DETECTORS:
+            detector(ctx, acc)
+
+    return _assemble_protocol_result(acc)
 
 
 def detect_auth(entries: list[dict]) -> dict:
