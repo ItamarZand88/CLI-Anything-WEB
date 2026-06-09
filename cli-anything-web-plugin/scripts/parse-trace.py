@@ -129,6 +129,11 @@ def main():
         action="store_true",
         help="Only parse the most recent trace (ignore older traces in the directory)",
     )
+    parser.add_argument(
+        "--no-analyze",
+        action="store_true",
+        help="Skip the automatic traffic analysis step (only write raw-traffic.json)",
+    )
     args = parser.parse_args()
 
     traces_dir = Path(args.traces_dir)
@@ -144,10 +149,14 @@ def main():
 
     print(f"Parsed {len(entries)} API requests -> {output_path}")
 
-    # Auto-run analysis if analyze-traffic.py is available
+    # Run traffic analysis as an explicit step (skippable via --no-analyze).
     analysis_path = output_path.parent / "traffic-analysis.json"
     analyze_script = Path(__file__).parent / "analyze-traffic.py"
-    if analyze_script.exists() and entries:
+    if args.no_analyze:
+        print("Skipping traffic analysis (--no-analyze). "
+              "Run analyze-traffic.py manually if needed.")
+    elif analyze_script.exists() and entries:
+        print(f"Analyzing traffic -> {analysis_path} ...")
         try:
             # Import and run inline (same process, no subprocess overhead)
             import importlib.util
@@ -169,7 +178,11 @@ def main():
                 print(f"  batchexecute IDs: {', '.join(p['batchexecute_rpc_ids'])}")
             print(f"  -> {analysis_path}")
         except Exception as e:
-            print(f"  (analysis skipped: {e})", file=sys.stderr)
+            print(
+                f"WARNING: traffic analysis failed ({e}). raw-traffic.json was "
+                f"written successfully; run analyze-traffic.py manually to retry.",
+                file=sys.stderr,
+            )
 
 
 if __name__ == "__main__":
