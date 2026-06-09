@@ -12,8 +12,8 @@ import httpx
 from bs4 import BeautifulSoup
 
 from .exceptions import (
-    AmazonError, NetworkError, NotFoundError,
-    ParsingError, RateLimitError, ServerError,
+    AppError, NetworkError, NotFoundError,
+    ParseError, RateLimitError, ServerError,
 )
 from .models import SearchResult, Product, BestSeller, Suggestion
 
@@ -144,7 +144,7 @@ class AmazonClient:
         try:
             data = resp.json()
         except Exception as exc:
-            raise ParsingError(f"Could not parse suggestions response: {exc}") from exc
+            raise ParseError(f"Could not parse suggestions response: {exc}") from exc
 
         results = []
         for item in data.get("suggestions", []):
@@ -261,7 +261,7 @@ class AmazonClient:
             # Fallback: check if page actually has a product
             if "dp/" not in str(resp.url):
                 raise NotFoundError(f"Product not found: {asin}")
-            raise ParsingError(f"Could not parse product title for ASIN: {asin}")
+            raise ParseError(f"Could not parse product title for ASIN: {asin}")
 
         # Detect geo-restriction — Amazon replaces buybox with a "cannot ship" message
         geo_restricted = (

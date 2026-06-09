@@ -14,7 +14,7 @@ from .exceptions import (
     NetworkError,
     NotFoundError,
     ParseError,
-    PexelsError,
+    AppError,
     RateLimitError,
     ServerError,
 )
@@ -89,7 +89,7 @@ class PexelsClient:
             raise RateLimitError(msg, retry_after=float(retry_after) if retry_after else None)
         if 500 <= code < 600:
             raise ServerError(msg, status_code=code)
-        raise PexelsError(msg)
+        raise AppError(msg)
 
     def _get_page(self, path: str, params: dict | None = None) -> dict:
         """Fetch an SSR page and extract __NEXT_DATA__ JSON."""

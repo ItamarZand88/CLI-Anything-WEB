@@ -16,7 +16,7 @@ from ..core.exceptions import (
     RateLimitError,
     RPCError,
     ServerError,
-    StitchError,
+    AppError,
 )
 
 CONFIG_DIR = Path.home() / ".config" / "cli-web-stitch"
@@ -32,7 +32,7 @@ _EXCEPTION_CODE_MAP = {
     ServerError: "SERVER_ERROR",
     NotFoundError: "NOT_FOUND",
     RPCError: "RPC_ERROR",
-    StitchError: "STITCH_ERROR",
+    AppError: "STITCH_ERROR",
 }
 
 
@@ -75,7 +75,7 @@ def handle_errors(json_mode: bool = False):
         else:
             click.echo(f"Rate limited: {exc}", err=True)
         raise SystemExit(1)
-    except (NetworkError, ServerError, RPCError, StitchError) as exc:
+    except (NetworkError, ServerError, RPCError, AppError) as exc:
         code = _EXCEPTION_CODE_MAP.get(type(exc), "STITCH_ERROR")
         if json_mode:
             _print_json_error(code, str(exc))

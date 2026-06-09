@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ..core.client import AirbnbClient
-from ..core.exceptions import AirbnbError, NetworkError, NotFoundError, ParseError, RateLimitError, ServerError
+from ..core.exceptions import AppError, NetworkError, NotFoundError, ParseError, RateLimitError, ServerError
 from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
 console = Console()

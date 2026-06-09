@@ -5,7 +5,7 @@ import urllib.parse
 
 from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
 
-from .exceptions import BrowserError, CaptchaError, NetworkError, ParseError, TimeoutError
+from .exceptions import BrowserError, CaptchaError, NetworkError, ParseError, RequestTimeoutError
 
 from .models import SearchResult, Source
 
@@ -118,7 +118,7 @@ class GAIClient:
                 timeout=self._timeout,
             )
         except Exception:
-            raise TimeoutError(
+            raise RequestTimeoutError(
                 f"Follow-up response did not appear within {self._timeout // 1000}s.",
                 timeout_seconds=self._timeout / 1000,
             )
@@ -141,7 +141,7 @@ class GAIClient:
         try:
             page.wait_for_selector(_TURN_SELECTOR, timeout=self._timeout)
         except Exception:
-            raise TimeoutError(
+            raise RequestTimeoutError(
                 f"AI Mode response did not appear within {self._timeout // 1000}s. "
                 "Google may not have returned an AI response for this query.",
                 timeout_seconds=self._timeout / 1000,

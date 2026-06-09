@@ -86,9 +86,9 @@ class HackerNewsClient:
             raise NotFoundError(url)
         if response.status_code == 429:
             retry_after = int(response.headers.get("retry-after", "60"))
-            raise RateLimitError(retry_after)
+            raise RateLimitError("Rate limit exceeded", retry_after=retry_after)
         if response.status_code >= 500:
-            raise ServerError(response.status_code)
+            raise ServerError(f"Server error: {response.status_code}", status_code=response.status_code)
         if response.status_code != 200:
             raise NetworkError(f"Unexpected status {response.status_code}: {url}")
 
@@ -209,7 +209,7 @@ class HackerNewsClient:
         if response.status_code in (401, 403):
             raise AuthError("Auth cookie expired. Run: cli-web-hackernews auth login", recoverable=False)
         if response.status_code >= 500:
-            raise ServerError(response.status_code)
+            raise ServerError(f"Server error: {response.status_code}", status_code=response.status_code)
         return response
 
     def _get_html(

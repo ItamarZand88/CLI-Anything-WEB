@@ -73,8 +73,13 @@ a physical copy (so it runs standalone), but the copies must never diverge.
 
 - **`utils/repl_skin.py`** — canonical at `cli-anything-web-plugin/scripts/repl_skin.py`.
   It is fully parameterised via `ReplSkin(app=..., display_name=...)`; per-app
-  accent colors live in `_ACCENT_COLORS`. **Never edit a CLI's copy directly** —
-  edit the canonical, then run `python scripts/sync-shared.py` to propagate.
+  accent colors live in `_ACCENT_COLORS`.
+- **`core/exceptions.py`** — canonical at `cli-anything-web-plugin/shared/exceptions.py`.
+  Base class is `AppError` (NOT `<App>Error`); standard subclasses + JSON
+  `error_code_for`/`raise_for_status` helpers. App-specific *messages* go at the
+  raise-site, not in this file.
+- **Never edit a CLI's copy directly** — edit the canonical, then run
+  `python scripts/sync-shared.py` to propagate.
 - `python scripts/sync-shared.py --check` (run in CI) fails if any copy drifts.
 
 ## Running Tests

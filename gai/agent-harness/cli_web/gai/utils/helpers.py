@@ -7,13 +7,13 @@ from contextlib import contextmanager
 import click
 
 from ..core.exceptions import (
-    GAIError,
+    AppError,
     BrowserError,
     CaptchaError,
     NetworkError,
     ParseError,
     RateLimitError,
-    TimeoutError,
+    RequestTimeoutError,
 )
 
 
@@ -23,7 +23,7 @@ _ERROR_CODES = {
     NetworkError: "NETWORK_ERROR",
     ParseError: "PARSE_ERROR",
     RateLimitError: "RATE_LIMITED",
-    TimeoutError: "TIMEOUT",
+    RequestTimeoutError: "TIMEOUT",
 }
 
 
@@ -43,7 +43,7 @@ def handle_errors(json_mode: bool = False):
         else:
             click.secho("\nInterrupted.", fg="yellow", err=True)
         sys.exit(130)
-    except GAIError as e:
+    except AppError as e:
         code = "UNKNOWN"
         for exc_cls, error_code in _ERROR_CODES.items():
             if isinstance(e, exc_cls):

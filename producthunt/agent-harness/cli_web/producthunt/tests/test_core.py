@@ -310,7 +310,7 @@ class TestExceptions(unittest.TestCase):
     def test_app_error_to_dict(self):
         d = AppError("something broke").to_dict()
         self.assertTrue(d["error"])
-        self.assertEqual(d["code"], "UNKNOWN")
+        self.assertEqual(d["code"], "UNKNOWN_ERROR")
 
     def test_auth_error_to_dict(self):
         d = AuthError("blocked", recoverable=True).to_dict()

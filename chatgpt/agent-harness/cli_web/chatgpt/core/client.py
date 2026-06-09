@@ -15,7 +15,7 @@ from curl_cffi import requests as curl_requests
 from .auth import load_auth
 from .exceptions import (
     AuthError,
-    ChatGPTError,
+    AppError,
     NetworkError,
     NotFoundError,
     RateLimitError,
@@ -87,7 +87,7 @@ class ChatGPTClient:
                 f"Server error {resp.status_code}", status_code=resp.status_code
             )
         if resp.status_code >= 400:
-            raise ChatGPTError(f"HTTP {resp.status_code}: {resp.text[:300]}")
+            raise AppError(f"HTTP {resp.status_code}: {resp.text[:300]}")
 
     def _get(self, path: str, params: dict | None = None) -> Any:
         url = f"{BASE_URL}{path}"

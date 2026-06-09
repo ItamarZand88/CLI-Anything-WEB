@@ -10,7 +10,7 @@ from .exceptions import (
     ParseError,
     RateLimitError,
     ServerError,
-    YouTubeError,
+    AppError,
 )
 from .models import (
     format_channel,
@@ -81,7 +81,7 @@ class YouTubeClient:
                 status_code=resp.status_code,
             )
         if resp.status_code >= 400:
-            raise YouTubeError(f"HTTP {resp.status_code}: {resp.text[:200]}")
+            raise AppError(f"HTTP {resp.status_code}: {resp.text[:200]}")
         try:
             return resp.json()
         except Exception as exc:

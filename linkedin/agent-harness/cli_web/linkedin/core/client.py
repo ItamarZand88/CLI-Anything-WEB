@@ -11,7 +11,7 @@ from curl_cffi import requests as curl_requests
 
 from .auth import load_auth, refresh_auth
 from .exceptions import (
-    LinkedinError,
+    AppError,
     AuthError,
     NetworkError,
     RateLimitError,
@@ -229,7 +229,7 @@ class LinkedinClient:
         data = resp.json()
         if "errors" in data and data["errors"]:
             msg = data["errors"][0].get("message", "GraphQL error")
-            raise LinkedinError(f"GraphQL error: {msg}")
+            raise AppError(f"GraphQL error: {msg}")
         return data
 
     def _rest_get(self, path: str, params: dict | None = None) -> dict:
@@ -422,7 +422,7 @@ class LinkedinClient:
             "APPRECIATION", "ENTERTAINMENT",
         }
         if reaction_type not in valid_types:
-            raise LinkedinError(
+            raise AppError(
                 f"Invalid reaction type '{reaction_type}'. "
                 f"Valid types: {', '.join(sorted(valid_types))}"
             )

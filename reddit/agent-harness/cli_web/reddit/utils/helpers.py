@@ -13,7 +13,7 @@ from ..core.exceptions import (
     NetworkError,
     NotFoundError,
     RateLimitError,
-    RedditError,
+    AppError,
     ServerError,
 )
 
@@ -69,7 +69,7 @@ def handle_errors(json_mode: bool = False):
         else:
             click.echo(f"Error: {exc}", err=True)
         sys.exit(2)
-    except RedditError as exc:
+    except AppError as exc:
         if json_mode:
             click.echo(json_error("ERROR", str(exc)))
         else:

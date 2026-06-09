@@ -18,7 +18,7 @@ from cli_web.pexels.commands.photos import photos
 from cli_web.pexels.commands.videos import videos
 from cli_web.pexels.commands.users import users
 from cli_web.pexels.commands.collections import collections
-from cli_web.pexels.core.exceptions import PexelsError
+from cli_web.pexels.core.exceptions import AppError
 from cli_web.pexels.utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("pexels", version=__version__)
@@ -78,7 +78,7 @@ def _repl(ctx):
             cli.main(args=args, standalone_mode=False)
         except SystemExit:
             pass
-        except PexelsError as exc:
+        except AppError as exc:
             _skin.error(str(exc))
         except click.UsageError as exc:
             _skin.error(str(exc))

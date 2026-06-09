@@ -53,9 +53,9 @@ class GitHubClient:
             raise NotFoundError("GitHub trending page")
         if response.status_code == 429:
             retry_after = int(response.headers.get("retry-after", "60"))
-            raise RateLimitError(retry_after)
+            raise RateLimitError("Rate limit exceeded", retry_after=retry_after)
         if response.status_code >= 500:
-            raise ServerError(response.status_code)
+            raise ServerError(f"Server error: {response.status_code}", status_code=response.status_code)
         if response.status_code != 200:
             raise NetworkError(f"Unexpected status {response.status_code}: {url}")
 

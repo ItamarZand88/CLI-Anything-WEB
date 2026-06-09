@@ -70,7 +70,7 @@ cli.add_command(messaging)
 
 # Auth commands
 from .core.auth import login_browser, clear_auth, is_logged_in, load_auth
-from .core.exceptions import LinkedinError
+from .core.exceptions import AppError
 from .utils.helpers import handle_errors, print_json, resolve_json_mode
 
 @cli.group("auth")
@@ -233,7 +233,7 @@ def _run_repl(ctx: click.Context) -> None:
         except SystemExit:
             pass
         except Exception as exc:
-            if ctx.obj.get("json") and isinstance(exc, LinkedinError):
+            if ctx.obj.get("json") and isinstance(exc, AppError):
                 import json as _json
                 click.echo(_json.dumps(exc.to_dict()))
             else:

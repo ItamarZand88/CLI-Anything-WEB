@@ -11,7 +11,7 @@ import pytest
 
 from cli_web.linkedin.core.exceptions import (
     AuthError,
-    LinkedinError,
+    AppError,
     NetworkError,
     NotFoundError,
     RateLimitError,
@@ -38,7 +38,7 @@ class TestExceptions:
     """Verify exception hierarchy, attributes, and to_dict serialization."""
 
     def test_linkedin_error_base_to_dict(self):
-        exc = LinkedinError("something broke")
+        exc = AppError("something broke")
         d = exc.to_dict()
         assert d["error"] is True
         assert d["code"] == "UNKNOWN_ERROR"
@@ -101,7 +101,7 @@ class TestExceptions:
 
     def test_all_exceptions_inherit_from_linkedin_error(self):
         for cls in (AuthError, RateLimitError, NetworkError, ServerError, NotFoundError, RPCError):
-            assert issubclass(cls, LinkedinError)
+            assert issubclass(cls, AppError)
 
 
 # =====================================================================
@@ -238,14 +238,14 @@ class TestHelpers:
         assert exc_info.value.code == 1
 
     def test_handle_errors_catches_server_error_exit_2(self):
-        """ServerError is a LinkedinError so exits with code 1."""
+        """ServerError is a AppError so exits with code 1."""
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise ServerError("internal error", status_code=500)
         assert exc_info.value.code == 1
 
     def test_handle_errors_catches_network_error_exit_1(self):
-        """NetworkError is a LinkedinError so exits with code 1."""
+        """NetworkError is a AppError so exits with code 1."""
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise NetworkError("DNS failed")
@@ -385,9 +385,9 @@ class TestClientHTTPErrors:
         raise_for_status(resp)  # Should not raise
 
     def test_400_raises_linkedin_error(self):
-        """Unknown 4xx falls back to base LinkedinError."""
+        """Unknown 4xx falls back to base AppError."""
         resp = self._mock_response(400, "Bad Request")
-        with pytest.raises(LinkedinError):
+        with pytest.raises(AppError):
             raise_for_status(resp)
 
 

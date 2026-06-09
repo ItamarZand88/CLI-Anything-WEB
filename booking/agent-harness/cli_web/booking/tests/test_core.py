@@ -14,7 +14,7 @@ import pytest
 
 from cli_web.booking.core.exceptions import (
     AuthError,
-    BookingError,
+    AppError,
     NetworkError,
     NotFoundError,
     RateLimitError,
@@ -32,11 +32,11 @@ class TestExceptions:
     """Verify exception hierarchy and attributes."""
 
     def test_booking_error_is_base(self):
-        assert issubclass(AuthError, BookingError)
-        assert issubclass(RateLimitError, BookingError)
-        assert issubclass(NetworkError, BookingError)
-        assert issubclass(ServerError, BookingError)
-        assert issubclass(NotFoundError, BookingError)
+        assert issubclass(AuthError, AppError)
+        assert issubclass(RateLimitError, AppError)
+        assert issubclass(NetworkError, AppError)
+        assert issubclass(ServerError, AppError)
+        assert issubclass(NotFoundError, AppError)
 
     def test_auth_error_recoverable(self):
         e = AuthError("expired", recoverable=True)

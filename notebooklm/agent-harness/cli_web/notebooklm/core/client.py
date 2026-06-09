@@ -8,7 +8,7 @@ import httpx
 from .auth import fetch_tokens, fetch_user_info, load_cookies
 from .exceptions import (
     AuthError, NetworkError, RateLimitError, ServerError, NotFoundError, RPCError,
-    NotebookLMError,
+    AppError,
 )
 from .models import (
     Notebook, Source, User, Artifact,
@@ -128,7 +128,7 @@ class NotebookLMClient:
             raise ServerError(f"HTTP {resp.status_code}: {resp.text[:200]}", status_code=resp.status_code)
 
         if resp.status_code >= 400:
-            raise NotebookLMError(f"HTTP {resp.status_code}: {resp.text[:200]}")
+            raise AppError(f"HTTP {resp.status_code}: {resp.text[:200]}")
 
         return decode_response(resp.content, rpc_id)
 
@@ -371,7 +371,7 @@ class NotebookLMClient:
             raise ServerError(f"HTTP {resp.status_code}: {resp.text[:200]}", status_code=resp.status_code)
 
         if resp.status_code >= 400:
-            raise NotebookLMError(f"HTTP {resp.status_code}: {resp.text[:200]}")
+            raise AppError(f"HTTP {resp.status_code}: {resp.text[:200]}")
 
         return _parse_streaming_chat(resp.content)
 

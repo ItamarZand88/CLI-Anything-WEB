@@ -25,7 +25,7 @@ from cli_web.notebooklm.core.exceptions import (
     RateLimitError,
     ServerError,
     NetworkError,
-    NotebookLMError,
+    AppError,
 )
 from cli_web.notebooklm.core.models import (
     Notebook,
@@ -710,10 +710,10 @@ class TestClient401Retry(unittest.TestCase):
 class TestExceptionHierarchy(unittest.TestCase):
 
     def test_all_exceptions_inherit_from_base(self):
-        """All typed exceptions are subclasses of NotebookLMError."""
+        """All typed exceptions are subclasses of AppError."""
         for exc_cls in (AuthError, RateLimitError, NetworkError, ServerError, RPCError):
-            self.assertTrue(issubclass(exc_cls, NotebookLMError),
-                            f"{exc_cls.__name__} does not inherit from NotebookLMError")
+            self.assertTrue(issubclass(exc_cls, AppError),
+                            f"{exc_cls.__name__} does not inherit from AppError")
 
     def test_auth_error_has_recoverable(self):
         """AuthError stores the recoverable flag."""

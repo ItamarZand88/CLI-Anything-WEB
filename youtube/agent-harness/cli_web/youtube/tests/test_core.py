@@ -16,7 +16,7 @@ from cli_web.youtube.core.exceptions import (
     ParseError,
     RateLimitError,
     ServerError,
-    YouTubeError,
+    AppError,
 )
 from cli_web.youtube.core.models import (
     format_channel,
@@ -164,16 +164,16 @@ class TestModels:
 
 class TestExceptions:
     def test_youtube_error_to_dict(self):
-        exc = YouTubeError("something broke")
+        exc = AppError("something broke")
         d = exc.to_dict()
         assert d["error"] is True
-        assert d["code"] == "YOUTUBE_ERROR"
+        assert d["code"] == "UNKNOWN_ERROR"
         assert "something broke" in d["message"]
 
     def test_auth_error_code(self):
         exc = AuthError()
         assert exc.to_dict()["code"] == "AUTH_EXPIRED"
-        assert exc.recoverable is False
+        assert exc.recoverable is True  # standardized default
 
     def test_rate_limit_to_dict_includes_retry_after(self):
         exc = RateLimitError(retry_after=60)
@@ -205,7 +205,7 @@ class TestHelpers:
     def test_handle_errors_youtube_error_exits_1(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
-                raise YouTubeError("test error")
+                raise AppError("test error")
         assert exc_info.value.code == 1
 
     def test_handle_errors_unexpected_exits_1(self):

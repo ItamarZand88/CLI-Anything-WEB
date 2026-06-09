@@ -11,7 +11,7 @@ import datetime
 
 from ..core.client import AirbnbClient
 from ..core.exceptions import (
-    AirbnbError,
+    AppError,
     NetworkError,
     NotFoundError,
     ParseError,

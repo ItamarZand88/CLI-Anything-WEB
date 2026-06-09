@@ -250,25 +250,25 @@ def test_player_to_dict():
 # ===========================================================================
 
 from cli_web.futbin.core.exceptions import (
-    FutbinError, AuthError, NetworkError, RateLimitError,
-    ParsingError, NotFoundError, ServerError, InvalidInputError,
+    AppError, AuthError, NetworkError, RateLimitError,
+    ParseError, NotFoundError, ServerError, InvalidInputError,
     error_code_for,
 )
 
 
 def test_all_exceptions_inherit_from_base():
-    for cls in (AuthError, NetworkError, RateLimitError, ParsingError,
+    for cls in (AuthError, NetworkError, RateLimitError, ParseError,
                 NotFoundError, ServerError, InvalidInputError):
-        assert issubclass(cls, FutbinError), f"{cls.__name__} not subclass of FutbinError"
+        assert issubclass(cls, AppError), f"{cls.__name__} not subclass of AppError"
 
 
 def test_error_code_mapping():
-    assert error_code_for(AuthError("x")) == "AUTH_ERROR"
+    assert error_code_for(AuthError("x")) == "AUTH_EXPIRED"
     assert error_code_for(RateLimitError("x")) == "RATE_LIMITED"
     assert error_code_for(NotFoundError("x")) == "NOT_FOUND"
     assert error_code_for(ServerError("x")) == "SERVER_ERROR"
     assert error_code_for(NetworkError("x")) == "NETWORK_ERROR"
-    assert error_code_for(ParsingError("x")) == "PARSING_ERROR"
+    assert error_code_for(ParseError("x")) == "PARSE_ERROR"
     assert error_code_for(InvalidInputError("x")) == "INVALID_INPUT"
     assert error_code_for(Exception("x")) == "UNKNOWN_ERROR"
 

@@ -19,7 +19,7 @@ from .commands.locations import locations
 from .commands.hotels import hotels
 from .commands.restaurants import restaurants
 from .commands.attractions import attractions
-from .core.exceptions import TripAdvisorError
+from .core.exceptions import AppError
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("tripadvisor", version="0.1.0")
@@ -129,7 +129,7 @@ def _repl(ctx: click.Context) -> None:
         except SystemExit:
             pass
         except Exception as exc:
-            if ctx.obj.get("json") and isinstance(exc, TripAdvisorError):
+            if ctx.obj.get("json") and isinstance(exc, AppError):
                 import json as _json
                 click.echo(_json.dumps(exc.to_dict()))
             else:

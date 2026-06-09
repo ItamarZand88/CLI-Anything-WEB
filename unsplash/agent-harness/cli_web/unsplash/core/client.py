@@ -12,7 +12,7 @@ from .exceptions import (
     NotFoundError,
     RateLimitError,
     ServerError,
-    UnsplashError,
+    AppError,
 )
 
 BASE_URL = "https://unsplash.com"
@@ -59,7 +59,7 @@ class UnsplashClient:
                 f"Server error {resp.status_code}", status_code=resp.status_code
             )
         if resp.status_code >= 400:
-            raise UnsplashError(f"HTTP {resp.status_code}: {resp.text[:200]}")
+            raise AppError(f"HTTP {resp.status_code}: {resp.text[:200]}")
 
         return resp.json()
 

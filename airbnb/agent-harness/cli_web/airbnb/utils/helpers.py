@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import click
 
 from ..core.exceptions import (
-    AirbnbError,
+    AppError,
     AuthError,
     BotBlockedError,
     NetworkError,
@@ -75,7 +75,7 @@ def handle_errors(json_mode: bool = False):
         else:
             click.echo(f"Network error: {exc}", err=True)
         sys.exit(2)
-    except AirbnbError as exc:
+    except AppError as exc:
         if json_mode:
             click.echo(json.dumps(exc.to_dict()))
         else:

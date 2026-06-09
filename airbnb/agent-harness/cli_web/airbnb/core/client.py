@@ -14,7 +14,7 @@ from typing import Optional
 from curl_cffi import requests as curl_requests
 
 from .exceptions import (
-    AirbnbError,
+    AppError,
     AuthError,
     BotBlockedError,
     NetworkError,
@@ -215,7 +215,7 @@ class AirbnbClient:
             raise RateLimitError("Rate limited by Airbnb", retry_after=float(retry) if retry else 60.0)
         if code >= 500:
             raise ServerError(f"Server error HTTP {code}", status_code=code)
-        raise AirbnbError(f"Unexpected HTTP {code}: {url}")
+        raise AppError(f"Unexpected HTTP {code}: {url}")
 
     def search_stays(
         self,

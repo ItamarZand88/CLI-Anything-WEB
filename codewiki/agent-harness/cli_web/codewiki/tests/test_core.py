@@ -404,12 +404,12 @@ class TestClientHTTPErrors:
 class TestExceptionHierarchy:
     def test_all_errors_are_codewiki_errors(self):
         from cli_web.codewiki.core.exceptions import (
-            AuthError, CodeWikiError, NetworkError, NotFoundError,
+            AuthError, AppError, NetworkError, NotFoundError,
             RateLimitError, RPCError, ServerError,
         )
         for cls in [AuthError, RateLimitError, NetworkError, ServerError, NotFoundError, RPCError]:
             exc = cls("test message") if cls not in (ServerError,) else cls("test", 500)
-            assert isinstance(exc, CodeWikiError)
+            assert isinstance(exc, AppError)
 
     def test_error_code_mapping_auth(self):
         from cli_web.codewiki.core.exceptions import AuthError, error_code_for
@@ -437,7 +437,7 @@ class TestExceptionHierarchy:
 
     def test_error_code_mapping_unknown(self):
         from cli_web.codewiki.core.exceptions import error_code_for
-        assert error_code_for(ValueError("unexpected")) == "INTERNAL_ERROR"
+        assert error_code_for(ValueError("unexpected")) == "UNKNOWN_ERROR"
 
     def test_auth_error_recoverable_default_true(self):
         from cli_web.codewiki.core.exceptions import AuthError

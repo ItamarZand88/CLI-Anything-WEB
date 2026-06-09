@@ -15,7 +15,7 @@ from cli_web.reddit.core.exceptions import (
     NetworkError,
     NotFoundError,
     RateLimitError,
-    RedditError,
+    AppError,
     ServerError,
 )
 from cli_web.reddit.core.models import (
@@ -363,7 +363,7 @@ class TestClient:
         session.get.side_effect = [_mock_response(200), _mock_response(418, text="I'm a teapot")]
 
         client = RedditClient()
-        with pytest.raises(RedditError):
+        with pytest.raises(AppError):
             client.feed_hot()
 
     @patch("cli_web.reddit.core.client.curl_requests.Session")

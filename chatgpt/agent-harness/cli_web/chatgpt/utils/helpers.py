@@ -10,7 +10,7 @@ import click
 
 from ..core.exceptions import (
     AuthError,
-    ChatGPTError,
+    AppError,
     NetworkError,
     NotFoundError,
     RateLimitError,
@@ -63,7 +63,7 @@ def handle_errors(json_mode: bool = False):
         else:
             click.echo(f"Error: {exc}", err=True)
         sys.exit(2)
-    except ChatGPTError as exc:
+    except AppError as exc:
         if json_mode:
             click.echo(json_error("ERROR", str(exc)))
         else:

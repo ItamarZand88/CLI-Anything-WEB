@@ -18,7 +18,7 @@ from ..core.exceptions import (
     AuthError,
     NetworkError,
     NotFoundError,
-    NotebookLMError,
+    AppError,
     RPCError,
     RateLimitError,
     ServerError,
@@ -125,7 +125,7 @@ def handle_errors(json_mode: bool = False):
         raise  # Let Click handle its own exits
     except click.UsageError:
         raise  # Let Click handle usage errors
-    except NotebookLMError as exc:
+    except AppError as exc:
         code = error_code_for(exc)
         if json_mode:
             click.echo(json.dumps(

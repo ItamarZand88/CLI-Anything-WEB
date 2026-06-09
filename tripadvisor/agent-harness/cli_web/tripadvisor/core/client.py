@@ -22,7 +22,7 @@ from .exceptions import (
     ParseError,
     RateLimitError,
     ServerError,
-    TripAdvisorError,
+    AppError,
 )
 from .models import Attraction, Hotel, Location, Restaurant
 
@@ -438,7 +438,7 @@ class TripAdvisorClient:
             )
         if code >= 500:
             raise ServerError(f"Server error HTTP {code}", status_code=code)
-        raise TripAdvisorError(f"Unexpected HTTP {code}: {url}")
+        raise AppError(f"Unexpected HTTP {code}: {url}")
 
     def _resolve_location(self, location: str) -> tuple[str, str]:
         """Given a location string, return (geo_id, slug).

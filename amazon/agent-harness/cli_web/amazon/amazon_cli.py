@@ -21,7 +21,7 @@ from .commands.search import search
 from .commands.suggest import suggest
 from .commands.product import product
 from .commands.bestsellers import bestsellers
-from .core.exceptions import AmazonError
+from .core.exceptions import AppError
 from .utils.repl_skin import ReplSkin
 
 __version__ = "1.0.0"
@@ -119,7 +119,7 @@ def _run_repl(ctx, json_mode: bool):
         except click.UsageError as exc:
             _skin.error(str(exc))
         except Exception as exc:
-            if json_mode and isinstance(exc, AmazonError):
+            if json_mode and isinstance(exc, AppError):
                 import json as _json
                 click.echo(_json.dumps(exc.to_dict()))
             else:

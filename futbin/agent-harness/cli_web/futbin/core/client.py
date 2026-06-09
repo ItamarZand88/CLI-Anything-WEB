@@ -11,8 +11,8 @@ from bs4 import BeautifulSoup
 
 from cli_web.futbin.core.models import Player, SBC, Evolution, MarketItem, MarketDetail, PriceHistory, FodderTier
 from .exceptions import (
-    FutbinError, NetworkError, RateLimitError, ServerError,
-    NotFoundError, ParsingError, InvalidInputError,
+    AppError, NetworkError, RateLimitError, ServerError,
+    NotFoundError, ParseError, InvalidInputError,
 )
 
 BASE_URL = "https://www.futbin.com"
@@ -87,7 +87,7 @@ class FutbinClient:
         resp = self._get(path, params)
         soup = BeautifulSoup(resp.text, "html.parser")
         if not soup.body and not soup.find():
-            raise ParsingError(f"Empty or unparseable response from {path}")
+            raise ParseError(f"Empty or unparseable response from {path}")
         return soup
 
     # ──────────────────────────────────────────────
@@ -163,7 +163,7 @@ class FutbinClient:
             soup = self._soup(f"/{year}/player/{player_id}/player")
             return self._parse_player_detail(soup, player_id, year,
                                              f"/{year}/player/{player_id}")
-        except (NotFoundError, ParsingError):
+        except (NotFoundError, ParseError):
             return None
 
     def _parse_player_detail(

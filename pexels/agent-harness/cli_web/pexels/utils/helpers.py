@@ -6,7 +6,7 @@ from contextlib import contextmanager
 
 import click
 
-from ..core.exceptions import PexelsError, RateLimitError, error_code_for
+from ..core.exceptions import AppError, RateLimitError, error_code_for
 
 
 @contextmanager
@@ -22,7 +22,7 @@ def handle_errors(json_mode: bool = False):
         raise
     except Exception as exc:
         code = error_code_for(exc)
-        exit_code = 1 if isinstance(exc, PexelsError) else 2
+        exit_code = 1 if isinstance(exc, AppError) else 2
         if json_mode:
             err_dict = {"error": True, "code": code, "message": str(exc)}
             if isinstance(exc, RateLimitError) and exc.retry_after is not None:

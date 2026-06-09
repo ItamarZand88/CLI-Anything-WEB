@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 
 from cli_web.capitoltrades.core.exceptions import (
     AuthError,
-    CapitoltradesError,
+    AppError,
     NetworkError,
     NotFoundError,
     RateLimitError,

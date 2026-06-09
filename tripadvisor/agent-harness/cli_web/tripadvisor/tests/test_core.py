@@ -16,7 +16,7 @@ from cli_web.tripadvisor.core.exceptions import (
     ParseError,
     RateLimitError,
     ServerError,
-    TripAdvisorError,
+    AppError,
 )
 from cli_web.tripadvisor.core.client import (
     _extract_id_from_url,
@@ -43,10 +43,10 @@ from cli_web.tripadvisor.utils.helpers import (
 
 class TestExceptions:
     def test_base_exception(self):
-        exc = TripAdvisorError("base error")
+        exc = AppError("base error")
         assert str(exc) == "base error"
         assert exc.to_dict()["error"] is True
-        assert exc.to_dict()["code"] == "ERROR"
+        assert exc.to_dict()["code"] == "UNKNOWN_ERROR"
 
     def test_auth_error(self):
         exc = AuthError("blocked", recoverable=False)
@@ -79,7 +79,7 @@ class TestExceptions:
 
     def test_inheritance_chain(self):
         for cls in (AuthError, RateLimitError, NetworkError, ServerError, NotFoundError, ParseError):
-            assert issubclass(cls, TripAdvisorError)
+            assert issubclass(cls, AppError)
             assert issubclass(cls, Exception)
 
 

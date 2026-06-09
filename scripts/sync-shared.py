@@ -26,6 +26,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SHARED_FILES = {
     REPO_ROOT / "cli-anything-web-plugin" / "scripts" / "repl_skin.py":
         Path("utils") / "repl_skin.py",
+    REPO_ROOT / "cli-anything-web-plugin" / "shared" / "exceptions.py":
+        Path("core") / "exceptions.py",
 }
 
 NON_CLI_DIRS = {

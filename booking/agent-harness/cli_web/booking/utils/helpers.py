@@ -10,7 +10,7 @@ import click
 
 from ..core.exceptions import (
     AuthError,
-    BookingError,
+    AppError,
     NetworkError,
     NotFoundError,
     RateLimitError,
@@ -84,7 +84,7 @@ def handle_errors(json_mode: bool = False):
         else:
             click.echo(f"Network error: {e}", err=True)
         sys.exit(2)
-    except BookingError as e:
+    except AppError as e:
         if json_mode:
             click.echo(json_error("ERROR", str(e)))
         else:

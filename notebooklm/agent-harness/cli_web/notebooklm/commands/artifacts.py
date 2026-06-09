@@ -4,7 +4,7 @@ import time
 
 import click
 from ..core.client import NotebookLMClient
-from ..core.exceptions import NotebookLMError, RateLimitError
+from ..core.exceptions import AppError, RateLimitError
 from ..core.rpc.types import ArtifactType
 from ..utils.output import print_artifact, print_json
 from ..utils.helpers import handle_errors, require_notebook, sanitize_filename

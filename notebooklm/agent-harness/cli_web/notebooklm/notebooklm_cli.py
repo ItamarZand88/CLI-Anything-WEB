@@ -24,7 +24,7 @@ from .core.auth import (
     login_browser, login_from_cookies_json, get_auth_status,
 )
 from .core.client import NotebookLMClient
-from .core.exceptions import AuthError, NotebookLMError
+from .core.exceptions import AuthError, AppError
 from .utils.output import print_json, print_user, error, handle_error
 from .utils.repl_skin import ReplSkin
 
@@ -245,7 +245,7 @@ def whoami(as_json):
             print_json({"email": user.email, "display_name": user.display_name, "avatar_url": user.avatar_url})
         else:
             print_user(user)
-    except NotebookLMError as e:
+    except AppError as e:
         handle_error(e, as_json)
     except Exception as e:
         handle_error(e, as_json)

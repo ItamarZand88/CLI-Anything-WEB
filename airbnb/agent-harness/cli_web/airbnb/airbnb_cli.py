@@ -19,7 +19,7 @@ import click
 from .commands.autocomplete import autocomplete_group
 from .commands.listings import listings
 from .commands.search import search
-from .core.exceptions import AirbnbError
+from .core.exceptions import AppError
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("airbnb", version="0.1.0")
@@ -138,7 +138,7 @@ def _repl(ctx: click.Context) -> None:
             pass
         except Exception as exc:
             if ctx.obj.get("json"):
-                payload = exc.to_dict() if isinstance(exc, AirbnbError) else {"error": True, "code": "ERROR", "message": str(exc)}
+                payload = exc.to_dict() if isinstance(exc, AppError) else {"error": True, "code": "ERROR", "message": str(exc)}
                 click.echo(_json.dumps(payload))
             else:
                 click.echo(f"Error: {exc}", err=True)

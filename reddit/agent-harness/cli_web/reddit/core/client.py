@@ -14,7 +14,7 @@ from .exceptions import (
     NetworkError,
     NotFoundError,
     RateLimitError,
-    RedditError,
+    AppError,
     ServerError,
 )
 
@@ -74,7 +74,7 @@ class RedditClient:
                 f"Server error {resp.status_code}", status_code=resp.status_code
             )
         if resp.status_code >= 400:
-            raise RedditError(f"HTTP {resp.status_code}: {resp.text[:200]}")
+            raise AppError(f"HTTP {resp.status_code}: {resp.text[:200]}")
         return resp.json()
 
     def _get_listing(
@@ -148,7 +148,7 @@ class RedditClient:
                             headers=self._oauth_headers(),
                         )
                         if me_resp.status_code == 200:
-                            raise RedditError(
+                            raise AppError(
                                 f"Permission denied for {path}. "
                                 f"Your account may not have access to this resource."
                             ) from exc

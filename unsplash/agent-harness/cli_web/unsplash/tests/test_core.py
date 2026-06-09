@@ -14,7 +14,7 @@ from cli_web.unsplash.core.exceptions import (
     NotFoundError,
     RateLimitError,
     ServerError,
-    UnsplashError,
+    AppError,
 )
 from cli_web.unsplash.core.models import (
     format_collection_summary,
@@ -30,11 +30,11 @@ from cli_web.unsplash.utils.helpers import handle_errors, json_error, truncate
 
 class TestExceptionHierarchy:
     def test_all_inherit_from_base(self):
-        """All domain exceptions inherit from UnsplashError."""
-        assert issubclass(NotFoundError, UnsplashError)
-        assert issubclass(RateLimitError, UnsplashError)
-        assert issubclass(ServerError, UnsplashError)
-        assert issubclass(NetworkError, UnsplashError)
+        """All domain exceptions inherit from AppError."""
+        assert issubclass(NotFoundError, AppError)
+        assert issubclass(RateLimitError, AppError)
+        assert issubclass(ServerError, AppError)
+        assert issubclass(NetworkError, AppError)
 
     def test_rate_limit_has_retry_after(self):
         exc = RateLimitError("limited", retry_after=60.0)

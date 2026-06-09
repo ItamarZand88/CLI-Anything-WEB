@@ -24,7 +24,7 @@ from cli_web.stitch.core.exceptions import (
     RateLimitError,
     RPCError,
     ServerError,
-    StitchError,
+    AppError,
 )
 from cli_web.stitch.core.rpc.encoder import build_url, encode_request
 from cli_web.stitch.core.rpc.decoder import (
@@ -248,16 +248,16 @@ class TestExceptions:
 
     @pytest.mark.unit
     def test_stitch_error_is_base(self):
-        assert issubclass(AuthError, StitchError)
-        assert issubclass(RateLimitError, StitchError)
-        assert issubclass(NetworkError, StitchError)
-        assert issubclass(ServerError, StitchError)
-        assert issubclass(NotFoundError, StitchError)
-        assert issubclass(RPCError, StitchError)
+        assert issubclass(AuthError, AppError)
+        assert issubclass(RateLimitError, AppError)
+        assert issubclass(NetworkError, AppError)
+        assert issubclass(ServerError, AppError)
+        assert issubclass(NotFoundError, AppError)
+        assert issubclass(RPCError, AppError)
 
     @pytest.mark.unit
     def test_stitch_error_inherits_exception(self):
-        assert issubclass(StitchError, Exception)
+        assert issubclass(AppError, Exception)
 
     @pytest.mark.unit
     def test_auth_error_recoverable_default(self):
@@ -551,7 +551,7 @@ class TestStitchClient:
             # Actually, looking at the code: on 401/403 with retry_on_auth=True it retries.
             # On the retry (retry_on_auth=False), it gets 401 again, doesn't retry,
             # falls through to >= 400 generic handler.
-            with pytest.raises(StitchError):
+            with pytest.raises(AppError):
                 client.list_projects()
 
     @pytest.mark.unit
@@ -561,7 +561,7 @@ class TestStitchClient:
         with patch("cli_web.stitch.core.client.httpx.post", return_value=mock_resp_403), \
              patch("cli_web.stitch.core.client.StitchClient._refresh_tokens"):
             client = self._make_client()
-            with pytest.raises(StitchError):
+            with pytest.raises(AppError):
                 client.list_projects()
 
     @pytest.mark.unit

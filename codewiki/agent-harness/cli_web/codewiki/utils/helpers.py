@@ -10,7 +10,7 @@ import sys
 
 import click
 
-from ..core.exceptions import CodeWikiError, RateLimitError, error_code_for
+from ..core.exceptions import AppError, RateLimitError, error_code_for
 
 
 @contextlib.contextmanager
@@ -26,7 +26,7 @@ def handle_errors(json_mode: bool = False):
         raise
     except click.UsageError:
         raise
-    except CodeWikiError as exc:
+    except AppError as exc:
         code = error_code_for(exc)
         if json_mode:
             err = {"error": True, "code": code, "message": str(exc)}

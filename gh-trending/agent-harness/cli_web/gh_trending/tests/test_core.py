@@ -211,10 +211,10 @@ class TestClientHTTPErrors:
 
 class TestExceptionsToDicts:
     def test_app_error_to_dict(self):
-        exc = AppError("something broke", "TEST_ERROR")
+        exc = AppError("something broke")
         d = exc.to_dict()
         assert d["error"] is True
-        assert d["code"] == "TEST_ERROR"
+        assert d["code"] == "UNKNOWN_ERROR"
         assert "something broke" in d["message"]
 
     def test_auth_error_to_dict(self):
@@ -224,13 +224,13 @@ class TestExceptionsToDicts:
         assert d["code"] == "AUTH_EXPIRED"
 
     def test_rate_limit_error_to_dict(self):
-        exc = RateLimitError(60)
+        exc = RateLimitError("rate limited", retry_after=60)
         d = exc.to_dict()
         assert d["code"] == "RATE_LIMITED"
         assert d["retry_after"] == 60
 
     def test_server_error_to_dict(self):
-        exc = ServerError(503)
+        exc = ServerError("error 503", status_code=503)
         d = exc.to_dict()
         assert d["code"] == "SERVER_ERROR"
         assert "503" in d["message"]

@@ -8,7 +8,7 @@ from contextlib import contextmanager
 
 import click
 
-from ..core.exceptions import CapitoltradesError, _error_code_for
+from ..core.exceptions import AppError, _error_code_for
 
 
 # --- Windows UTF-8 fix (always include) ---
@@ -44,7 +44,7 @@ def handle_errors(json_mode: bool = False):
         raise SystemExit(130)
     except (click.exceptions.Exit, click.UsageError):
         raise
-    except CapitoltradesError as exc:
+    except AppError as exc:
         if json_mode:
             print_json(exc.to_dict())
         else:

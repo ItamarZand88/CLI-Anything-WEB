@@ -11,7 +11,7 @@ import pytest
 
 from cli_web.chatgpt.core.exceptions import (
     AuthError,
-    ChatGPTError,
+    AppError,
     NetworkError,
     NotFoundError,
     RateLimitError,
@@ -25,20 +25,20 @@ from cli_web.chatgpt.utils.helpers import handle_errors, json_error, print_json,
 
 class TestExceptions:
     def test_chatgpt_error_is_base(self):
-        assert issubclass(AuthError, ChatGPTError)
-        assert issubclass(RateLimitError, ChatGPTError)
-        assert issubclass(NetworkError, ChatGPTError)
-        assert issubclass(ServerError, ChatGPTError)
-        assert issubclass(NotFoundError, ChatGPTError)
+        assert issubclass(AuthError, AppError)
+        assert issubclass(RateLimitError, AppError)
+        assert issubclass(NetworkError, AppError)
+        assert issubclass(ServerError, AppError)
+        assert issubclass(NotFoundError, AppError)
 
     def test_auth_error_recoverable(self):
         err = AuthError("expired", recoverable=True)
         assert err.recoverable is True
         assert str(err) == "expired"
 
-    def test_auth_error_not_recoverable_by_default(self):
+    def test_auth_error_recoverable_by_default(self):
         err = AuthError("missing")
-        assert err.recoverable is False
+        assert err.recoverable is True  # standardized default
 
     def test_rate_limit_error_retry_after(self):
         err = RateLimitError("slow down", retry_after=30.0)
@@ -213,7 +213,7 @@ class TestClientErrorMapping:
 
         client = ChatGPTClient()
         resp = self._make_response(400)
-        with pytest.raises(ChatGPTError):
+        with pytest.raises(AppError):
             client._check_response(resp, "/test")
 
 

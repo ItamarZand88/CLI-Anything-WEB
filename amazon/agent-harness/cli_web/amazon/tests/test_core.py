@@ -4,8 +4,8 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from cli_web.amazon.core.exceptions import (
-    AmazonError, NetworkError, NotFoundError,
-    ParsingError, RateLimitError, ServerError, error_code_for,
+    AppError, NetworkError, NotFoundError,
+    ParseError, RateLimitError, ServerError, error_code_for,
 )
 from cli_web.amazon.core.models import (
     SearchResult, Product, BestSeller, Suggestion,

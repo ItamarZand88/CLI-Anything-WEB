@@ -15,7 +15,7 @@ from ..core.exceptions import (
     ParseError,
     RateLimitError,
     ServerError,
-    TripAdvisorError,
+    AppError,
 )
 
 
@@ -83,7 +83,7 @@ def handle_errors(json_mode: bool = False):
         else:
             click.echo(f"Network error: {exc}", err=True)
         sys.exit(2)
-    except TripAdvisorError as exc:
+    except AppError as exc:
         if json_mode:
             click.echo(json_error("ERROR", str(exc)))
         else:

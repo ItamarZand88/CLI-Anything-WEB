@@ -21,7 +21,7 @@ from cli_web.youtube.commands.channel import channel_group
 from cli_web.youtube.commands.search import search_group
 from cli_web.youtube.commands.trending import trending_group
 from cli_web.youtube.commands.video import video_group
-from cli_web.youtube.core.exceptions import YouTubeError
+from cli_web.youtube.core.exceptions import AppError
 from cli_web.youtube.utils.repl_skin import ReplSkin
 
 _skin = ReplSkin(app="youtube", version=__version__)
@@ -111,7 +111,7 @@ def _run_repl(ctx: click.Context) -> None:
             cli.main(args=args, standalone_mode=False)
         except SystemExit:
             pass
-        except YouTubeError as exc:
+        except AppError as exc:
             _skin.error(exc.message)
         except Exception as exc:
             _skin.error(str(exc))

@@ -7,12 +7,12 @@ from unittest.mock import MagicMock, patch, PropertyMock
 import pytest
 
 from cli_web.gai.core.exceptions import (
-    GAIError,
+    AppError,
     BrowserError,
     CaptchaError,
     NetworkError,
     ParseError,
-    TimeoutError,
+    RequestTimeoutError,
 )
 
 from cli_web.gai.core.models import Source, SearchResult
@@ -23,11 +23,11 @@ from cli_web.gai.utils.helpers import handle_errors, json_error
 
 class TestExceptions:
     def test_all_exceptions_inherit_from_gai_error(self):
-        for exc_cls in (BrowserError, CaptchaError, NetworkError, ParseError, TimeoutError):
-            assert issubclass(exc_cls, GAIError)
+        for exc_cls in (BrowserError, CaptchaError, NetworkError, ParseError, RequestTimeoutError):
+            assert issubclass(exc_cls, AppError)
 
     def test_timeout_error_has_timeout_seconds(self):
-        err = TimeoutError("timed out", timeout_seconds=45)
+        err = RequestTimeoutError("timed out", timeout_seconds=45)
         assert err.timeout_seconds == 45
         assert "timed out" in str(err)
 
@@ -96,7 +96,7 @@ class TestHelpers:
     def test_handle_errors_gai_error_exits_1(self):
         with pytest.raises(SystemExit) as exc:
             with handle_errors():
-                raise GAIError("some error")
+                raise AppError("some error")
         assert exc.value.code == 1
 
     def test_handle_errors_unexpected_exits_2(self):

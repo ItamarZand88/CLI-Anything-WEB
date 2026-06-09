@@ -9,7 +9,7 @@ import httpx
 
 from .exceptions import (
     AuthError,
-    CodeWikiError,
+    AppError,
     NetworkError,
     NotFoundError,
     RateLimitError,
@@ -70,7 +70,7 @@ class CodeWikiClient:
                 f"Server error: {resp.status_code}", status_code=resp.status_code
             )
         if resp.status_code >= 400:
-            raise CodeWikiError(f"HTTP {resp.status_code}: {resp.text[:200]}")
+            raise AppError(f"HTTP {resp.status_code}: {resp.text[:200]}")
 
         return decode_response(resp.content, rpc_id)
 

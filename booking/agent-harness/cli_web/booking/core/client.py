@@ -16,7 +16,7 @@ from curl_cffi import requests as curl_requests
 from .auth import load_cookies
 from .exceptions import (
     AuthError,
-    BookingError,
+    AppError,
     NetworkError,
     NotFoundError,
     RateLimitError,

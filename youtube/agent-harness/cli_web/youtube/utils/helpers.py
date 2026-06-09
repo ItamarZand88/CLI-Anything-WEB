@@ -8,7 +8,7 @@ import sys
 
 import click
 
-from cli_web.youtube.core.exceptions import RateLimitError, YouTubeError
+from cli_web.youtube.core.exceptions import RateLimitError, AppError
 
 
 @contextlib.contextmanager
@@ -16,7 +16,7 @@ def handle_errors(json_mode: bool = False):
     """Context manager for consistent error handling in commands."""
     try:
         yield
-    except YouTubeError as exc:
+    except AppError as exc:
         d = exc.to_dict()
         if isinstance(exc, RateLimitError) and exc.retry_after is not None:
             d["retry_after"] = exc.retry_after
@@ -52,6 +52,6 @@ def print_json(data) -> None:
     click.echo(json.dumps(data, indent=2, default=str))
 
 
-def print_error_json(exc: YouTubeError) -> None:
-    """Print a YouTubeError as JSON."""
+def print_error_json(exc: AppError) -> None:
+    """Print a AppError as JSON."""
     click.echo(json.dumps(exc.to_dict()))

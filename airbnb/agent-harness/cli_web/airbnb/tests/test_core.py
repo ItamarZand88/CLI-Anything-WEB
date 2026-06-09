@@ -13,7 +13,7 @@ import click
 from click.testing import CliRunner
 
 from cli_web.airbnb.core.exceptions import (
-    AirbnbError,
+    AppError,
     AuthError,
     BotBlockedError,
     NetworkError,
@@ -44,14 +44,14 @@ from cli_web.airbnb.utils.helpers import (
 # ---------------------------------------------------------------------------
 
 def test_airbnb_error_is_exception():
-    err = AirbnbError("test")
+    err = AppError("test")
     assert isinstance(err, Exception)
     assert str(err) == "test"
 
 
 def test_auth_error_defaults():
     err = AuthError()
-    assert err.recoverable is False
+    assert err.recoverable is True  # standardized default
     assert "Authentication" in str(err)
 
 
@@ -71,12 +71,12 @@ def test_server_error():
 
 
 def test_exception_hierarchy():
-    assert issubclass(AuthError, AirbnbError)
-    assert issubclass(RateLimitError, AirbnbError)
-    assert issubclass(NetworkError, AirbnbError)
-    assert issubclass(ServerError, AirbnbError)
-    assert issubclass(NotFoundError, AirbnbError)
-    assert issubclass(ParseError, AirbnbError)
+    assert issubclass(AuthError, AppError)
+    assert issubclass(RateLimitError, AppError)
+    assert issubclass(NetworkError, AppError)
+    assert issubclass(ServerError, AppError)
+    assert issubclass(NotFoundError, AppError)
+    assert issubclass(ParseError, AppError)
 
 
 # ---------------------------------------------------------------------------

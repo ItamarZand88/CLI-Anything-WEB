@@ -9,11 +9,11 @@ import click
 
 from ..core.exceptions import (
     AuthError,
-    FutbinError,
+    AppError,
     InvalidInputError,
     NetworkError,
     NotFoundError,
-    ParsingError,
+    ParseError,
     RateLimitError,
     ServerError,
     error_code_for,
@@ -90,7 +90,7 @@ def handle_errors(json_mode: bool = False):
         raise
     except click.UsageError:
         raise
-    except FutbinError as exc:
+    except AppError as exc:
         code = error_code_for(exc)
         if json_mode:
             click.echo(json.dumps(
@@ -101,7 +101,7 @@ def handle_errors(json_mode: bool = False):
             hint = ""
             if isinstance(exc, RateLimitError) and exc.retry_after:
                 hint = f"\n  Hint: Retry after {exc.retry_after:.0f}s"
-            elif isinstance(exc, ParsingError):
+            elif isinstance(exc, ParseError):
                 hint = "\n  Hint: FUTBIN site structure may have changed"
             click.echo(f"Error: {exc}{hint}", err=True)
         sys.exit(1)

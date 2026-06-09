@@ -7,7 +7,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from cli_web.pexels.core.exceptions import (
-    PexelsError,
+    AppError,
     RateLimitError,
     ServerError,
     NotFoundError,
@@ -31,11 +31,11 @@ from cli_web.pexels.utils.output import print_json, print_pagination
 
 class TestExceptionHierarchy:
     def test_pexels_error_is_base(self):
-        assert issubclass(RateLimitError, PexelsError)
-        assert issubclass(ServerError, PexelsError)
-        assert issubclass(NotFoundError, PexelsError)
-        assert issubclass(NetworkError, PexelsError)
-        assert issubclass(ParseError, PexelsError)
+        assert issubclass(RateLimitError, AppError)
+        assert issubclass(ServerError, AppError)
+        assert issubclass(NotFoundError, AppError)
+        assert issubclass(NetworkError, AppError)
+        assert issubclass(ParseError, AppError)
 
     def test_rate_limit_error_stores_retry_after(self):
         exc = RateLimitError("slow down", retry_after=30.0)
