@@ -211,6 +211,54 @@
       "install": "pip install -e gai/agent-harness"
     },
     {
+      "name": "cli-web-youtube",
+      "website": "youtube.com",
+      "protocol": "InnerTube REST API (httpx)",
+      "auth": "none",
+      "directory": "youtube/agent-harness",
+      "namespace": "cli_web.youtube",
+      "commands": [
+        "search videos",
+        "video get",
+        "trending list",
+        "channel get"
+      ],
+      "install": "pip install -e youtube/agent-harness"
+    },
+    {
+      "name": "cli-web-hackernews",
+      "website": "news.ycombinator.com",
+      "protocol": "REST API — Firebase + Algolia (httpx)",
+      "auth": "cookie (optional — required for write ops)",
+      "directory": "hackernews/agent-harness",
+      "namespace": "cli_web.hackernews",
+      "commands": [
+        "stories top",
+        "stories new",
+        "stories best",
+        "stories ask",
+        "stories show",
+        "stories jobs",
+        "stories view",
+        "search stories",
+        "search comments",
+        "user view",
+        "user favorites",
+        "user submissions",
+        "user threads",
+        "auth login",
+        "auth login-browser",
+        "auth status",
+        "auth logout",
+        "upvote",
+        "submit",
+        "comment",
+        "favorite",
+        "hide"
+      ],
+      "install": "pip install -e hackernews/agent-harness"
+    },
+    {
       "name": "cli-web-codewiki",
       "website": "codewiki.google",
       "protocol": "batchexecute RPC",

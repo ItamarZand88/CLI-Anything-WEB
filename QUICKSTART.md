@@ -42,6 +42,6 @@ cli-web-gh-trending
 
 ## Next Steps
 
-- See the full [README](README.md) for architecture details and all 10 generated CLIs
+- See the full [README](README.md) for architecture details and all 19 generated CLIs
 - Browse `registry.json` for a machine-readable index of every CLI
 - Read `CLAUDE.md` for contributor conventions

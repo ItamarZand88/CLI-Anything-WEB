@@ -54,7 +54,7 @@ See standards/SKILL.md for the pipeline workflow and smoke test process.
 - If protocol is non-REST: `core/rpc/` exists with `types.py`, `encoder.py`, `decoder.py`
 - `core/exceptions.py`: domain-specific exception hierarchy (AuthError, RateLimitError, NetworkError, ServerError, NotFoundError)
 - `client.py` maps HTTP status codes to typed exceptions (401→AuthError, 404→NotFoundError, 429→RateLimitError, 5xx→ServerError)
-- Auth retry: client retries once on recoverable AuthError with token refresh
+- Auth retry: client runs the 3-attempt auto-refresh on recoverable AuthError (current cookies -> reload auth.json -> browser refresh), never more
 
 ### 5. Test Standards (8 checks)
 

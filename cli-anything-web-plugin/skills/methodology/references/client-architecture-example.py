@@ -27,7 +27,7 @@ class ClientCore:
     - HTTP connection management (httpx.Client)
     - Auth header/cookie injection
     - Status code → exception mapping
-    - Auth retry (refresh tokens on 401/403, retry once)
+    - Auth retry (3-attempt auto-refresh on 401/403; see HARNESS.md "Token Auto-Refresh")
     """
 
     def __init__(self, base_url: str, cookies: dict | None = None):

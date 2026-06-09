@@ -189,7 +189,7 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 | Script | Purpose | When to use |
 |--------|---------|-------------|
 | `scaffold-cli.py` | Generate full boilerplate structure from templates (exceptions, client, config, auth, CLI entry, setup.py) | Phase 2 — Step B.0, before implementing endpoint methods |
-| `validate-checklist.py` | Run ~65 mechanical checks from the quality checklist (AST + regex) | Phase 4 — before manual review, or via `/validate` command |
+| `validate-checklist.py` | Run the 65 automated checks of the 75-item quality checklist (AST + regex); the remaining 10 are judgment-based and covered by the Phase 4 review agents | Phase 4 — before manual review, or via `/validate` command |
 | `generate-test-docs.py` | AST-parse test files for TEST.md Part 1 (plan), run pytest for Part 2 (results) | Phase 3 — after writing tests |
 | `smoke-test.py` | Post-install CLI validation (--help, --version, --json, protocol leak detection) | Phase 4 — after `pip install -e .` |
 | `validate-capture.py` | Gate between Phase 1 and Phase 2 — checks entry count, protocol, WRITE ops, error rate, endpoint diversity | Phase 1 — end of Step 4 in capture skill |

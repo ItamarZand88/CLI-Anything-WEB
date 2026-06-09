@@ -23,7 +23,8 @@ class AuthError(${AppName}Error):
     """Authentication failed -- expired cookies, invalid tokens, session timeout.
 
     Args:
-        recoverable: If True, client retries once (token refresh).
+        recoverable: If True, client runs the 3-attempt auto-refresh
+                     (current cookies -> reload auth.json -> browser refresh).
                      If False, user must re-login.
     """
 

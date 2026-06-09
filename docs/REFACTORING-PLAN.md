@@ -285,7 +285,7 @@ Once core exists, these land fleet-wide in one place: shell completion (Click's 
 
 | Phase | Duration | Contents | Exit criteria |
 |-------|----------|----------|---------------|
-| **0 — Hygiene** | days | Fix auth-retry contradiction; sync registry.json (+ hackernews/youtube); plugin.json version sync; delete dead Handlebars templates; fix doc counts; remove stale test-all.sh; assets → LFS | All metadata mutually consistent; CI green |
+| **0 — Hygiene** | days | Fix auth-retry contradiction; sync registry.json (+ hackernews/youtube); plugin.json version sync (+ release-please extra-files); fix doc counts; make test-all.sh dynamic; assets → LFS (deferred — needs LFS quota decision) | All metadata mutually consistent; CI green |
 | **1 — Foundations** | ~2 wks | Root pyproject + ruff/mypy/pre-commit + CI gates; devkit packaging (Pillar 2.1–2.2: models, state unification, package structure); dynamic CI matrix; coverage | Devkit importable & typed; lint gate on; `TrafficEntry`/`PipelineState` schemas published |
 | **2 — Core runtime** | ~3 wks | `cli-web-core` 1.0 (Pillar 1); templates import core; manifest emission; migrate first 3 CLIs (gh-trending, capitoltrades, hackernews); contract test suite (4.2) | 3 CLIs on core, contract suite green fleet-wide |
 | **3 — Generation v2** | ~3 wks | Jinja2 migration; unified auth template; command/test scaffolds; golden-file tests (4.1); boilerplate skill rewrite; CONVENTIONS.md + RECOVERY.md; tiered checklist; gap-analyzer integration | Scaffold a new CLI end-to-end on v2 pipeline; golden tests in CI |
@@ -301,7 +301,7 @@ Once core exists, these land fleet-wide in one place: shell completion (Click's 
 1. `boilerplate/SKILL.md:121` "retries once" vs HARNESS.md 3-attempt spec vs root CLAUDE.md "never more" — contradiction.
 2. `registry.json` missing `cli-web-hackernews`, `cli-web-youtube` (17/19).
 3. `.claude-plugin/plugin.json` version 0.1.0 vs release 0.10.0.
-4. `templates/README.md.template`, `templates/SKILL.md.template` — dead code (Handlebars, never invoked).
+4. `templates/README.md.template`, `templates/SKILL.md.template` — never invoked by `scaffold-cli.py` (Handlebars syntax, incompatible with its `${}` renderer); referenced only as manual starting points in `standards/SKILL.md:287,294`. Keep until Pillar 2.3 converts them to Jinja2 and wires them into scaffold.
 5. `scripts/test-all.sh` (repo root) — covers 10 of 19 CLIs.
 6. CONTRIBUTING.md:20 / QUICKSTART.md — "10 CLIs" (actual: 19).
 7. `hackernews` repl_skin.py diverged from the other 6 identical copies; its exceptions.py predates template standardization (no `raise_for_status`, generic `AppError` base).

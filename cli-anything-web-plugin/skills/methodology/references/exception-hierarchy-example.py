@@ -26,7 +26,8 @@ class AuthError(AppError):
     """Authentication failed — expired cookies, invalid tokens, session timeout.
 
     Args:
-        recoverable: If True, client should refresh tokens and retry once.
+        recoverable: If True, client should run the 3-attempt auto-refresh
+                     (see HARNESS.md "Token Auto-Refresh").
                      If False (e.g., cookies deleted), user must re-login.
     """
     def __init__(self, message: str, recoverable: bool = True):
