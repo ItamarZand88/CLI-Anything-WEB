@@ -35,10 +35,29 @@ _SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
 
+import importlib.util  # noqa: E402
+
 from plugin_paths import get_scripts_dir  # noqa: E402
 from state_utils import load_json_state  # noqa: E402
 
 PHASES = ["capture", "methodology", "testing", "standards"]
+
+
+def _capture_steps() -> list[str]:
+    """The ordered intra-capture steps, sourced from capture-checkpoint.py."""
+    fallback = ["setup", "assessment", "post-auth", "tracing",
+                "full-capture", "parsed", "complete"]
+    try:
+        path = Path(__file__).resolve().parent / "capture-checkpoint.py"
+        spec = importlib.util.spec_from_file_location("capture_checkpoint", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return list(mod.STEPS)
+    except Exception:
+        return fallback
+
+
+CAPTURE_STEPS = _capture_steps()
 
 # Human-readable next-action guidance per phase. Skills are the primary
 # execution units; scripts are scriptable sub-steps.
@@ -81,6 +100,27 @@ def _first_incomplete_phase(phases: dict) -> str | None:
     return None
 
 
+def _read_capture_checkpoint(app_dir: Path) -> dict | None:
+    """Load the intra-capture checkpoint (.capture-state.json), if any."""
+    cp = app_dir / "traffic-capture" / ".capture-state.json"
+    return load_json_state(cp, default=None)
+
+
+def _capture_progress(checkpoint: dict) -> dict:
+    """Summarize intra-capture progress from a .capture-state.json checkpoint."""
+    step = checkpoint.get("step", "setup")
+    idx = CAPTURE_STEPS.index(step) if step in CAPTURE_STEPS else -1
+    return {
+        "step": step,
+        "step_index": idx,
+        "total_steps": len(CAPTURE_STEPS),
+        "completed_steps": CAPTURE_STEPS[: idx + 1] if idx >= 0 else [],
+        "next_step": CAPTURE_STEPS[idx + 1] if 0 <= idx < len(CAPTURE_STEPS) - 1 else "done",
+        "auth_saved": checkpoint.get("auth_saved", False),
+        "url": checkpoint.get("url"),
+    }
+
+
 def cmd_status(args: argparse.Namespace) -> None:
     app_dir = Path(args.app_dir).resolve()
     state = _read_phase_state(app_dir)
@@ -94,6 +134,12 @@ def cmd_status(args: argparse.Namespace) -> None:
         "next_action": None,
     }
 
+    # Surface intra-capture progress so status is the single source of truth
+    # (phase-state.json only tracks phase-level done/pending).
+    checkpoint = _read_capture_checkpoint(app_dir)
+    if checkpoint:
+        report["capture_progress"] = _capture_progress(checkpoint)
+
     if current is None:
         report["next_action"] = {
             "summary": "Pipeline complete — all 4 phases done.",
@@ -103,6 +149,14 @@ def cmd_status(args: argparse.Namespace) -> None:
     else:
         info = dict(_NEXT_ACTION[current])
         info["summary"] = f"Run the {current} phase."
+        # If we're still in capture and a checkpoint exists, show where.
+        if current == "capture" and checkpoint:
+            cp = report["capture_progress"]
+            info["summary"] = (
+                f"Capture in progress — step '{cp['step']}' "
+                f"({cp['step_index'] + 1}/{cp['total_steps']}); next: {cp['next_step']}."
+            )
+            info["capture_step"] = cp["step"]
         report["next_action"] = info
 
     print(json.dumps(report, indent=2, ensure_ascii=False))

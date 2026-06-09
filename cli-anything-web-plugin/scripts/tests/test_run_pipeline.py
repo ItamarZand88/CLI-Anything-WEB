@@ -9,6 +9,7 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 ORCH = SCRIPTS_DIR / "run-pipeline.py"
 PHASE_STATE = SCRIPTS_DIR / "phase-state.py"
+CHECKPOINT = SCRIPTS_DIR / "capture-checkpoint.py"
 
 
 def test_status_reports_all_phases_pending_for_new_app(tmp_path):
@@ -51,6 +52,34 @@ def test_status_complete_when_all_phases_done(tmp_path):
     report = json.loads(result.stdout)
     assert report["current_phase"] is None
     assert "complete" in report["next_action"]["summary"].lower()
+
+
+def test_status_surfaces_capture_checkpoint(tmp_path):
+    # A mid-capture checkpoint should appear in `status` so it's the single
+    # source of truth (phase-state.json alone can't show intra-capture progress).
+    subprocess.check_call([
+        sys.executable, str(CHECKPOINT), "save", str(tmp_path),
+        "--step", "tracing", "--url", "https://example.com", "--trace-id", "t1",
+    ])
+    result = subprocess.run(
+        [sys.executable, str(ORCH), "status", str(tmp_path)],
+        capture_output=True, text=True,
+    )
+    report = json.loads(result.stdout)
+    assert report["current_phase"] == "capture"
+    cp = report["capture_progress"]
+    assert cp["step"] == "tracing"
+    assert cp["next_step"] == "full-capture"
+    assert "tracing" in report["next_action"]["summary"]
+
+
+def test_status_omits_capture_progress_when_no_checkpoint(tmp_path):
+    result = subprocess.run(
+        [sys.executable, str(ORCH), "status", str(tmp_path)],
+        capture_output=True, text=True,
+    )
+    report = json.loads(result.stdout)
+    assert "capture_progress" not in report
 
 
 def test_help_lists_subcommands():
