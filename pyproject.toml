@@ -83,3 +83,13 @@ warn_return_any = false
 # Optional dependency — only installed with the [repl] extra.
 module = "prompt_toolkit.*"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# mcp_server is vendored into CLIs (which all depend on click); core itself
+# keeps zero hard deps, so click is a lazy import here.
+module = "cli_web_core.mcp_server"
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "click.*"
+ignore_missing_imports = true

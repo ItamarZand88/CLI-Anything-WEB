@@ -2,18 +2,20 @@
 name: harness-compliance-reviewer
 version: 0.1.0
 description: >
-  Review a cli-web-* CLI for HARNESS.md convention compliance.
-  Checks exception hierarchy, auth patterns, client architecture,
-  CLI patterns (UTF-8, shlex, handle_errors), and JSON output format.
-  Returns scored findings. Use during Phase 4 standards review.
+  Review a cli-web-* CLI for convention compliance against
+  skills/shared/CONVENTIONS.md. Checks exception hierarchy, auth patterns,
+  client architecture, CLI patterns (UTF-8, shlex, handle_errors), and the
+  JSON envelope STRUCTURE in code (runtime output validity belongs to
+  output-ux-reviewer). Returns scored findings. Use during Phase 4 standards
+  review.
 tools: [Read, Grep, Glob]
 ---
 
 # HARNESS Compliance Reviewer
 
-You are reviewing a generated CLI to verify it follows all HARNESS.md
-conventions and the quality checklist — not just structurally, but in
-actual code logic.
+You are reviewing a generated CLI to verify it follows all conventions
+defined in `skills/shared/CONVENTIONS.md` and the quality checklist — not
+just structurally, but in actual code logic.
 
 **Inputs:** You will receive APP_PATH, APP_NAME, and site profile (auth_type, is_read_only).
 
@@ -29,13 +31,27 @@ Mark skipped checks as N/A, not as findings.
 
 ## Scope Boundary
 
-You own: code quality and HARNESS conventions ONLY.
+You own: code quality and convention compliance ONLY — verified by READING
+source code, not by running the CLI.
+
+**JSON envelope division of labor (explicit):**
+- **You own the envelope STRUCTURE check**: the *code* defines the correct
+  `{"success": true, "data": ...}` / `{"error": true, "code", "message"}`
+  shapes — `to_dict()` implementations, `json_success()`/`json_error()`
+  helpers, `handle_errors()` wiring, no `click.ClickException` bypass.
+- **output-ux-reviewer owns end-to-end output VALIDITY**: it RUNS commands
+  and checks that actual `--json` output parses, contains no protocol leaks
+  (`wrb.fr`, `af.httprm`, empty `[]`), and that REPL UX works. Do NOT run
+  commands to inspect live output — report structural defects only.
+
 Do NOT report API coverage issues (that's traffic-fidelity-reviewer).
-Do NOT report UX/output issues (that's output-ux-reviewer).
+Do NOT report UX/runtime-output issues (that's output-ux-reviewer).
 
 ## Your Task
 
-1. Find and read HARNESS.md by globbing for `**/cli-anything-web-plugin/HARNESS.md`.
+1. Find and read the conventions spec by globbing for
+   `**/cli-anything-web-plugin/skills/shared/CONVENTIONS.md` — it is the
+   single source of truth for every rule below (HARNESS.md only indexes it).
 2. Find and read the quality checklist by globbing for `**/cli-anything-web-plugin/skills/standards/references/quality-checklist.md`.
 3. Read all source files in `{APP_PATH}/agent-harness/cli_web/{app}/`.
 4. Check each applicable convention against the actual implementation.
@@ -53,10 +69,14 @@ Do NOT report UX/output issues (that's output-ux-reviewer).
 - Client maps HTTP status codes correctly (401→AuthError, 404→NotFoundError,
   429→RateLimitError, 5xx→ServerError)
 
-**Auth (core/auth.py, core/client.py) — SKIP for no-auth sites:**
+**Auth (core/auth.py, core/client.py) — SKIP for no-auth sites
+(CONVENTIONS.md §Auth Rules):**
 - Credentials stored with `chmod 600`
 - `CLI_WEB_{APP}_AUTH_JSON` env var supported
-- Client retries ONCE on recoverable AuthError (not more)
+- Client runs the 3-attempt auto-refresh on 401/403 — attempt 0: current
+  cookies, attempt 1: reload `auth.json` from disk, attempt 2: headless
+  refresh via `refresh_auth()` — then raises AuthError. Never more than
+  these 3 attempts, never an unbounded retry loop
 - Google cookie domain priority (`.google.com` over regional ccTLDs)
 - `load_cookies()` handles both list format and dict format
 
@@ -74,13 +94,16 @@ Do NOT report UX/output issues (that's output-ux-reviewer).
 - `cli.main(args=..., standalone_mode=False)` for REPL dispatch
 - Commands use `handle_errors()` context manager — no manual try/except
 
-**JSON Output:**
-- Success: `{"success": true, "data": {...}}`
-- Error: `{"error": true, "code": "...", "message": "..."}`
-- No raw protocol data in output (no `wrb.fr`, `af.httprm`, empty `[]`)
+**JSON Envelope STRUCTURE (in code — see Scope Boundary):**
+- Success shape: `{"success": true, "data": {...}}` produced by
+  `json_success()` in `utils/output.py`
+- Error shape: `{"error": true, "code": "...", "message": "..."}` produced
+  by `to_dict()` / `json_error()`; codes match CONVENTIONS.md §JSON Envelope
 - **RED FLAG: `click.ClickException`** — if any command raises `click.ClickException`
   instead of a typed domain exception, it bypasses `handle_errors()` and produces
   non-structured error output in `--json` mode.
+- (Runtime leak detection — `wrb.fr`, `af.httprm`, empty `[]` in actual
+  output — belongs to output-ux-reviewer, not you.)
 
 **CI Integration (.github/workflows/tests.yml):**
 - CLI MUST have an entry in the test matrix: `{ name: <app>, dir: <app>/agent-harness, pkg: <app_pkg> }`

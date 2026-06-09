@@ -31,6 +31,8 @@ jobs:
         run: ruff format --check .
       - name: Validate registry.json against fleet
         run: python devkit/cli_web_devkit/registry_check.py
+      - name: README fleet sections freshness
+        run: PYTHONPATH=devkit python -m cli_web_devkit docs --check
 
   plugin:
     name: plugin & devkit tests

@@ -1,19 +1,35 @@
 ---
 name: gap-analyzer
-version: 0.1.0
+version: 0.2.0
 description: >
-  Compare implemented CLI commands against <APP>.md API map to find missing
-  endpoints, incomplete CRUD, dead client methods, and priority gaps.
-  TRIGGER when: "gap analysis", "what's missing", "coverage report",
-  "what endpoints are not implemented", or as a sub-step of the refine workflow.
+  Compare implemented CLI commands against the <APP>.md API map and
+  traffic-analysis.json to find missing endpoints, incomplete CRUD, dead
+  client methods, and priority gaps. Invoked as the MANDATORY FIRST STEP of
+  /cli-anything-web:refine; also available as an optional pre-review scan in
+  the standards skill. TRIGGER when: "gap analysis", "what's missing",
+  "coverage report", "what endpoints are not implemented", or as the first
+  step of the refine workflow.
   DO NOT trigger for: "refine" alone (use the /cli-anything-web:refine command).
 ---
 
 # CLI Gap Analyzer
 
 Produce a structured gap report comparing a CLI's documented API surface
-against its implemented commands. Used during `/refine` workflows and
-standalone coverage analysis.
+against its implemented commands.
+
+**Where this skill runs:**
+- **`/cli-anything-web:refine` — mandatory first step.** The refine command
+  invokes this skill before reading or changing anything else; the gap report
+  drives which endpoints get implemented.
+- **`standards` skill — optional pre-review scan** (endpoint coverage there is
+  otherwise handled by the traffic-fidelity-reviewer agent).
+- Standalone coverage analysis on request.
+
+**Evidence rule:** the captured-vs-implemented diff must cite its sources —
+each reported gap references the endpoint entry in `<APP>.md` (the documented
+surface) and, when available, `traffic-capture/traffic-analysis.json` (the
+analyzer's detected endpoint inventory), plus `raw-traffic.json` hit counts
+for priority. A gap with no citation in either file is a guess, not a finding.
 
 ---
 
@@ -22,6 +38,26 @@ standalone coverage analysis.
 You need the path to an existing CLI's agent-harness directory:
 - `{APP_PATH}/agent-harness/` — the CLI root
 - `{app}` — the app name (e.g., `reddit`, `hackernews`)
+
+Evidence files (read all that exist):
+- `{APP_PATH}/agent-harness/{APP_UPPER}.md` — documented API map (required)
+- `{APP_PATH}/traffic-capture/traffic-analysis.json` — detected endpoints/protocol
+- `{APP_PATH}/traffic-capture/raw-traffic.json` — hit counts for priority scoring
+
+## Step 0: Deterministic First Pass (devkit)
+
+Run the mechanical layer diff first — it AST-parses the client and command
+modules and cross-references traffic-analysis.json, so you only spend
+judgment on what it can't decide:
+
+```bash
+cli-web-devkit gaps {app}     # or: PYTHONPATH=devkit python -m cli_web_devkit gaps {app}
+```
+
+The JSON report gives `unimplemented_endpoints` (captured but absent from
+client.py) and `unexposed_methods` (client methods no command calls). Treat
+these as candidate gaps to verify in Steps 1–3, not as final answers — the
+string-level endpoint matching is intentionally conservative.
 
 ## Step 1: Parse Implemented Surface
 
@@ -54,6 +90,11 @@ Read `{APP_PATH}/agent-harness/{APP_UPPER}.md` (the API map):
 - Find the endpoint inventory section
 - Extract each documented endpoint: resource group, HTTP method, URL, params, description
 - Build list: `[(resource, http_verb, url, params, description)]`
+
+Cross-check against `{APP_PATH}/traffic-capture/traffic-analysis.json` (if it
+exists): endpoints the analyzer detected but `<APP>.md` never documented are
+themselves a gap (stale API map) — report them with the traffic-analysis.json
+entry as the citation.
 
 ## Step 3: Diff
 

@@ -90,6 +90,31 @@ class ${AppName}Client:
             )
 
     # --- Add endpoint methods here ---
+{%- if protocol == "graphql" %}
+
+    def _graphql(self, query: str, variables: dict | None = None, **kwargs):
+        """Execute a GraphQL query/mutation."""
+        payload = {"query": query}
+        if variables:
+            payload["variables"] = variables
+        resp = self._request("POST", "/graphql", json=payload, **kwargs)
+        data = resp.json()
+        if "errors" in data:
+            raise ${AppName}Error(data["errors"][0].get("message", "GraphQL error"))
+        return data.get("data", data)
+{%- endif %}
+{%- if protocol == "html-scraping" %}
+
+    def _parse_html(self, html: str):
+        """Parse HTML response with BeautifulSoup."""
+        from bs4 import BeautifulSoup
+        return BeautifulSoup(html, "html.parser")
+
+    def _get_html(self, path: str, **kwargs):
+        """GET a page and return parsed HTML."""
+        resp = self._request("GET", path, **kwargs)
+        return self._parse_html(resp.text)
+{%- endif %}
 
     def close(self):
         self._client.close()

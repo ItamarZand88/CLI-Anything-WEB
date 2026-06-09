@@ -283,16 +283,19 @@ Once core exists, these land fleet-wide in one place: shell completion (Click's 
 
 ## Roadmap & Sequencing
 
-| Phase | Duration | Contents | Exit criteria |
-|-------|----------|----------|---------------|
-| **0 — Hygiene** | days | Fix auth-retry contradiction; sync registry.json (+ hackernews/youtube); plugin.json version sync (+ release-please extra-files); fix doc counts; make test-all.sh dynamic; assets → LFS (deferred — needs LFS quota decision) | All metadata mutually consistent; CI green |
-| **1 — Foundations** | ~2 wks | Root pyproject + ruff/mypy/pre-commit + CI gates; devkit packaging (Pillar 2.1–2.2: models, state unification, package structure); dynamic CI matrix; coverage | Devkit importable & typed; lint gate on; `TrafficEntry`/`PipelineState` schemas published |
-| **2 — Core runtime** | ~3 wks | `cli-web-core` 1.0 (Pillar 1); templates import core; manifest emission; migrate first 3 CLIs (gh-trending, capitoltrades, hackernews); contract test suite (4.2) | 3 CLIs on core, contract suite green fleet-wide |
-| **3 — Generation v2** | ~3 wks | Jinja2 migration; unified auth template; command/test scaffolds; golden-file tests (4.1); boilerplate skill rewrite; CONVENTIONS.md + RECOVERY.md; tiered checklist; gap-analyzer integration | Scaffold a new CLI end-to-end on v2 pipeline; golden tests in CI |
-| **4 — Fleet migration & ops** | ~4 wks | Migrate remaining 16 CLIs in waves; drift/resync tooling (4.4); VCR cassettes (4.3); canary workflow (6.2); PyPI trusted publishing; per-CLI changelogs | Whole fleet on core ≥1.0; weekly drift+canary jobs live; packages on PyPI |
-| **5 — Product leaps** | ongoing | `api-spec.yaml` IR (6.1) wired into methodology + fidelity review; MCP serve (6.3); capture scoring (6.4); UX polish fleet-wide (6.5) | New CLIs generated spec-first; MCP mode shipping |
+| Phase | Status | Contents | Exit criteria |
+|-------|--------|----------|---------------|
+| **0 — Hygiene** | ✅ DONE | Fix auth-retry contradiction; sync registry.json (+ hackernews/youtube); plugin.json version sync (+ release-please extra-files); fix doc counts; make test-all.sh dynamic; assets → LFS (deferred — needs LFS quota decision) | All metadata mutually consistent; CI green |
+| **1 — Foundations** | ✅ DONE | Root pyproject + ruff/mypy/pre-commit + CI gates; devkit packaging (registry/matrix/models); dynamic CI matrix; coverage | Devkit importable & typed; lint gate on; `TrafficEntry`/`PipelineState` schemas published |
+| **2 — Core runtime** | ✅ DONE | `cli-web-core` 1.0; **vendoring-with-provenance** (not import-based — keeps `pip install -e <dir>` standalone until PyPI publishing is activated); repl_skin v2 canon synced to ALL 19 CLIs (not just 3); `.manifest.json` fleet-wide; contract test suite | Whole fleet on canon; contract suite green fleet-wide |
+| **3 — Generation v2** | ✅ DONE | Jinja2 migration (`${}` delimiters, StrictUndefined); unified auth.py.tpl; command/e2e/README/SKILL scaffolds; 21-profile golden tests; boilerplate skill 829→106; CONVENTIONS.md + RECOVERY.md; tiered checklist (38 T1) in validate-checklist; gap-analyzer integrated into /refine | Scaffold any profile end-to-end on v2; golden tests in CI |
+| **4 — Fleet ops** | ✅ DONE | drift/resync tooling; daily canary workflow (12 CLIs, auto-files `site-breakage` issues); contract+drift CI workflow; release-please manifest mode (core+devkit packages, per-package changelogs); PyPI trusted-publishing workflow (needs one-time PyPI setup — docs/PUBLISHING.md); VCR cassettes deferred to per-CLI regeneration | Drift zero; canary live; publish pipeline ready |
+| **5 — Product leaps** | ✅ DONE (initial) | `api-spec.json` IR (validator + evidence-required schema, wired into methodology + gap analysis); **MCP serve fleet-wide** (every CLI is an MCP server; contract-tested ×19); capture quality scoring in validate-capture; UX items remaining: jsonl output, exit-code contract, doctor command | Spec validator shipping; MCP mode live on all 19 |
 
-**Sequencing rationale:** quality gates and the devkit package come first because every later phase produces code that should land under those gates; core before template rewrite so templates have something to import; fleet migration only after contract tests exist to prove non-regression; product leaps last because they compound on the IR + core + tooling.
+**Implementation notes (deviations from the original plan):**
+- **Vendoring instead of import-dependency (Pillar 1):** making 19 CLIs depend on an unpublished `cli-web-core` would break `pip install -e <dir>` for users. Until PyPI publishing is activated, core is the canonical *source* and `cli-web-devkit resync` keeps byte-identical vendored copies with sha256 provenance in each CLI's `.manifest.json`. Fix-once-propagate-everywhere holds either way.
+- **`api-spec.json` not `.yaml`:** devkit is intentionally zero-dependency (runs in pre-commit/CI bare); JSON keeps it stdlib-parseable and the file is machine-written anyway.
+- **Handlebars templates were not dead:** they were referenced by standards/SKILL.md as manual starting points; they are now real Jinja2 templates (`README.md.tpl`, `SKILL.md.tpl`) rendered by scaffold v2.
 
 ---
 

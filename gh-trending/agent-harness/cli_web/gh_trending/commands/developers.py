@@ -5,7 +5,7 @@ from __future__ import annotations
 import click
 from cli_web.gh_trending.core.client import GitHubClient
 from cli_web.gh_trending.utils.helpers import handle_errors, resolve_json_mode
-from cli_web.gh_trending.utils.output import print_developers_table, print_json
+from cli_web.gh_trending.utils.output import print_developers_table, print_json_success
 
 
 @click.group("developers")
@@ -34,7 +34,7 @@ def developers_list(ctx, language, since, json_mode):
         client = GitHubClient()
         developers = client.get_trending_developers(language=language, since=since)
         if json_mode:
-            print_json([d.to_dict() for d in developers])
+            print_json_success([d.to_dict() for d in developers])
         else:
             label_parts = []
             if language:

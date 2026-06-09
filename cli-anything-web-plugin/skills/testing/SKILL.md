@@ -26,15 +26,17 @@ Do NOT start unless:
 - [ ] `pip install -e .` succeeds and `cli-web-<app>` is on PATH
 - [ ] `<APP>.md` exists with API map and auth scheme
 
-If implementation is incomplete, invoke the `methodology` skill first.
+If implementation is incomplete, invoke the `methodology` skill first. If the
+methodology phase is marked `failed` in phase-state, follow
+`skills/shared/RECOVERY.md` §phase-state Check Failures.
 
 ---
 
 ## Auth Must Be Working Before E2E Tests
 
 For auth-required sites: run `cli-web-<app> auth login` then `auth status` (must show valid).
-Tests that skip or catch auth errors are broken — use `pytest.fail()` if auth is missing.
-No-auth sites skip auth setup entirely.
+Tests that skip or catch auth errors are broken — use `pytest.fail()` if auth is missing
+(CONVENTIONS.md §Auth Rules "Tests"). No-auth sites skip auth setup entirely.
 
 ---
 
@@ -274,14 +276,11 @@ round-trip is needed.
 
 ### The `_resolve_cli` Pattern
 
-See `references/resolve-cli-pattern.md` for the complete helper function and
-`TestCLISubprocess` class. Key rules:
-- Always use `_resolve_cli("cli-web-<app>")` — never hardcode module paths
-- Do NOT set `cwd` — installed commands must work from any directory
-- On Windows, always pass `encoding="utf-8", errors="replace"` to `subprocess.run()`
-  in tests — API responses may contain emoji or non-ASCII characters that crash
-  the default cp1252 encoding.
-- Use `CLI_WEB_FORCE_INSTALLED=1` in CI
+The subprocess test rule is defined in
+`skills/shared/CONVENTIONS.md` §Subprocess Test Rule (`_resolve_cli`, no `cwd`,
+`CLI_WEB_FORCE_INSTALLED=1`, UTF-8 subprocess encoding). The complete helper
+function and `TestCLISubprocess` class are in
+`references/resolve-cli-pattern.md`.
 
 ### TEST.md Part 1 — Write As You Go
 

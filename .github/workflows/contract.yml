@@ -1,0 +1,33 @@
+name: Fleet Contract
+
+# Offline contract tests for every CLI in registry.json: entry point,
+# --help/--version, REPL default + clean exit, no protocol leaks, registry
+# commands present in --help. Plus vendored-file drift detection.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install devkit, core, and the whole fleet
+        run: |
+          pip install -e devkit -e cli-web-core pytest
+          for dir in */agent-harness; do pip install -q -e "$dir"; done
+
+      - name: Vendored shared-file drift check
+        run: cli-web-devkit drift
+
+      - name: Fleet contract suite
+        env:
+          CLI_WEB_FORCE_INSTALLED: "1"
+        run: python -m pytest tests/contract -q

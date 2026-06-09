@@ -324,10 +324,10 @@ clicks / form submits**. Faster exploration triggers per-IP challenges within
 npx @playwright/cli@latest -s=<app> tracing-stop
 ```
 
-**If `tracing-stop` fails:**
-1. Retry once with 15s timeout
-2. If it fails again — the trace is lost. Start a new trace (Step 3).
-3. **NEVER retry more than twice.** See `references/playwright-cli-tracing.md` for recovery.
+**If `tracing-stop` fails:** retry once with a 15s timeout; if it fails again
+the trace is lost — restart the trace at Step 3. Never retry more than twice.
+Full decision tree: `skills/shared/RECOVERY.md` §tracing-stop Failure
+(error signatures: `references/playwright-cli-tracing.md`).
 
 ```bash
 python ${CLAUDE_PLUGIN_ROOT}/scripts/parse-trace.py \
@@ -346,10 +346,16 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/validate-capture.py <app>
 # python ${CLAUDE_PLUGIN_ROOT}/scripts/validate-capture.py <app> --read-only
 ```
 
+If `parse-trace.py` fails or produces an empty/static-only raw-traffic.json,
+follow `skills/shared/RECOVERY.md` §parse-trace Failure.
+
 If `validate-capture.py` returns a non-zero exit code, **do not proceed to Step 5**.
-Re-open the browser (Step 1), continue exploration to fill the gaps the validator
-flagged, then re-run Step 4. Only mark the capture complete after the validator
-passes (or warns, with your explicit sign-off on each warning).
+Map each failed gate to its targeted remediation in
+`skills/shared/RECOVERY.md` §validate-capture Non-Zero Exit (e.g., <15 entries
+→ capture more pages; <3 distinct paths → exercise more features; no WRITE op
+→ perform a create/update/delete in the UI). Re-open the browser (Step 1),
+fill the gaps, then re-run Step 4. Only mark the capture complete after the
+validator passes (or warns, with your explicit sign-off on each warning).
 
 For deeper inspection:
 
@@ -410,6 +416,9 @@ and build the CLI.
 ---
 
 ## References
+
+Gate failures (tracing-stop, parse-trace, validate-capture, phase-state):
+`skills/shared/RECOVERY.md`. Implementation rules: `skills/shared/CONVENTIONS.md`.
 
 See `references/` for:
 - `playwright-cli-commands.md` — command syntax, timeouts, ESM rules

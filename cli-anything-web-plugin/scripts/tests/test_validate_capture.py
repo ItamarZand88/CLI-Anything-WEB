@@ -158,3 +158,33 @@ def test_handles_missing_analysis_gracefully(tmp_path):
     report = json.loads(result.stdout)
     proto = next(c for c in report["checks"] if c["name"] == "protocol")
     assert proto["status"] == "fail"
+
+
+class TestCaptureScore:
+    def test_healthy_capture_scores_high(self, tmp_path):
+        entries = [_entry(url=f"https://api.example.com/v1/items/{i}") for i in range(10)] + [
+            _entry(url="https://api.example.com/v1/items", method="POST", status=201),
+            _entry(url="https://api.example.com/v1/users"),
+            _entry(url="https://api.example.com/v1/search"),
+            _entry(url="https://api.example.com/v1/tags"),
+            _entry(url="https://api.example.com/v1/comments"),
+        ]
+        _write_capture(tmp_path, entries, {"protocol": {"type": "rest"}})
+        proc = _run(tmp_path)
+        report = json.loads(proc.stdout)
+        assert report["score"] >= 80
+
+    def test_broken_capture_scores_low(self, tmp_path):
+        _write_capture(tmp_path, [_entry(status=500)], {"protocol": {"type": "unknown"}})
+        proc = _run(tmp_path)
+        report = json.loads(proc.stdout)
+        assert report["score"] <= 40
+
+    def test_score_present_in_human_output(self, tmp_path):
+        _write_capture(tmp_path, [_entry()], {"protocol": {"type": "rest"}})
+        proc = subprocess.run(
+            [sys.executable, str(VALIDATE), str(tmp_path), "--read-only"],
+            capture_output=True,
+            text=True,
+        )
+        assert "capture quality score:" in proc.stdout

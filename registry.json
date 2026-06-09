@@ -32,7 +32,17 @@
         "config show",
         "config reset"
       ],
-      "install": "pip install -e futbin/agent-harness"
+      "install": "pip install -e futbin/agent-harness",
+      "canary": [
+        [
+          "market",
+          "index",
+          "--json"
+        ]
+      ],
+      "display_website": "FUTBIN",
+      "skill": ".claude/skills/futbin-cli/SKILL.md",
+      "description": "EA FC player database — search, compare, prices, market analysis, arbitrage, trading signals"
     },
     {
       "name": "cli-web-notebooklm",
@@ -48,7 +58,10 @@
         "chat ask",
         "artifacts generate"
       ],
-      "install": "pip install -e notebooklm/agent-harness"
+      "install": "pip install -e notebooklm/agent-harness",
+      "display_website": "Google NotebookLM",
+      "skill": ".claude/skills/notebooklm-cli/SKILL.md",
+      "description": "Notebooks, sources, chat, 9 artifact types (audio, video, slides, quiz, mindmap)"
     },
     {
       "name": "cli-web-gh-trending",
@@ -61,7 +74,17 @@
         "repos list",
         "developers list"
       ],
-      "install": "pip install -e gh-trending/agent-harness"
+      "install": "pip install -e gh-trending/agent-harness",
+      "canary": [
+        [
+          "repos",
+          "list",
+          "--json"
+        ]
+      ],
+      "display_website": "GitHub Trending",
+      "skill": ".claude/skills/gh-trending-cli/SKILL.md",
+      "description": "Trending repos & developers with language/time filters"
     },
     {
       "name": "cli-web-producthunt",
@@ -74,7 +97,17 @@
         "posts list",
         "posts get"
       ],
-      "install": "pip install -e producthunt/agent-harness"
+      "install": "pip install -e producthunt/agent-harness",
+      "canary": [
+        [
+          "posts",
+          "list",
+          "--json"
+        ]
+      ],
+      "display_website": "Product Hunt",
+      "skill": ".claude/skills/producthunt-cli/SKILL.md",
+      "description": "Today's launches, leaderboards, product details"
     },
     {
       "name": "cli-web-unsplash",
@@ -89,7 +122,18 @@
         "photos download",
         "topics list"
       ],
-      "install": "pip install -e unsplash/agent-harness"
+      "install": "pip install -e unsplash/agent-harness",
+      "canary": [
+        [
+          "photos",
+          "search",
+          "cat",
+          "--json"
+        ]
+      ],
+      "display_website": "Unsplash",
+      "skill": ".claude/skills/unsplash-cli/SKILL.md",
+      "description": "Photo search, download, topics, collections, profiles"
     },
     {
       "name": "cli-web-booking",
@@ -106,7 +150,10 @@
         "auth status",
         "auth logout"
       ],
-      "install": "pip install -e booking/agent-harness"
+      "install": "pip install -e booking/agent-harness",
+      "display_website": "Booking.com",
+      "skill": ".claude/skills/booking-cli/SKILL.md",
+      "description": "Hotel search, property details, destination resolution"
     },
     {
       "name": "cli-web-stitch",
@@ -129,7 +176,10 @@
         "design theme",
         "design history"
       ],
-      "install": "pip install -e stitch/agent-harness"
+      "install": "pip install -e stitch/agent-harness",
+      "display_website": "Google Stitch",
+      "skill": ".claude/skills/stitch-cli/SKILL.md",
+      "description": "AI UI design — generate mobile/web app mockups from text prompts"
     },
     {
       "name": "cli-web-pexels",
@@ -150,7 +200,18 @@
         "collections get",
         "collections discover"
       ],
-      "install": "pip install -e pexels/agent-harness"
+      "install": "pip install -e pexels/agent-harness",
+      "canary": [
+        [
+          "photos",
+          "search",
+          "nature",
+          "--json"
+        ]
+      ],
+      "display_website": "Pexels",
+      "skill": ".claude/skills/pexels-cli/SKILL.md",
+      "description": "Free stock photos & videos — search, download, collections, profiles"
     },
     {
       "name": "cli-web-reddit",
@@ -198,7 +259,10 @@
         "saved save",
         "saved unsave"
       ],
-      "install": "pip install -e reddit/agent-harness"
+      "install": "pip install -e reddit/agent-harness",
+      "display_website": "Reddit",
+      "skill": ".claude/skills/reddit-cli/SKILL.md",
+      "description": "Feeds, subreddits, search, vote, comment, submit, save, inbox"
     },
     {
       "name": "cli-web-gai",
@@ -211,7 +275,10 @@
         "search ask",
         "search followup"
       ],
-      "install": "pip install -e gai/agent-harness"
+      "install": "pip install -e gai/agent-harness",
+      "display_website": "Google AI Mode",
+      "skill": ".claude/skills/gai-cli/SKILL.md",
+      "description": "AI-powered search with source references"
     },
     {
       "name": "cli-web-youtube",
@@ -226,7 +293,20 @@
         "trending list",
         "channel get"
       ],
-      "install": "pip install -e youtube/agent-harness"
+      "install": "pip install -e youtube/agent-harness",
+      "canary": [
+        [
+          "search",
+          "videos",
+          "python tutorial",
+          "--limit",
+          "2",
+          "--json"
+        ]
+      ],
+      "display_website": "YouTube",
+      "skill": ".claude/skills/youtube-cli/SKILL.md",
+      "description": "Search videos, video details, trending, channel info"
     },
     {
       "name": "cli-web-hackernews",
@@ -259,7 +339,19 @@
         "favorite",
         "hide"
       ],
-      "install": "pip install -e hackernews/agent-harness"
+      "install": "pip install -e hackernews/agent-harness",
+      "canary": [
+        [
+          "stories",
+          "top",
+          "--limit",
+          "3",
+          "--json"
+        ]
+      ],
+      "display_website": "Hacker News",
+      "skill": ".claude/skills/hackernews-cli/SKILL.md",
+      "description": "Stories, search, comments, users, upvote, submit, comment, favorite"
     },
     {
       "name": "cli-web-codewiki",
@@ -276,7 +368,17 @@
         "wiki section",
         "chat ask"
       ],
-      "install": "pip install -e codewiki/agent-harness"
+      "install": "pip install -e codewiki/agent-harness",
+      "canary": [
+        [
+          "repos",
+          "featured",
+          "--json"
+        ]
+      ],
+      "display_website": "Google Code Wiki",
+      "skill": ".claude/skills/codewiki-cli/SKILL.md",
+      "description": "AI-generated repo docs, wiki sections, Gemini chat, download as .md"
     },
     {
       "name": "cli-web-chatgpt",
@@ -299,7 +401,10 @@
         "auth status",
         "auth logout"
       ],
-      "install": "pip install -e chatgpt/agent-harness"
+      "install": "pip install -e chatgpt/agent-harness",
+      "display_website": "ChatGPT",
+      "skill": ".claude/skills/chatgpt-cli/SKILL.md",
+      "description": "Ask questions, generate/download images, conversations, models"
     },
     {
       "name": "cli-web-airbnb",
@@ -315,7 +420,18 @@
         "listings availability",
         "autocomplete locations"
       ],
-      "install": "pip install -e airbnb/agent-harness"
+      "install": "pip install -e airbnb/agent-harness",
+      "canary": [
+        [
+          "autocomplete",
+          "locations",
+          "rome",
+          "--json"
+        ]
+      ],
+      "display_website": "Airbnb",
+      "skill": ".claude/skills/airbnb-cli/SKILL.md",
+      "description": "Search stays, listing details, amenities, host info, autocomplete locations"
     },
     {
       "name": "cli-web-amazon",
@@ -330,7 +446,17 @@
         "product get",
         "bestsellers"
       ],
-      "install": "pip install -e amazon/agent-harness"
+      "install": "pip install -e amazon/agent-harness",
+      "canary": [
+        [
+          "search",
+          "usb cable",
+          "--json"
+        ]
+      ],
+      "display_website": "amazon.com",
+      "skill": ".claude/skills/amazon-cli/SKILL.md",
+      "description": "Search products, view details, browse bestsellers"
     },
     {
       "name": "cli-web-tripadvisor",
@@ -348,7 +474,18 @@
         "attractions search",
         "attractions get"
       ],
-      "install": "pip install -e tripadvisor/agent-harness"
+      "install": "pip install -e tripadvisor/agent-harness",
+      "canary": [
+        [
+          "locations",
+          "search",
+          "paris",
+          "--json"
+        ]
+      ],
+      "display_website": "TripAdvisor",
+      "skill": ".claude/skills/tripadvisor-cli/SKILL.md",
+      "description": "Search locations, hotels, restaurants, and attractions"
     },
     {
       "name": "cli-web-linkedin",
@@ -391,7 +528,10 @@
         "messaging read",
         "messaging send"
       ],
-      "install": "pip install -e linkedin/agent-harness"
+      "install": "pip install -e linkedin/agent-harness",
+      "display_website": "LinkedIn",
+      "skill": ".claude/skills/linkedin-cli/SKILL.md",
+      "description": "Search, feed, profiles, jobs, posts, reactions, comments, network, messaging (26 cmds)"
     },
     {
       "name": "cli-web-capitoltrades",
@@ -418,7 +558,17 @@
         "press list",
         "press get"
       ],
-      "install": "pip install -e capitoltrades/agent-harness"
+      "install": "pip install -e capitoltrades/agent-harness",
+      "canary": [
+        [
+          "--json",
+          "trades",
+          "list"
+        ]
+      ],
+      "display_website": "Capitol Trades",
+      "skill": ".claude/skills/capitoltrades-cli/SKILL.md",
+      "description": "US congressional stock trades (STOCK Act) — trades, politicians, issuers, price history"
     }
   ]
 }

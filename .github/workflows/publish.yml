@@ -1,0 +1,48 @@
+name: Publish to PyPI
+
+# Publishes cli-web-core / cli-web-devkit when release-please creates their
+# release tags (cli-web-core-vX.Y.Z / cli-web-devkit-vX.Y.Z).
+#
+# One-time setup required (see docs/PUBLISHING.md):
+#   1. Create the projects on PyPI
+#   2. Add a "Trusted Publisher" (GitHub OIDC) for this repo + workflow
+#      with environment name "pypi"
+#   3. Create the "pypi" environment in the repo settings
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: startsWith(github.event.release.tag_name, 'cli-web-core-v') || startsWith(github.event.release.tag_name, 'cli-web-devkit-v')
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # OIDC for PyPI trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Determine package directory
+        id: pkg
+        run: |
+          case "${{ github.event.release.tag_name }}" in
+            cli-web-core-v*)   echo "dir=cli-web-core" >> "$GITHUB_OUTPUT" ;;
+            cli-web-devkit-v*) echo "dir=devkit" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Build distribution
+        run: |
+          pip install build
+          python -m build ${{ steps.pkg.outputs.dir }} --outdir dist/
+
+      - name: Publish to PyPI (trusted publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Validate a cli-web-* CLI against the 75-point quality checklist.
+"""Validate a cli-web-* CLI against the tiered quality checklist.
 
-Runs ~65 mechanical checks from quality-checklist.md and reports results
+Runs the mechanical checks from quality-checklist.md and reports results
 as a colored terminal summary + optional JSON output.
+
+Checks are tiered (see quality-checklist.md "Tiers"):
+- critical (Tier 1)      — any failure blocks publish (non-zero exit)
+- comprehensive (Tier 2) — failures are warnings (exit 0), unless --strict
 
 Usage:
     python validate-checklist.py <harness-dir> --app-name hackernews
     python validate-checklist.py <harness-dir> --app-name hackernews --auth-type none
     python validate-checklist.py <harness-dir> --app-name hackernews --json
+    python validate-checklist.py <harness-dir> --app-name hackernews --tier1-only
+    python validate-checklist.py <harness-dir> --app-name hackernews --strict
 """
 
 from __future__ import annotations
@@ -20,6 +26,66 @@ import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
+# Tier registry — keep in sync with quality-checklist.md [T1]/[T2] markers
+# ---------------------------------------------------------------------------
+
+TIER1_CHECKS: frozenset[str] = frozenset(
+    {
+        # 1. Directory Structure — all critical
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5",
+        "1.6",
+        # 2. Required Files — all critical
+        "2.1",
+        "2.2",
+        "2.3",
+        "2.4",
+        "2.5",
+        "2.6",
+        "2.7",
+        "2.8",
+        "2.9",
+        "2.10",
+        "2.11",
+        "2.12",
+        "2.13",
+        # 3. CLI Implementation — Click group, --json envelope, REPL basics
+        "3.1",
+        "3.2",
+        "3.3",
+        "3.8",
+        "3.9",
+        # 4. Core Modules — exception hierarchy + status mapping + rpc structure
+        "4.1",
+        "4.2",
+        "4.3",
+        "4.7",
+        # 7. Packaging — namespace packages, name, entry point
+        "7.1",
+        "7.2",
+        "7.3",
+        # 8. Code Quality — syntax errors, hardcoded secrets
+        "8.1",
+        "8.2",
+        # 9. REPL Quality — shlex + dispatch
+        "9.1",
+        "9.2",
+        # 10. Error Handling — typed hierarchy, status mapping, --json errors
+        "10.1",
+        "10.2",
+        "10.4",
+    }
+)
+
+
+def severity_for(check_id: str) -> str:
+    return "critical" if check_id in TIER1_CHECKS else "comprehensive"
+
+
+# ---------------------------------------------------------------------------
 # Result tracking
 # ---------------------------------------------------------------------------
 
@@ -29,6 +95,7 @@ class CheckResult:
         self.category = category
         self.check_id = check_id
         self.description = description
+        self.severity = severity_for(check_id)
         self.status: str = "pending"  # pass, fail, skip, na
         self.detail: str = ""
 
@@ -57,6 +124,7 @@ class CheckResult:
             "category": self.category,
             "id": self.check_id,
             "description": self.description,
+            "severity": self.severity,
             "status": self.status,
             "detail": self.detail,
         }
@@ -582,8 +650,18 @@ class Validator:
         self.check_repl_quality()
         self.check_error_handling()
 
+    def tier_counts(self) -> dict:
+        """Per-tier status counts: {"critical": {...}, "comprehensive": {...}}."""
+        tiers = {
+            "critical": {"pass": 0, "fail": 0, "skip": 0, "na": 0},
+            "comprehensive": {"pass": 0, "fail": 0, "skip": 0, "na": 0},
+        }
+        for r in self.results:
+            tiers[r.severity][r.status] += 1
+        return tiers
+
     def print_summary(self):
-        """Print colored terminal summary."""
+        """Print colored terminal summary. Returns (tier1_failures, tier2_failures)."""
         counts = {"pass": 0, "fail": 0, "skip": 0, "na": 0}
         current_cat = ""
 
@@ -602,11 +680,14 @@ class Validator:
             else:
                 icon = "\033[33m SKIP\033[0m"
 
+            tier = "T1" if r.severity == "critical" else "T2"
             detail = f" — {r.detail}" if r.detail else ""
-            print(f"  [{icon}] {r.check_id}: {r.description}{detail}")
+            print(f"  [{icon}] [{tier}] {r.check_id}: {r.description}{detail}")
 
         total = len(self.results)
         applicable = total - counts["na"] - counts["skip"]
+        tiers = self.tier_counts()
+        t1, t2 = tiers["critical"], tiers["comprehensive"]
 
         print(f"\n{'=' * 60}")
         print(f"  Total checks:  {total}")
@@ -614,12 +695,20 @@ class Validator:
         print(f"  \033[31mFailed:      {counts['fail']}\033[0m")
         print(f"  \033[33mSkipped:     {counts['skip']}\033[0m")
         print(f"  \033[90mN/A:         {counts['na']}\033[0m")
+        print(f"  Tier 1 (critical):      {t1['pass']} passed, {t1['fail']} failed")
+        print(f"  Tier 2 (comprehensive): {t2['pass']} passed, {t2['fail']} failed")
         if applicable > 0:
             rate = counts["pass"] / applicable * 100
             print(f"  Pass rate:     {rate:.0f}% ({counts['pass']}/{applicable})")
+        if t1["fail"] > 0:
+            print("  \033[31mRESULT: BLOCKED — Tier 1 failures must be fixed before publish\033[0m")
+        elif t2["fail"] > 0:
+            print("  \033[33mRESULT: PASS WITH WARNINGS — Tier 2 failures reported above\033[0m")
+        else:
+            print("  \033[32mRESULT: PASS\033[0m")
         print(f"{'=' * 60}")
 
-        return counts["fail"]
+        return t1["fail"], t2["fail"]
 
     def to_json(self) -> str:
         counts = {"pass": 0, "fail": 0, "skip": 0, "na": 0}
@@ -630,6 +719,7 @@ class Validator:
                 "app_name": self.app_name,
                 "auth_type": self.auth_type,
                 "summary": counts,
+                "tiers": self.tier_counts(),
                 "checks": [r.to_dict() for r in self.results],
             },
             indent=2,
@@ -656,6 +746,17 @@ def main():
     parser.add_argument(
         "--json", dest="json_mode", action="store_true", help="Output results as JSON"
     )
+    parser.add_argument(
+        "--tier1-only",
+        dest="tier1_only",
+        action="store_true",
+        help="Run/report only Tier 1 (critical) checks — fail-fast mode",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit non-zero on Tier 2 (comprehensive) failures too",
+    )
 
     args = parser.parse_args()
 
@@ -667,11 +768,24 @@ def main():
     v = Validator(harness, args.app_name, args.auth_type)
     v.run_all()
 
+    if args.tier1_only:
+        v.results = [r for r in v.results if r.severity == "critical"]
+
     if args.json_mode:
         print(v.to_json())
+        tiers = v.tier_counts()
+        tier1_failures = tiers["critical"]["fail"]
+        tier2_failures = tiers["comprehensive"]["fail"]
     else:
-        failures = v.print_summary()
-        sys.exit(1 if failures > 0 else 0)
+        tier1_failures, tier2_failures = v.print_summary()
+
+    # Exit policy: Tier 1 failures always block; Tier 2 failures block only
+    # with --strict (otherwise they are warnings).
+    if tier1_failures > 0:
+        sys.exit(1)
+    if args.strict and tier2_failures > 0:
+        sys.exit(1)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

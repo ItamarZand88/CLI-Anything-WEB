@@ -42,8 +42,10 @@ prior completion and skips if already done.**
 1. Check playwright-cli availability (see Prerequisites above)
 2. **Check pipeline state:** `python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py status <app>`
    - If a phase is already `done` → skip it and proceed to the next
-   - If a phase `failed` with `retryable` → retry automatically
+   - If a phase `failed` with `retryable` → retry automatically (once)
    - If a phase `failed` with `fatal` → report and ask user
+   - Full decision tree (including corrupt/inconsistent state):
+     `${CLAUDE_PLUGIN_ROOT}/skills/shared/RECOVERY.md` §phase-state Check Failures
 3. For each phase, check before running:
    ```bash
    python ${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py check <app> --phase <phase>

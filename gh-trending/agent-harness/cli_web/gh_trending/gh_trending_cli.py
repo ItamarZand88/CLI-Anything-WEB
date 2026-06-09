@@ -113,5 +113,12 @@ def main():
     cli()
 
 
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.gh_trending.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="gh-trending", version="0.1.0")
+
+
 if __name__ == "__main__":
     main()

@@ -8,14 +8,19 @@ ROOT = repo_root()
 
 
 def _make_fleet(tmp_path, vendored_content: bytes | None, with_override: bool = False):
-    """Build a minimal repo: canon file + one registered CLI."""
-    canon_rel = next(iter(SHARED_FILES))
-    canon = tmp_path / canon_rel
-    canon.parent.mkdir(parents=True, exist_ok=True)
-    canon.write_bytes(b"CANONICAL CONTENT v2\n")
-
+    """Build a minimal repo: canon files + one registered CLI."""
     pkg = tmp_path / "demo/agent-harness/cli_web/demo"
     (pkg / "utils").mkdir(parents=True)
+    for canon_rel, vendored_rel in SHARED_FILES.items():
+        canon = tmp_path / canon_rel
+        canon.parent.mkdir(parents=True, exist_ok=True)
+        canon.write_bytes(b"CANONICAL CONTENT v2\n")
+        # All vendored copies except repl_skin start in sync; repl_skin
+        # content is controlled by the test.
+        if vendored_rel != "utils/repl_skin.py":
+            target = pkg / vendored_rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"CANONICAL CONTENT v2\n")
     if vendored_content is not None:
         (pkg / "utils/repl_skin.py").write_bytes(vendored_content)
 

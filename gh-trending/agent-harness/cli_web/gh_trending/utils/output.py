@@ -20,6 +20,11 @@ def print_json(data: Any) -> None:
     print(json.dumps(data, indent=2, default=str))
 
 
+def print_json_success(data: Any) -> None:
+    """Print data wrapped in the standard success envelope."""
+    print_json({"success": True, "data": data})
+
+
 def print_error_json(error: Exception) -> None:
     """Print an error as JSON."""
     from cli_web.gh_trending.core.exceptions import AppError

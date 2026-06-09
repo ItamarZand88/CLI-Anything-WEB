@@ -1,0 +1,133 @@
+import json
+
+import click
+import pytest
+from cli_web_core.mcp_server import McpServer, register_mcp_command
+
+
+@pytest.fixture()
+def demo_cli():
+    @click.group()
+    def cli():
+        """Demo CLI."""
+
+    @cli.group("things")
+    def things():
+        """Thing operations."""
+
+    @things.command("list")
+    @click.option("--limit", type=int, default=5, help="Max results")
+    @click.option("--json", "json_mode", is_flag=True)
+    def things_list(limit, json_mode):
+        """List things."""
+        payload = {"success": True, "data": [{"id": i} for i in range(limit)]}
+        click.echo(json.dumps(payload) if json_mode else f"{limit} things")
+
+    @things.command("get")
+    @click.argument("thing_id")
+    @click.option("--json", "json_mode", is_flag=True)
+    def things_get(thing_id, json_mode):
+        """Get one thing."""
+        click.echo(json.dumps({"success": True, "data": {"id": thing_id}}))
+
+    @cli.command("boom")
+    def boom():
+        """Always fails."""
+        raise click.ClickException("kaput")
+
+    register_mcp_command(cli, app_name="demo", version="9.9.9")
+    return cli
+
+
+@pytest.fixture()
+def server(demo_cli):
+    return McpServer(demo_cli, app_name="demo", version="9.9.9")
+
+
+def test_initialize_handshake(server):
+    resp = server.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
+    assert resp["result"]["protocolVersion"]
+    assert resp["result"]["serverInfo"]["name"] == "cli-web-demo"
+    assert resp["result"]["serverInfo"]["version"] == "9.9.9"
+    assert "tools" in resp["result"]["capabilities"]
+
+
+def test_notifications_are_silent(server):
+    assert server.handle({"jsonrpc": "2.0", "method": "notifications/initialized"}) is None
+
+
+def test_tools_list_derives_from_click_tree(server):
+    resp = server.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+    tools = {t["name"]: t for t in resp["result"]["tools"]}
+    assert set(tools) == {"things_list", "things_get", "boom"}
+
+    list_tool = tools["things_list"]
+    assert list_tool["description"] == "List things."
+    assert list_tool["inputSchema"]["properties"]["limit"] == {
+        "type": "integer",
+        "description": "Max results",
+    }
+    # --json is forced by the adapter, not exposed as a tool parameter
+    assert "json_mode" not in list_tool["inputSchema"]["properties"]
+
+    get_tool = tools["things_get"]
+    assert get_tool["inputSchema"]["required"] == ["thing_id"]
+
+
+def test_mcp_serve_not_exposed_as_tool(server):
+    resp = server.handle({"jsonrpc": "2.0", "id": 3, "method": "tools/list"})
+    assert all(t["name"] != "mcp_serve" for t in resp["result"]["tools"])
+
+
+def test_tools_call_runs_command_with_json(server):
+    resp = server.handle(
+        {
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {"name": "things_list", "arguments": {"limit": 2}},
+        }
+    )
+    result = resp["result"]
+    assert result["isError"] is False
+    payload = json.loads(result["content"][0]["text"])
+    assert payload == {"success": True, "data": [{"id": 0}, {"id": 1}]}
+
+
+def test_tools_call_positional_argument(server):
+    resp = server.handle(
+        {
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {"name": "things_get", "arguments": {"thing_id": "abc"}},
+        }
+    )
+    payload = json.loads(resp["result"]["content"][0]["text"])
+    assert payload["data"]["id"] == "abc"
+
+
+def test_tools_call_failure_marks_error(server):
+    resp = server.handle(
+        {
+            "jsonrpc": "2.0",
+            "id": 6,
+            "method": "tools/call",
+            "params": {"name": "boom", "arguments": {}},
+        }
+    )
+    assert resp["result"]["isError"] is True
+    assert "kaput" in resp["result"]["content"][0]["text"]
+
+
+def test_unknown_tool_and_method(server):
+    resp = server.handle(
+        {"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "nope"}}
+    )
+    assert resp["error"]["code"] == -32602
+    resp = server.handle({"jsonrpc": "2.0", "id": 8, "method": "bogus/method"})
+    assert resp["error"]["code"] == -32601
+
+
+def test_register_adds_command(demo_cli):
+    assert "mcp-serve" in demo_cli.commands

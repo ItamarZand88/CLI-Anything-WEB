@@ -2,15 +2,15 @@
 name: standards
 description: >
   Quality standards and Phase 4 review/publish/verify for cli-web-* CLIs.
-  Covers implementation review (3 parallel agents), the 75-check quality
-  checklist, package publishing (pip install -e .), and end-user smoke
-  testing (READ + WRITE). TRIGGER when: "validate CLI", "publish CLI",
-  "review CLI", "pip install -e .", "smoke test", "quality check", "start
-  Phase 4", "75-check", "generate Claude skill", "check if implementation
-  is complete", "verify implementation quality", or after testing skill
-  completes. DO NOT trigger for: traffic capture, implementation, or test
-  writing.
-version: 0.3.0
+  Covers implementation review (3 parallel agents), the tiered quality
+  checklist (Tier 1 critical / Tier 2 comprehensive), package publishing
+  (pip install -e .), and end-user smoke testing (READ + WRITE). TRIGGER
+  when: "validate CLI", "publish CLI", "review CLI", "pip install -e .",
+  "smoke test", "quality check", "start Phase 4", "quality checklist",
+  "generate Claude skill", "check if implementation is complete", "verify
+  implementation quality", or after testing skill completes. DO NOT trigger
+  for: traffic capture, implementation, or test writing.
+version: 0.4.0
 ---
 
 # CLI-Anything-Web Standards (Phase 4: Review + Publish + Verify)
@@ -29,7 +29,19 @@ Do NOT start unless:
 - [ ] All core modules are implemented and functional
 - [ ] `<APP>.md` (API map) exists and documents all endpoints
 
-If tests are not passing, invoke the `testing` skill first.
+If tests are not passing, invoke the `testing` skill first. If this gate or
+the phase state is in a failed/inconsistent state, follow
+`skills/shared/RECOVERY.md` §phase-state Check Failures.
+
+**Optional pre-review coverage scan:** before dispatching the review agents,
+you MAY run the `gap-analyzer` skill
+(`${CLAUDE_PLUGIN_ROOT}/skills/gap-analyzer/SKILL.md`, pass
+`APP_PATH=<app>/agent-harness`) to diff captured endpoints
+(`<APP>.md` + `traffic-capture/traffic-analysis.json`) against implemented
+commands. It is *optional* here because the traffic-fidelity-reviewer agent
+covers endpoint coverage during Step 1; gap-analyzer is the *mandatory first
+step* of `/refine`, where no reviewer pass exists. Run it here when coverage
+looks doubtful and you want the structured report before the agents start.
 
 ### Site Profile Exceptions
 
@@ -53,7 +65,7 @@ right thing*. Tests prove it runs; this step proves it's correct.
 
 Dispatch 3 plugin agents in the **same message** using the Agent tool:
 - `traffic-fidelity-reviewer` — API coverage (reads <APP>.md + client.py + commands/)
-- `harness-compliance-reviewer` — Code conventions (reads HARNESS.md + all source)
+- `harness-compliance-reviewer` — Code conventions incl. JSON envelope STRUCTURE (reads CONVENTIONS.md + all source)
 - `output-ux-reviewer` — User experience (runs --help, checks REPL, validates JSON)
 
 Pass each agent: APP_PATH=`{app}/agent-harness`, APP_NAME=`{app}`, and site
@@ -63,7 +75,7 @@ profile (auth_type, is_read_only). The agents are defined in the plugin's
 | Agent | Focus | What it reads | What it catches |
 |-------|-------|---------------|-----------------|
 | Traffic Fidelity | API coverage | `<APP>.md` + `client.py` + `commands/` | Missing endpoints, wrong params, broken response parsing, dead client methods, stale API map |
-| HARNESS Compliance | Code quality | HARNESS.md + checklist + all source | click.ClickException bypass, missing to_dict(), retry_after lost, auth retry missing, stderr UTF-8 |
+| HARNESS Compliance | Code quality + JSON envelope structure | CONVENTIONS.md + checklist + all source | click.ClickException bypass, missing to_dict(), retry_after lost, auth retry missing, stderr UTF-8 |
 | Output & UX | User experience | `--help` output, `--json` output, REPL | Protocol leaks, stale REPL help, dead command files, broken entry points |
 
 Each agent scores findings on a 0-100 confidence scale. When all 3 return:
@@ -82,21 +94,37 @@ Each agent scores findings on a 0-100 confidence scale. When all 3 return:
 
 ---
 
-## Step 2: Structural Quality Checklist (75 checks)
+## Step 2: Structural Quality Checklist (tiered)
 
-Run the automated checklist validator first to catch mechanical issues:
+The checklist is tiered (see `references/quality-checklist.md` "Tiers"):
+**Tier 1 (critical)** failures block publish; **Tier 2 (comprehensive)**
+failures are warnings that should still be fixed.
+
+**2a. Tier 1 fail-fast first.** Run only the critical checks and fix every
+FAIL before doing anything else — there is no point reviewing a CLI whose
+structure, packaging, or `--json` envelope is broken:
+
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/validate-checklist.py \
+  <app>/agent-harness --app-name <app> --auth-type <auth-type> --tier1-only
+```
+
+Non-zero exit = Tier 1 failures. Fix and re-run until it exits 0.
+
+**2b. Full run.** Then run the complete checklist (both tiers):
 
 ```bash
 python ${CLAUDE_PLUGIN_ROOT}/scripts/validate-checklist.py \
   <app>/agent-harness --app-name <app> --auth-type <auth-type>
 ```
 
-This checks ~65 of the 75 items automatically (directory structure, required files,
-CLI patterns, packaging, code quality, REPL, error handling). Fix any FAIL results
-before proceeding.
+The summary shows per-tier counts. Exit is non-zero only on Tier 1 failures
+(add `--strict` to make Tier 2 failures blocking too). Fix Tier 2 FAILs
+before publishing unless explicitly deferred with a reason.
 
-For the remaining ~10 judgment-based checks (documentation quality, error message
-guidance, fixture realism), review manually per `references/quality-checklist.md`.
+The validator automates the mechanical checks; the remaining judgment-based
+items (documentation quality, error message guidance, fixture realism) are
+reviewed manually per `references/quality-checklist.md`.
 
 ---
 
@@ -191,8 +219,8 @@ not just read them.
 ### Output Sanity
 
 Run every command with `--json` and check for raw protocol leaks (`wrb.fr`, `af.httprm`,
-empty `[]`, null required fields). See methodology/SKILL.md "Mandatory Smoke Check" for
-the full red flags list.
+empty `[]`, null required fields). Full red-flags table:
+`skills/shared/CONVENTIONS.md` §Protocol-Leak Smoke Check.
 
 **#1 gap to watch for:** Agent runs `list` (GET with auth — easy), declares done, but
 never tests create/generate (POST with CSRF, encoding). Always test at least one write.
@@ -214,9 +242,11 @@ After smoke tests pass, these tasks remain — all independent, dispatch in para
 All are independent — launch in one message with run_in_background: true
 ```
 
-**Use the templates** at `cli-anything-web-plugin/templates/` as the canonical
-structure for SKILL.md and README.md — fill in the `{{placeholders}}` with
-actual CLI data from `<app> --help` and `<APP>.md`.
+**Start from the scaffolded skeletons.** `scaffold-cli.py` (v2) already
+rendered `README.md` and the per-CLI `SKILL.md` skeletons from
+`templates/README.md.tpl` and `templates/SKILL.md.tpl` during Phase 2 —
+fill in the remaining placeholders with actual CLI data from `<app> --help`
+and `<APP>.md` rather than writing from scratch.
 
 ### Generate Claude Skill
 
@@ -284,14 +314,14 @@ The pipeline is NOT done until ALL of these are checked:
 ### Skills (TWO copies)
 - [ ] `.claude/skills/<app>-cli/SKILL.md` exists (Claude Code discovery)
 - [ ] `cli_web/<app>/skills/SKILL.md` exists (portable with pip install)
-- [ ] Used `cli-anything-web-plugin/templates/SKILL.md.template` as starting point
+- [ ] Based on the scaffolded skeleton from `templates/SKILL.md.tpl`
 
 ### Package
 - [ ] `setup.py` has `package_data={"": ["skills/*.md", "*.md"]}`
 - [ ] `__main__.py` exists for `python -m cli_web.<app>` support
 
 ### Documentation
-- [ ] `cli_web/<app>/README.md` exists (used `templates/README.md.template`)
+- [ ] `cli_web/<app>/README.md` exists (filled in from the `templates/README.md.tpl` skeleton)
 - [ ] `<APP>.md` API map exists
 - [ ] `tests/TEST.md` has Part 1 (plan) + Part 2 (results)
 
@@ -330,7 +360,7 @@ EOF
 Verify the entry runs: `python -m pytest <dir>/cli_web/<pkg>/tests/test_core.py -v`
 
 All key rules (naming, auth, --json, REPL, rate limits) are defined in
-HARNESS.md "Critical Rules" and CLAUDE.md "Critical Conventions".
+`skills/shared/CONVENTIONS.md` — HARNESS.md and CLAUDE.md only index them.
 
 ---
 
@@ -340,7 +370,7 @@ HARNESS.md "Critical Rules" and CLAUDE.md "Critical Conventions".
 |-------------|-------|
 | **Preceded by** | `testing` (Phase 3) |
 | **Followed by** | None — this is the final phase |
-| **References** | HARNESS.md (Generated CLI Structure, Naming Conventions) |
+| **References** | HARNESS.md (Generated CLI Structure), `skills/shared/CONVENTIONS.md` (all rules), `skills/shared/RECOVERY.md` (gate failures) |
 
 ---
 
@@ -349,4 +379,5 @@ HARNESS.md "Critical Rules" and CLAUDE.md "Critical Conventions".
 - **`testing`** skill -- Phase 3 test planning/writing/documentation
 - **`methodology`** skill -- Phase 2 analyze/design/implement
 - **`capture`** skill -- Phase 1 traffic recording
-- **`/cli-anything-web:validate`** -- Command to run the full 75-check validation
+- **`/cli-anything-web:validate`** -- Command to run the full tiered checklist validation
+- **`gap-analyzer`** skill -- Optional coverage scan (mandatory first step of `/refine`)

@@ -40,7 +40,9 @@ def cli(ctx, json_mode):
 
 
 # ── Register commands here ─────────────────────────────────────────────────────
-# cli.add_command(some_group)
+# FILL_IN: cli.add_command(...) for each command group, e.g.:
+#   from .commands.items import items
+#   cli.add_command(items)
 
 
 # ── REPL ───────────────────────────────────────────────────────────────────────

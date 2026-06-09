@@ -38,7 +38,7 @@ def test_to_underscore(scaffold_cli):
     assert scaffold_cli.to_underscore("hackernews") == "hackernews"
 
 
-# --- Placeholder rendering ---
+# --- Placeholder rendering (Jinja2 with ${name} delimiters) ---
 
 
 def test_render_string_substitutes_known_keys(scaffold_cli):
@@ -54,9 +54,16 @@ def test_render_string_multiple_placeholders(scaffold_cli):
     assert out == "cli-web-foo / FooError"
 
 
-def test_render_string_preserves_unknown_placeholders(scaffold_cli):
-    out = scaffold_cli.render_string("Known=${A}, unknown=${B}", {"A": "yes"})
-    assert out == "Known=yes, unknown=${B}"
+def test_render_string_raises_on_unknown_placeholder(scaffold_cli):
+    # StrictUndefined: any referenced-but-missing variable is an error.
+    with pytest.raises(ValueError, match="unresolved placeholders"):
+        scaffold_cli.render_string("Known=${A}, unknown=${B}", {"A": "yes"})
+
+
+def test_render_string_supports_jinja_conditionals(scaffold_cli):
+    tpl = '{% if auth_type == "google_sso" %}sso{% else %}generic{% endif %}'
+    assert scaffold_cli.render_string(tpl, {"auth_type": "google_sso"}) == "sso"
+    assert scaffold_cli.render_string(tpl, {"auth_type": "cookie"}) == "generic"
 
 
 # --- Placeholder detection ---
@@ -95,18 +102,23 @@ def test_write_file_accepts_clean_content(scaffold_cli, tmp_path):
     assert (tmp_path / "ok.py").read_text() == "no placeholders here\n"
 
 
-def test_render_template_raises_when_variable_missing(scaffold_cli, tmp_path):
-    tpl = tmp_path / "fake.tpl"
-    tpl.write_text("Hello ${Missing}")
+def test_write_file_refuses_raw_jinja_block_tags(scaffold_cli, tmp_path):
+    with pytest.raises(ValueError, match="Jinja block tag"):
+        scaffold_cli.write_file(tmp_path / "out.py", "{% if x %}leftover{% endif %}")
+    assert not (tmp_path / "out.py").exists()
+
+
+def test_render_template_raises_when_variable_missing(scaffold_cli):
+    # exceptions.py.tpl needs app casing variables; rendering with an empty
+    # context must surface the StrictUndefined error as ValueError.
     with pytest.raises(ValueError, match="unresolved placeholders"):
-        scaffold_cli.render_template(tpl, {})
+        scaffold_cli.render_template("exceptions.py.tpl", {})
 
 
-def test_render_template_succeeds_with_all_variables(scaffold_cli, tmp_path):
-    tpl = tmp_path / "fake.tpl"
-    tpl.write_text('name="${Name}", ver="${Ver}"')
-    out = scaffold_cli.render_template(tpl, {"Name": "foo", "Ver": "1.0"})
-    assert out == 'name="foo", ver="1.0"'
+def test_render_template_succeeds_with_all_variables(scaffold_cli):
+    out = scaffold_cli.render_template("output.py.tpl", {"app_name": "foo"})
+    assert "cli-web-foo" in out
+    assert "${" not in out
 
 
 # --- End-to-end scaffold (subprocess invocation) ---

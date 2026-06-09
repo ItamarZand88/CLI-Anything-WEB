@@ -13,7 +13,12 @@
     "utils/repl_skin.py": {
       "source": "cli-web-core/cli_web_core/repl_skin.py",
       "sha256": "7418b9f1965683c98a96475cf57ff55855cba50eb76d630d630a4b6dda9f3c3d",
-      "synced_at": "2026-06-09T22:13:49Z"
+      "synced_at": "2026-06-09T22:42:24Z"
+    },
+    "utils/mcp_server.py": {
+      "source": "cli-web-core/cli_web_core/mcp_server.py",
+      "sha256": "3dcb5f221802f1e81f294777d6580b07ba1f3713fd5a43a04ac0beeb6c3f82dc",
+      "synced_at": "2026-06-09T22:42:24Z"
     }
   },
   "overrides": []

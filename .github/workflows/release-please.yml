@@ -18,17 +18,11 @@ jobs:
     steps:
       - id: rp
         uses: googleapis/release-please-action@v4
+        # Manifest mode: packages, changelog sections, and extra-files live
+        # in release-please-config.json / .release-please-manifest.json.
         with:
-          release-type: simple
-          changelog-types: |
-            [
-              {"type": "feat", "section": "Features", "hidden": false},
-              {"type": "fix", "section": "Bug Fixes", "hidden": false},
-              {"type": "chore", "section": "Miscellaneous", "hidden": true},
-              {"type": "docs", "section": "Documentation", "hidden": false},
-              {"type": "perf", "section": "Performance", "hidden": false},
-              {"type": "refactor", "section": "Code Refactoring", "hidden": true}
-            ]
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   # Run tests on the release-please PR branch so required checks pass.
   # Only runs when a release PR branch actually exists — avoids checkout

@@ -125,5 +125,13 @@ def main():
     cli()
 
 
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.pexels import __version__ as _pkg_version  # noqa: E402
+from cli_web.pexels.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="pexels", version=_pkg_version)
+
+
 if __name__ == "__main__":
     main()

@@ -142,3 +142,11 @@ def _print_repl_help():
     print("  design history                Generation history")
     print("  help                          Show this help")
     print("  quit                          Exit REPL")
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.stitch import __version__ as _pkg_version  # noqa: E402
+from cli_web.stitch.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="stitch", version=_pkg_version)

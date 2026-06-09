@@ -1,9 +1,15 @@
-"""Tests for validate-checklist.py — the 65-point quality gate.
+"""Tests for validate-checklist.py — the tiered quality gate.
 
 Two test styles:
 1. End-to-end via subprocess against scaffolded CLIs (realistic).
 2. Synthetic minimal harnesses that trigger specific checks in isolation
    (catches regressions on individual check IDs).
+
+Tier semantics under test:
+- every check carries severity "critical" (Tier 1) or "comprehensive" (Tier 2)
+- Tier 1 failure → non-zero exit; Tier 2 failures alone → exit 0 (warnings)
+- --strict escalates Tier 2 failures to non-zero exit
+- --tier1-only reports only critical checks
 """
 
 from __future__ import annotations
@@ -20,9 +26,10 @@ VALIDATE = SCRIPTS_DIR / "validate-checklist.py"
 SCAFFOLD = SCRIPTS_DIR / "scaffold-cli.py"
 
 
-def _validate(harness: Path, app_name: str, auth_type: str = "cookie") -> dict:
-    """Run the validator in --json mode and return the parsed report."""
-    result = subprocess.run(
+def _run_validator(
+    harness: Path, app_name: str, auth_type: str = "cookie", *extra: str
+) -> subprocess.CompletedProcess:
+    return subprocess.run(
         [
             sys.executable,
             str(VALIDATE),
@@ -32,10 +39,16 @@ def _validate(harness: Path, app_name: str, auth_type: str = "cookie") -> dict:
             "--auth-type",
             auth_type,
             "--json",
+            *extra,
         ],
         capture_output=True,
         text=True,
     )
+
+
+def _validate(harness: Path, app_name: str, auth_type: str = "cookie", *extra: str) -> dict:
+    """Run the validator in --json mode and return the parsed report."""
+    result = _run_validator(harness, app_name, auth_type, *extra)
     # Non-zero exit is normal when there are failures — we parse anyway.
     assert result.stdout, f"no stdout; stderr: {result.stderr}"
     return json.loads(result.stdout)
@@ -215,6 +228,101 @@ def test_detects_missing_auth_when_required(tmp_path):
     (harness / "cli_web" / "tapp" / "core" / "auth.py").unlink()
     report = _validate(harness, "tapp", auth_type="cookie")
     assert _check(report, "2.5")["status"] == "fail"
+
+
+# --- Tiering (severity, --tier1-only, exit codes) ---
+
+
+def test_every_check_has_a_valid_severity(scaffolded_harness):
+    report = _validate(scaffolded_harness, "vcapp")
+    for entry in report["checks"]:
+        assert entry["severity"] in ("critical", "comprehensive"), entry
+
+
+def test_summary_includes_per_tier_counts(scaffolded_harness):
+    report = _validate(scaffolded_harness, "vcapp")
+    assert "tiers" in report
+    for tier in ("critical", "comprehensive"):
+        for key in ("pass", "fail", "skip", "na"):
+            assert isinstance(report["tiers"][tier][key], int)
+
+
+def test_known_tier_assignments(scaffolded_harness):
+    """Spot-check the tier registry against quality-checklist.md markers."""
+    report = _validate(scaffolded_harness, "vcapp")
+    # Tier 1: directory structure, required files, --json flag, packaging entry point
+    for check_id in ("1.3", "2.3", "3.2", "7.3", "9.1", "10.4"):
+        assert _check(report, check_id)["severity"] == "critical", check_id
+    # Tier 2: auth retry nuances, test standards, env var
+    for check_id in ("4.4", "5.2", "10.3"):
+        assert _check(report, check_id)["severity"] == "comprehensive", check_id
+
+
+def test_tier1_only_reports_only_critical_checks(scaffolded_harness):
+    report = _validate(scaffolded_harness, "vcapp", "cookie", "--tier1-only")
+    assert report["checks"], "tier1-only report is empty"
+    assert all(c["severity"] == "critical" for c in report["checks"])
+    assert report["tiers"]["comprehensive"] == {"pass": 0, "fail": 0, "skip": 0, "na": 0}
+
+
+def test_exit_nonzero_on_tier1_failure(tmp_path):
+    """Deleting setup.py fails check 1.6 (Tier 1) → exit code must be non-zero."""
+    harness = _make_minimal_harness(tmp_path)
+    (harness / "setup.py").unlink()
+    result = _run_validator(harness, "tapp")
+    report = json.loads(result.stdout)
+    assert _check(report, "1.6")["status"] == "fail"
+    assert result.returncode != 0
+
+
+def test_exit_code_matches_tier_policy(scaffolded_harness):
+    """Exit 0 iff no Tier 1 failures (default mode)."""
+    result = _run_validator(scaffolded_harness, "vcapp")
+    report = json.loads(result.stdout)
+    tier1_failures = report["tiers"]["critical"]["fail"]
+    if tier1_failures > 0:
+        assert result.returncode != 0
+    else:
+        assert result.returncode == 0
+
+
+def _repair_tier1_failures(harness: Path, app_name: str) -> None:
+    """Fix the Tier 1 gaps a bare scaffold leaves (filled later in the pipeline)."""
+    report = json.loads(_run_validator(harness, app_name).stdout)
+    pkg = harness / "cli_web" / app_name
+    for entry in report["checks"]:
+        if entry["severity"] != "critical" or entry["status"] != "fail":
+            continue
+        if entry["id"] == "1.2":  # <APP>.md API map
+            (harness / f"{app_name.upper()}.md").write_text("# API map\n")
+        elif entry["id"] == "2.11":  # tests/test_core.py
+            (pkg / "tests" / "test_core.py").write_text(
+                "from unittest import mock  # mock.patch used in real suites\n"
+            )
+        elif entry["id"] == "4.3":  # client status-code mapping markers
+            client = pkg / "core" / "client.py"
+            client.write_text(client.read_text() + "\n# raise_for_status maps 401/403/404/429\n")
+
+
+def test_strict_escalates_tier2_failures(tmp_path):
+    """A Tier-2-only failure exits 0 by default but non-zero with --strict."""
+    harness = _make_minimal_harness(tmp_path)
+    _repair_tier1_failures(harness, "tapp")
+    report = json.loads(_run_validator(harness, "tapp").stdout)
+    assert report["tiers"]["critical"]["fail"] == 0, (
+        "repair helper out of date with scaffold/validator"
+    )
+    if report["tiers"]["comprehensive"]["fail"] == 0:
+        # Introduce a Tier 2 failure: bare except in a non-test module (check 8.3)
+        bad = harness / "cli_web" / "tapp" / "utils" / "bad.py"
+        bad.write_text("try:\n    pass\nexcept:\n    pass\n")
+    default = _run_validator(harness, "tapp")
+    strict = _run_validator(harness, "tapp", "cookie", "--strict")
+    default_report = json.loads(default.stdout)
+    assert default_report["tiers"]["comprehensive"]["fail"] > 0
+    assert default_report["tiers"]["critical"]["fail"] == 0
+    assert default.returncode == 0
+    assert strict.returncode != 0
 
 
 # --- Error handling / argparse ---

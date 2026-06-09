@@ -5,7 +5,7 @@ from __future__ import annotations
 import click
 from cli_web.gh_trending.core.client import GitHubClient
 from cli_web.gh_trending.utils.helpers import handle_errors, resolve_json_mode
-from cli_web.gh_trending.utils.output import print_json, print_repos_table
+from cli_web.gh_trending.utils.output import print_json_success, print_repos_table
 
 
 @click.group("repos")
@@ -44,7 +44,7 @@ def repos_list(ctx, language, since, spoken_language, json_mode):
             spoken_language_code=spoken_language,
         )
         if json_mode:
-            print_json([r.to_dict() for r in repos])
+            print_json_success([r.to_dict() for r in repos])
         else:
             label_parts = []
             if language:

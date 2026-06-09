@@ -62,10 +62,23 @@ class Report:
     def warned(self) -> list[Check]:
         return [c for c in self.checks if c.status == "warn"]
 
+    @property
+    def score(self) -> int:
+        """Capture quality score 0-100: pass=full, warn=half, fail=zero weight.
+
+        Used by the methodology skill to plan implementation scope and by
+        /refine to target re-capture (higher score = richer capture).
+        """
+        if not self.checks:
+            return 0
+        weights = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
+        return round(100 * sum(weights[c.status] for c in self.checks) / len(self.checks))
+
     def to_dict(self) -> dict:
         return {
             "app_dir": self.app_dir,
             "overall": "fail" if self.failed else ("warn" if self.warned else "pass"),
+            "score": self.score,
             "checks": [
                 {"name": c.name, "status": c.status, "detail": c.detail} for c in self.checks
             ],
@@ -230,7 +243,7 @@ def print_human(report: Report) -> None:
             line += f"  —  {c.detail}"
         print(line)
     print()
-    print(f"{passed}/{total} checks passed", end="")
+    print(f"{passed}/{total} checks passed (capture quality score: {report.score}/100)", end="")
     if report.warned:
         print(f", {len(report.warned)} warning(s)", end="")
     if report.failed:

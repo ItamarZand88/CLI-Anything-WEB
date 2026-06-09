@@ -36,6 +36,11 @@ class RegistryEntry:
     namespace: str
     commands: list[str]
     install: str
+    # Optional: read-only command invocations (arg lists) safe to run on a
+    # schedule against the live site to detect breakage. No-auth CLIs only.
+    canary: list[list[str]] = field(default_factory=list)
+    # Optional presentation fields (description, skill, display_website, ...).
+    extra: dict[str, Any] = field(default_factory=dict)
 
     @property
     def package(self) -> str:
@@ -54,7 +59,10 @@ class RegistryEntry:
             raise ValueError(
                 f"registry entry {raw.get('name', '<unnamed>')!r} missing fields: {missing}"
             )
-        return cls(**{f: raw[f] for f in REQUIRED_FIELDS})
+        extra = {k: v for k, v in raw.items() if k not in REQUIRED_FIELDS and k != "canary"}
+        return cls(
+            **{f: raw[f] for f in REQUIRED_FIELDS}, canary=raw.get("canary", []), extra=extra
+        )
 
 
 @dataclass
