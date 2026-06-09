@@ -25,9 +25,13 @@ def _get_config_dir() -> Path:
 def save_auth(data: dict[str, Any]) -> Path:
     """Save auth data (access_token, cookies, device_id) to auth.json."""
     _get_config_dir()
-    AUTH_FILE.write_text(json.dumps(data, indent=2))
+    # Create with 0600 *before* writing so the token is never briefly
+    # world-readable at the default umask (TOCTOU window).
+    fd = os.open(AUTH_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(json.dumps(data, indent=2))
     try:
-        os.chmod(AUTH_FILE, stat.S_IRUSR | stat.S_IWUSR)
+        os.chmod(AUTH_FILE, stat.S_IRUSR | stat.S_IWUSR)  # ensure 600 on pre-existing files
     except OSError:
         pass
     return AUTH_FILE

@@ -243,8 +243,12 @@ def _extract_cookies(raw_cookies: list) -> dict:
 
 def _save_auth(data: dict):
     _auth_dir_setup()
-    AUTH_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    os.chmod(AUTH_FILE, 0o600)
+    # Create with 0600 *before* writing so cookies are never briefly
+    # world-readable at the default umask (TOCTOU window).
+    fd = os.open(AUTH_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(json.dumps(data, indent=2))
+    os.chmod(AUTH_FILE, 0o600)  # ensure 600 on pre-existing files
 
 
 def load_cookies() -> dict:

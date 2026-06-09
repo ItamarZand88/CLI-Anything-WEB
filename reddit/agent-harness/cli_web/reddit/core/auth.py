@@ -90,8 +90,12 @@ def save_auth(token: str, cookies: dict) -> None:
     """Save auth data to file with restricted permissions."""
     _ensure_dir()
     data = {"token": token, "cookies": cookies}
-    AUTH_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    # chmod 600 on Unix
+    # Create with 0600 *before* writing so the token is never briefly
+    # world-readable at the default umask (TOCTOU window).
+    fd = os.open(AUTH_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(json.dumps(data, indent=2))
+    # chmod 600 on Unix to cover pre-existing files
     if platform.system() != "Windows":
         AUTH_FILE.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
