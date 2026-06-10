@@ -8,6 +8,7 @@ Usage:
     cli-web-producthunt posts leaderboard --period weekly
     cli-web-producthunt users get rrhoover
 """
+
 import sys
 
 # Force UTF-8 output on Windows to handle Unicode characters
@@ -25,7 +26,6 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf8"):
 import shlex
 
 import click
-
 from cli_web.producthunt.commands.posts import posts
 from cli_web.producthunt.commands.users import users
 from cli_web.producthunt.utils.repl_skin import ReplSkin
@@ -115,6 +115,15 @@ cli.add_command(users)
 
 def main():
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.producthunt.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.producthunt.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="producthunt", version="0.1.0")
+register_doctor_command(cli, app_name="producthunt", pkg="producthunt")
 
 
 if __name__ == "__main__":

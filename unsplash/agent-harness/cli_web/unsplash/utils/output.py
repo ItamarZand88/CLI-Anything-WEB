@@ -91,7 +91,9 @@ def photo_detail_display(detail: dict) -> None:
     click.echo(f"  Description: {detail.get('description') or 'N/A'}")
     click.echo(f"  Size: {detail.get('width')}x{detail.get('height')}")
     click.echo(f"  Color: {detail.get('color')}")
-    click.echo(f"  Likes: {detail.get('likes')}  Views: {detail.get('views')}  Downloads: {detail.get('downloads')}")
+    click.echo(
+        f"  Likes: {detail.get('likes')}  Views: {detail.get('views')}  Downloads: {detail.get('downloads')}"
+    )
     author = detail.get("author", {})
     click.echo(f"  Author: {author.get('name')} (@{author.get('username')})")
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from curl_cffi import requests as curl_requests
 
-from .auth import get_bearer_token, get_cookies, load_auth, refresh_token
+from .auth import get_bearer_token, refresh_token
 from .exceptions import (
     AuthError,
     NetworkError,
@@ -58,9 +58,14 @@ class RedditClient:
 
     def _handle_response(self, resp, path: str = "") -> dict | list:
         if resp.status_code == 401:
-            raise AuthError("Authentication required. Run: cli-web-reddit auth login", recoverable=True)
+            raise AuthError(
+                "Authentication required. Run: cli-web-reddit auth login", recoverable=True
+            )
         if resp.status_code == 403:
-            raise AuthError("Access denied. Token may have expired. Run: cli-web-reddit auth login", recoverable=True)
+            raise AuthError(
+                "Access denied. Token may have expired. Run: cli-web-reddit auth login",
+                recoverable=True,
+            )
         if resp.status_code == 404:
             raise NotFoundError(f"Not found: {path}")
         if resp.status_code == 429:
@@ -70,15 +75,16 @@ class RedditClient:
                 retry_after=float(retry) if retry else None,
             )
         if resp.status_code >= 500:
-            raise ServerError(
-                f"Server error {resp.status_code}", status_code=resp.status_code
-            )
+            raise ServerError(f"Server error {resp.status_code}", status_code=resp.status_code)
         if resp.status_code >= 400:
             raise RedditError(f"HTTP {resp.status_code}: {resp.text[:200]}")
         return resp.json()
 
     def _get_listing(
-        self, path: str, limit: int = 25, after: str | None = None,
+        self,
+        path: str,
+        limit: int = 25,
+        after: str | None = None,
         extra_params: dict | None = None,
     ) -> dict:
         """Fetch a Reddit Listing and return raw response."""
@@ -105,8 +111,9 @@ class RedditClient:
         """Authenticated GET to oauth.reddit.com. Retries once on recoverable AuthError."""
         return self._oauth_request("GET", path, params=params)
 
-    def _oauth_request(self, method: str, path: str, params: dict | None = None,
-                       data: dict | None = None) -> dict | list:
+    def _oauth_request(
+        self, method: str, path: str, params: dict | None = None, data: dict | None = None
+    ) -> dict | list:
         """Execute an authenticated request with auto-refresh on token expiry.
 
         Flow: try → if 401/403 retry once → if still failing, refresh token_v2
@@ -157,7 +164,10 @@ class RedditClient:
                 raise
 
     def _oauth_get_listing(
-        self, path: str, limit: int = 25, after: str | None = None,
+        self,
+        path: str,
+        limit: int = 25,
+        after: str | None = None,
         extra_params: dict | None = None,
     ) -> dict:
         params: dict = {"limit": limit}
@@ -179,12 +189,8 @@ class RedditClient:
     def feed_new(self, limit: int = 25, after: str | None = None) -> dict:
         return self._get_listing("/new/.json", limit=limit, after=after)
 
-    def feed_top(
-        self, limit: int = 25, after: str | None = None, time: str = "day"
-    ) -> dict:
-        return self._get_listing(
-            "/top/.json", limit=limit, after=after, extra_params={"t": time}
-        )
+    def feed_top(self, limit: int = 25, after: str | None = None, time: str = "day") -> dict:
+        return self._get_listing("/top/.json", limit=limit, after=after, extra_params={"t": time})
 
     def feed_rising(self, limit: int = 25, after: str | None = None) -> dict:
         return self._get_listing("/rising/.json", limit=limit, after=after)
@@ -195,8 +201,12 @@ class RedditClient:
     # ── Subreddit ──────────────────────────────────────────────
 
     def sub_posts(
-        self, name: str, sort: str = "hot", limit: int = 25,
-        after: str | None = None, time: str | None = None,
+        self,
+        name: str,
+        sort: str = "hot",
+        limit: int = 25,
+        after: str | None = None,
+        time: str | None = None,
     ) -> dict:
         path = f"/r/{name}/{sort}/.json"
         extra = {}
@@ -211,11 +221,17 @@ class RedditClient:
         return self._get(f"/r/{name}/about/rules.json")
 
     def sub_search(
-        self, name: str, query: str, limit: int = 25,
-        sort: str = "relevance", after: str | None = None,
+        self,
+        name: str,
+        query: str,
+        limit: int = 25,
+        sort: str = "relevance",
+        after: str | None = None,
     ) -> dict:
         return self._get_listing(
-            f"/r/{name}/search.json", limit=limit, after=after,
+            f"/r/{name}/search.json",
+            limit=limit,
+            after=after,
             extra_params={"q": query, "restrict_sr": "on", "sort": sort},
         )
 
@@ -230,8 +246,12 @@ class RedditClient:
     # ── Search ──────────────────────────────────────────────────
 
     def search_posts(
-        self, query: str, limit: int = 25, sort: str = "relevance",
-        time: str | None = None, after: str | None = None,
+        self,
+        query: str,
+        limit: int = 25,
+        sort: str = "relevance",
+        time: str | None = None,
+        after: str | None = None,
     ) -> dict:
         extra: dict = {"q": query, "sort": sort}
         if time:
@@ -239,10 +259,15 @@ class RedditClient:
         return self._get_listing("/search.json", limit=limit, after=after, extra_params=extra)
 
     def search_subreddits(
-        self, query: str, limit: int = 25, after: str | None = None,
+        self,
+        query: str,
+        limit: int = 25,
+        after: str | None = None,
     ) -> dict:
         return self._get_listing(
-            "/subreddits/search.json", limit=limit, after=after,
+            "/subreddits/search.json",
+            limit=limit,
+            after=after,
             extra_params={"q": query},
         )
 
@@ -252,33 +277,51 @@ class RedditClient:
         return self._get(f"/user/{username}/about.json")
 
     def user_posts(
-        self, username: str, limit: int = 25, after: str | None = None,
-        sort: str = "new", time: str | None = None,
+        self,
+        username: str,
+        limit: int = 25,
+        after: str | None = None,
+        sort: str = "new",
+        time: str | None = None,
     ) -> dict:
         extra: dict = {"sort": sort}
         if time:
             extra["t"] = time
         return self._get_listing(
-            f"/user/{username}/submitted.json", limit=limit, after=after,
+            f"/user/{username}/submitted.json",
+            limit=limit,
+            after=after,
             extra_params=extra,
         )
 
     def user_comments(
-        self, username: str, limit: int = 25, after: str | None = None,
-        sort: str = "new", time: str | None = None,
+        self,
+        username: str,
+        limit: int = 25,
+        after: str | None = None,
+        sort: str = "new",
+        time: str | None = None,
     ) -> dict:
         extra: dict = {"sort": sort}
         if time:
             extra["t"] = time
         return self._get_listing(
-            f"/user/{username}/comments.json", limit=limit, after=after,
+            f"/user/{username}/comments.json",
+            limit=limit,
+            after=after,
             extra_params=extra,
         )
 
     # ── Post detail ──────────────────────────────────────────────
 
-    def post_detail(self, subreddit: str, post_id: str, slug: str = "",
-                    comment_limit: int = 50, depth: int | None = None) -> list:
+    def post_detail(
+        self,
+        subreddit: str,
+        post_id: str,
+        slug: str = "",
+        comment_limit: int = 50,
+        depth: int | None = None,
+    ) -> list:
         """Get post + comments. Returns [post_listing, comments_listing].
 
         If subreddit is empty, uses /comments/{id}.json which works without
@@ -313,8 +356,9 @@ class RedditClient:
             return resp.get("json", {}).get("data", {}).get("things", [])
         return []
 
-    def comment_thread(self, post_id: str, comment_id: str,
-                       context: int = 0, depth: int = 20) -> list:
+    def comment_thread(
+        self, post_id: str, comment_id: str, context: int = 0, depth: int = 20
+    ) -> list:
         """Fetch a specific comment thread via permalink .json.
 
         Used to expand 'continue this thread' links (more objects with empty IDs).
@@ -370,29 +414,32 @@ class RedditClient:
         result = self._oauth_get(f"/r/{subreddit}/api/link_flair_v2")
         if not isinstance(result, list):
             return []
-        return [
-            {"id": f.get("id", ""), "text": f.get("text", "")}
-            for f in result if f.get("id")
-        ]
+        return [{"id": f.get("id", ""), "text": f.get("text", "")} for f in result if f.get("id")]
 
-    def submit_text(self, subreddit: str, title: str, text: str,
-                    flair_id: str | None = None) -> dict:
+    def submit_text(
+        self, subreddit: str, title: str, text: str, flair_id: str | None = None
+    ) -> dict:
         """Submit a text post (requires auth)."""
         data = {
-            "sr": subreddit, "kind": "self",
-            "title": title, "text": text,
+            "sr": subreddit,
+            "kind": "self",
+            "title": title,
+            "text": text,
             "api_type": "json",
         }
         if flair_id:
             data["flair_id"] = flair_id
         return self._oauth_post("/api/submit", data=data)
 
-    def submit_link(self, subreddit: str, title: str, url: str,
-                    flair_id: str | None = None) -> dict:
+    def submit_link(
+        self, subreddit: str, title: str, url: str, flair_id: str | None = None
+    ) -> dict:
         """Submit a link post (requires auth)."""
         data = {
-            "sr": subreddit, "kind": "link",
-            "title": title, "url": url,
+            "sr": subreddit,
+            "kind": "link",
+            "title": title,
+            "url": url,
             "api_type": "json",
         }
         if flair_id:
@@ -403,17 +450,26 @@ class RedditClient:
 
     def comment(self, thing_id: str, text: str) -> dict:
         """Add a comment to a post or reply to a comment (requires auth)."""
-        return self._oauth_post("/api/comment", data={
-            "thing_id": thing_id, "text": text, "api_type": "json",
-        })
+        return self._oauth_post(
+            "/api/comment",
+            data={
+                "thing_id": thing_id,
+                "text": text,
+                "api_type": "json",
+            },
+        )
 
     def edit(self, thing_id: str, text: str) -> dict:
         """Edit own post or comment text (requires auth)."""
-        return self._oauth_post("/api/editusertext", data={
-            "thing_id": thing_id, "text": text, "api_type": "json",
-        })
+        return self._oauth_post(
+            "/api/editusertext",
+            data={
+                "thing_id": thing_id,
+                "text": text,
+                "api_type": "json",
+            },
+        )
 
     def delete(self, thing_id: str) -> dict:
         """Delete own post or comment (requires auth)."""
         return self._oauth_post("/api/del", data={"id": thing_id})
-

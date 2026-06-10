@@ -3,21 +3,11 @@
 from __future__ import annotations
 
 import click
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
-
-import datetime
 
 from ..core.client import AirbnbClient
-from ..core.exceptions import (
-    AirbnbError,
-    NetworkError,
-    NotFoundError,
-    ParseError,
-    RateLimitError,
-    ServerError,
-)
 from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
 console = Console()
@@ -178,11 +168,15 @@ def listings_get(ctx, listing_id, adults, checkin, checkout, locale, currency, j
 
 @listings.command("reviews")
 @click.argument("listing_id")
-@click.option("--limit", type=int, default=24, show_default=True, help="Number of reviews to fetch.")
+@click.option(
+    "--limit", type=int, default=24, show_default=True, help="Number of reviews to fetch."
+)
 @click.option("--offset", type=int, default=0, show_default=True, help="Pagination offset.")
 @click.option(
     "--sort",
-    type=click.Choice(["BEST_QUALITY", "RECENT", "RATING_DESC", "RATING_ASC"], case_sensitive=False),
+    type=click.Choice(
+        ["BEST_QUALITY", "RECENT", "RATING_DESC", "RATING_ASC"], case_sensitive=False
+    ),
     default="BEST_QUALITY",
     show_default=True,
     help="Sort order for reviews.",
@@ -205,14 +199,16 @@ def listings_reviews(ctx, listing_id, limit, offset, sort, locale, currency, jso
         reviews = result["reviews"]
         total = result.get("total_count")
         if json_mode:
-            print_json({
-                "success": True,
-                "listing_id": listing_id,
-                "total_count": total,
-                "offset": offset,
-                "count": len(reviews),
-                "reviews": [r.to_dict() for r in reviews],
-            })
+            print_json(
+                {
+                    "success": True,
+                    "listing_id": listing_id,
+                    "total_count": total,
+                    "offset": offset,
+                    "count": len(reviews),
+                    "reviews": [r.to_dict() for r in reviews],
+                }
+            )
         else:
             console.print(f"\n[bold cyan]Reviews for listing {listing_id}[/bold cyan]")
             if total is not None:
@@ -239,7 +235,9 @@ def listings_reviews(ctx, listing_id, limit, offset, sort, locale, currency, jso
 
 @listings.command("availability")
 @click.argument("listing_id")
-@click.option("--month", type=int, default=None, help="Starting month 1-12 (default: current month).")
+@click.option(
+    "--month", type=int, default=None, help="Starting month 1-12 (default: current month)."
+)
 @click.option("--year", type=int, default=None, help="Starting year (default: current year).")
 @click.option("--count", type=int, default=12, show_default=True, help="Number of months to fetch.")
 @click.option("--available-only", is_flag=True, help="Only show available days.")
@@ -247,7 +245,9 @@ def listings_reviews(ctx, listing_id, limit, offset, sort, locale, currency, jso
 @click.option("--currency", default="USD", show_default=True, help="Currency code.")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def listings_availability(ctx, listing_id, month, year, count, available_only, locale, currency, json_mode):
+def listings_availability(
+    ctx, listing_id, month, year, count, available_only, locale, currency, json_mode
+):
     """Get availability calendar for a listing by ID."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode=json_mode):
@@ -259,11 +259,13 @@ def listings_availability(ctx, listing_id, month, year, count, available_only, l
                 count=count,
             )
         if json_mode:
-            print_json({
-                "success": True,
-                "listing_id": listing_id,
-                "months": [m.to_dict() for m in months],
-            })
+            print_json(
+                {
+                    "success": True,
+                    "listing_id": listing_id,
+                    "months": [m.to_dict() for m in months],
+                }
+            )
         else:
             console.print(f"\n[bold cyan]Availability for listing {listing_id}[/bold cyan]\n")
             for mon in months:
@@ -279,11 +281,10 @@ def listings_availability(ctx, listing_id, month, year, count, available_only, l
                 for day in days:
                     if day.get("available") or day.get("checkin") or not available_only:
                         status = (
-                            "[green]✓[/green]" if day.get("available")
+                            "[green]✓[/green]"
+                            if day.get("available")
                             else ("[yellow]→[/yellow]" if day.get("checkin") else "[red]✗[/red]")
                         )
                         price_str = f"  {day['price']}" if day.get("price") else ""
                         console.print(f"  {status} {day['date']}{price_str}")
                 console.print()
-
-

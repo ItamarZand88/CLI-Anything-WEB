@@ -1,18 +1,18 @@
 """Data models and response parsers for Stitch."""
+
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
 class Project:
     id: str  # numeric ID extracted from resource_name
     resource_name: str  # "projects/<id>"
-    title: Optional[str] = None
-    created_at: Optional[float] = None  # epoch seconds
-    modified_at: Optional[float] = None
+    title: str | None = None
+    created_at: float | None = None  # epoch seconds
+    modified_at: float | None = None
     status: int = 0
-    thumbnail_url: Optional[str] = None
-    theme_mode: Optional[int] = None  # 1=light, 2=dark
+    thumbnail_url: str | None = None
+    theme_mode: int | None = None  # 1=light, 2=dark
     owner: bool = True
 
 
@@ -22,8 +22,8 @@ class Screen:
     name: str = ""
     description: str = ""
     resource_name: str = ""
-    thumbnail_url: Optional[str] = None
-    html_url: Optional[str] = None
+    thumbnail_url: str | None = None
+    html_url: str | None = None
     agent_name: str = ""
     width: int = 0
     height: int = 0
@@ -34,17 +34,17 @@ class Session:
     id: str
     resource_name: str
     prompt: str = ""
-    status: Optional[int] = None  # None=pending, 1=started, 2=completed
+    status: int | None = None  # None=pending, 1=started, 2=completed
     explanation: str = ""
     screens: list = field(default_factory=list)
-    timestamp: Optional[float] = None
+    timestamp: float | None = None
 
 
 @dataclass
 class User:
     id: str
     name: str = ""
-    avatar_url: Optional[str] = None
+    avatar_url: str | None = None
 
 
 def _safe_get(data, index, default=None):
@@ -58,7 +58,7 @@ def _safe_get(data, index, default=None):
         return default
 
 
-def parse_project(raw: list) -> Optional[Project]:
+def parse_project(raw: list) -> Project | None:
     """Parse a project entry from batchexecute response.
 
     Response structure:
@@ -80,16 +80,26 @@ def parse_project(raw: list) -> Optional[Project]:
             return None
 
         # Extract numeric ID from "projects/<id>"
-        project_id = resource_name.split("/")[-1] if "/" in str(resource_name) else str(resource_name)
+        project_id = (
+            resource_name.split("/")[-1] if "/" in str(resource_name) else str(resource_name)
+        )
 
         title = _safe_get(raw, 1)
 
         # Timestamps: [seconds, nanoseconds]
         created_raw = _safe_get(raw, 3)
-        created_at = float(created_raw[0]) if created_raw and isinstance(created_raw, list) and len(created_raw) > 0 else None
+        created_at = (
+            float(created_raw[0])
+            if created_raw and isinstance(created_raw, list) and len(created_raw) > 0
+            else None
+        )
 
         modified_raw = _safe_get(raw, 4)
-        modified_at = float(modified_raw[0]) if modified_raw and isinstance(modified_raw, list) and len(modified_raw) > 0 else None
+        modified_at = (
+            float(modified_raw[0])
+            if modified_raw and isinstance(modified_raw, list) and len(modified_raw) > 0
+            else None
+        )
 
         status = _safe_get(raw, 5, 0)
 
@@ -117,7 +127,7 @@ def parse_project(raw: list) -> Optional[Project]:
         return None
 
 
-def parse_screen(raw: list) -> Optional[Screen]:
+def parse_screen(raw: list) -> Screen | None:
     """Parse a screen entry from batchexecute response.
 
     Response structure:
@@ -165,7 +175,7 @@ def parse_screen(raw: list) -> Optional[Screen]:
         return None
 
 
-def parse_session(raw: list) -> Optional[Session]:
+def parse_session(raw: list) -> Session | None:
     """Parse a session entry from batchexecute response.
 
     Response structure (from traffic analysis):
@@ -183,7 +193,9 @@ def parse_session(raw: list) -> Optional[Session]:
             return None
 
         # Extract session ID from resource name
-        session_id = resource_name.split("/")[-1] if "/" in str(resource_name) else str(resource_name)
+        session_id = (
+            resource_name.split("/")[-1] if "/" in str(resource_name) else str(resource_name)
+        )
 
         status = _safe_get(raw, 2)
 

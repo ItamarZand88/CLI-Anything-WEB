@@ -15,7 +15,6 @@ for _stream in (sys.stdout, sys.stderr):
 import shlex
 
 import click
-
 from cli_web.youtube import __version__
 from cli_web.youtube.commands.channel import channel_group
 from cli_web.youtube.commands.search import search_group
@@ -119,6 +118,16 @@ def _run_repl(ctx: click.Context) -> None:
 
 def main():
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.youtube import __version__ as _pkg_version  # noqa: E402
+from cli_web.youtube.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.youtube.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="youtube", version=_pkg_version)
+register_doctor_command(cli, app_name="youtube", pkg="youtube")
 
 
 if __name__ == "__main__":

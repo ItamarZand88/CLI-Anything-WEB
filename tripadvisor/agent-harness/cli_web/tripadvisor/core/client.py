@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Optional
 
 from curl_cffi import requests as curl_requests
 
@@ -33,6 +32,7 @@ PAGE_SIZE = 30  # hotels/restaurants/attractions per listing page
 # Safari iOS 17.2 impersonation bypasses the protection.
 # Override via CLI_WEB_TRIPADVISOR_IMPERSONATE env var if this rotates.
 import os as _os
+
 _IMPERSONATE = _os.environ.get("CLI_WEB_TRIPADVISOR_IMPERSONATE", "safari17_2_ios")
 
 _DEFAULT_HEADERS = {
@@ -51,7 +51,8 @@ _JSON_HEADERS = {
 # Slug helpers
 # ---------------------------------------------------------------------------
 
-def _slug_from_url(url: str) -> Optional[str]:
+
+def _slug_from_url(url: str) -> str | None:
     """Extract the location slug from a TripAdvisor URL path.
 
     Examples:
@@ -91,6 +92,7 @@ def _extract_id_from_url(url: str) -> str:
 # JSON-LD extraction
 # ---------------------------------------------------------------------------
 
+
 def _extract_jsonld_blocks(html: str) -> list[dict]:
     """Extract all JSON-LD script blocks from the page HTML.
 
@@ -114,7 +116,7 @@ def _extract_jsonld_blocks(html: str) -> list[dict]:
     return blocks
 
 
-def _find_jsonld_by_type(blocks: list[dict], *types: str) -> Optional[dict]:
+def _find_jsonld_by_type(blocks: list[dict], *types: str) -> dict | None:
     """Find the first JSON-LD block matching one of the given @type values."""
     for block in blocks:
         t = block.get("@type", "")
@@ -162,6 +164,7 @@ def _find_jsonld_items(blocks: list[dict], *item_types: str) -> list[dict]:
 # Model builders
 # ---------------------------------------------------------------------------
 
+
 def _build_hotel(ld: dict) -> Hotel:
     """Build a Hotel model from a JSON-LD block."""
     url = ld.get("url", "").replace("HotelHighlight", "Hotel_Review")
@@ -169,7 +172,6 @@ def _build_hotel(ld: dict) -> Hotel:
     addr = ld.get("address") or {}
     street = addr.get("streetAddress", "")
     locality = addr.get("addressLocality", "")
-    address_str = f"{street}, {locality}".strip(", ") if street or locality else None
     rating_obj = ld.get("aggregateRating") or {}
     return Hotel(
         id=hotel_id,
@@ -278,7 +280,7 @@ def _parse_opening_hours(spec: list) -> list[str]:
     return result
 
 
-def _safe_int(val) -> Optional[int]:
+def _safe_int(val) -> int | None:
     try:
         return int(val)
     except (TypeError, ValueError):
@@ -343,8 +345,8 @@ def _parse_attractions_from_html(html: str) -> list[Attraction]:
 
         card_text = card.get_text(" ", strip=True)
 
-        rating: Optional[str] = None
-        review_count: Optional[int] = None
+        rating: str | None = None
+        review_count: int | None = None
 
         # Rating: pick only single-digit.single-digit pattern before "of 5"
         rating_m = re.search(r"\b(\d\.\d)\s+of 5", card_text)
@@ -372,6 +374,7 @@ def _parse_attractions_from_html(html: str) -> list[Attraction]:
 # Client
 # ---------------------------------------------------------------------------
 
+
 class TripAdvisorClient:
     """Fetch TripAdvisor data via SSR HTML JSON-LD extraction and TypeAheadJson REST.
 
@@ -388,7 +391,7 @@ class TripAdvisorClient:
     def close(self) -> None:
         self._session.close()
 
-    def __enter__(self) -> "TripAdvisorClient":
+    def __enter__(self) -> TripAdvisorClient:
         return self
 
     def __exit__(self, *exc) -> None:
@@ -398,7 +401,7 @@ class TripAdvisorClient:
     # Internal helpers
     # -----------------------------------------------------------------------
 
-    def _get_html(self, url: str, params: Optional[dict] = None) -> str:
+    def _get_html(self, url: str, params: dict | None = None) -> str:
         try:
             resp = self._session.get(url, params=params, timeout=30)
         except Exception as exc:
@@ -406,7 +409,7 @@ class TripAdvisorClient:
         self._raise_for_status(resp, url)
         return resp.text
 
-    def _get_json(self, url: str, params: Optional[dict] = None) -> dict:
+    def _get_json(self, url: str, params: dict | None = None) -> dict:
         # Do NOT add XHR headers — they can trigger DataDome's bot detection.
         # The session's default headers (impersonating Safari iOS) are sufficient.
         try:
@@ -501,7 +504,7 @@ class TripAdvisorClient:
     def search_hotels(
         self,
         location: str,
-        geo_id: Optional[str] = None,
+        geo_id: str | None = None,
         page: int = 1,
     ) -> dict:
         """Search hotels in a location. Returns list of Hotel objects."""
@@ -573,7 +576,7 @@ class TripAdvisorClient:
     def search_restaurants(
         self,
         location: str,
-        geo_id: Optional[str] = None,
+        geo_id: str | None = None,
         page: int = 1,
     ) -> dict:
         """Search restaurants in a location. Returns list of Restaurant objects."""
@@ -598,7 +601,9 @@ class TripAdvisorClient:
         if not items:
             for b in blocks:
                 if b.get("@type") in (
-                    "Restaurant", "FoodEstablishment", "CafeOrCoffeeShop"
+                    "Restaurant",
+                    "FoodEstablishment",
+                    "CafeOrCoffeeShop",
                 ) and b.get("url"):
                     items.append(b)
 
@@ -624,9 +629,7 @@ class TripAdvisorClient:
         html = self._get_html(url)
         blocks = _extract_jsonld_blocks(html)
 
-        ld = _find_jsonld_by_type(
-            blocks, "Restaurant", "FoodEstablishment", "CafeOrCoffeeShop"
-        )
+        ld = _find_jsonld_by_type(blocks, "Restaurant", "FoodEstablishment", "CafeOrCoffeeShop")
         if ld is None:
             raise ParseError(
                 f"No restaurant JSON-LD found at {url}. "
@@ -647,7 +650,7 @@ class TripAdvisorClient:
     def search_attractions(
         self,
         location: str,
-        geo_id: Optional[str] = None,
+        geo_id: str | None = None,
         page: int = 1,
     ) -> dict:
         """Search attractions in a location. Returns list of Attraction objects."""
@@ -672,7 +675,9 @@ class TripAdvisorClient:
         if not items:
             for b in blocks:
                 if b.get("@type") in (
-                    "TouristAttraction", "LocalBusiness", "TouristDestination"
+                    "TouristAttraction",
+                    "LocalBusiness",
+                    "TouristDestination",
                 ) and b.get("url"):
                     items.append(b)
 

@@ -1,7 +1,6 @@
 """Output formatting helpers for cli-web-producthunt."""
 
 import json
-import sys
 
 
 def print_json(data):

@@ -11,6 +11,11 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except AttributeError:
         pass
+if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf8"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass
 
 import click
 
@@ -58,7 +63,9 @@ def _print_repl_help():
     print()
     print("  topics list               [--order-by featured|latest|oldest|position]")
     print("  topics get <slug>         Topic details")
-    print("  topics photos <slug>      [--page N] [--per-page N] [--order-by latest|oldest|popular]")
+    print(
+        "  topics photos <slug>      [--page N] [--per-page N] [--order-by latest|oldest|popular]"
+    )
     print()
     print("  collections search <q>    [--page N] [--per-page N]")
     print("  collections get <id>      Collection details")
@@ -114,6 +121,16 @@ def _repl(ctx):
 
 def main():
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.unsplash import __version__ as _pkg_version  # noqa: E402
+from cli_web.unsplash.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.unsplash.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="unsplash", version=_pkg_version)
+register_doctor_command(cli, app_name="unsplash", pkg="unsplash")
 
 
 if __name__ == "__main__":

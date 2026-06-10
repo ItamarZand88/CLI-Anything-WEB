@@ -1,5 +1,15 @@
 # SSR Patterns Reference
 
+## Contents
+
+- Plain HTML (No Framework) — Check for Public API First
+- What SSR Means for CLI Generation
+- Framework-Specific Data Extraction
+- Force SPA Navigation Trick
+- SSR + API Hybrid Strategy
+- When SSR Extraction Is Viable vs Client-Side Fetches
+- HTML Scraping Pitfalls
+
 ## Plain HTML (No Framework) — Check for Public API First
 
 Before applying SSR extraction patterns, check if the site has a **separate public API**.

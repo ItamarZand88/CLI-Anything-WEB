@@ -5,7 +5,8 @@ from __future__ import annotations
 import click
 
 from ..core.client import ChatGPTClient
-from ..utils.helpers import handle_errors, print_json, resolve_json_mode, truncate
+from ..utils.helpers import handle_errors, resolve_json_mode
+from ..utils.output import print_json, truncate
 
 
 @click.group("conversations")
@@ -25,9 +26,7 @@ def list_conversations(ctx, limit: int, archived: bool, starred: bool, json_mode
 
     with handle_errors(json_mode=json_mode):
         with ChatGPTClient() as client:
-            data = client.list_conversations(
-                limit=limit, archived=archived, starred=starred
-            )
+            data = client.list_conversations(limit=limit, archived=archived, starred=starred)
 
             if json_mode:
                 print_json({"success": True, "data": data})
@@ -72,7 +71,7 @@ def get_conversation(ctx, conversation_id: str, json_mode: bool) -> None:
             mapping = data.get("mapping", {})
             if mapping:
                 click.echo(f"\nMessages ({len(mapping)}):")
-                for msg_id, node in mapping.items():
+                for _msg_id, node in mapping.items():
                     msg = node.get("message")
                     if not msg:
                         continue

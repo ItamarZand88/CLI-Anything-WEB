@@ -7,7 +7,6 @@ impersonation bypasses Cloudflare protection automatically.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from bs4 import BeautifulSoup
 from curl_cffi import requests as curl_requests
@@ -70,9 +69,7 @@ class ProductHuntClient:
         if status >= 500:
             raise ServerError(f"Server error (HTTP {status})", status_code=status)
         if status != 200:
-            raise ServerError(
-                f"Unexpected HTTP {status}: {url}", status_code=status
-            )
+            raise ServerError(f"Unexpected HTTP {status}: {url}", status_code=status)
 
         return BeautifulSoup(resp.text, "html.parser")
 
@@ -124,9 +121,7 @@ class ProductHuntClient:
             # Topics from /topics/ links
             topic_links = [
                 a.get_text(strip=True)
-                for a in container.find_all(
-                    "a", href=lambda h: h and "/topics/" in h
-                )
+                for a in container.find_all("a", href=lambda h: h and "/topics/" in h)
             ]
 
             # Thumbnail from <img> in the container
@@ -185,9 +180,7 @@ class ProductHuntClient:
         comments_count = 0
         buttons = soup.find_all("button")
         nums = [
-            int(btn.get_text(strip=True))
-            for btn in buttons
-            if btn.get_text(strip=True).isdigit()
+            int(btn.get_text(strip=True)) for btn in buttons if btn.get_text(strip=True).isdigit()
         ]
         if len(nums) >= 2:
             comments_count = nums[0]
@@ -197,8 +190,7 @@ class ProductHuntClient:
 
         # Topics from /topics/ links
         topics = [
-            a.get_text(strip=True)
-            for a in soup.find_all("a", href=lambda h: h and "/topics/" in h)
+            a.get_text(strip=True) for a in soup.find_all("a", href=lambda h: h and "/topics/" in h)
         ]
 
         return Post(
@@ -221,9 +213,9 @@ class ProductHuntClient:
     def list_leaderboard(
         self,
         period: str = "daily",
-        year: Optional[int] = None,
-        month: Optional[int] = None,
-        day: Optional[int] = None,
+        year: int | None = None,
+        month: int | None = None,
+        day: int | None = None,
     ) -> list[Post]:
         """Scrape the Product Hunt leaderboard.
 

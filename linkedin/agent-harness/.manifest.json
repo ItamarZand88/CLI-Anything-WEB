@@ -1,0 +1,30 @@
+{
+  "manifest_version": 1,
+  "cli": "cli-web-linkedin",
+  "generator": {
+    "plugin_version": "unknown",
+    "note": "backfilled by cli-web-devkit"
+  },
+  "profile": {
+    "protocol": "GraphQL + Voyager REST (curl_cffi)",
+    "auth": "cookie"
+  },
+  "shared_files": {
+    "utils/repl_skin.py": {
+      "source": "cli-web-core/cli_web_core/repl_skin.py",
+      "sha256": "7c8a8c6d0e52058486ccf3a84c34fa544ebbb054b0d297d2ed53c621d7819895",
+      "synced_at": "2026-06-10T11:09:00Z"
+    },
+    "utils/mcp_server.py": {
+      "source": "cli-web-core/cli_web_core/mcp_server.py",
+      "sha256": "e2d018c4fa7775cd213472abf581af183355fffb6b47d5c9fc5e1c2d64b6316c",
+      "synced_at": "2026-06-10T11:09:00Z"
+    },
+    "utils/doctor.py": {
+      "source": "cli-web-core/cli_web_core/doctor.py",
+      "sha256": "1c8deef391d6aee0a31b654af1cc1e97f4d25f7cde8cf4d6a8089b88f1c24c04",
+      "synced_at": "2026-06-10T11:09:00Z"
+    }
+  },
+  "overrides": []
+}

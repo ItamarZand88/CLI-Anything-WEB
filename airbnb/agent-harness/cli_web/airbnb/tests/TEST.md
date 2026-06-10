@@ -159,9 +159,9 @@ cli-web-airbnb search stays "<query>" --json
 
 ## Part 2: Test Results
 
-**Run date:** 2026-04-04 (re-run confirmed)  
-**Python:** 3.13.12  
-**Platform:** win32  
+**Run date:** 2026-04-04 (re-run confirmed)
+**Python:** 3.13.12
+**Platform:** win32
 **pytest:** 9.0.2
 
 ### Full Output

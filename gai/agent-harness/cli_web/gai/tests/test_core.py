@@ -1,25 +1,22 @@
 """Unit tests for cli-web-gai core modules (mocked Playwright)."""
 
 import json
-import sys
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 from cli_web.gai.core.exceptions import (
-    GAIError,
     BrowserError,
     CaptchaError,
+    GAIError,
     NetworkError,
     ParseError,
     TimeoutError,
 )
-
-from cli_web.gai.core.models import Source, SearchResult
+from cli_web.gai.core.models import SearchResult, Source
 from cli_web.gai.utils.helpers import handle_errors, json_error
 
-
 # ── Test Exceptions ──────────────────────────────────────────────────
+
 
 class TestExceptions:
     def test_all_exceptions_inherit_from_gai_error(self):
@@ -37,6 +34,7 @@ class TestExceptions:
 
 
 # ── Test Models ──────────────────────────────────────────────────────
+
 
 class TestModels:
     def test_source_to_dict_minimal(self):
@@ -83,6 +81,7 @@ class TestModels:
 
 
 # ── Test Helpers ─────────────────────────────────────────────────────
+
 
 class TestHelpers:
     def test_json_error_format(self):
@@ -137,6 +136,7 @@ class TestHelpers:
 
 # ── Test Client (Mocked Playwright) ─────────────────────────────────
 
+
 class TestClientMocked:
     """Test client logic with mocked Playwright browser."""
 
@@ -171,6 +171,7 @@ class TestClientMocked:
         mock_pw.return_value.start.return_value.chromium.launch.return_value = mock_browser
 
         from cli_web.gai.core.client import GAIClient
+
         client = GAIClient(headless=True)
         result = client.search("test query")
 
@@ -201,6 +202,7 @@ class TestClientMocked:
         mock_pw.return_value.start.return_value.chromium.launch.return_value = mock_browser
 
         from cli_web.gai.core.client import GAIClient
+
         client = GAIClient(headless=True)
         with pytest.raises(CaptchaError):
             client.search("test")
@@ -217,6 +219,7 @@ class TestClientMocked:
         mock_pw.return_value.start.return_value.chromium.launch.return_value = mock_browser
 
         from cli_web.gai.core.client import GAIClient
+
         client = GAIClient(headless=True)
         with pytest.raises(ParseError):
             client.search("test")
@@ -234,6 +237,7 @@ class TestClientMocked:
         mock_pw.return_value.start.return_value.chromium.launch.return_value = mock_browser
 
         from cli_web.gai.core.client import GAIClient
+
         client = GAIClient(headless=True)
         with pytest.raises(NetworkError):
             client.search("test")
@@ -250,6 +254,7 @@ class TestClientMocked:
         mock_pw.return_value.start.return_value.chromium.launch.return_value = mock_browser
 
         from cli_web.gai.core.client import GAIClient
+
         with GAIClient(headless=True) as client:
             result = client.search("test")
             assert result.answer == "The answer is 42."
@@ -259,9 +264,12 @@ class TestClientMocked:
     @patch("cli_web.gai.core.client.sync_playwright")
     def test_browser_launch_failure_raises_browser_error(self, mock_pw):
         """Client raises BrowserError when browser fails to launch."""
-        mock_pw.return_value.start.return_value.chromium.launch.side_effect = Exception("no chromium")
+        mock_pw.return_value.start.return_value.chromium.launch.side_effect = Exception(
+            "no chromium"
+        )
 
         from cli_web.gai.core.client import GAIClient
+
         client = GAIClient(headless=True)
         with pytest.raises(BrowserError, match="Failed to launch browser"):
             client.search("test")
@@ -279,6 +287,7 @@ class TestClientMocked:
         mock_pw.return_value.start.return_value.chromium.launch.return_value = mock_browser
 
         from cli_web.gai.core.client import GAIClient
+
         client = GAIClient(headless=True)
         result = client.search("simple q")
         assert result.answer == "Simple answer."
@@ -299,6 +308,7 @@ class TestClientMocked:
         mock_pw.return_value.start.return_value.chromium.launch.return_value = mock_browser
 
         from cli_web.gai.core.client import GAIClient
+
         client = GAIClient(headless=True)
         # Force _ensure_browser to return our mock_page
         client._ensure_browser()

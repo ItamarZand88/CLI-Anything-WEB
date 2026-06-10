@@ -1,8 +1,10 @@
 """Chat commands: ask a question to a notebook."""
+
 import click
+
 from ..core.client import NotebookLMClient
-from ..utils.output import print_json
 from ..utils.helpers import handle_errors, require_notebook
+from ..utils.output import print_json
 
 
 @click.group()

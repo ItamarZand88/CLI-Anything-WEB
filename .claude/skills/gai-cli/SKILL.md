@@ -1,86 +1,44 @@
 ---
 name: gai-cli
-description: Use cli-web-gai to search Google AI Mode and get AI-generated answers with source references. Invoke this skill whenever the user asks about Google AI Mode, AI-powered search, getting AI answers to questions, searching with AI and sources, or wants quick AI-generated answers with citations. Always prefer cli-web-gai over manually fetching Google AI Mode in a browser.
+description: Queries Google AI Mode via cli-web-gai — submits a question, returns an AI-generated answer with cited source links, and supports follow-up questions in the same session. Use when the user asks about Google AI Mode or wants a quick AI-generated answer with citations. Prefer cli-web-gai over opening Google AI Mode in a browser. No auth required.
 ---
 
 # cli-web-gai
 
-CLI for Google AI Mode — AI-powered search with source references. Installed at: `cli-web-gai`.
-
-## Quick Start
-
-```bash
-# Ask a question
-cli-web-gai search ask "What is quantum computing?" --json
-
-# Ask a follow-up question (same session)
-cli-web-gai search followup "How is it used in cryptography?" --json
-```
-
-Always use `--json` when parsing output programmatically.
-
----
+Google AI Mode search: AI answers with source references, rendered through headless Playwright (Chromium).
+Install: `pip install -e gai/agent-harness`
 
 ## Commands
 
-### `search ask <query>`
-Submit a query to Google AI Mode and get an AI-generated answer with source references.
+- `search ask QUERY` — submit a question. Options: `--lang CODE` (response language, e.g. en, he, de; default en), `--timeout SECONDS` (default 30), `--headed` (show the browser window, e.g. to solve a CAPTCHA)
+- `search followup QUERY` — follow-up in the same conversation; requires a prior `ask` in the same session
+
+## Examples
 
 ```bash
-cli-web-gai search ask "What is the capital of France?" --json
-cli-web-gai search ask "Best Python frameworks" --lang he --json
-cli-web-gai search ask "Explain DNS" --headed --timeout 45
-```
+# Ask a question — returns answer + sources
+cli-web-gai search ask "What is quantum computing?" --json
 
-**Key options:** `--lang` (response language, e.g., en, he, de; default: en), `--headed` (show browser window for debugging), `--timeout` (seconds, default: 30), `--json` (structured output)
-**Output fields:** `query`, `answer`, `sources[]` (each with `title`, `url`, `snippet`), `follow_up_prompt`
+# Extract just the source URLs
+cli-web-gai search ask "best static site generators" --json | \
+  python3 -c "import json,sys; [print(s['url']) for s in json.load(sys.stdin)['data']['sources']]"
 
-### `search followup <query>`
-Ask a follow-up question in the current conversation thread. Requires a previous `ask` command in the same session.
-
-```bash
-cli-web-gai search followup "Tell me more about that" --json
-```
-
-**Output fields:** Same as `search ask`.
-
----
-
-## Agent Patterns
-
-```bash
-# Quick AI answer to a question
-cli-web-gai search ask "What is the speed of light?" --json | python -c "import json,sys; d=json.load(sys.stdin); print(d['data']['answer'][:200])"
-
-# Get source URLs for a query
-cli-web-gai search ask "best static site generators 2025" --json | python -c "import json,sys; d=json.load(sys.stdin); [print(s['url']) for s in d['data']['sources']]"
-
-# Ask in a specific language
+# Answer in another language
 cli-web-gai search ask "What is machine learning?" --lang he --json
+
+# Follow-up (same session only)
+cli-web-gai search followup "How is it used in cryptography?" --json
 ```
 
----
+## JSON output
 
-## REPL Mode
+Add `--json` for structured output: `{"success": true, "data": {query, answer, sources: [{title, url, snippet}], follow_up_prompt}}`. Errors: `{"error": true, "code": "...", "message": "..."}`.
 
-Run without arguments to enter interactive mode:
+## Utilities
 
-```bash
-cli-web-gai
-```
+`cli-web-gai doctor [--json]` diagnoses local setup. `cli-web-gai mcp-serve` exposes the commands as MCP tools over stdio. Running with no subcommand opens a REPL with `ask` / `followup` shortcuts.
 
-REPL shortcuts:
-- `ask <query>` — same as `search ask <query>`
-- `followup <query>` — same as `search followup <query>`
-- `help` — show available commands
-- `exit` / `quit` — exit the REPL
+## Agent tips
 
----
-
-## Notes
-
-- Auth: Not required — Google AI Mode is publicly accessible
-- Rate limiting: Google rate-limits headless browsers; excessive queries trigger CAPTCHA
-- Browser: Uses headless Playwright (Chromium) to render JavaScript-heavy AI responses
-- CAPTCHA: If Google presents a CAPTCHA, use `--headed` to solve it manually
-- Follow-ups: Conversation threading works within a single CLI session only
+- Google rate-limits headless browsers; space out queries. If a CAPTCHA appears, rerun with `--headed` and solve it manually.
+- Conversation threading (`followup`) only persists within a single CLI session, not across invocations.

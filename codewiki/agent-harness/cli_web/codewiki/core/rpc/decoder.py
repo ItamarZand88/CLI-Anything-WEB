@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ..exceptions import AuthError, RPCError
+from ..exceptions import RPCError
 
 
 def _strip_prefix(raw: bytes | str) -> str:

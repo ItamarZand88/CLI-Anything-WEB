@@ -3,8 +3,9 @@
 Every exception carries enough context for:
 - Retry decisions (recoverable flag, retry_after)
 - Structured JSON output (to_dict / error_code_for)
-- CLI exit codes (auth=1, server=2, network=3)
+- CLI exit codes
 """
+
 from __future__ import annotations
 
 

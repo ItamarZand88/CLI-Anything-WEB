@@ -18,7 +18,11 @@ def topics():
 @topics.command("list")
 @click.option("--page", type=int, default=1, help="Page number.")
 @click.option("--per-page", type=int, default=20, help="Results per page.")
-@click.option("--order-by", type=click.Choice(["featured", "latest", "oldest", "position"]), help="Sort order.")
+@click.option(
+    "--order-by",
+    type=click.Choice(["featured", "latest", "oldest", "position"]),
+    help="Sort order.",
+)
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
 def list_topics(page, per_page, order_by, use_json):
     """List available topics."""

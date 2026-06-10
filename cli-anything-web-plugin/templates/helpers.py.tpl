@@ -8,7 +8,33 @@ from contextlib import contextmanager
 
 import click
 
-from ..core.exceptions import ${AppName}Error, _error_code_for
+{% set _exc = ([AppName ~ "Error", "AuthError", "NetworkError",
+    "NotFoundError", "RateLimitError", "ServerError"]) | sort -%}
+from ..core.exceptions import (
+{%- for _name in _exc %}
+    ${ _name },
+{%- endfor %}
+)
+
+# Numeric exit-code contract (CONVENTIONS.md §Exit Codes):
+# 0 ok | 1 unknown | 2 usage (Click) | 3 auth | 4 not-found | 5 rate-limit
+# | 6 server | 7 network — lets scripts/agents branch on $? without
+# parsing output.
+_EXIT_CODES = {
+    AuthError: 3,
+    NotFoundError: 4,
+    RateLimitError: 5,
+    ServerError: 6,
+    NetworkError: 7,
+}
+
+
+def _exit_code_for(exc: BaseException) -> int:
+    for exc_type, code in _EXIT_CODES.items():
+        if isinstance(exc, exc_type):
+            return code
+    return 1
+
 
 
 # --- Windows UTF-8 fix (always include) ---
@@ -41,7 +67,7 @@ def handle_errors(json_mode: bool = False):
     try:
         yield
     except KeyboardInterrupt:
-        raise SystemExit(130)
+        raise SystemExit(130) from None
     except (click.exceptions.Exit, click.UsageError):
         raise
     except ${AppName}Error as exc:
@@ -49,13 +75,13 @@ def handle_errors(json_mode: bool = False):
             print_json(exc.to_dict())
         else:
             click.secho(f"Error: {exc}", fg="red", err=True)
-        raise SystemExit(1)
+        raise SystemExit(_exit_code_for(exc)) from None
     except Exception as exc:
         if json_mode:
             print_json({"error": True, "code": "INTERNAL_ERROR", "message": str(exc)})
         else:
             click.secho(f"Error: {exc}", fg="red", err=True)
-        raise SystemExit(2)
+        raise SystemExit(1) from None
 
 
 def print_json(data) -> None:

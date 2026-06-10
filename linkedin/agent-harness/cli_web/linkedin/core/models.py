@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 
 @dataclass
@@ -20,7 +19,7 @@ class Post:
     num_comments: int = 0
     num_repins: int = 0
     url: str = ""
-    images: List[str] = field(default_factory=list)
+    images: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {

@@ -1,8 +1,17 @@
 """Tests for analyze-traffic.py: protocol detection, noise filtering, helpers."""
+
 from __future__ import annotations
 
 
-def _entry(url, method="GET", status=200, post_data=None, req_headers=None, resp_headers=None, mime="application/json"):
+def _entry(
+    url,
+    method="GET",
+    status=200,
+    post_data=None,
+    req_headers=None,
+    resp_headers=None,
+    mime="application/json",
+):
     """Build a traffic entry in the shape produced by parse-trace.py."""
     return {
         "url": url,
@@ -22,12 +31,19 @@ def _entry(url, method="GET", status=200, post_data=None, req_headers=None, resp
 
 # --- Protocol detection ---
 
+
 def test_detect_protocol_graphql(analyze_traffic):
     entries = [
-        _entry("https://api.example.com/graphql", method="POST",
-               post_data='{"operationName":"GetUser","query":"query GetUser {user{id}}"}'),
-        _entry("https://api.example.com/graphql", method="POST",
-               post_data='{"operationName":"UpdateUser","query":"mutation UpdateUser {updateUser(id:1){id}}"}'),
+        _entry(
+            "https://api.example.com/graphql",
+            method="POST",
+            post_data='{"operationName":"GetUser","query":"query GetUser {user{id}}"}',
+        ),
+        _entry(
+            "https://api.example.com/graphql",
+            method="POST",
+            post_data='{"operationName":"UpdateUser","query":"mutation UpdateUser {updateUser(id:1){id}}"}',
+        ),
     ]
     result = analyze_traffic.detect_protocol(entries)
     assert result["protocol"] == "graphql"
@@ -41,7 +57,7 @@ def test_detect_protocol_batchexecute(analyze_traffic):
         _entry(
             "https://notebooklm.google.com/_/LabsTailwindUi/data/batchexecute?rpcids=abc123&source=bl",
             method="POST",
-            post_data='f.req=%5B%5B%5B%22abc123%22%2C%22%5B%5D%22%2Cnull%2C%22generic%22%5D%5D%5D',
+            post_data="f.req=%5B%5B%5B%22abc123%22%2C%22%5B%5D%22%2Cnull%2C%22generic%22%5D%5D%5D",
         )
     ]
     result = analyze_traffic.detect_protocol(entries)
@@ -93,6 +109,7 @@ def test_analyze_handles_null_url_entries(analyze_traffic):
 
 # --- End-to-end analyze() ---
 
+
 def test_analyze_empty_input(analyze_traffic):
     report = analyze_traffic.analyze([])
     assert "protocol" in report
@@ -105,9 +122,18 @@ def test_analyze_returns_all_sections(analyze_traffic):
     entries = [_entry("https://api.example.com/v1/users")]
     report = analyze_traffic.analyze(entries)
     for key in (
-        "_meta", "protocol", "auth", "protections", "endpoints",
-        "rate_limits", "pagination", "stats", "suggested_commands",
-        "request_sequence", "session_lifecycle", "endpoint_sizes",
+        "_meta",
+        "protocol",
+        "auth",
+        "protections",
+        "endpoints",
+        "rate_limits",
+        "pagination",
+        "stats",
+        "suggested_commands",
+        "request_sequence",
+        "session_lifecycle",
+        "endpoint_sizes",
     ):
         assert key in report, f"missing section: {key}"
 

@@ -7,7 +7,6 @@ import json
 import sys
 
 import click
-
 from cli_web.youtube.core.exceptions import RateLimitError, YouTubeError
 
 
@@ -27,11 +26,15 @@ def handle_errors(json_mode: bool = False):
         sys.exit(1)
     except Exception as exc:
         if json_mode:
-            click.echo(json.dumps({
-                "error": True,
-                "code": "UNEXPECTED_ERROR",
-                "message": str(exc),
-            }))
+            click.echo(
+                json.dumps(
+                    {
+                        "error": True,
+                        "code": "UNEXPECTED_ERROR",
+                        "message": str(exc),
+                    }
+                )
+            )
         else:
             click.echo(f"Error: {exc}", err=True)
         sys.exit(1)

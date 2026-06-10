@@ -29,6 +29,7 @@ Exit codes:
     1 = at least one blocking failure
     2 = traffic files missing / malformed
 """
+
 from __future__ import annotations
 
 import argparse
@@ -61,15 +62,31 @@ class Report:
     def warned(self) -> list[Check]:
         return [c for c in self.checks if c.status == "warn"]
 
+    @property
+    def score(self) -> int:
+        """Capture quality score 0-100: pass=full, warn=half, fail=zero weight.
+
+        Used by the methodology skill to plan implementation scope and by
+        /refine to target re-capture (higher score = richer capture).
+        """
+        if not self.checks:
+            return 0
+        weights = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
+        return round(100 * sum(weights[c.status] for c in self.checks) / len(self.checks))
+
     def to_dict(self) -> dict:
         return {
             "app_dir": self.app_dir,
             "overall": "fail" if self.failed else ("warn" if self.warned else "pass"),
-            "checks": [{"name": c.name, "status": c.status, "detail": c.detail} for c in self.checks],
+            "score": self.score,
+            "checks": [
+                {"name": c.name, "status": c.status, "detail": c.detail} for c in self.checks
+            ],
         }
 
 
 # --- Individual checks -----------------------------------------------------
+
 
 def check_entry_count(entries: list[dict], min_entries: int, report: Report) -> None:
     count = len(entries)
@@ -77,7 +94,8 @@ def check_entry_count(entries: list[dict], min_entries: int, report: Report) -> 
         report.add("entry_count", "fail", "raw-traffic.json is empty")
     elif count < min_entries:
         report.add(
-            "entry_count", "fail",
+            "entry_count",
+            "fail",
             f"only {count} entries (< {min_entries}); browsing was too shallow",
         )
     else:
@@ -101,13 +119,11 @@ def check_write_operations(entries: list[dict], read_only: bool, report: Report)
         return
 
     write_methods = {"POST", "PUT", "PATCH", "DELETE"}
-    writes = [
-        e for e in entries
-        if (e.get("method") or "").upper() in write_methods
-    ]
+    writes = [e for e in entries if (e.get("method") or "").upper() in write_methods]
     if not writes:
         report.add(
-            "write_ops", "fail",
+            "write_ops",
+            "fail",
             "no POST/PUT/PATCH/DELETE captured; either browse and submit a form, "
             "or pass --read-only if this is intentional",
         )
@@ -119,7 +135,8 @@ def check_write_operations(entries: list[dict], read_only: bool, report: Report)
 def check_body_fidelity(entries: list[dict], report: Report) -> None:
     """Warn if too many API responses have no body (likely truncation)."""
     api_like = [
-        e for e in entries
+        e
+        for e in entries
         if (e.get("status") or 0) < 400
         and (e.get("method") or "").upper() in ("GET", "POST", "PUT", "PATCH")
         and _looks_like_api(e)
@@ -128,11 +145,14 @@ def check_body_fidelity(entries: list[dict], report: Report) -> None:
         report.add("body_fidelity", "warn", "no API-like responses to sample")
         return
 
-    with_body = [e for e in api_like if e.get("response_body") not in (None, "", "[binary content]")]
+    with_body = [
+        e for e in api_like if e.get("response_body") not in (None, "", "[binary content]")
+    ]
     ratio = len(with_body) / len(api_like)
     if ratio < 0.3:
         report.add(
-            "body_fidelity", "warn",
+            "body_fidelity",
+            "warn",
             f"only {int(ratio * 100)}% of API responses have bodies; possible truncation "
             f"(consider --mitmproxy mode for large payloads)",
         )
@@ -142,11 +162,7 @@ def check_body_fidelity(entries: list[dict], report: Report) -> None:
 
 def _looks_like_api(entry: dict) -> bool:
     mime = (entry.get("mime_type") or "").lower()
-    return (
-        "json" in mime
-        or "xml" in mime
-        or "graphql" in (entry.get("url") or "").lower()
-    )
+    return "json" in mime or "xml" in mime or "graphql" in (entry.get("url") or "").lower()
 
 
 def check_error_rate(entries: list[dict], report: Report) -> None:
@@ -157,7 +173,8 @@ def check_error_rate(entries: list[dict], report: Report) -> None:
     ratio = len(errors) / len(entries)
     if ratio > 0.5:
         report.add(
-            "error_rate", "fail",
+            "error_rate",
+            "fail",
             f"{int(ratio * 100)}% of responses are 4xx/5xx; capture likely had auth or "
             f"rate-limit failure",
         )
@@ -178,7 +195,8 @@ def check_endpoint_diversity(entries: list[dict], report: Report) -> None:
         paths.add(path)
     if len(paths) < 3:
         report.add(
-            "endpoint_diversity", "fail",
+            "endpoint_diversity",
+            "fail",
             f"only {len(paths)} distinct URL paths; explore more of the app UI",
         )
     elif len(paths) < 8:
@@ -188,6 +206,7 @@ def check_endpoint_diversity(entries: list[dict], report: Report) -> None:
 
 
 # --- Entry point -----------------------------------------------------------
+
 
 def load_capture(app_dir: Path) -> tuple[list[dict], dict]:
     """Return (entries, analysis). Raises FileNotFoundError if files missing."""
@@ -224,7 +243,7 @@ def print_human(report: Report) -> None:
             line += f"  —  {c.detail}"
         print(line)
     print()
-    print(f"{passed}/{total} checks passed", end="")
+    print(f"{passed}/{total} checks passed (capture quality score: {report.score}/100)", end="")
     if report.warned:
         print(f", {len(report.warned)} warning(s)", end="")
     if report.failed:

@@ -139,11 +139,11 @@ def login_browser() -> dict[str, str]:
 
     try:
         from playwright.sync_api import sync_playwright
-    except ImportError:
+    except ImportError as exc:
         raise AuthError(
             "Browser login requires playwright. Install: pip install playwright && playwright install chromium",
             recoverable=False,
-        )
+        ) from exc
 
     user_data_dir = str(_get_config_dir() / "browser-profile")
 
@@ -169,9 +169,9 @@ def login_browser() -> dict[str, str]:
                 lambda url: "login" not in url,
                 timeout=300_000,
             )
-        except Exception:
+        except Exception as exc:
             context.close()
-            raise AuthError("Login timed out after 5 minutes", recoverable=False)
+            raise AuthError("Login timed out after 5 minutes", recoverable=False) from exc
 
         # Extract cookies
         cookies = context.cookies("https://news.ycombinator.com")
@@ -192,6 +192,70 @@ def login_browser() -> dict[str, str]:
         auth_data = {"user_cookie": user_cookie, "username": username}
         save_auth(user_cookie, username)
         return auth_data
+
+
+def refresh_auth() -> dict[str, str]:
+    """Headlessly re-extract the auth cookie via the persistent browser profile.
+
+    Launches a headless browser with the profile saved by login_browser(),
+    navigates to HN (which re-sends the session cookie), and saves it.
+
+    Raises:
+        AuthError: If the profile is missing or the session is gone —
+            the user must run `cli-web-hackernews auth login`.
+    """
+    import asyncio
+    import sys
+
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError as exc:
+        raise AuthError(
+            "Headless refresh requires playwright. Run: cli-web-hackernews auth login",
+            recoverable=False,
+        ) from exc
+
+    profile_dir = _get_config_dir() / "browser-profile"
+    if not profile_dir.exists():
+        raise AuthError(
+            "Session expired and no browser profile found. Run: cli-web-hackernews auth login",
+            recoverable=False,
+        )
+
+    with sync_playwright() as p:
+        context = p.chromium.launch_persistent_context(
+            user_data_dir=str(profile_dir),
+            headless=True,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--no-first-run",
+                "--no-default-browser-check",
+            ],
+        )
+        try:
+            page = context.pages[0] if context.pages else context.new_page()
+            page.goto(HN_BASE, wait_until="domcontentloaded")
+            page.wait_for_timeout(2000)
+            cookies = context.cookies("https://news.ycombinator.com")
+        finally:
+            context.close()
+
+    user_cookie = None
+    username = None
+    for cookie in cookies:
+        if cookie["name"] == "user":
+            user_cookie = cookie["value"]
+            username = user_cookie.split("&")[0] if "&" in user_cookie else None
+            break
+
+    if not user_cookie or not username:
+        raise AuthError("Session expired. Run: cli-web-hackernews auth login", recoverable=False)
+
+    save_auth(user_cookie, username)
+    return {"user_cookie": user_cookie, "username": username}
 
 
 def validate_auth() -> dict[str, Any]:
@@ -218,7 +282,9 @@ def validate_auth() -> dict[str, Any]:
         raise AuthError("Auth validation failed — cookie may be expired", recoverable=False)
 
     # Check if we're actually logged in (page shows logout link)
-    if f'id="logout"' not in response.text and "logout" not in response.text:
-        raise AuthError("Auth cookie expired. Run: cli-web-hackernews auth login", recoverable=False)
+    if 'id="logout"' not in response.text and "logout" not in response.text:
+        raise AuthError(
+            "Auth cookie expired. Run: cli-web-hackernews auth login", recoverable=False
+        )
 
     return {"username": username, "valid": True}

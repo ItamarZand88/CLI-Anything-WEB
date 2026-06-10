@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-import time
 from typing import Any
 
 import httpx
@@ -32,6 +30,12 @@ class GitHubClient:
     def __init__(self, cookies: dict[str, str] | None = None, timeout: float = 30.0):
         self._cookies = cookies or {}
         self._timeout = timeout
+
+    def __enter__(self) -> GitHubClient:
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass  # No persistent connection — httpx.Client is scoped per request.
 
     def _get(self, url: str, params: dict[str, str] | None = None) -> str:
         """Fetch a URL and return the HTML body."""
@@ -92,8 +96,7 @@ class GitHubClient:
             if no_results:
                 return []
             raise ParseError(
-                "Could not find trending repos on page. "
-                "GitHub may have changed its HTML structure."
+                "Could not find trending repos on page. GitHub may have changed its HTML structure."
             )
 
         repos: list[TrendingRepo] = []
@@ -139,8 +142,7 @@ class GitHubClient:
 
             # Contributors (built by)
             contributors = [
-                img.get("alt", "").lstrip("@")
-                for img in article.select(".Link--muted img[alt]")
+                img.get("alt", "").lstrip("@") for img in article.select(".Link--muted img[alt]")
             ]
 
             return TrendingRepo(

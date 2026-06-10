@@ -1,11 +1,12 @@
 """Article-related commands: list, get."""
+
 from __future__ import annotations
 
 import click
 
 from ..core.client import CapitoltradesClient
 from ..core.exceptions import NotFoundError
-from ..core.models import parse_articles_list, parse_article_detail
+from ..core.models import parse_article_detail, parse_articles_list
 from ..utils.helpers import handle_errors, print_json
 
 
@@ -26,7 +27,9 @@ def list_articles(ctx, page, page_size):
             soup = client.get_html("/articles", params={"page": page, "pageSize": page_size})
             rows = parse_articles_list(soup)
         if json_mode:
-            print_json({"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}})
+            print_json(
+                {"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}}
+            )
         else:
             if not rows:
                 click.echo("No articles found.")

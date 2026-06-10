@@ -26,9 +26,11 @@ class AuthError(AppError):
     """Authentication failed — expired cookies, invalid tokens, session timeout.
 
     Args:
-        recoverable: If True, client should refresh tokens and retry once.
+        recoverable: If True, client should run the 3-attempt auto-refresh
+                     (see CONVENTIONS.md §Auth Rules).
                      If False (e.g., cookies deleted), user must re-login.
     """
+
     def __init__(self, message: str, recoverable: bool = True):
         self.recoverable = recoverable
         super().__init__(message)
@@ -40,6 +42,7 @@ class RateLimitError(AppError):
     Args:
         retry_after: Seconds to wait before retrying (from Retry-After header).
     """
+
     def __init__(self, message: str, retry_after: float | None = None):
         self.retry_after = retry_after
         super().__init__(message)
@@ -61,6 +64,7 @@ class ServerError(AppError):
     Args:
         status_code: The HTTP status code (500, 502, 503, etc.)
     """
+
     def __init__(self, message: str, status_code: int = 500):
         self.status_code = status_code
         super().__init__(message)
@@ -75,6 +79,7 @@ class ValidationError(AppError):
 
 
 # --- Domain-specific extensions (examples) ---
+
 
 class ArtifactNotReadyError(AppError):
     """Artifact generation still in progress — poll again later."""

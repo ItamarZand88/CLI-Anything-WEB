@@ -3,7 +3,8 @@
 Every exception carries enough context for:
 - Retry decisions (recoverable flag, retry_after)
 - Structured JSON output (to_dict / error_code_for)
-- CLI exit codes (auth=1, server=2, network=3)
+- Numeric CLI exit codes (auth=3, not-found=4, rate-limit=5, server=6,
+  network=7 — see utils/helpers.py and CONVENTIONS.md §Exit Codes)
 """
 from __future__ import annotations
 
@@ -23,7 +24,8 @@ class AuthError(${AppName}Error):
     """Authentication failed -- expired cookies, invalid tokens, session timeout.
 
     Args:
-        recoverable: If True, client retries once (token refresh).
+        recoverable: If True, client runs the 3-attempt auto-refresh
+                     (current cookies -> reload auth.json -> browser refresh).
                      If False, user must re-login.
     """
 

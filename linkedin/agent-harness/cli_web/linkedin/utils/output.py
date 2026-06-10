@@ -1,4 +1,5 @@
 """Structured JSON output helpers for cli-web-linkedin."""
+
 from __future__ import annotations
 
 import json

@@ -3,19 +3,21 @@
 Protocol: SSR HTML + REST JSON hybrid.
 Library: httpx (no Cloudflare/WAF protection detected).
 """
+
 import re
-import json as _json
-from pathlib import Path
 from typing import Any
 
 import httpx
 from bs4 import BeautifulSoup
 
 from .exceptions import (
-    AmazonError, NetworkError, NotFoundError,
-    ParsingError, RateLimitError, ServerError,
+    NetworkError,
+    NotFoundError,
+    ParsingError,
+    RateLimitError,
+    ServerError,
 )
-from .models import SearchResult, Product, BestSeller, Suggestion
+from .models import BestSeller, Product, SearchResult, Suggestion
 
 BASE_URL = "https://www.amazon.com"
 COMPLETION_URL = "https://completion.amazon.com"
@@ -67,8 +69,9 @@ class AmazonClient:
 
     # ── Internal helpers ────────────────────────────────────────────────
 
-    def _get(self, url: str, params: dict | None = None,
-             headers: dict | None = None) -> httpx.Response:
+    def _get(
+        self, url: str, params: dict | None = None, headers: dict | None = None
+    ) -> httpx.Response:
         """Make a GET request with error mapping."""
         try:
             resp = self._client.get(url, params=params, headers=headers)
@@ -80,8 +83,7 @@ class AmazonClient:
             raise NetworkError(f"Request error: {exc}") from exc
         return self._check_status(resp, url)
 
-    def _post(self, url: str, data: dict | None = None,
-              json: dict | None = None) -> httpx.Response:
+    def _post(self, url: str, data: dict | None = None, json: dict | None = None) -> httpx.Response:
         """Make a POST request with error mapping."""
         try:
             resp = self._client.post(url, data=data, json=json)
@@ -156,8 +158,9 @@ class AmazonClient:
 
     # ── Search ──────────────────────────────────────────────────────────
 
-    def search(self, query: str, page: int = 1,
-               department: str | None = None) -> list[SearchResult]:
+    def search(
+        self, query: str, page: int = 1, department: str | None = None
+    ) -> list[SearchResult]:
         """Search Amazon products.
 
         Args:
@@ -226,14 +229,16 @@ class AmazonClient:
                 elif href:
                     url = f"{BASE_URL}{href}"
 
-            results.append(SearchResult(
-                asin=asin,
-                title=title,
-                price=price,
-                rating=rating,
-                review_count=review_count,
-                url=url,
-            ))
+            results.append(
+                SearchResult(
+                    asin=asin,
+                    title=title,
+                    price=price,
+                    rating=rating,
+                    review_count=review_count,
+                    url=url,
+                )
+            )
         return results
 
     # ── Product Detail ──────────────────────────────────────────────────
@@ -303,10 +308,7 @@ class AmazonClient:
         rating = ""
         rating_elem = soup.find("span", attrs={"id": "acrPopover"})
         if rating_elem:
-            rating = (
-                rating_elem.get("title", "")
-                or rating_elem.get_text(strip=True)
-            )
+            rating = rating_elem.get("title", "") or rating_elem.get_text(strip=True)
 
         # Review count
         review_count = ""
@@ -341,11 +343,9 @@ class AmazonClient:
 
     # ── Product Variants ────────────────────────────────────────────────
 
-
     # ── Best Sellers ────────────────────────────────────────────────────
 
-    def get_bestsellers(self, category: str = "electronics",
-                        page: int = 1) -> list[BestSeller]:
+    def get_bestsellers(self, category: str = "electronics", page: int = 1) -> list[BestSeller]:
         """Get Amazon Best Sellers for a category.
 
         Args:
@@ -410,14 +410,14 @@ class AmazonClient:
                 elif href:
                     url_path = f"{BASE_URL}{href}"
 
-            results.append(BestSeller(
-                rank=rank,
-                asin=asin,
-                title=title,
-                price=price,
-                url=url_path,
-            ))
+            results.append(
+                BestSeller(
+                    rank=rank,
+                    asin=asin,
+                    title=title,
+                    price=price,
+                    url=url_path,
+                )
+            )
 
         return results
-
-

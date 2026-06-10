@@ -55,9 +55,7 @@ class UnsplashClient:
                 retry_after=float(retry) if retry else None,
             )
         if resp.status_code >= 500:
-            raise ServerError(
-                f"Server error {resp.status_code}", status_code=resp.status_code
-            )
+            raise ServerError(f"Server error {resp.status_code}", status_code=resp.status_code)
         if resp.status_code >= 400:
             raise UnsplashError(f"HTTP {resp.status_code}: {resp.text[:200]}")
 
@@ -83,9 +81,7 @@ class UnsplashClient:
             params["order_by"] = order_by
         return self._get("/napi/search/photos", params=params)
 
-    def search_collections(
-        self, query: str, page: int = 1, per_page: int = 20
-    ) -> dict:
+    def search_collections(self, query: str, page: int = 1, per_page: int = 20) -> dict:
         return self._get(
             "/napi/search/collections",
             params={"query": query, "page": page, "per_page": per_page},
@@ -129,9 +125,7 @@ class UnsplashClient:
 
     # ── Topics ──────────────────────────────────────────────────
 
-    def list_topics(
-        self, page: int = 1, per_page: int = 20, order_by: str | None = None
-    ) -> list:
+    def list_topics(self, page: int = 1, per_page: int = 20, order_by: str | None = None) -> list:
         params: dict = {"page": page, "per_page": per_page}
         if order_by:
             params["order_by"] = order_by
@@ -182,9 +176,7 @@ class UnsplashClient:
             params["order_by"] = order_by
         return self._get(f"/napi/users/{username}/photos", params=params)
 
-    def get_user_collections(
-        self, username: str, page: int = 1, per_page: int = 20
-    ) -> list:
+    def get_user_collections(self, username: str, page: int = 1, per_page: int = 20) -> list:
         return self._get(
             f"/napi/users/{username}/collections",
             params={"page": page, "per_page": per_page},

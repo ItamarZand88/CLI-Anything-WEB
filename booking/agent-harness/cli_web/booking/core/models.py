@@ -80,8 +80,16 @@ class Property:
         score_match = re.search(r"(\d+\.?\d*)", text)
         if score_match:
             score = float(score_match.group(1))
-        for lbl in ("Exceptional", "Wonderful", "Superb", "Excellent",
-                     "Very Good", "Good", "Pleasant", "Review score"):
+        for lbl in (
+            "Exceptional",
+            "Wonderful",
+            "Superb",
+            "Excellent",
+            "Very Good",
+            "Good",
+            "Pleasant",
+            "Review score",
+        ):
             if lbl.lower() in text.lower():
                 label = lbl
                 break

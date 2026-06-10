@@ -1,11 +1,13 @@
 """Data models for cli-web-amazon."""
-from dataclasses import dataclass, asdict
+
+from dataclasses import asdict, dataclass
 from typing import Any
 
 
 @dataclass
 class SearchResult:
     """A single product in Amazon search results."""
+
     asin: str
     title: str
     price: str = ""
@@ -20,6 +22,7 @@ class SearchResult:
 @dataclass
 class Product:
     """Amazon product detail."""
+
     asin: str
     title: str
     price: str = ""
@@ -38,6 +41,7 @@ class Product:
 @dataclass
 class BestSeller:
     """A product in Amazon Best Sellers list."""
+
     rank: int
     asin: str
     title: str
@@ -51,10 +55,9 @@ class BestSeller:
 @dataclass
 class Suggestion:
     """An autocomplete suggestion from Amazon."""
+
     value: str
     type: str = "KEYWORD"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-
-

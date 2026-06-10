@@ -1,4 +1,5 @@
 """Tests for traffic_utils.py — shared noise/static/header helpers."""
+
 from __future__ import annotations
 
 import sys
@@ -51,8 +52,14 @@ def test_is_static_asset_default_preserves_media_api_endpoints():
 
 def test_is_static_asset_include_media_filters_media():
     """With include_media=True (real-time capture), media IS filtered."""
-    assert traffic_utils.is_static_asset("https://cdn.example.com/clip.mp4", include_media=True) is True
-    assert traffic_utils.is_static_asset("https://cdn.example.com/audio.mp3", include_media=True) is True
+    assert (
+        traffic_utils.is_static_asset("https://cdn.example.com/clip.mp4", include_media=True)
+        is True
+    )
+    assert (
+        traffic_utils.is_static_asset("https://cdn.example.com/audio.mp3", include_media=True)
+        is True
+    )
 
 
 def test_is_noise_url_handles_none():
@@ -83,5 +90,6 @@ def test_normalize_headers_none_returns_empty():
 def test_noise_patterns_compiled_once():
     # Sanity: NOISE_PATTERNS must be pre-compiled regex objects, not strings.
     import re
+
     assert all(isinstance(p, re.Pattern) for p in traffic_utils.NOISE_PATTERNS)
     assert len(traffic_utils.NOISE_PATTERNS) > 20  # merged list is substantial

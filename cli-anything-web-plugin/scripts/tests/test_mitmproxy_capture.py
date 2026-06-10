@@ -13,6 +13,7 @@ don't require a live proxy or browser:
 The noise/static filtering helpers (`_is_noise` / `_is_static`) are aliased
 from `traffic_utils` and already have dedicated coverage there.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -36,6 +37,7 @@ def _has_mitmproxy() -> bool:
 
 # --- Environment-agnostic CLI contract checks ---
 
+
 def test_script_exists_with_python_shebang():
     assert MITMPROXY_CAPTURE.exists()
     first_line = MITMPROXY_CAPTURE.read_text(encoding="utf-8").splitlines()[0]
@@ -47,7 +49,9 @@ def test_help_output_lists_subcommands():
     """When mitmproxy is installed, --help must list start-proxy / stop-proxy / capture."""
     result = subprocess.run(
         [sys.executable, str(MITMPROXY_CAPTURE), "--help"],
-        capture_output=True, text=True, timeout=15,
+        capture_output=True,
+        text=True,
+        timeout=15,
     )
     assert result.returncode == 0
     for cmd in ("start-proxy", "stop-proxy", "capture"):
@@ -77,6 +81,7 @@ def mod() -> ModuleType:
 
 # --- Static + noise filters (smoke-level; full coverage in traffic_utils) ---
 
+
 def test_is_static_filter_catches_js(mod):
     assert mod._is_static("https://cdn.example.com/app.js") is True
 
@@ -90,6 +95,7 @@ def test_is_static_filter_rejects_api_url(mod):
 
 
 # --- State file paths ---
+
 
 def test_state_file_paths_are_distinct_per_port(mod):
     p0 = mod._state_file_path(0)
@@ -106,6 +112,7 @@ def test_stop_signal_path_distinct_from_state(mod):
 
 # --- PID liveness check ---
 
+
 def test_is_pid_alive_true_for_self(mod):
     assert mod._is_pid_alive(os.getpid()) is True
 
@@ -116,6 +123,7 @@ def test_is_pid_alive_false_for_unlikely_pid(mod):
 
 
 # --- write_output JSON schema ---
+
 
 def test_write_output_produces_valid_json(mod, tmp_path):
     entries = [
@@ -143,6 +151,7 @@ def test_write_output_creates_parent_directories(mod, tmp_path):
 
 # --- Read-state returns None when file absent ---
 
+
 def test_read_state_returns_none_when_missing(mod):
     # Use a very unlikely port to guarantee no state file
     assert mod._read_state(port=9999) is None
@@ -150,12 +159,14 @@ def test_read_state_returns_none_when_missing(mod):
 
 # --- cleanup is idempotent ---
 
+
 def test_cleanup_state_files_is_no_op_when_absent(mod):
     # Must not raise when there's nothing to clean
     mod._cleanup_state_files(port=9999)
 
 
 # --- _flush_traffic writes JSON-serializable entries ---
+
 
 def test_flush_traffic_writes_entries_to_disk(mod, tmp_path):
     out = tmp_path / "flush.json"

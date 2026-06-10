@@ -23,6 +23,7 @@ Usage:
     # Run the scriptable validation step (Phase 4 tail)
     python run-pipeline.py validate <app-dir> --cli-name cli-web-foo
 """
+
 from __future__ import annotations
 
 import argparse
@@ -120,11 +121,15 @@ def cmd_parse(args: argparse.Namespace) -> None:
     output = Path(args.app_dir) / "traffic-capture" / "raw-traffic.json"
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    rc = _run([
-        sys.executable, str(scripts / "parse-trace.py"),
-        args.traces_dir,
-        "--output", str(output),
-    ])
+    rc = _run(
+        [
+            sys.executable,
+            str(scripts / "parse-trace.py"),
+            args.traces_dir,
+            "--output",
+            str(output),
+        ]
+    )
     if rc != 0:
         sys.exit(rc)
 
@@ -138,19 +143,29 @@ def cmd_validate(args: argparse.Namespace) -> None:
     """Scriptable Phase-4 tail: validate-checklist + smoke-test."""
     scripts = get_scripts_dir()
     app_dir = Path(args.app_dir).resolve()
+    harness_dir = app_dir / "agent-harness" if (app_dir / "agent-harness").is_dir() else app_dir
+    app_name = app_dir.parent.name if app_dir.name == "agent-harness" else app_dir.name
 
-    rc = _run([
-        sys.executable, str(scripts / "validate-checklist.py"),
-        str(app_dir),
-    ])
+    rc = _run(
+        [
+            sys.executable,
+            str(scripts / "validate-checklist.py"),
+            str(harness_dir),
+            "--app-name",
+            app_name,
+        ]
+    )
     if rc != 0 and not args.keep_going:
         sys.exit(rc)
 
     if args.cli_name:
-        rc = _run([
-            sys.executable, str(scripts / "smoke-test.py"),
-            args.cli_name,
-        ])
+        rc = _run(
+            [
+                sys.executable,
+                str(scripts / "smoke-test.py"),
+                args.cli_name,
+            ]
+        )
         if rc != 0 and not args.keep_going:
             sys.exit(rc)
 

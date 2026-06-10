@@ -1,4 +1,5 @@
 """Tests for plugin_paths.py — canonical path discovery."""
+
 from __future__ import annotations
 
 import sys

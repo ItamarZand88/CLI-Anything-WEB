@@ -30,7 +30,7 @@ The skill sequence is strictly ordered: `capture → methodology → testing →
 | 1 | capture | Site assessment + browser traffic recording (or public API shortcut) |
 | 2 | methodology | Analyze traffic, design CLI architecture, implement code |
 | 3 | testing | Write unit + E2E + subprocess tests |
-| 4 | standards | Implementation review (3 agents), 75-check checklist, publish, smoke test, generate skill |
+| 4 | standards | Implementation review (3 agents), two-tier quality checklist, publish, smoke test, generate skill |
 
 ### Site Profiles
 
@@ -93,7 +93,7 @@ bash cli-anything-web-plugin/verify-plugin.sh
 - **Auth cookie priority**: For Google apps, `.google.com` cookies MUST take priority over regional duplicates (`.google.co.il`, `.google.de`, etc.). Naive `{c["name"]: c["value"]}` flattening is BROKEN for international users. See `auth-strategies.md` "Cookie domain priority".
 - **Auth login flow**: `login_browser()` MUST use Python `sync_playwright()` with `launch_persistent_context()`, NOT `npx @playwright/cli`. The npx approach has interactive input issues (Popen + input() race). Always include Windows event loop fix (`asyncio.DefaultEventLoopPolicy()`), anti-automation args, and regional cookie forcing (navigate to `accounts.google.com` then back after login).
 - **Auth format handling**: `load_cookies()` must handle both raw playwright list format `[{name, value, domain}]` and extracted dict format `{name: value}`.
-- **Auth retry**: Client retries once on recoverable `AuthError` (token refresh), never more.
+- **Auth retry**: On 401/403 the client runs a 3-attempt auto-refresh — attempt 0: current cookies, attempt 1: reload `auth.json` from disk, attempt 2: headless browser refresh via `refresh_auth()` — then raises `AuthError`. Never more than these 3 attempts. See skills/shared/CONVENTIONS.md §Auth Rules.
 - **Tests FAIL on missing auth** — never skip
 - **Every command supports `--json`** — structured output for agents, including errors: `{"error": true, "code": "AUTH_EXPIRED", "message": "..."}`
 - **REPL is default** when no subcommand given

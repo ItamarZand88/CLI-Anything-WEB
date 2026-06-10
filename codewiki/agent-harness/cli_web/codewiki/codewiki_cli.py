@@ -32,8 +32,15 @@ _skin = ReplSkin("codewiki", version="0.1.0")
 
 
 @click.group(invoke_without_command=True)
-@click.option("--json", "as_json", is_flag=True, default=False, hidden=True,
-              help="Output as JSON (pass to subcommands).")
+@click.version_option("0.1.0", prog_name="cli-web-codewiki")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="Output as JSON (pass to subcommands).",
+)
 @click.pass_context
 def cli(ctx: click.Context, as_json: bool) -> None:
     """cli-web-codewiki — Browse AI-generated code documentation."""
@@ -119,6 +126,16 @@ def _run_repl(ctx: click.Context) -> None:
 def main() -> None:
     """Entry point for console_scripts."""
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.codewiki import __version__ as _pkg_version  # noqa: E402
+from cli_web.codewiki.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.codewiki.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="codewiki", version=_pkg_version)
+register_doctor_command(cli, app_name="codewiki", pkg="codewiki")
 
 
 if __name__ == "__main__":

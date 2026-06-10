@@ -132,8 +132,9 @@ Google's internal RPC protocol. Single endpoint, method ID in query params.
 - Auth requires cookies + `x-same-domain: 1` header
 
 ### Reference:
-See `references/google-batchexecute.md` for the full protocol specification
-including encoding, decoding, token extraction, and code organization patterns.
+For the full protocol specification — encoding, decoding, token extraction, and
+code organization patterns — see the Google batchexecute reference, linked from
+the methodology SKILL.md References section.
 
 ## Batch / Multiplex APIs
 
@@ -378,5 +379,6 @@ Sites that render data server-side (Next.js, Nuxt, Remix, SvelteKit, Gatsby).
 - Read endpoints may use SSR data routes (`/_next/data/`) or client-side API
 
 ### Reference:
-See `references/ssr-patterns.md` for framework-specific extraction patterns
-and the Force SPA Navigation trick.
+For framework-specific extraction patterns and the Force SPA Navigation trick,
+see the SSR patterns reference, linked from the methodology SKILL.md References
+section.

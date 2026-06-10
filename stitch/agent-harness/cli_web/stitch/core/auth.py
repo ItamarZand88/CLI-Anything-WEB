@@ -6,6 +6,7 @@ Handles:
 - Token extraction (CSRF, session ID, build label) from homepage
 - Secure storage at ~/.config/cli-web-stitch/auth.json
 """
+
 import asyncio
 import json
 import os
@@ -13,7 +14,6 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 import httpx
 
@@ -23,11 +23,20 @@ BASE_URL = "https://stitch.withgoogle.com"
 
 # Google cookies relevant for Stitch auth
 AUTH_COOKIE_NAMES = {
-    "SID", "HSID", "SSID", "APISID", "SAPISID",
-    "__Secure-1PSID", "__Secure-3PSID",
-    "__Secure-1PSIDTS", "__Secure-3PSIDTS",
-    "__Secure-1PAPISID", "__Secure-3PAPISID",
-    "NID", "LSID", "OSID",
+    "SID",
+    "HSID",
+    "SSID",
+    "APISID",
+    "SAPISID",
+    "__Secure-1PSID",
+    "__Secure-3PSID",
+    "__Secure-1PSIDTS",
+    "__Secure-3PSIDTS",
+    "__Secure-1PAPISID",
+    "__Secure-3PAPISID",
+    "NID",
+    "LSID",
+    "OSID",
 }
 
 
@@ -70,7 +79,8 @@ def _ensure_chromium_installed():
     try:
         result = subprocess.run(
             ["playwright", "install", "--dry-run", "chromium"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         stdout_lower = result.stdout.lower()
         if "chromium" not in stdout_lower or "will download" not in stdout_lower:
@@ -78,7 +88,8 @@ def _ensure_chromium_installed():
         print("Chromium browser not installed. Installing now...")
         install_result = subprocess.run(
             ["playwright", "install", "chromium"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if install_result.returncode != 0:
             raise AuthError("Failed to install Chromium. Run: playwright install chromium")
@@ -95,12 +106,12 @@ def login_browser(headed: bool = True):
     """
     try:
         from playwright.sync_api import sync_playwright
-    except ImportError:
+    except ImportError as exc:
         raise AuthError(
             "Playwright not installed. Run:\n"
             "  pip install playwright\n"
             "  playwright install chromium"
-        )
+        ) from exc
 
     _auth_dir_setup()
     _ensure_chromium_installed()
@@ -156,7 +167,7 @@ def login_browser(headed: bool = True):
         _save_auth({"cookies": cookies})
         print(f"Auth saved to {AUTH_FILE}")
     except (json.JSONDecodeError, KeyError) as e:
-        raise AuthError(f"Failed to parse playwright state: {e}")
+        raise AuthError(f"Failed to parse playwright state: {e}") from e
 
 
 def login_from_cookies_json(filepath: str):
@@ -168,7 +179,7 @@ def login_from_cookies_json(filepath: str):
     try:
         data = json.loads(Path(filepath).read_text(encoding="utf-8"))
     except (json.JSONDecodeError, FileNotFoundError) as e:
-        raise AuthError(f"Cannot read cookies file: {e}")
+        raise AuthError(f"Cannot read cookies file: {e}") from e
 
     # Handle playwright state-save format
     if isinstance(data, dict) and "cookies" in data:
@@ -186,27 +197,74 @@ def login_from_cookies_json(filepath: str):
 
 
 # Regional Google ccTLDs for international users
-GOOGLE_REGIONAL_CCTLDS = frozenset({
-    # Major regions
-    "google.co.uk", "google.co.jp", "google.co.kr", "google.co.in",
-    "google.co.il", "google.co.za", "google.co.nz", "google.co.id",
-    "google.co.th", "google.co.ke", "google.co.tz",
-    # .com.XX variants
-    "google.com.au", "google.com.br", "google.com.sg", "google.com.hk",
-    "google.com.mx", "google.com.ar", "google.com.tr", "google.com.tw",
-    "google.com.eg", "google.com.pk", "google.com.ng", "google.com.ph",
-    "google.com.co", "google.com.vn", "google.com.ua", "google.com.pe",
-    "google.com.sa", "google.com.my", "google.com.bd",
-    # European
-    "google.de", "google.fr", "google.it", "google.es", "google.nl",
-    "google.pl", "google.se", "google.no", "google.fi", "google.dk",
-    "google.at", "google.ch", "google.be", "google.pt", "google.ie",
-    "google.cz", "google.ro", "google.hu", "google.gr", "google.bg",
-    "google.sk", "google.hr", "google.lt", "google.lv", "google.ee",
-    "google.si",
-    # Other
-    "google.ru", "google.ca", "google.cl", "google.ae",
-})
+GOOGLE_REGIONAL_CCTLDS = frozenset(
+    {
+        # Major regions
+        "google.co.uk",
+        "google.co.jp",
+        "google.co.kr",
+        "google.co.in",
+        "google.co.il",
+        "google.co.za",
+        "google.co.nz",
+        "google.co.id",
+        "google.co.th",
+        "google.co.ke",
+        "google.co.tz",
+        # .com.XX variants
+        "google.com.au",
+        "google.com.br",
+        "google.com.sg",
+        "google.com.hk",
+        "google.com.mx",
+        "google.com.ar",
+        "google.com.tr",
+        "google.com.tw",
+        "google.com.eg",
+        "google.com.pk",
+        "google.com.ng",
+        "google.com.ph",
+        "google.com.co",
+        "google.com.vn",
+        "google.com.ua",
+        "google.com.pe",
+        "google.com.sa",
+        "google.com.my",
+        "google.com.bd",
+        # European
+        "google.de",
+        "google.fr",
+        "google.it",
+        "google.es",
+        "google.nl",
+        "google.pl",
+        "google.se",
+        "google.no",
+        "google.fi",
+        "google.dk",
+        "google.at",
+        "google.ch",
+        "google.be",
+        "google.pt",
+        "google.ie",
+        "google.cz",
+        "google.ro",
+        "google.hu",
+        "google.gr",
+        "google.bg",
+        "google.sk",
+        "google.hr",
+        "google.lt",
+        "google.lv",
+        "google.ee",
+        "google.si",
+        # Other
+        "google.ru",
+        "google.ca",
+        "google.cl",
+        "google.ae",
+    }
+)
 
 
 def _extract_cookies(raw_cookies: list) -> dict:
@@ -219,10 +277,14 @@ def _extract_cookies(raw_cookies: list) -> dict:
     result_domains: dict[str, str] = {}
     # Build allowed domain set: base domains + regional variants with dots
     allowed = {
-        ".google.com", "google.com",
-        ".stitch.withgoogle.com", "stitch.withgoogle.com",
-        ".withgoogle.com", "withgoogle.com",
-        ".accounts.google.com", "accounts.google.com",
+        ".google.com",
+        "google.com",
+        ".stitch.withgoogle.com",
+        "stitch.withgoogle.com",
+        ".withgoogle.com",
+        "withgoogle.com",
+        ".accounts.google.com",
+        "accounts.google.com",
         ".googleusercontent.com",  # For authenticated media downloads
     }
     for cctld in GOOGLE_REGIONAL_CCTLDS:
@@ -269,9 +331,7 @@ def load_cookies() -> dict:
             pass  # Fall through to file-based auth
 
     if not AUTH_FILE.exists():
-        raise AuthError(
-            "Not authenticated. Run: cli-web-stitch auth login"
-        )
+        raise AuthError("Not authenticated. Run: cli-web-stitch auth login")
     try:
         data = json.loads(AUTH_FILE.read_text(encoding="utf-8"))
         cookies = data.get("cookies", {})
@@ -284,7 +344,7 @@ def load_cookies() -> dict:
                 raise AuthError("No Google cookies found. Run: cli-web-stitch auth login")
         return cookies
     except (json.JSONDecodeError, KeyError) as e:
-        raise AuthError(f"Corrupted auth file: {e}. Run: cli-web-stitch auth login")
+        raise AuthError(f"Corrupted auth file: {e}. Run: cli-web-stitch auth login") from e
 
 
 def fetch_tokens(cookies: dict) -> tuple[str, str, str]:
@@ -308,7 +368,7 @@ def fetch_tokens(cookies: dict) -> tuple[str, str, str]:
             timeout=15.0,
         )
     except httpx.RequestError as e:
-        raise AuthError(f"Network error fetching homepage: {e}")
+        raise AuthError(f"Network error fetching homepage: {e}") from e
 
     html = resp.text
 
@@ -355,7 +415,7 @@ def fetch_user_info(cookies: dict) -> dict:
             timeout=15.0,
         )
     except httpx.RequestError as e:
-        raise AuthError(f"Network error: {e}")
+        raise AuthError(f"Network error: {e}") from e
 
     html = resp.text
 

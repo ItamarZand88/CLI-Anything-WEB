@@ -1,4 +1,5 @@
 """Post commands for cli-web-linkedin."""
+
 from __future__ import annotations
 
 import click
@@ -40,9 +41,7 @@ def create_post(ctx, text, json_mode):
     "--type",
     "reaction_type",
     default="LIKE",
-    type=click.Choice(
-        ["LIKE", "PRAISE", "EMPATHY", "INTEREST", "APPRECIATION", "ENTERTAINMENT"]
-    ),
+    type=click.Choice(["LIKE", "PRAISE", "EMPATHY", "INTEREST", "APPRECIATION", "ENTERTAINMENT"]),
     help="Reaction type (default: LIKE).",
 )
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
@@ -53,14 +52,12 @@ def react(ctx, post_urn, reaction_type, json_mode):
 
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
-            result = client.react(post_urn, reaction_type)
+            client.react(post_urn, reaction_type)
 
         if json_mode:
             print_json({"success": True, "reaction": reaction_type, "post_urn": post_urn})
         else:
-            click.secho(
-                f"Reacted with {reaction_type} to {post_urn}", fg="green", bold=True
-            )
+            click.secho(f"Reacted with {reaction_type} to {post_urn}", fg="green", bold=True)
 
 
 @post.command("comment")
@@ -96,7 +93,7 @@ def edit_post(ctx, post_urn, text, json_mode):
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode=json_mode):
         with LinkedinClient() as client:
-            result = client.edit_post(post_urn, text)
+            client.edit_post(post_urn, text)
         if json_mode:
             print_json({"success": True, "post_urn": post_urn})
         else:

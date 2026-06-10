@@ -19,6 +19,7 @@ import pytest
 # CLI resolver
 # ---------------------------------------------------------------------------
 
+
 def _resolve_cli(name):
     force = os.environ.get("CLI_WEB_FORCE_INSTALLED", "").strip() == "1"
     path = shutil.which(name)
@@ -44,7 +45,15 @@ FIXTURE_RLME1NE = [
         [
             "source-id-123",
             "Source Name",
-            [None, 9659, [1769878626, 803288000], ["ea6e64da", [1769878626, 523384000]], 4, None, 1],
+            [
+                None,
+                9659,
+                [1769878626, 803288000],
+                ["ea6e64da", [1769878626, 523384000]],
+                4,
+                None,
+                1,
+            ],
             [None, 2],
         ]
     ],
@@ -85,6 +94,7 @@ FIXTURE_SOURCE_ENTRY = [
 # ===========================================================================
 # Class 1: TestFixtureReplay — pure parsing, no network
 # ===========================================================================
+
 
 class TestFixtureReplay:
     """Parse real-shaped fixture data through the model parsing functions.
@@ -272,10 +282,12 @@ class TestFixtureReplay:
 # Class 2: TestLiveAPI — real API calls, FAIL without auth
 # ===========================================================================
 
+
 def _require_auth():
     """Fail immediately if auth cookies are not configured."""
     try:
         from cli_web.notebooklm.core.auth import load_cookies
+
         load_cookies()
     except Exception:
         pytest.fail("Auth not configured. Run: cli-web-notebooklm auth login")
@@ -343,7 +355,7 @@ class TestLiveAPI:
 
             url = "https://en.wikipedia.org/wiki/Artificial_intelligence"
             src = client.add_url_source(nb_id, url)
-            assert src.id, f"add_url_source returned source with empty id"
+            assert src.id, "add_url_source returned source with empty id"
             assert src.url == url, f"Expected url={url!r}, got {src.url!r}"
             print(f"[verify] added source id={src.id!r} url={src.url!r}")
         finally:
@@ -358,18 +370,16 @@ class TestLiveAPI:
 
         client = NotebookLMClient()
         notebooks = client.list_notebooks()
-        nb_with_sources = next(
-            (nb for nb in notebooks if nb.source_count > 0), None
-        )
+        nb_with_sources = next((nb for nb in notebooks if nb.source_count > 0), None)
         if nb_with_sources is None:
             pytest.skip("No notebooks with sources found — skipping live source list test")
 
-        print(f"[verify] using notebook id={nb_with_sources.id!r} source_count={nb_with_sources.source_count}")
+        print(
+            f"[verify] using notebook id={nb_with_sources.id!r} source_count={nb_with_sources.source_count}"
+        )
         sources = client.list_sources(nb_with_sources.id)
         assert isinstance(sources, list), f"Expected list, got {type(sources)}"
-        assert len(sources) > 0, (
-            f"Expected >0 sources for notebook {nb_with_sources.id!r}, got 0"
-        )
+        assert len(sources) > 0, f"Expected >0 sources for notebook {nb_with_sources.id!r}, got 0"
         for src in sources:
             assert src.id, f"Source missing id: {src!r}"
             print(f"[verify] source id={src.id!r} name={src.name!r} type={src.source_type!r}")
@@ -392,9 +402,7 @@ class TestLiveAPI:
 
         client = NotebookLMClient()
         notebooks = client.list_notebooks()
-        nb_with_sources = next(
-            (nb for nb in notebooks if nb.source_count > 0), None
-        )
+        nb_with_sources = next((nb for nb in notebooks if nb.source_count > 0), None)
         if nb_with_sources is None:
             pytest.skip("No notebooks with sources found — skipping live chat test")
 
@@ -409,6 +417,7 @@ class TestLiveAPI:
 # ===========================================================================
 # Class 3: TestCLISubprocess — subprocess end-to-end
 # ===========================================================================
+
 
 class TestCLISubprocess:
     """End-to-end tests using subprocess to invoke the CLI."""
@@ -482,15 +491,12 @@ class TestCLISubprocess:
     def test_whoami_json(self):
         """whoami --json: exits 0 and output has 'email' key."""
         result = self._run(["whoami", "--json"])
-        assert result.returncode == 0, (
-            f"whoami --json exited {result.returncode}\n{result.stderr}"
-        )
+        assert result.returncode == 0, f"whoami --json exited {result.returncode}\n{result.stderr}"
         try:
             data = json.loads(result.stdout)
         except json.JSONDecodeError as exc:
             pytest.fail(
-                f"whoami --json output is not valid JSON: {exc}\n"
-                f"stdout: {result.stdout[:500]!r}"
+                f"whoami --json output is not valid JSON: {exc}\nstdout: {result.stdout[:500]!r}"
             )
         assert "email" in data, f"Expected 'email' key in whoami output, got: {data!r}"
         assert data["email"], f"Expected non-empty email, got {data['email']!r}"
@@ -526,8 +532,7 @@ class TestCLISubprocess:
             notebooks = json.loads(list_result.stdout)
             ids = [nb.get("id") for nb in notebooks]
             assert nb_id in ids, (
-                f"Newly created notebook id={nb_id!r} not found in list.\n"
-                f"Listed ids: {ids}"
+                f"Newly created notebook id={nb_id!r} not found in list.\nListed ids: {ids}"
             )
             print(f"[verify] notebook id={nb_id!r} confirmed in list")
         finally:
@@ -537,8 +542,7 @@ class TestCLISubprocess:
                 )
                 if del_result.returncode != 0:
                     print(
-                        f"[warn] delete returned {del_result.returncode}: "
-                        f"{del_result.stderr[:200]}"
+                        f"[warn] delete returned {del_result.returncode}: {del_result.stderr[:200]}"
                     )
                 else:
                     print(f"[verify] deleted notebook id={nb_id!r}")

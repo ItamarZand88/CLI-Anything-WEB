@@ -3,6 +3,7 @@
 /press contains press coverage (articles by external publications) about
 Capitol Trades data and congressional trading news.
 """
+
 from __future__ import annotations
 
 import click
@@ -30,7 +31,9 @@ def list_press(ctx, page, page_size):
             soup = client.get_html("/press", params={"page": page, "pageSize": page_size})
             rows = parse_press_list(soup)
         if json_mode:
-            print_json({"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}})
+            print_json(
+                {"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}}
+            )
         else:
             if not rows:
                 click.echo("No press items found.")

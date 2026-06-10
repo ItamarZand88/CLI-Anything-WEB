@@ -13,7 +13,9 @@ class TripAdvisorError(Exception):
 class AuthError(TripAdvisorError):
     """Bot-protection block (HTTP 401/403) — not user auth, TripAdvisor is public."""
 
-    def __init__(self, message: str = "Access blocked (bot protection)", recoverable: bool = False) -> None:
+    def __init__(
+        self, message: str = "Access blocked (bot protection)", recoverable: bool = False
+    ) -> None:
         super().__init__(message)
         self.recoverable = recoverable
 
@@ -24,7 +26,9 @@ class AuthError(TripAdvisorError):
 class RateLimitError(TripAdvisorError):
     """API rate limit exceeded (HTTP 429)."""
 
-    def __init__(self, message: str = "Rate limit exceeded", retry_after: float | None = None) -> None:
+    def __init__(
+        self, message: str = "Rate limit exceeded", retry_after: float | None = None
+    ) -> None:
         super().__init__(message)
         self.retry_after = retry_after
 

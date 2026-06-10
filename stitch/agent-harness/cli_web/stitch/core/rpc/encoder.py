@@ -1,6 +1,8 @@
 """Request encoder for Google batchexecute RPC protocol."""
+
 import json
 import urllib.parse
+
 from .types import BATCHEXECUTE_URL
 
 

@@ -2,7 +2,7 @@
 name: traffic-fidelity-reviewer
 version: 0.1.0
 description: >
-  Review a cli-web-* CLI implementation against its <APP>.md API map.
+  Review a cli-web-* CLI implementation against its APP.md API map.
   Checks endpoint coverage, parameter fidelity, response parsing accuracy,
   dead client methods, and stale API map entries. Returns scored findings.
   Use during Phase 4 standards review — dispatched by the standards skill.

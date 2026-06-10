@@ -16,8 +16,11 @@ class AppError(Exception):
 class AuthError(AppError):
     """Authentication failed or credentials missing."""
 
-    def __init__(self, message: str = "Authentication required. Run: cli-web-gh-trending auth login",
-                 recoverable: bool = False):
+    def __init__(
+        self,
+        message: str = "Authentication required. Run: cli-web-gh-trending auth login",
+        recoverable: bool = False,
+    ):
         self.recoverable = recoverable
         super().__init__(message, "AUTH_EXPIRED")
 

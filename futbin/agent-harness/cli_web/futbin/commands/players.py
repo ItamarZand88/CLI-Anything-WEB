@@ -1,12 +1,18 @@
 """Player commands: search, get, list, compare, price-history, versions."""
+
 import click
+
+from ..core.analysis import compute_coins_per_stat, compute_total_stats, compute_value_score
 from ..core.client import FutbinClient
-from ..core.analysis import compute_value_score, compute_total_stats, compute_coins_per_stat
+from ..utils.helpers import handle_errors, require_year, resolve_json_mode
 from ..utils.output import (
-    print_json, print_table, print_players_rich, print_comparison,
-    coins_display, print_price_history, print_versions,
+    coins_display,
+    print_comparison,
+    print_json,
+    print_players_rich,
+    print_price_history,
+    print_versions,
 )
-from ..utils.helpers import handle_errors, require_year
 
 
 @click.group()
@@ -22,6 +28,7 @@ def players():
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def search(name, year, evolutions, use_json):
     """Search players by name."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
@@ -41,12 +48,14 @@ def search(name, year, evolutions, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def get_player(player_id, year, use_json):
     """Get detailed player info by ID."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
             player = client.get_player(player_id, year=yr)
         if not player:
             from ..core.exceptions import NotFoundError
+
             raise NotFoundError(f"Player {player_id} not found")
         if use_json:
             print_json(player.to_dict())
@@ -59,7 +68,7 @@ def get_player(player_id, year, use_json):
             if player.ps_price:
                 click.echo(f"PS Price: {coins_display(player.ps_price)}")
             if player.stats:
-                click.echo(f"\nStats:")
+                click.echo("\nStats:")
                 for stat, val in player.stats.items():
                     click.echo(f"  {stat.upper()}: {val}")
 
@@ -82,10 +91,27 @@ def get_player(player_id, year, use_json):
 @click.option("--year", type=int, default=None, help="Game year.")
 @click.option("--platform", type=click.Choice(["ps", "pc"]), default=None)
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
-def list_players(position, rating_min, rating_max, version, min_price, max_price,
-                 cheapest, min_skills, min_wf, gender, league, nation, club,
-                 page, year, platform, use_json):
+def list_players(
+    position,
+    rating_min,
+    rating_max,
+    version,
+    min_price,
+    max_price,
+    cheapest,
+    min_skills,
+    min_wf,
+    gender,
+    league,
+    nation,
+    club,
+    page,
+    year,
+    platform,
+    use_json,
+):
     """List players with filters and pagination."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         plat = platform or "ps"
@@ -93,13 +119,28 @@ def list_players(position, rating_min, rating_max, version, min_price, max_price
         order = "asc" if cheapest else None
         with FutbinClient() as client:
             results, has_next = client.list_players(
-                min_price=min_price, max_price=max_price, sort=sort, order=order,
-                year=yr, position=position, rating_min=rating_min, rating_max=rating_max,
-                version=version, platform=plat, min_skills=min_skills, min_wf=min_wf,
-                gender=gender, league=league, nation=nation, club=club, page=page,
+                min_price=min_price,
+                max_price=max_price,
+                sort=sort,
+                order=order,
+                year=yr,
+                position=position,
+                rating_min=rating_min,
+                rating_max=rating_max,
+                version=version,
+                platform=plat,
+                min_skills=min_skills,
+                min_wf=min_wf,
+                gender=gender,
+                league=league,
+                nation=nation,
+                club=club,
+                page=page,
             )
         if use_json:
-            print_json({"players": [p.to_dict() for p in results], "page": page, "has_next": has_next})
+            print_json(
+                {"players": [p.to_dict() for p in results], "page": page, "has_next": has_next}
+            )
         else:
             if not results:
                 click.echo("No players found.")
@@ -116,6 +157,7 @@ def list_players(position, rating_min, rating_max, version, min_price, max_price
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def compare(player1_id, player2_id, year, use_json):
     """Compare two players side-by-side with value metrics."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
@@ -148,12 +190,14 @@ def compare(player1_id, player2_id, year, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def price_history(player_id, year, use_json):
     """Show price history and trends for a player."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
             history = client.get_price_history(player_id, year=yr)
         if not history.ps_prices and not history.pc_prices:
             from ..core.exceptions import NotFoundError
+
             raise NotFoundError(f"No price data for player {player_id}")
         print_price_history(history, json_mode=use_json)
 
@@ -164,12 +208,14 @@ def price_history(player_id, year, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def versions(name, year, use_json):
     """All versions of a player compared with value scores."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
             search_results = client.search_players(name, year=yr)
             if not search_results:
                 from ..core.exceptions import NotFoundError
+
                 raise NotFoundError(f"No players found for '{name}'")
 
             # Filter to only versions of the same base player
@@ -178,14 +224,20 @@ def versions(name, year, use_json):
             same_player = [p for p in search_results if p.name.lower() == base_name]
             # If only one exact match, include close matches (name contained)
             if len(same_player) <= 1:
-                same_player = [p for p in search_results
-                               if base_name in p.name.lower() or p.name.lower() in base_name]
+                same_player = [
+                    p
+                    for p in search_results
+                    if base_name in p.name.lower() or p.name.lower() in base_name
+                ]
             candidates = same_player[:10]
 
             from rich.progress import Progress
+
             detailed = []
             with Progress() as progress:
-                task = progress.add_task(f"Fetching {len(candidates)} versions...", total=len(candidates))
+                task = progress.add_task(
+                    f"Fetching {len(candidates)} versions...", total=len(candidates)
+                )
                 for p in candidates:
                     try:
                         full = client.get_player(p.id, year=yr)
@@ -197,6 +249,7 @@ def versions(name, year, use_json):
 
         if not detailed:
             from ..core.exceptions import NotFoundError
+
             raise NotFoundError(f"Could not load details for '{name}'")
 
         # Sort by rating descending

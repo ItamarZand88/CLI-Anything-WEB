@@ -1,4 +1,5 @@
 """Feed commands for cli-web-linkedin."""
+
 from __future__ import annotations
 
 import click
@@ -42,9 +43,13 @@ def _extract_posts(data: dict) -> list[dict]:
         # Actor (author)
         actor = item.get("actor", {}) or {}
         actor_name = actor.get("name", {})
-        author_name = actor_name.get("text", "") if isinstance(actor_name, dict) else str(actor_name or "")
+        author_name = (
+            actor_name.get("text", "") if isinstance(actor_name, dict) else str(actor_name or "")
+        )
         actor_desc = actor.get("description", {})
-        headline = actor_desc.get("text", "") if isinstance(actor_desc, dict) else str(actor_desc or "")
+        headline = (
+            actor_desc.get("text", "") if isinstance(actor_desc, dict) else str(actor_desc or "")
+        )
 
         # Commentary (post text)
         commentary = item.get("commentary", {}) or {}
@@ -62,6 +67,7 @@ def _extract_posts(data: dict) -> list[dict]:
         else:
             # Counts are factored into included, keyed by activity URN
             import re
+
             m = re.search(r"urn:li:activity:\d+", entity_urn)
             if m and m.group(0) in included_index:
                 sc = included_index[m.group(0)]
@@ -71,14 +77,16 @@ def _extract_posts(data: dict) -> list[dict]:
         if not text and not author_name:
             continue
 
-        posts.append({
-            "urn": entity_urn,
-            "author": author_name,
-            "headline": headline,
-            "text": text,
-            "likes": likes,
-            "comments": comments_count,
-        })
+        posts.append(
+            {
+                "urn": entity_urn,
+                "author": author_name,
+                "headline": headline,
+                "text": text,
+                "likes": likes,
+                "comments": comments_count,
+            }
+        )
 
     return posts
 

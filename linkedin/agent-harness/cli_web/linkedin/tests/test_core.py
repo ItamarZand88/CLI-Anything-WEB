@@ -2,13 +2,13 @@
 
 Covers: exceptions, models, helpers, CSRF extraction, and HTTP error mapping.
 """
+
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-
 from cli_web.linkedin.core.exceptions import (
     AuthError,
     LinkedinError,
@@ -29,10 +29,10 @@ from cli_web.linkedin.core.models import (
 )
 from cli_web.linkedin.utils.helpers import handle_errors, resolve_json_mode
 
-
 # =====================================================================
 # 1. TestExceptions
 # =====================================================================
+
 
 class TestExceptions:
     """Verify exception hierarchy, attributes, and to_dict serialization."""
@@ -107,6 +107,7 @@ class TestExceptions:
 # =====================================================================
 # 2. TestModels
 # =====================================================================
+
 
 class TestModels:
     """Verify dataclass models and their to_dict round-trip."""
@@ -222,6 +223,7 @@ class TestModels:
 # 3. TestHelpers
 # =====================================================================
 
+
 class TestHelpers:
     """Verify handle_errors context manager and resolve_json_mode."""
 
@@ -302,26 +304,31 @@ class TestHelpers:
 # 4. TestCSRFExtraction
 # =====================================================================
 
+
 class TestCSRFExtraction:
     """Verify _extract_csrf from client.py."""
 
     def test_extract_csrf_strips_quotes(self):
         from cli_web.linkedin.core.client import _extract_csrf
+
         result = _extract_csrf({"JSESSIONID": '"ajax:1234567890"'})
         assert result == "ajax:1234567890"
 
     def test_extract_csrf_no_quotes(self):
         from cli_web.linkedin.core.client import _extract_csrf
+
         result = _extract_csrf({"JSESSIONID": "ajax:abcdef"})
         assert result == "ajax:abcdef"
 
     def test_extract_csrf_missing_jsessionid_raises_auth_error(self):
         from cli_web.linkedin.core.client import _extract_csrf
+
         with pytest.raises(AuthError, match="JSESSIONID cookie missing"):
             _extract_csrf({})
 
     def test_extract_csrf_empty_jsessionid_raises_auth_error(self):
         from cli_web.linkedin.core.client import _extract_csrf
+
         with pytest.raises(AuthError):
             _extract_csrf({"JSESSIONID": ""})
 
@@ -329,6 +336,7 @@ class TestCSRFExtraction:
 # =====================================================================
 # 5. TestClientHTTPErrors (raise_for_status)
 # =====================================================================
+
 
 class TestClientHTTPErrors:
     """Verify raise_for_status maps HTTP codes to typed exceptions."""
@@ -395,20 +403,24 @@ class TestClientHTTPErrors:
 # 6. TestTruncate (from commands/search.py)
 # =====================================================================
 
+
 class TestTruncate:
     """Verify the _truncate helper from search module."""
 
     def test_short_string_unchanged(self):
         from cli_web.linkedin.commands.search import _truncate
+
         assert _truncate("hello", 60) == "hello"
 
     def test_exact_length_unchanged(self):
         from cli_web.linkedin.commands.search import _truncate
+
         text = "a" * 60
         assert _truncate(text, 60) == text
 
     def test_long_string_truncated_with_ellipsis(self):
         from cli_web.linkedin.commands.search import _truncate
+
         text = "a" * 100
         result = _truncate(text, 60)
         assert len(result) == 60
@@ -416,4 +428,5 @@ class TestTruncate:
 
     def test_empty_string(self):
         from cli_web.linkedin.commands.search import _truncate
+
         assert _truncate("", 60) == ""

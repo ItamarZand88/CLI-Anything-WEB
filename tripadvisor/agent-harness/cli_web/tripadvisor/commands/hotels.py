@@ -27,8 +27,12 @@ def hotels(ctx):
 
 @hotels.command("search")
 @click.argument("location")
-@click.option("--geo-id", default=None, metavar="ID", help="Use known geo_id to skip location lookup.")
-@click.option("--page", default=1, type=int, show_default=True, help="Page number (30 hotels per page).")
+@click.option(
+    "--geo-id", default=None, metavar="ID", help="Use known geo_id to skip location lookup."
+)
+@click.option(
+    "--page", default=1, type=int, show_default=True, help="Page number (30 hotels per page)."
+)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
 def search_hotels(ctx, location, geo_id, page, json_mode):
@@ -56,14 +60,16 @@ def search_hotels(ctx, location, geo_id, page, json_mode):
         hotellist = result.get("hotels", [])
 
         if json_mode:
-            print_json({
-                "success": True,
-                "location": location,
-                "geo_id": result.get("geo_id"),
-                "page": page,
-                "count": len(hotellist),
-                "hotels": [h.to_dict() for h in hotellist],
-            })
+            print_json(
+                {
+                    "success": True,
+                    "location": location,
+                    "geo_id": result.get("geo_id"),
+                    "page": page,
+                    "count": len(hotellist),
+                    "hotels": [h.to_dict() for h in hotellist],
+                }
+            )
             return
 
         if not hotellist:

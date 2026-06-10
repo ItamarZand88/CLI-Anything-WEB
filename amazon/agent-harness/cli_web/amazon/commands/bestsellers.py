@@ -1,23 +1,36 @@
 """Best sellers commands for cli-web-amazon."""
+
 import click
+
 from ..core.client import AmazonClient
 from ..utils.helpers import handle_errors, print_json
 from ..utils.output import print_bestsellers
 
 COMMON_CATEGORIES = [
-    "electronics", "books", "toys-and-games", "music", "video-games",
-    "home-garden", "clothing-shoes-jewelry", "sports-outdoors",
-    "kitchen", "office-products", "pet-supplies", "beauty",
-    "health-household", "automotive", "tools-home-improvement",
+    "electronics",
+    "books",
+    "toys-and-games",
+    "music",
+    "video-games",
+    "home-garden",
+    "clothing-shoes-jewelry",
+    "sports-outdoors",
+    "kitchen",
+    "office-products",
+    "pet-supplies",
+    "beauty",
+    "health-household",
+    "automotive",
+    "tools-home-improvement",
 ]
 
 
 @click.command("bestsellers")
 @click.argument("category", default="electronics")
-@click.option("--page", type=int, default=1, show_default=True,
-              help="Page number (each page has ~50 items).")
-@click.option("--json", "use_json", is_flag=True, default=False,
-              help="Output as JSON.")
+@click.option(
+    "--page", type=int, default=1, show_default=True, help="Page number (each page has ~50 items)."
+)
+@click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def bestsellers(category, page, use_json):
     """Browse Amazon Best Sellers by category.
 

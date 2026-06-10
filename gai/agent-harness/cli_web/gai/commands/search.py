@@ -6,7 +6,6 @@ from ..core.client import GAIClient
 from ..utils.helpers import handle_errors, print_json
 from ..utils.output import print_search_result
 
-
 _client: GAIClient | None = None
 
 

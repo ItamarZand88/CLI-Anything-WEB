@@ -43,9 +43,14 @@ def format_post_summary(child: dict) -> dict:
     }
 
 
-def format_post_detail(post_data: dict, comments_data: dict | None = None,
-                       more_children_fn=None, link_id: str = "",
-                       thread_fn=None, post_id: str = "") -> dict:
+def format_post_detail(
+    post_data: dict,
+    comments_data: dict | None = None,
+    more_children_fn=None,
+    link_id: str = "",
+    thread_fn=None,
+    post_id: str = "",
+) -> dict:
     """Full post detail with comments for --json output.
 
     Args:
@@ -105,9 +110,12 @@ def format_post_detail(post_data: dict, comments_data: dict | None = None,
     return post
 
 
-def _collect_comments(children: list[dict], comments: list[dict],
-                      more_ids: list[str] | None = None,
-                      continue_thread_parents: list[str] | None = None) -> None:
+def _collect_comments(
+    children: list[dict],
+    comments: list[dict],
+    more_ids: list[str] | None = None,
+    continue_thread_parents: list[str] | None = None,
+) -> None:
     """Flatten Reddit comment trees while preserving depth.
 
     Collects 'more' object child IDs into more_ids for later fetching.

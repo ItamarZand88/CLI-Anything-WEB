@@ -1,11 +1,12 @@
 """Issuer-related commands: list, get, search (via BFF JSON)."""
+
 from __future__ import annotations
 
 import click
 
 from ..core.client import CapitoltradesClient
 from ..core.exceptions import NotFoundError
-from ..core.models import parse_issuers_list, parse_issuer_detail
+from ..core.models import parse_issuer_detail, parse_issuers_list
 from ..utils.helpers import handle_errors, print_json
 
 
@@ -30,7 +31,9 @@ def list_issuers(ctx, page, page_size, sector):
             soup = client.get_html("/issuers", params=params)
             rows = parse_issuers_list(soup)
         if json_mode:
-            print_json({"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}})
+            print_json(
+                {"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}}
+            )
         else:
             if not rows:
                 click.echo("No issuers found.")
@@ -107,4 +110,6 @@ def search_issuer(ctx, query, full):
                 mcap = (item.get("performance") or {}).get("mcap")
                 stats = item.get("stats") or {}
                 click.echo(f"  [{iid}] {name}  ({ticker})")
-                click.echo(f"      sector={sector}  mcap={mcap}  politicians={stats.get('countPoliticians')}  trades={stats.get('countTrades')}")
+                click.echo(
+                    f"      sector={sector}  mcap={mcap}  politicians={stats.get('countPoliticians')}  trades={stats.get('countTrades')}"
+                )

@@ -21,7 +21,13 @@ def search():
 @search.command("posts")
 @click.argument("query")
 @click.option("--sort", type=click.Choice(SORT_CHOICES), default="relevance", help="Sort order.")
-@click.option("--time", "time_filter", type=click.Choice(TIME_CHOICES), default=None, help="Time period (for top sort).")
+@click.option(
+    "--time",
+    "time_filter",
+    type=click.Choice(TIME_CHOICES),
+    default=None,
+    help="Time period (for top sort).",
+)
 @click.option("--limit", type=int, default=25, help="Number of results (max 100).")
 @click.option("--after", default=None, help="Pagination cursor.")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
@@ -37,7 +43,7 @@ def posts(query, sort, time_filter, limit, after, use_json):
         else:
             post_table(results, title=f"Search: {query}")
             if next_after:
-                click.echo(f"  Next page: search posts \"{query}\" --after {next_after}")
+                click.echo(f'  Next page: search posts "{query}" --after {next_after}')
 
 
 @search.command("subs")
@@ -57,4 +63,4 @@ def subs(query, limit, after, use_json):
         else:
             subreddit_table(results, title=f"Subreddits: {query}")
             if next_after:
-                click.echo(f"  Next page: search subs \"{query}\" --after {next_after}")
+                click.echo(f'  Next page: search subs "{query}" --after {next_after}')

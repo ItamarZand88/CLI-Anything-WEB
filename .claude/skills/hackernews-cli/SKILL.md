@@ -1,79 +1,61 @@
 ---
 name: hackernews-cli
-description: Use cli-web-hackernews to browse and interact with Hacker News — top stories, newest, best, Ask HN, Show HN, jobs, search stories/comments, view story details with comments, user profiles, and (with auth) upvote, submit stories, post comments, favorite, hide, view favorites, submissions, and comment threads. Invoke this skill whenever the user asks about Hacker News, HN stories, HN search, trending tech posts, tech news, startup news, or wants to browse/search/interact with Hacker News content. Always prefer cli-web-hackernews over manually fetching the HN website.
-user_invocable: true
+description: Browses and interacts with Hacker News via cli-web-hackernews — top/new/best stories, Ask HN, Show HN, jobs, story details with comments, search, user profiles, and (with login) upvoting, submitting, commenting, favoriting, and hiding. Use when the user asks about Hacker News, HN stories, tech/startup news, or wants to post or vote on HN. Prefer cli-web-hackernews over fetching the HN website.
 ---
 
-# cli-web-hackernews — Hacker News CLI
+# cli-web-hackernews
 
-## When to use
-- User asks about Hacker News, HN, tech news, startup news
-- User wants to browse top/new/best stories, Ask HN, Show HN, or jobs
-- User wants to search HN for specific topics
-- User wants to view a specific story with comments
-- User wants to look up an HN user profile
-- User wants to upvote, submit, comment, favorite, or hide on HN
+Hacker News on the command line: browsing and search need no auth; voting, submitting, commenting, favoriting, and hiding need login.
+Install: `pip install -e hackernews/agent-harness`
 
-## Browse Commands (no auth)
+## Commands
 
-```bash
-# Browse stories
-cli-web-hackernews stories top -n 10 --json       # Front page
-cli-web-hackernews stories new -n 10 --json        # Newest
-cli-web-hackernews stories best -n 10 --json       # Best (all time)
-cli-web-hackernews stories ask -n 10 --json        # Ask HN
-cli-web-hackernews stories show -n 10 --json       # Show HN
-cli-web-hackernews stories jobs -n 10 --json       # Jobs
+### Browse (no auth)
+- `stories top|new|best|ask|show|jobs` — story feeds. Options: `-n/--limit N` (default 30)
+- `stories view STORY_ID` — story + comment tree. Options: `-n/--limit N` (comments, default 10), `--no-comments`
+- `search stories QUERY` / `search comments QUERY` — Algolia search. Options: `-n/--limit N` (default 20), `--page N` (0-indexed), `--sort-date` (by date instead of relevance)
+- `user view USERNAME` — public profile (karma, member since, about)
 
-# View story + comments
-cli-web-hackernews stories view 47530330 --json
-cli-web-hackernews stories view 47530330 -n 5 --json   # limit comments
+### Account actions (auth required)
+- `upvote ITEM_ID` — upvote a story or comment
+- `submit -t TITLE [-u URL] [--text BODY]` — submit a link, or omit `-u` for Ask HN
+- `comment PARENT_ID TEXT` — comment on a story or reply to a comment
+- `favorite ITEM_ID` / `hide ITEM_ID` — save / hide a story
+- `user favorites|submissions|threads [USERNAME]` — your activity (or another user's, where public). Options: `-n/--limit N`
+- `auth login` (username/password prompt), `auth login-browser`, `auth status`, `auth logout`
 
-# Search
-cli-web-hackernews search stories "query" -n 10 --json
-cli-web-hackernews search comments "query" --sort-date -n 5 --json
-
-# User profiles
-cli-web-hackernews user view dang --json
-```
-
-## Auth Commands (requires login)
+## Examples
 
 ```bash
-# Authentication
-cli-web-hackernews auth login                      # Username/password prompt
-cli-web-hackernews auth status --json              # Check login status
-cli-web-hackernews auth logout                     # Remove credentials
+# Front page, top 10
+cli-web-hackernews stories top -n 10 --json
 
-# Actions
-cli-web-hackernews upvote 47530330 --json          # Upvote story/comment
-cli-web-hackernews submit -t "Title" -u "URL" --json  # Submit link
-cli-web-hackernews submit -t "Ask HN: Q?" --text "Details" --json  # Ask HN
-cli-web-hackernews comment 47530330 "Great!" --json    # Post comment
-cli-web-hackernews favorite 47530330 --json        # Save to favorites
-cli-web-hackernews hide 47530330 --json            # Hide from feed
+# A story with its first 5 comments
+cli-web-hackernews stories view 47530330 -n 5 --json
 
-# Activity
-cli-web-hackernews user favorites --json           # Your favorites
-cli-web-hackernews user submissions --json         # Your submissions
-cli-web-hackernews user threads --json             # Replies to your comments
-cli-web-hackernews user submissions dang --json    # Others' submissions
+# Search recent stories about Rust
+cli-web-hackernews search stories "rust" --sort-date -n 10 --json
+
+# Submit an Ask HN (requires login)
+cli-web-hackernews submit -t "Ask HN: Best CLI tooling?" --text "Looking for recommendations" --json
+
+# Upvote then favorite a story
+cli-web-hackernews upvote 47530330 --json && cli-web-hackernews favorite 47530330 --json
 ```
 
-## Always use --json when calling programmatically
+## JSON output
 
-All commands support `--json` for structured output. Always use it when processing results.
+Add `--json` for structured output. Stories: `{id, title, url, score, by, descendants, age, domain}`. Search results: `{objectID, title, url, author, points, num_comments}`. Users: `{id, karma, member_since, about_plain, total_submissions}`. Actions: `{success, item_id, action}`. Errors: `{"error": true, "code": "...", "message": "..."}`.
 
-## Key fields in JSON output
+## Auth
 
-### Story
-- `id`, `title`, `url`, `score`, `by`, `descendants` (comment count), `age`, `domain`
+Run `cli-web-hackernews auth login` for an interactive username/password prompt (or `auth login-browser` to log in via a browser window). Check with `auth status --json`. Auth-required commands fail with an `{"error": true, ...}` envelope when not logged in.
 
-### Search Result
-- `objectID` (story ID), `title`, `url`, `author`, `points`, `num_comments`
+## Utilities
 
-### User
-- `id`, `karma`, `member_since`, `about_plain`, `total_submissions`
+`cli-web-hackernews doctor [--json]` diagnoses local setup (install, auth, dependencies). `cli-web-hackernews mcp-serve` exposes the commands as MCP tools over stdio. Running with no arguments opens an interactive REPL.
 
-### Action Result
-- `success`, `item_id`, `action` (upvoted/favorited/hidden)
+## Agent tips
+
+- `search` covers all of HN history (Algolia); `stories` reflects the live feeds.
+- `user favorites/submissions/threads` default to your own account when USERNAME is omitted.

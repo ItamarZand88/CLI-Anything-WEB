@@ -85,7 +85,9 @@ def cmd_status(args: argparse.Namespace) -> None:
     elif phases.get(current, {}).get("status") == "failed":
         error_type = phases[current].get("error_type", "unknown")
         if error_type == "retryable":
-            result["next_action"] = f"Retry {current} phase (previous attempt failed with retryable error)"
+            result["next_action"] = (
+                f"Retry {current} phase (previous attempt failed with retryable error)"
+            )
         else:
             result["next_action"] = f"Fix {current} phase failure, then use --force to re-run"
     else:
@@ -130,17 +132,25 @@ def cmd_check(args: argparse.Namespace) -> None:
     state = _load(args.app_dir)
     phase_info = state.get("phases", {}).get(args.phase, {})
     if phase_info.get("status") == "done" and not args.force:
-        print(json.dumps({
-            "skip": True,
-            "reason": f"Phase '{args.phase}' already completed at {phase_info.get('completed_at')}",
-            "output": phase_info.get("output"),
-        }))
+        print(
+            json.dumps(
+                {
+                    "skip": True,
+                    "reason": f"Phase '{args.phase}' already completed at {phase_info.get('completed_at')}",
+                    "output": phase_info.get("output"),
+                }
+            )
+        )
         sys.exit(0)
     else:
-        print(json.dumps({
-            "skip": False,
-            "reason": f"Phase '{args.phase}' needs to run (status: {phase_info.get('status', 'pending')})",
-        }))
+        print(
+            json.dumps(
+                {
+                    "skip": False,
+                    "reason": f"Phase '{args.phase}' needs to run (status: {phase_info.get('status', 'pending')})",
+                }
+            )
+        )
         sys.exit(1)
 
 
@@ -166,7 +176,9 @@ def main() -> None:
     p_fail.add_argument("app_dir", help="App directory")
     p_fail.add_argument("--phase", required=True, choices=PHASES)
     p_fail.add_argument("--error", required=True, help="Error description")
-    p_fail.add_argument("--error-type", choices=["retryable", "fatal", "unknown"], default="unknown")
+    p_fail.add_argument(
+        "--error-type", choices=["retryable", "fatal", "unknown"], default="unknown"
+    )
     p_fail.set_defaults(func=cmd_fail)
 
     # reset

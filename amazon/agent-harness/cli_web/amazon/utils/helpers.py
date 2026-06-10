@@ -1,4 +1,5 @@
 """Shared CLI helpers for cli-web-amazon."""
+
 import json
 import sys
 from contextlib import contextmanager
@@ -9,11 +10,8 @@ import click
 
 from ..core.exceptions import (
     AmazonError,
-    NetworkError,
-    NotFoundError,
     ParsingError,
     RateLimitError,
-    ServerError,
     error_code_for,
 )
 
@@ -25,6 +23,7 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 # JSON output helper
 # ---------------------------------------------------------------------------
 
+
 def print_json(data: Any) -> None:
     """Print data as pretty JSON."""
     click.echo(json.dumps(data, ensure_ascii=False, indent=2))
@@ -33,6 +32,7 @@ def print_json(data: Any) -> None:
 # ---------------------------------------------------------------------------
 # Error handler context manager
 # ---------------------------------------------------------------------------
+
 
 @contextmanager
 def handle_errors(json_mode: bool = False):
@@ -67,10 +67,12 @@ def handle_errors(json_mode: bool = False):
         sys.exit(1)
     except Exception as exc:
         if json_mode:
-            click.echo(json.dumps(
-                {"error": True, "code": "INTERNAL_ERROR", "message": str(exc)},
-                ensure_ascii=False,
-            ))
+            click.echo(
+                json.dumps(
+                    {"error": True, "code": "INTERNAL_ERROR", "message": str(exc)},
+                    ensure_ascii=False,
+                )
+            )
         else:
             click.echo(f"Error: {exc}", err=True)
         sys.exit(2)
@@ -95,6 +97,7 @@ def sanitize_filename(name: str, max_length: int = 240) -> str:
 # ---------------------------------------------------------------------------
 # Persistent config
 # ---------------------------------------------------------------------------
+
 
 def _load_config() -> dict:
     """Load config.json, returning empty dict on failure."""

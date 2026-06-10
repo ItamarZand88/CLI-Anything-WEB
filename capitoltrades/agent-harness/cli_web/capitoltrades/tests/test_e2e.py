@@ -10,6 +10,7 @@ since this CLI has no offline fallback.
 CLI subprocess tests cover the fully installed `cli-web-capitoltrades` entry
 point when `CLI_WEB_FORCE_INSTALLED=1`.
 """
+
 from __future__ import annotations
 
 import json
@@ -17,27 +18,22 @@ import os
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
-
 from cli_web.capitoltrades.core.client import CapitoltradesClient
 from cli_web.capitoltrades.core.models import (
     parse_article_detail,
     parse_articles_list,
     parse_buzz_detail,
     parse_buzz_list,
-    parse_issuer_detail,
     parse_issuers_list,
     parse_politician_detail,
     parse_politicians_list,
-    parse_press_detail,
     parse_press_list,
     parse_trade_detail,
     parse_trades_list,
     parse_trades_stats,
 )
-
 
 # ─── _resolve_cli pattern ───────────────────────────────────────────────────
 
@@ -85,7 +81,9 @@ class TestLiveAPI:
         assert first["trade_id"].isdigit(), f"trade_id should be numeric, got {first['trade_id']!r}"
         assert first["politician_id"], "politician_id must be set"
         assert first["issuer_id"], "issuer_id must be set"
-        assert first["tx_type"] in ("buy", "sell", "exchange", "receive"), f"unexpected tx_type: {first['tx_type']!r}"
+        assert first["tx_type"] in ("buy", "sell", "exchange", "receive"), (
+            f"unexpected tx_type: {first['tx_type']!r}"
+        )
 
     def test_trades_stats_returns_known_labels(self, client):
         soup = client.get_html("/trades")
@@ -111,8 +109,11 @@ class TestLiveAPI:
         assert len(rows) >= 1, "politicians list empty"
         # Bioguide IDs match [A-Z]\d{6} pattern
         import re
+
         for r in rows:
-            assert re.match(r"^[A-Z]\d{6}$", r["politician_id"] or ""), f"bad bioguide: {r['politician_id']}"
+            assert re.match(r"^[A-Z]\d{6}$", r["politician_id"] or ""), (
+                f"bad bioguide: {r['politician_id']}"
+            )
 
     def test_politician_detail_has_name(self, client):
         """Pick first politician from list, get detail, verify name present."""
@@ -297,7 +298,9 @@ class TestCLISubprocess:
 
     def test_filter_party_republican(self, cli_cmd):
         """--party republican should only return Republican trades."""
-        result = _run(cli_cmd, "--json", "trades", "list", "--party", "republican", "--page-size", "5")
+        result = _run(
+            cli_cmd, "--json", "trades", "list", "--party", "republican", "--page-size", "5"
+        )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
         rows = data["data"]
@@ -375,19 +378,27 @@ class TestCLISubprocess:
     def test_trades_list_new_filters_accepted(self, cli_cmd):
         """New CLI options (--chamber, --size, --sort) map to the correct query params."""
         result = _run(
-            cli_cmd, "--json", "trades", "list",
-            "--chamber", "house",
-            "--size", "1M-5M",
-            "--sort", "traded",
-            "--sort-direction", "desc",
-            "--page-size", "5",
+            cli_cmd,
+            "--json",
+            "trades",
+            "list",
+            "--chamber",
+            "house",
+            "--size",
+            "1M-5M",
+            "--sort",
+            "traded",
+            "--sort-direction",
+            "desc",
+            "--page-size",
+            "5",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
         assert data["success"] is True
         filters = data["meta"]["filters"]
         assert filters.get("chamber") == "house"
-        assert filters.get("tradeSize") == 8   # 1M-5M → ID 8
+        assert filters.get("tradeSize") == 8  # 1M-5M → ID 8
         assert filters.get("sortBy") == "traded"
         assert filters.get("sortDirection") == "desc"
         # Every returned row should be House + 1M-5M

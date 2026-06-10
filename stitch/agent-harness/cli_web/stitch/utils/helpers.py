@@ -1,11 +1,12 @@
 """Shared helpers for cli-web-stitch."""
+
 import json
-import os
 import re
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import click
 
@@ -45,10 +46,10 @@ def handle_errors(json_mode: bool = False):
     """
     try:
         yield
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as exc:
         if json_mode:
             _print_json_error("INTERRUPTED", "Interrupted by user")
-        raise SystemExit(130)
+        raise SystemExit(130) from exc
     except click.exceptions.Exit:
         raise
     except click.UsageError as exc:
@@ -56,38 +57,38 @@ def handle_errors(json_mode: bool = False):
             _print_json_error("USAGE_ERROR", str(exc))
         else:
             click.echo(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from exc
     except AuthError as exc:
         if json_mode:
             _print_json_error("AUTH_ERROR", str(exc))
         else:
             click.echo(f"Auth error: {exc}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from exc
     except NotFoundError as exc:
         if json_mode:
             _print_json_error("NOT_FOUND", str(exc))
         else:
             click.echo(f"Not found: {exc}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from exc
     except RateLimitError as exc:
         if json_mode:
             _print_json_error("RATE_LIMITED", str(exc))
         else:
             click.echo(f"Rate limited: {exc}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from exc
     except (NetworkError, ServerError, RPCError, StitchError) as exc:
         code = _EXCEPTION_CODE_MAP.get(type(exc), "STITCH_ERROR")
         if json_mode:
             _print_json_error(code, str(exc))
         else:
             click.echo(f"Error: {exc}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from exc
     except Exception as exc:
         if json_mode:
             _print_json_error("INTERNAL_ERROR", str(exc))
         else:
             click.echo(f"Internal error: {exc}", err=True)
-        raise SystemExit(2)
+        raise SystemExit(2) from exc
 
 
 def _print_json_error(code: str, message: str):
@@ -95,6 +96,7 @@ def _print_json_error(code: str, message: str):
 
 
 # ── Partial ID resolution ─────────────────────────────────────────────
+
 
 def resolve_partial_id(
     partial: str,
@@ -117,9 +119,7 @@ def resolve_partial_id(
     # Short partial — prefix match
     if len(partial) < 20:
         matches = [
-            item
-            for item in items
-            if getattr(item, id_attr, "").lower().startswith(partial.lower())
+            item for item in items if getattr(item, id_attr, "").lower().startswith(partial.lower())
         ]
     else:
         matches = []
@@ -141,7 +141,8 @@ def resolve_partial_id(
 
 # ── Project context ───────────────────────────────────────────────────
 
-def get_context_value(key: str) -> Optional[str]:
+
+def get_context_value(key: str) -> str | None:
     """Read a value from persistent context.json."""
     if not CONTEXT_FILE.exists():
         return None
@@ -165,7 +166,7 @@ def set_context_value(key: str, value: Any):
     CONTEXT_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
-def require_project(project_arg: Optional[str] = None) -> str:
+def require_project(project_arg: str | None = None) -> str:
     """Resolve project ID from argument or persistent context.
 
     Args:
@@ -182,12 +183,11 @@ def require_project(project_arg: Optional[str] = None) -> str:
     ctx_id = get_context_value("project_id")
     if ctx_id:
         return ctx_id
-    raise click.UsageError(
-        "No active project. Use: cli-web-stitch use <project-id>"
-    )
+    raise click.UsageError("No active project. Use: cli-web-stitch use <project-id>")
 
 
 # ── Filename sanitization ────────────────────────────────────────────
+
 
 def sanitize_filename(name: str, max_length: int = 240) -> str:
     """Convert a string to a safe filename."""
@@ -200,6 +200,7 @@ def sanitize_filename(name: str, max_length: int = 240) -> str:
 
 
 # ── Rate limit retry ─────────────────────────────────────────────────
+
 
 def retry_on_rate_limit(fn: Callable, max_retries: int = 3) -> Any:
     """Call *fn* with exponential backoff retry on RateLimitError.

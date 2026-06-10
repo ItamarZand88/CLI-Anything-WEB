@@ -5,7 +5,8 @@ from __future__ import annotations
 import click
 
 from ..core.client import ChatGPTClient
-from ..utils.helpers import handle_errors, print_json, resolve_json_mode
+from ..utils.helpers import handle_errors, resolve_json_mode
+from ..utils.output import print_json
 
 
 @click.command("me")

@@ -20,6 +20,11 @@ def print_json(data: Any) -> None:
     print(json.dumps(data, indent=2, default=str))
 
 
+def print_json_success(data: Any) -> None:
+    """Print data wrapped in the standard success envelope."""
+    print_json({"success": True, "data": data})
+
+
 def print_error_json(error: Exception) -> None:
     """Print an error as JSON."""
     from cli_web.gh_trending.core.exceptions import AppError
@@ -89,9 +94,4 @@ def print_developers_table(developers: list) -> None:
         name = _safe(dev.name or "", col_name)
         login = _safe(dev.login, col_login)
         repo = _safe(dev.popular_repo or "", col_repo)
-        print(
-            f"{dev.rank:<{col_rank}} "
-            f"{login:<{col_login}} "
-            f"{name:<{col_name}} "
-            f"{repo:<{col_repo}}"
-        )
+        print(f"{dev.rank:<{col_rank}} {login:<{col_login}} {name:<{col_name}} {repo:<{col_repo}}")

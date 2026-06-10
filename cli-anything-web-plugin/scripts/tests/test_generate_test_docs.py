@@ -3,6 +3,7 @@
 Exercises parse_test_file() against synthetic test files and drives the
 full `plan` subcommand via subprocess to verify end-to-end output.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -28,12 +29,11 @@ def gen_docs_mod() -> ModuleType:
 
 # --- parse_test_file ---
 
+
 def test_parse_extracts_top_level_test_functions(gen_docs_mod, tmp_path):
     src = tmp_path / "test_core.py"
     src.write_text(
-        "def test_one():\n    pass\n\n"
-        "def test_two():\n    pass\n\n"
-        "def not_a_test():\n    pass\n"
+        "def test_one():\n    pass\n\ndef test_two():\n    pass\n\ndef not_a_test():\n    pass\n"
     )
     result = gen_docs_mod.parse_test_file(src)
     # Module-level funcs become the first entry
@@ -82,10 +82,7 @@ def test_parse_class_name_overrides_default_layer(gen_docs_mod, tmp_path):
     """TestSubprocessFoo in test_e2e.py should be classified as Subprocess,
     not E2E, because the class name takes priority."""
     src = tmp_path / "test_e2e.py"
-    src.write_text(
-        "class TestSubprocessFoo:\n"
-        "    def test_spawn(self): pass\n"
-    )
+    src.write_text("class TestSubprocessFoo:\n    def test_spawn(self): pass\n")
     result = gen_docs_mod.parse_test_file(src)
     classes = {r["class"]: r["layer"] for r in result}
     assert classes["TestSubprocessFoo"] == "Subprocess"
@@ -100,10 +97,7 @@ def test_parse_ignores_syntax_errors(gen_docs_mod, tmp_path):
 
 def test_parse_skips_classes_with_no_test_methods(gen_docs_mod, tmp_path):
     src = tmp_path / "test_core.py"
-    src.write_text(
-        "class TestEmpty:\n    pass\n\n"
-        "class TestReal:\n    def test_x(self): pass\n"
-    )
+    src.write_text("class TestEmpty:\n    pass\n\nclass TestReal:\n    def test_x(self): pass\n")
     result = gen_docs_mod.parse_test_file(src)
     class_names = [r["class"] for r in result]
     assert "TestEmpty" not in class_names
@@ -118,18 +112,22 @@ def test_parse_handles_empty_file(gen_docs_mod, tmp_path):
 
 # --- generate_plan via subprocess ---
 
+
 def test_plan_subcommand_generates_markdown(tmp_path):
     tests_dir = tmp_path / "tests"
     tests_dir.mkdir()
-    (tests_dir / "test_core.py").write_text(
-        "class TestClient:\n    def test_fetch(self): pass\n"
-    )
+    (tests_dir / "test_core.py").write_text("class TestClient:\n    def test_fetch(self): pass\n")
     result = subprocess.run(
         [
-            sys.executable, str(GEN_DOCS), "plan",
-            str(tests_dir), "--app-name", "myapp",
+            sys.executable,
+            str(GEN_DOCS),
+            "plan",
+            str(tests_dir),
+            "--app-name",
+            "myapp",
         ],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert result.returncode == 0, result.stderr
     # Plan subcommand writes TEST.md next to tests/ (under the harness root).
@@ -149,10 +147,15 @@ def test_plan_handles_empty_tests_dir(tmp_path):
     tests_dir.mkdir()
     result = subprocess.run(
         [
-            sys.executable, str(GEN_DOCS), "plan",
-            str(tests_dir), "--app-name", "empty",
+            sys.executable,
+            str(GEN_DOCS),
+            "plan",
+            str(tests_dir),
+            "--app-name",
+            "empty",
         ],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     # Should not crash; output may be empty / minimal
     assert result.returncode == 0, result.stderr
@@ -161,9 +164,14 @@ def test_plan_handles_empty_tests_dir(tmp_path):
 def test_rejects_nonexistent_tests_dir():
     result = subprocess.run(
         [
-            sys.executable, str(GEN_DOCS), "plan",
-            "/nonexistent/path/xyz", "--app-name", "x",
+            sys.executable,
+            str(GEN_DOCS),
+            "plan",
+            "/nonexistent/path/xyz",
+            "--app-name",
+            "x",
         ],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert result.returncode != 0

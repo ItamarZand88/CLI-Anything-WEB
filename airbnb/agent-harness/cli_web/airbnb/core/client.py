@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import base64
 import json
+import os as _os
 import re
-from typing import Optional
 
 from curl_cffi import requests as curl_requests
 
@@ -24,8 +24,6 @@ from .exceptions import (
     ServerError,
 )
 from .models import AvailabilityDay, AvailabilityMonth, Listing, LocationSuggestion, Review
-
-import os as _os
 
 BASE_URL = "https://www.airbnb.com"
 # Public Airbnb web API key — embedded in airbnb.com JS bundle.
@@ -94,7 +92,7 @@ def _strip_html(text: str) -> str:
     return clean.strip()
 
 
-def _extract_niobe_data(html: str, operation: str) -> Optional[dict]:
+def _extract_niobe_data(html: str, operation: str) -> dict | None:
     """Extract embedded GraphQL response from Airbnb SSR page."""
     scripts = re.findall(
         r'<script[^>]*type=["\x27]application/json["\x27][^>]*>(.*?)</script>',
@@ -154,13 +152,13 @@ class AirbnbClient:
     def close(self) -> None:
         self._session.close()
 
-    def __enter__(self) -> "AirbnbClient":
+    def __enter__(self) -> AirbnbClient:
         return self
 
     def __exit__(self, *exc) -> None:
         self.close()
 
-    def _get_html(self, url: str, params: Optional[dict] = None) -> str:
+    def _get_html(self, url: str, params: dict | None = None) -> str:
         try:
             resp = self._session.get(url, params=params, timeout=30)
         except Exception as exc:
@@ -188,7 +186,7 @@ class AirbnbClient:
         self._raise_for_status(resp, url)
         return resp.json()
 
-    def _api_get(self, path: str, params: Optional[dict] = None) -> dict:
+    def _api_get(self, path: str, params: dict | None = None) -> dict:
         all_params = {"key": API_KEY, "locale": self.locale, "currency": self.currency}
         if params:
             all_params.update(params)
@@ -205,14 +203,16 @@ class AirbnbClient:
         if code == 200:
             return
         if code == 401:
-            raise AuthError(f"Unauthorized (HTTP 401).", recoverable=False)
+            raise AuthError("Unauthorized (HTTP 401).", recoverable=False)
         if code == 403:
-            raise BotBlockedError(f"Blocked by bot protection (HTTP 403).")
+            raise BotBlockedError("Blocked by bot protection (HTTP 403).")
         if code == 404:
             raise NotFoundError(f"Not found: {url}")
         if code == 429:
             retry = resp.headers.get("Retry-After")
-            raise RateLimitError("Rate limited by Airbnb", retry_after=float(retry) if retry else 60.0)
+            raise RateLimitError(
+                "Rate limited by Airbnb", retry_after=float(retry) if retry else 60.0
+            )
         if code >= 500:
             raise ServerError(f"Server error HTTP {code}", status_code=code)
         raise AirbnbError(f"Unexpected HTTP {code}: {url}")
@@ -224,14 +224,14 @@ class AirbnbClient:
         children: int = 0,
         infants: int = 0,
         pets: int = 0,
-        checkin: Optional[str] = None,
-        checkout: Optional[str] = None,
-        price_min: Optional[int] = None,
-        price_max: Optional[int] = None,
-        room_types: Optional[list] = None,
-        amenities: Optional[list] = None,
-        cursor: Optional[str] = None,
-        place_id: Optional[str] = None,
+        checkin: str | None = None,
+        checkout: str | None = None,
+        price_min: int | None = None,
+        price_max: int | None = None,
+        room_types: list | None = None,
+        amenities: list | None = None,
+        cursor: str | None = None,
+        place_id: str | None = None,
     ) -> dict:
         """Search stays in a given location."""
         location_slug = _location_to_slug(location)
@@ -288,8 +288,8 @@ class AirbnbClient:
         self,
         listing_id: str,
         adults: int = 1,
-        checkin: Optional[str] = None,
-        checkout: Optional[str] = None,
+        checkin: str | None = None,
+        checkout: str | None = None,
     ) -> Listing:
         """Get detailed information about a specific listing."""
         params: dict = {"adults": adults, "locale": self.locale, "currency": self.currency}
@@ -311,7 +311,11 @@ class AirbnbClient:
                 # Airbnb returns sections as either a nested dict {"sections": [...]}
                 # or directly as a list — handle both structures defensively.
                 _sec_raw = pdp.get("sections", [])
-                _sec_list = _sec_raw.get("sections", []) if isinstance(_sec_raw, dict) else (_sec_raw if isinstance(_sec_raw, list) else [])
+                _sec_list = (
+                    _sec_raw.get("sections", [])
+                    if isinstance(_sec_raw, dict)
+                    else (_sec_raw if isinstance(_sec_raw, list) else [])
+                )
                 for sg in _sec_list:
                     sec = sg.get("section") or {}
                     stype = sec.get("__typename", "")
@@ -329,7 +333,9 @@ class AirbnbClient:
                         # host name is nested in cardData
                         host_name = (sec.get("cardData") or {}).get("name")
                     elif stype == "PdpDescriptionSection":
-                        raw_desc = (sec.get("htmlDescription") or {}).get("htmlText") or sec.get("description")
+                        raw_desc = (sec.get("htmlDescription") or {}).get("htmlText") or sec.get(
+                            "description"
+                        )
                         description = _strip_html(raw_desc) if raw_desc else None
                     elif stype == "AmenitiesSection":
                         # Airbnb renamed from PdpAmenitiesSection → AmenitiesSection
@@ -415,7 +421,7 @@ class AirbnbClient:
             metadata = pdp_reviews.get("metadata", {})
             reviews = []
             for r in raw_list:
-                reviewer = (r.get("reviewer") or {})
+                reviewer = r.get("reviewer") or {}
                 reviews.append(
                     Review(
                         id=r.get("id", ""),
@@ -434,8 +440,8 @@ class AirbnbClient:
     def get_availability(
         self,
         listing_id: str,
-        month: Optional[int] = None,
-        year: Optional[int] = None,
+        month: int | None = None,
+        year: int | None = None,
         count: int = 12,
     ) -> list:
         """Get availability calendar for a listing via PdpAvailabilityCalendar."""
@@ -453,7 +459,9 @@ class AirbnbClient:
         }
         data = self._api_v3_get("PdpAvailabilityCalendar", _AVAIL_HASH, variables)
         try:
-            calendar_months_raw = data["data"]["merlin"]["pdpAvailabilityCalendar"]["calendarMonths"]
+            calendar_months_raw = data["data"]["merlin"]["pdpAvailabilityCalendar"][
+                "calendarMonths"
+            ]
             result = []
             for month_data in calendar_months_raw:
                 days = []

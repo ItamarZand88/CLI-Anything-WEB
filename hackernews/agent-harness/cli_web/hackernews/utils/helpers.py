@@ -6,11 +6,9 @@ import contextlib
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import click
-
 from cli_web.hackernews.core.exceptions import AppError
 
 
@@ -27,11 +25,16 @@ def handle_errors(json_mode: bool = False):
         sys.exit(1)
     except Exception as exc:
         if json_mode:
-            click.echo(json.dumps({
-                "error": True,
-                "code": "UNEXPECTED_ERROR",
-                "message": str(exc),
-            }), err=False)
+            click.echo(
+                json.dumps(
+                    {
+                        "error": True,
+                        "code": "UNEXPECTED_ERROR",
+                        "message": str(exc),
+                    }
+                ),
+                err=False,
+            )
         else:
             click.echo(f"Error: {exc}", err=True)
         sys.exit(1)

@@ -1,5 +1,5 @@
 """Project commands for cli-web-stitch."""
-import json
+
 from pathlib import Path
 
 import click
@@ -32,17 +32,21 @@ def projects_list(ctx, json_mode):
         client = StitchClient()
         items = client.list_projects()
         if json_mode:
-            print_json(json_success([
-                {
-                    "id": p.id,
-                    "resource_name": p.resource_name,
-                    "title": p.title,
-                    "created_at": p.created_at,
-                    "modified_at": p.modified_at,
-                    "status": p.status,
-                }
-                for p in items
-            ]))
+            print_json(
+                json_success(
+                    [
+                        {
+                            "id": p.id,
+                            "resource_name": p.resource_name,
+                            "title": p.title,
+                            "created_at": p.created_at,
+                            "modified_at": p.modified_at,
+                            "status": p.status,
+                        }
+                        for p in items
+                    ]
+                )
+            )
         else:
             if not items:
                 click.echo("No projects found.")
@@ -67,8 +71,12 @@ def projects_get(ctx, project_id, json_mode):
 
 @projects.command("create")
 @click.argument("prompt")
-@click.option("--platform", type=click.Choice(["app", "web"]), default="app",
-              help="Platform: app (mobile) or web")
+@click.option(
+    "--platform",
+    type=click.Choice(["app", "web"]),
+    default="app",
+    help="Platform: app (mobile) or web",
+)
 @click.option("--wait/--no-wait", default=True, help="Wait for generation to complete")
 @click.option("--json", "json_mode", is_flag=True, help="JSON output")
 @click.pass_context
@@ -85,7 +93,8 @@ def projects_create(ctx, prompt, platform, wait, json_mode):
             if not json_mode:
                 with _console.status("Generating design..."):
                     project = client.create_project_and_generate(
-                        prompt, platform,
+                        prompt,
+                        platform,
                     )
             else:
                 project = client.create_project_and_generate(prompt, platform)
@@ -95,20 +104,24 @@ def projects_create(ctx, prompt, platform, wait, json_mode):
 
             set_context_value("project_id", project.id)
             if json_mode:
-                print_json(json_success({
-                    "project": {
-                        "id": project.id,
-                        "resource_name": project.resource_name,
-                        "title": project.title,
-                    },
-                    "prompt": prompt,
-                }))
+                print_json(
+                    json_success(
+                        {
+                            "project": {
+                                "id": project.id,
+                                "resource_name": project.resource_name,
+                                "title": project.title,
+                            },
+                            "prompt": prompt,
+                        }
+                    )
+                )
             else:
                 title = project.title or "(untitled)"
                 url = f"https://stitch.withgoogle.com/projects/{project.id}"
                 _console.print(f"\n[green bold]{title}[/] created!")
                 _console.print(f"  [link={url}]{url}[/link]")
-                _console.print(f"  [dim]Active project set.[/]")
+                _console.print("  [dim]Active project set.[/]")
         else:
             # No-wait: create project and fire prompt without polling
             project = client.create_project()
@@ -117,10 +130,14 @@ def projects_create(ctx, prompt, platform, wait, json_mode):
             session = client.send_prompt(project.id, prompt, platform)
             set_context_value("project_id", project.id)
             if json_mode:
-                print_json(json_success({
-                    "project": {"id": project.id, "resource_name": project.resource_name},
-                    "session": {"id": session.id if session else None},
-                }))
+                print_json(
+                    json_success(
+                        {
+                            "project": {"id": project.id, "resource_name": project.resource_name},
+                            "session": {"id": session.id if session else None},
+                        }
+                    )
+                )
             else:
                 format_project(project, json_mode=False)
                 _console.print(f"\nProject created: {project.id}")
@@ -161,11 +178,15 @@ def projects_rename(ctx, project_id, new_name, json_mode):
         if project is None:
             raise click.UsageError(f"Failed to rename project: {project_id}")
         if json_mode:
-            print_json(json_success({
-                "id": project.id,
-                "title": project.title,
-                "resource_name": project.resource_name,
-            }))
+            print_json(
+                json_success(
+                    {
+                        "id": project.id,
+                        "title": project.title,
+                        "resource_name": project.resource_name,
+                    }
+                )
+            )
         else:
             click.echo(f"Renamed project {project.id} to: {project.title}")
 
@@ -183,19 +204,22 @@ def projects_duplicate(ctx, project_id, json_mode):
         if new_id is None:
             raise click.UsageError(f"Failed to duplicate project: {project_id}")
         if json_mode:
-            print_json(json_success({
-                "source_id": project_id,
-                "new_id": new_id,
-                "new_resource_name": f"projects/{new_id}",
-            }))
+            print_json(
+                json_success(
+                    {
+                        "source_id": project_id,
+                        "new_id": new_id,
+                        "new_resource_name": f"projects/{new_id}",
+                    }
+                )
+            )
         else:
             click.echo(f"Duplicated project {project_id} → {new_id}")
 
 
 @projects.command("download")
 @click.argument("project_id")
-@click.option("--output", "-o", "output_dir", default=".",
-              help="Output directory for files")
+@click.option("--output", "-o", "output_dir", default=".", help="Output directory for files")
 @click.option("--json", "json_mode", is_flag=True, help="JSON output")
 @click.pass_context
 def projects_download(ctx, project_id, output_dir, json_mode):
@@ -230,11 +254,15 @@ def projects_download(ctx, project_id, output_dir, json_mode):
             export_triggered = False
 
         if json_mode:
-            print_json(json_success({
-                "project_id": project_id,
-                "files": downloaded,
-                "export_triggered": export_triggered,
-            }))
+            print_json(
+                json_success(
+                    {
+                        "project_id": project_id,
+                        "files": downloaded,
+                        "export_triggered": export_triggered,
+                    }
+                )
+            )
         else:
             click.echo(f"Downloaded {len(downloaded)} screen(s) to {out_path}")
             if export_triggered:

@@ -1,4 +1,5 @@
 """Trade-related commands: list, get, stats."""
+
 from __future__ import annotations
 
 import click
@@ -6,8 +7,8 @@ import click
 from ..core.client import CapitoltradesClient
 from ..core.exceptions import NotFoundError
 from ..core.models import (
-    parse_trades_list,
     parse_trade_detail,
+    parse_trades_list,
     parse_trades_stats,
 )
 from ..utils.helpers import handle_errors, print_json
@@ -50,19 +51,70 @@ def _render_trade_rows(rows: list[dict]) -> None:
 @trades.command("list")
 @click.option("--page", type=int, default=1, show_default=True, help="Page number (1-indexed).")
 @click.option("--page-size", type=int, default=12, show_default=True, help="Rows per page.")
-@click.option("--politician", type=str, default=None, help="Filter by politician ID (bioguide, e.g. Y000067).")
-@click.option("--issuer", type=str, default=None, help="Filter by issuer internal ID (e.g. 435544).")
-@click.option("--party", type=click.Choice(["republican", "democrat", "independent"], case_sensitive=False), default=None, help="Filter by party.")
-@click.option("--chamber", type=click.Choice(["house", "senate"], case_sensitive=False), default=None, help="Filter by chamber.")
-@click.option("--tx-type", type=click.Choice(["buy", "sell", "exchange"], case_sensitive=False), default=None, help="Filter by transaction type.")
-@click.option("--sector", type=str, default=None, help="Filter by sector (e.g. health-care, information-technology).")
-@click.option("--size", "size_filter", type=click.Choice(_SIZE_CHOICES, case_sensitive=False), default=None, help="Filter by trade size bracket.")
-@click.option("--sort", type=click.Choice(["traded", "pubDate", "filedAfter", "tradeSize"], case_sensitive=False), default=None, help="Sort column (matches the site's sortable headers).")
-@click.option("--sort-direction", type=click.Choice(["asc", "desc"], case_sensitive=False), default="desc", show_default=True, help="Sort direction (used with --sort).")
+@click.option(
+    "--politician", type=str, default=None, help="Filter by politician ID (bioguide, e.g. Y000067)."
+)
+@click.option(
+    "--issuer", type=str, default=None, help="Filter by issuer internal ID (e.g. 435544)."
+)
+@click.option(
+    "--party",
+    type=click.Choice(["republican", "democrat", "independent"], case_sensitive=False),
+    default=None,
+    help="Filter by party.",
+)
+@click.option(
+    "--chamber",
+    type=click.Choice(["house", "senate"], case_sensitive=False),
+    default=None,
+    help="Filter by chamber.",
+)
+@click.option(
+    "--tx-type",
+    type=click.Choice(["buy", "sell", "exchange"], case_sensitive=False),
+    default=None,
+    help="Filter by transaction type.",
+)
+@click.option(
+    "--sector",
+    type=str,
+    default=None,
+    help="Filter by sector (e.g. health-care, information-technology).",
+)
+@click.option(
+    "--size",
+    "size_filter",
+    type=click.Choice(_SIZE_CHOICES, case_sensitive=False),
+    default=None,
+    help="Filter by trade size bracket.",
+)
+@click.option(
+    "--sort",
+    type=click.Choice(["traded", "pubDate", "filedAfter", "tradeSize"], case_sensitive=False),
+    default=None,
+    help="Sort column (matches the site's sortable headers).",
+)
+@click.option(
+    "--sort-direction",
+    type=click.Choice(["asc", "desc"], case_sensitive=False),
+    default="desc",
+    show_default=True,
+    help="Sort direction (used with --sort).",
+)
 @click.pass_context
 def list_trades(
-    ctx, page, page_size, politician, issuer, party, chamber, tx_type, sector,
-    size_filter, sort, sort_direction,
+    ctx,
+    page,
+    page_size,
+    politician,
+    issuer,
+    party,
+    chamber,
+    tx_type,
+    sector,
+    size_filter,
+    sort,
+    sort_direction,
 ):
     """List trades with optional filters (matches capitoltrades.com/trades)."""
     json_mode = ctx.obj.get("json", False)
@@ -94,7 +146,19 @@ def list_trades(
             rows = parse_trades_list(soup)
 
         if json_mode:
-            print_json({"success": True, "data": rows, "meta": {"page": page, "page_size": page_size, "filters": {k: v for k, v in params.items() if k not in ("page", "pageSize")}}})
+            print_json(
+                {
+                    "success": True,
+                    "data": rows,
+                    "meta": {
+                        "page": page,
+                        "page_size": page_size,
+                        "filters": {
+                            k: v for k, v in params.items() if k not in ("page", "pageSize")
+                        },
+                    },
+                }
+            )
         else:
             if not rows:
                 click.echo("No trades found.")
@@ -119,14 +183,22 @@ def get_trade(ctx, trade_id):
         else:
             click.echo(f"Trade #{trade_id}")
             click.echo(f"  {data.get('title')}")
-            click.echo(f"  Type:       {data.get('tx_type')}  Size: {data.get('size')}  Price: {data.get('price')}  Shares: {data.get('shares')}")
+            click.echo(
+                f"  Type:       {data.get('tx_type')}  Size: {data.get('size')}  Price: {data.get('price')}  Shares: {data.get('shares')}"
+            )
             click.echo(
                 f"  Politician: {data.get('politician_name')} ({data.get('politician_id')}) — "
                 f"{data.get('politician_party')} / {data.get('politician_chamber')} / {data.get('politician_state')}"
             )
-            click.echo(f"  Issuer:     {data.get('issuer_name')} ({data.get('ticker')}) [id={data.get('issuer_id')}]")
-            click.echo(f"  Traded:     {data.get('traded')}   Published: {data.get('published')}   Filed on: {data.get('filed_on')}")
-            click.echo(f"  Reporting gap: {data.get('reporting_gap')}   Owner: {data.get('owner')}   Asset: {data.get('asset_type')}")
+            click.echo(
+                f"  Issuer:     {data.get('issuer_name')} ({data.get('ticker')}) [id={data.get('issuer_id')}]"
+            )
+            click.echo(
+                f"  Traded:     {data.get('traded')}   Published: {data.get('published')}   Filed on: {data.get('filed_on')}"
+            )
+            click.echo(
+                f"  Reporting gap: {data.get('reporting_gap')}   Owner: {data.get('owner')}   Asset: {data.get('asset_type')}"
+            )
             if data.get("comment"):
                 click.echo(f"  Comment:    {data.get('comment')}")
             if data.get("filing_url"):
@@ -137,8 +209,14 @@ def get_trade(ctx, trade_id):
 @click.argument("ticker")
 @click.option("--page", type=int, default=1, show_default=True, help="Page number.")
 @click.option("--page-size", type=int, default=12, show_default=True, help="Rows per page.")
-@click.option("--party", type=click.Choice(["republican", "democrat", "independent"], case_sensitive=False), default=None)
-@click.option("--tx-type", type=click.Choice(["buy", "sell", "exchange"], case_sensitive=False), default=None)
+@click.option(
+    "--party",
+    type=click.Choice(["republican", "democrat", "independent"], case_sensitive=False),
+    default=None,
+)
+@click.option(
+    "--tx-type", type=click.Choice(["buy", "sell", "exchange"], case_sensitive=False), default=None
+)
 @click.pass_context
 def by_ticker(ctx, ticker, page, page_size, party, tx_type):
     """Find trades for a ticker symbol (e.g. NVDA) — resolves via BFF issuer search."""
@@ -173,22 +251,26 @@ def by_ticker(ctx, ticker, page, page_size, party, tx_type):
             rows = parse_trades_list(soup)
 
         if json_mode:
-            print_json({
-                "success": True,
-                "data": rows,
-                "meta": {
-                    "page": page,
-                    "page_size": page_size,
-                    "resolved_issuer": {
-                        "issuer_id": issuer_id,
-                        "name": match.get("issuerName"),
-                        "ticker": match.get("issuerTicker"),
-                        "sector": match.get("sector"),
+            print_json(
+                {
+                    "success": True,
+                    "data": rows,
+                    "meta": {
+                        "page": page,
+                        "page_size": page_size,
+                        "resolved_issuer": {
+                            "issuer_id": issuer_id,
+                            "name": match.get("issuerName"),
+                            "ticker": match.get("issuerTicker"),
+                            "sector": match.get("sector"),
+                        },
                     },
-                },
-            })
+                }
+            )
         else:
-            click.echo(f"Trades for {match.get('issuerName')} ({match.get('issuerTicker')}) [id={issuer_id}]")
+            click.echo(
+                f"Trades for {match.get('issuerName')} ({match.get('issuerTicker')}) [id={issuer_id}]"
+            )
             if not rows:
                 click.echo("  No trades found.")
                 return

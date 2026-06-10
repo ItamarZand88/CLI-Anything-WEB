@@ -3,6 +3,19 @@
 Anti-bot, WAF, and rate limit detection patterns for site assessment.
 All commands use `npx @playwright/cli@latest -s=<app>`.
 
+## Contents
+
+- Service Worker Detection
+- All-in-One Detection Script
+- Anti-Bot Escalation Ladder
+- Cloudflare
+- AWS WAF (Booking.com pattern)
+- Akamai Bot Manager / DataDome (Airbnb pattern)
+- PerimeterX
+- Rate Limit Detection
+- CAPTCHA Types
+- Summary: What Each Finding Means
+
 ---
 
 ## Service Worker Detection

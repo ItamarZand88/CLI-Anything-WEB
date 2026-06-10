@@ -1,5 +1,15 @@
 # Test Code Examples
 
+## Contents
+
+- HTML Scraper Fixture Realism
+- Asserting List/Search Results
+- Unit Test Pattern
+- Testing with Browser-Delegated Auth
+- Unit Tests for RPC Protocols
+- Helper tests
+- Client-side operations
+
 ## HTML Scraper Fixture Realism
 
 Unit test fixtures for HTML-parsed endpoints must mirror the real page's CSS class
@@ -116,3 +126,73 @@ When the app uses batchexecute or custom RPC, add unit tests for the codec:
 - Use captured response fixtures in `tests/fixtures/` for decoder tests
 - Test error response detection (`"er"` entries in batchexecute)
 - Test auth error detection and refresh trigger
+
+## Helper tests
+
+Required unit coverage for `utils/helpers.py` (referenced from SKILL.md
+§Helper Function Testing):
+
+```python
+# test_core.py — partial ID resolution
+def test_partial_id_unique_prefix():
+    """Short unique prefix resolves to single match."""
+    items = [FakeItem("abc123-uuid"), FakeItem("xyz789-uuid")]
+    result = resolve_partial_id("abc", items)
+    assert result.id == "abc123-uuid"
+
+def test_partial_id_ambiguous_raises():
+    """Ambiguous prefix raises BadParameter."""
+    items = [FakeItem("abc123"), FakeItem("abc456")]
+    with pytest.raises(click.BadParameter):
+        resolve_partial_id("abc", items)
+
+# test_core.py — filename sanitization
+def test_sanitize_invalid_chars():
+    assert sanitize_filename("test/file:name*") == "test_file_name_"
+    assert sanitize_filename("") == "untitled"
+
+# test_core.py — persistent context
+def test_context_set_and_get(tmp_path):
+    """Context persists to JSON file."""
+    with patch("...helpers.CONTEXT_FILE", tmp_path / "context.json"):
+        set_context_value("notebook_id", "test-123")
+        assert get_context_value("notebook_id") == "test-123"
+```
+
+Exit-code assertions for `handle_errors` live in SKILL.md (they depend on
+the template generation: v2.1+ contract vs legacy codes).
+
+## Client-side operations
+
+Patterns for batchexecute/RPC operations where the browser generates the ID
+and `create_X()` returns None (referenced from SKILL.md §Handling
+Client-Side Operations):
+
+```python
+# DON'T: test create -> get round trip (create returns None)
+def test_create_project(self):
+    project = client.create_project()
+    assert project is not None  # WILL FAIL for client-side creates
+
+# DO: test operations that work via RPC
+def test_delete_project(self):
+    """Delete an existing project (creation was via browser)."""
+    projects = client.list_projects()
+    assert len(projects) > 0, "No projects to test with"
+    # Pick a safe target (not the user's main projects)
+    target = find_safe_delete_target(projects)
+    if not target:
+        pytest.skip("No safe delete target — all projects appear important")
+    result = client.delete_project(target.id)
+    assert result is True
+
+# DO: test the list-diff pattern if create_X uses it
+def test_create_via_list_diff(self):
+    """Test create if it uses the list-before/after pattern."""
+    before = len(client.list_projects())
+    project = client.create_project(prompt="test prompt")
+    if project is None:
+        pytest.skip("Create is client-side only — requires browser")
+    after = len(client.list_projects())
+    assert after > before
+```

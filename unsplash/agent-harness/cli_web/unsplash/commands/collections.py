@@ -27,7 +27,13 @@ def search(query, page, per_page, use_json):
         data = client.search_collections(query, page=page, per_page=per_page)
         results = [format_collection_summary(c) for c in data.get("results", [])]
         if use_json:
-            print_json({"total": data.get("total", 0), "total_pages": data.get("total_pages", 0), "results": results})
+            print_json(
+                {
+                    "total": data.get("total", 0),
+                    "total_pages": data.get("total_pages", 0),
+                    "results": results,
+                }
+            )
         else:
             click.echo(f"Found {data.get('total', 0):,} collections for '{query}' (page {page})")
             collection_table(results, title=f"Search: {query}")

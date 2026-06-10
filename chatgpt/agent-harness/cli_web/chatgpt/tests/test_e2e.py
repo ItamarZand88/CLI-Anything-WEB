@@ -9,10 +9,8 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 
 import pytest
-
 from cli_web.chatgpt.core.auth import is_logged_in
 from cli_web.chatgpt.core.client import ChatGPTClient
 
@@ -33,9 +31,7 @@ def _resolve_cli(name: str) -> str:
 @pytest.fixture(scope="session")
 def require_auth():
     if not is_logged_in():
-        pytest.fail(
-            "Auth not configured. Run: cli-web-chatgpt auth login"
-        )
+        pytest.fail("Auth not configured. Run: cli-web-chatgpt auth login")
 
 
 @pytest.fixture(scope="session")
@@ -152,8 +148,9 @@ class TestE2EChat:
         img_bytes = client.download_file(result["download_url"])
         assert len(img_bytes) > 1000, "Downloaded image should be >1KB"
         # PNG starts with specific bytes
-        assert img_bytes[:4] == b"\x89PNG" or img_bytes[:2] == b"\xff\xd8", \
+        assert img_bytes[:4] == b"\x89PNG" or img_bytes[:2] == b"\xff\xd8", (
             "Downloaded file should be PNG or JPEG"
+        )
 
 
 # ── E2E: File download tests ──────────────────────────────────
@@ -185,7 +182,10 @@ class TestCLISubprocess:
     def test_help(self, cli_path):
         result = subprocess.run(
             [cli_path, "--help"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         assert "ChatGPT" in result.stdout
@@ -193,7 +193,10 @@ class TestCLISubprocess:
     def test_json_me(self, cli_path, require_auth):
         result = subprocess.run(
             [cli_path, "--json", "me"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -203,7 +206,10 @@ class TestCLISubprocess:
     def test_json_models(self, cli_path, require_auth):
         result = subprocess.run(
             [cli_path, "--json", "models"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -214,7 +220,10 @@ class TestCLISubprocess:
     def test_json_conversations_list(self, cli_path, require_auth):
         result = subprocess.run(
             [cli_path, "--json", "conversations", "list", "--limit", "3"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -224,7 +233,10 @@ class TestCLISubprocess:
     def test_json_images_list(self, cli_path, require_auth):
         result = subprocess.run(
             [cli_path, "--json", "images", "list", "--limit", "3"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -234,7 +246,10 @@ class TestCLISubprocess:
     def test_json_auth_status(self, cli_path, require_auth):
         result = subprocess.run(
             [cli_path, "--json", "auth", "status"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -245,7 +260,10 @@ class TestCLISubprocess:
         """Subprocess chat ask — verify JSON output structure."""
         result = subprocess.run(
             [cli_path, "--json", "chat", "ask", "What is 1+1? Just the number."],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=120,
         )
         assert result.returncode == 0
@@ -260,7 +278,10 @@ class TestCLISubprocess:
         """Non-JSON output should produce readable table."""
         result = subprocess.run(
             [cli_path, "conversations", "list", "--limit", "3"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         assert "Title" in result.stdout  # Table header

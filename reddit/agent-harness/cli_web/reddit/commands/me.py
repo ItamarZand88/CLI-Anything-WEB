@@ -112,15 +112,17 @@ def inbox(limit, after, use_json):
         messages = []
         for c in children:
             d = c.get("data", {})
-            messages.append({
-                "id": d.get("id", ""),
-                "type": c.get("kind", ""),
-                "author": d.get("author", ""),
-                "subject": d.get("subject", ""),
-                "body": d.get("body", "")[:200],
-                "subreddit": d.get("subreddit", ""),
-                "new": d.get("new", False),
-            })
+            messages.append(
+                {
+                    "id": d.get("id", ""),
+                    "type": c.get("kind", ""),
+                    "author": d.get("author", ""),
+                    "subject": d.get("subject", ""),
+                    "body": d.get("body", "")[:200],
+                    "subreddit": d.get("subreddit", ""),
+                    "new": d.get("new", False),
+                }
+            )
         next_after = data.get("data", {}).get("after")
         if use_json:
             print_json({"messages": messages, "after": next_after})

@@ -79,6 +79,14 @@ MISSING_PACKAGES=()
 check_package "click" || MISSING_PACKAGES+=("click")
 check_package "httpx" || MISSING_PACKAGES+=("httpx")
 check_package "pytest" || MISSING_PACKAGES+=("pytest")
+# jinja2 is required by scripts/scaffold-cli.py (template rendering)
+if ! python3 -c "import jinja2" 2>/dev/null; then
+    echo -e "${YELLOW}⚠${NC} jinja2 not installed (required by scaffold-cli.py)"
+    echo -e "${YELLOW}  Install with: pip install jinja2${NC}"
+    MISSING_PACKAGES+=("jinja2")
+else
+    echo -e "${GREEN}✓${NC} jinja2 installed"
+fi
 
 if [ ${#MISSING_PACKAGES[@]} -gt 0 ]; then
     echo ""

@@ -5,6 +5,13 @@
 
 Manage named browser sessions with isolated state, and persist/restore authentication for CLI generation workflows.
 
+## Contents
+
+- Named Sessions
+- State Save / Load (Auth Persistence)
+- Cookie & Storage Commands (Debug Only)
+- Key Points
+
 ## Named Sessions
 
 Use the `-s` flag to create isolated browser contexts. Each named session has its own cookies, localStorage, sessionStorage, browser cache, history, tab state, and network state.

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 import click
 
 from ..core.client import CodeWikiClient
@@ -13,6 +11,7 @@ from ..utils.output import print_json
 try:
     from rich.console import Console
     from rich.markdown import Markdown
+
     _RICH_AVAILABLE = True
 except ImportError:
     _RICH_AVAILABLE = False

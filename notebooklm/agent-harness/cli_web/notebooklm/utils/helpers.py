@@ -6,6 +6,7 @@ Provides:
 - require_notebook() — gets notebook ID from arg or persistent context
 - Shared Click option decorators for common patterns
 """
+
 import json
 import sys
 from contextlib import contextmanager
@@ -16,12 +17,8 @@ import click
 
 from ..core.exceptions import (
     AuthError,
-    NetworkError,
-    NotFoundError,
     NotebookLMError,
-    RPCError,
     RateLimitError,
-    ServerError,
     error_code_for,
 )
 
@@ -32,6 +29,7 @@ CONTEXT_FILE = AUTH_DIR / "context.json"
 # ---------------------------------------------------------------------------
 # Partial ID resolution
 # ---------------------------------------------------------------------------
+
 
 def resolve_partial_id(
     partial: str,
@@ -68,8 +66,7 @@ def resolve_partial_id(
 
     partial_lower = partial.lower()
     matches = [
-        item for item in items
-        if getattr(item, id_attr, "").lower().startswith(partial_lower)
+        item for item in items if getattr(item, id_attr, "").lower().startswith(partial_lower)
     ]
 
     if len(matches) == 1:
@@ -101,6 +98,7 @@ def resolve_partial_id(
 # Error handler context manager
 # ---------------------------------------------------------------------------
 
+
 @contextmanager
 def handle_errors(json_mode: bool = False):
     """Context manager that catches exceptions and outputs proper error messages.
@@ -128,10 +126,12 @@ def handle_errors(json_mode: bool = False):
     except NotebookLMError as exc:
         code = error_code_for(exc)
         if json_mode:
-            click.echo(json.dumps(
-                {"error": True, "code": code, "message": str(exc)},
-                ensure_ascii=False,
-            ))
+            click.echo(
+                json.dumps(
+                    {"error": True, "code": code, "message": str(exc)},
+                    ensure_ascii=False,
+                )
+            )
         else:
             hint = ""
             if isinstance(exc, AuthError):
@@ -142,10 +142,12 @@ def handle_errors(json_mode: bool = False):
         sys.exit(1)
     except Exception as exc:
         if json_mode:
-            click.echo(json.dumps(
-                {"error": True, "code": "INTERNAL_ERROR", "message": str(exc)},
-                ensure_ascii=False,
-            ))
+            click.echo(
+                json.dumps(
+                    {"error": True, "code": "INTERNAL_ERROR", "message": str(exc)},
+                    ensure_ascii=False,
+                )
+            )
         else:
             click.echo(f"Error: {exc}", err=True)
         sys.exit(2)
@@ -154,6 +156,7 @@ def handle_errors(json_mode: bool = False):
 # ---------------------------------------------------------------------------
 # Persistent context
 # ---------------------------------------------------------------------------
+
 
 def _load_context() -> dict:
     """Load context.json, returning empty dict on failure."""
@@ -239,8 +242,10 @@ def sanitize_filename(name: str, max_length: int = 240) -> str:
 # Polling utility
 # ---------------------------------------------------------------------------
 
-def poll_until_complete(check_fn, initial_interval=2.0, max_interval=10.0,
-                        timeout=300.0, backoff_factor=1.5):
+
+def poll_until_complete(
+    check_fn, initial_interval=2.0, max_interval=10.0, timeout=300.0, backoff_factor=1.5
+):
     """Poll with exponential backoff until complete or timeout.
 
     Args:

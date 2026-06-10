@@ -12,11 +12,10 @@ import subprocess
 import sys
 
 import pytest
-
 from cli_web.unsplash.core.client import UnsplashClient
 
-
 # ── _resolve_cli helper ──────────────────────────────────────────
+
 
 def _resolve_cli(name):
     """Resolve installed CLI command; falls back to python -m for dev."""
@@ -27,12 +26,15 @@ def _resolve_cli(name):
         return [path]
     if force:
         raise RuntimeError(f"{name} not found in PATH. Install with: pip install -e .")
-    module = name.replace("cli-web-", "cli_web.").replace("-", ".") + "." + name.split("-")[-1] + "_cli"
+    module = (
+        name.replace("cli-web-", "cli_web.").replace("-", ".") + "." + name.split("-")[-1] + "_cli"
+    )
     print(f"[_resolve_cli] Falling back to: {sys.executable} -m {module}")
     return [sys.executable, "-m", module]
 
 
 # ── Live API tests ───────────────────────────────────────────────
+
 
 class TestPhotosLive:
     """Live tests against Unsplash /napi/ (no auth needed)."""
@@ -178,7 +180,9 @@ class TestCollectionsLive:
         photos = self.client.get_collection_photos(coll_id, per_page=3)
         assert isinstance(photos, list)
         assert len(photos) > 0
-        print(f"[verify] Collection {coll_id}: '{coll['title']}' with {coll['total_photos']} photos")
+        print(
+            f"[verify] Collection {coll_id}: '{coll['title']}' with {coll['total_photos']} photos"
+        )
 
 
 class TestUsersLive:
@@ -215,6 +219,7 @@ class TestUsersLive:
 
 
 # ── Subprocess tests ─────────────────────────────────────────────
+
 
 class TestCLISubprocess:
     """Test the installed CLI binary via subprocess."""

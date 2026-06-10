@@ -1,32 +1,49 @@
 # Quality Checklist Reference
 
 ## Contents
+- Tiers
 - Checklist Categories
 
 This is the complete quality checklist for cli-web-* CLIs.
 See standards/SKILL.md for the pipeline workflow and smoke test process.
+Rules referenced here are defined in `skills/shared/CONVENTIONS.md`.
+
+## Tiers
+
+Every check is marked **[T1]** or **[T2]**:
+
+- **[T1] Tier 1 — Critical.** ANY Tier 1 failure blocks publish. Covers
+  directory structure, required files, exception/error handling, the `--json`
+  envelope, REPL basics, packaging entry points, and auth security
+  (retry contract, headless refresh, chmod 600) (~38 checks).
+- **[T2] Tier 2 — Comprehensive.** Must-fix before the CLI is considered
+  polished, but a Tier 2 failure alone does not block publish (it is reported
+  as a warning; `--strict` mode escalates it).
+
+`scripts/validate-checklist.py` encodes the same tiers (severity
+critical/comprehensive) and supports `--tier1-only` for fail-fast validation.
 
 ## Checklist Categories
 
-### 1. Directory Structure (6 checks)
+### 1. Directory Structure (6 checks — all Tier 1)
 
 *(checked against `agent-harness/` root)*
 
-- `agent-harness/cli_web/<app>/` exists
-- `agent-harness/<APP>.md` exists (SOP at harness root)
-- `cli_web/` has NO `__init__.py` (namespace package)
-- `<app>/` HAS `__init__.py`
-- `core/`, `commands/`, `utils/`, `tests/` all present (one atomic check)
-- `setup.py` at `agent-harness/` root
+- **[T1]** `agent-harness/cli_web/<app>/` exists
+- **[T1]** `agent-harness/<APP>.md` exists (SOP at harness root)
+- **[T1]** `cli_web/` has NO `__init__.py` (namespace package)
+- **[T1]** `<app>/` HAS `__init__.py`
+- **[T1]** `core/`, `commands/`, `utils/`, `tests/` all present (one atomic check)
+- **[T1]** `setup.py` at `agent-harness/` root
 
-### 2. Required Files (13 checks)
+### 2. Required Files (13 checks — all Tier 1)
 
 *(checked against `cli_web/<app>/`)*
 
-`README.md`, `<app>_cli.py`, `__main__.py`,
-`core/client.py`, `core/auth.py`, `core/session.py`, `core/models.py`,
-`utils/repl_skin.py`, `utils/output.py`, `utils/config.py`, `utils/helpers.py`,
-`tests/TEST.md`, `tests/test_core.py`, `tests/test_e2e.py`
+- **[T1]** `README.md`, `<app>_cli.py`, `__main__.py`,
+  `core/client.py`, `core/auth.py`, `core/session.py`, `core/models.py`,
+  `utils/repl_skin.py`, `utils/output.py`, `utils/config.py`, `utils/helpers.py`,
+  `tests/TEST.md`, `tests/test_core.py`, `tests/test_e2e.py`
 
 > **No-auth sites:** DO NOT create `core/auth.py`, `core/session.py`, or auth
 > command groups. These are not "optional" — they should not exist. Mark checks
@@ -35,41 +52,41 @@ See standards/SKILL.md for the pipeline workflow and smoke test process.
 
 ### 3. CLI Implementation (9 checks)
 
-- Click framework with command groups (`@click.group`)
-- `--json` flag on every command
-- REPL mode via `invoke_without_command=True`
-- `ReplSkin` used for banner, prompt, messages
-- `auth` group with `login`, `status`, and `refresh` or `logout` as appropriate (N/A for no-auth sites)
-- Global session state (`pass_context=True`)
-- Commands use `handle_errors(json_mode)` context manager — no manual try/except blocks
-- Resource get/rename/delete use `@click.argument` (positional ID), not `@click.option("--id")`
-- `--notebook` is optional on notebook-scoped commands (falls back to persistent context via `require_notebook()`)
+- **[T1]** Click framework with command groups (`@click.group`)
+- **[T1]** `--json` flag on every command (CONVENTIONS.md §JSON Envelope)
+- **[T1]** REPL mode via `invoke_without_command=True`
+- **[T2]** `ReplSkin` used for banner, prompt, messages
+- **[T2]** `auth` group with `login`, `status`, and `refresh` or `logout` as appropriate (N/A for no-auth sites)
+- **[T2]** Global session state (`pass_context=True`)
+- **[T2]** Commands use `handle_errors(json_mode)` context manager — no manual try/except blocks
+- **[T2]** Resource get/rename/delete use `@click.argument` (positional ID), not `@click.option("--id")`
+- **[T2]** `--notebook` is optional on notebook-scoped commands (falls back to persistent context via `require_notebook()`)
 
 ### 4. Core Modules (8 checks)
 
-- `client.py`: centralized auth header injection, exponential backoff, JSON parsing
-- `auth.py`: login, refresh, expiry check, secure storage (chmod 600)
-- `session.py`: Session class with undo/redo stack (only if the CLI has stateful operations; N/A for stateless CLIs)
-- `models.py`: typed response models
-- If protocol is non-REST: `core/rpc/` exists with `types.py`, `encoder.py`, `decoder.py`
-- `core/exceptions.py`: domain-specific exception hierarchy (AuthError, RateLimitError, NetworkError, ServerError, NotFoundError)
-- `client.py` maps HTTP status codes to typed exceptions (401→AuthError, 404→NotFoundError, 429→RateLimitError, 5xx→ServerError)
-- Auth retry: client retries once on recoverable AuthError with token refresh
+- **[T2]** `client.py`: centralized auth header injection, exponential backoff, JSON parsing
+- **[T1]** `auth.py`: login, refresh, expiry check, secure storage (chmod 600)
+- **[T2]** `session.py`: Session class with undo/redo stack (only if the CLI has stateful operations; N/A for stateless CLIs)
+- **[T2]** `models.py`: typed response models
+- **[T1]** If protocol is non-REST: `core/rpc/` exists with `types.py`, `encoder.py`, `decoder.py`
+- **[T1]** `core/exceptions.py`: domain-specific exception hierarchy (CONVENTIONS.md §Exception Hierarchy)
+- **[T1]** `client.py` maps HTTP status codes to typed exceptions (401→AuthError, 404→NotFoundError, 429→RateLimitError, 5xx→ServerError)
+- **[T1]** Auth retry: client runs the 3-attempt auto-refresh on recoverable AuthError (current cookies -> reload auth.json -> browser refresh), never more (CONVENTIONS.md §Auth Rules)
 
-### 5. Test Standards (8 checks)
+### 5. Test Standards (8 checks — all Tier 2)
 
-- `TEST.md` has both plan (Part 1) and results (Part 2)
-- Unit tests use `unittest.mock.patch` -- no real network
-- E2E fixture tests replay from `tests/fixtures/` *(optional — only for complex HTML parsing)*
-- E2E live tests FAIL (not skip) without auth
-- `TestCLISubprocess` class exists
-- Uses `_resolve_cli("cli-web-<app>")` -- no hardcoded paths
-- Subprocess `_run` does NOT set `cwd`
-- Supports `CLI_WEB_FORCE_INSTALLED=1`
+- **[T2]** `TEST.md` has both plan (Part 1) and results (Part 2)
+- **[T2]** Unit tests use `unittest.mock.patch` -- no real network
+- **[T2]** E2E fixture tests replay from `tests/fixtures/` *(optional — only for complex HTML parsing)*
+- **[T2]** E2E live tests FAIL (not skip) without auth
+- **[T2]** `TestCLISubprocess` class exists
+- **[T2]** Uses `_resolve_cli("cli-web-<app>")` -- no hardcoded paths (CONVENTIONS.md §Subprocess Test Rule)
+- **[T2]** Subprocess `_run` does NOT set `cwd`
+- **[T2]** Supports `CLI_WEB_FORCE_INSTALLED=1`
 
-### 6. Documentation (3 checks)
+### 6. Documentation (3 checks — all Tier 2)
 
-- `README.md` in `cli_web/<app>/` — must follow this structure:
+- **[T2]** `README.md` in `cli_web/<app>/` — must follow this structure:
   ```markdown
   # cli-web-<app>
 
@@ -83,48 +100,48 @@ See standards/SKILL.md for the pipeline workflow and smoke test process.
   ## JSON Output    (show --json flag usage)
   ## Testing        (pytest commands for unit and E2E)
   ```
-- `<APP>.md`: API map, data model, auth scheme, endpoint inventory
-- No `HARNESS.md` inside app package (lives in plugin root)
+- **[T2]** `<APP>.md`: API map, data model, auth scheme, endpoint inventory
+- **[T2]** No `HARNESS.md` inside app package (lives in plugin root)
 
 ### 7. PyPI Packaging (5 checks)
 
-- `find_namespace_packages(include=["cli_web.*"])`
-- Package name: `cli-web-<app>`
-- Entry point: `cli-web-<app>=cli_web.<app>.<app>_cli:main`
-- All imports use `cli_web.<app>.*` prefix
-- `python_requires=">=3.10"`
+- **[T1]** `find_namespace_packages(include=["cli_web.*"])`
+- **[T1]** Package name: `cli-web-<app>`
+- **[T1]** Entry point: `cli-web-<app>=cli_web.<app>.<app>_cli:main`
+- **[T2]** All imports use `cli_web.<app>.*` prefix
+- **[T2]** `python_requires=">=3.10"`
 
 ### 8. Code Quality (8 checks)
 
-- No syntax errors, no import errors
-- No hardcoded auth tokens or API keys
-- No hardcoded API base URLs or credentials in source
-- No hardcoded session tokens, CSRF tokens, build labels, or session IDs (must be extracted dynamically)
-- No bare `except:` blocks
-- Error messages include actionable guidance
-- `<app>_cli.py` forces UTF-8 stdout/stderr on Windows (`sys.stdout.reconfigure(encoding="utf-8")`)
-- HTML table parsers extract ALL visible columns (no empty fields for data the site displays)
+- **[T1]** No syntax errors, no import errors
+- **[T1]** No hardcoded auth tokens or API keys
+- **[T2]** No hardcoded API base URLs or credentials in source
+- **[T2]** No hardcoded session tokens, CSRF tokens, build labels, or session IDs (must be extracted dynamically)
+- **[T2]** No bare `except:` blocks
+- **[T2]** Error messages include actionable guidance
+- **[T2]** `<app>_cli.py` forces UTF-8 stdout/stderr on Windows (CONVENTIONS.md §Windows UTF-8 Fix)
+- **[T2]** HTML table parsers extract ALL visible columns (no empty fields for data the site displays)
 
 ### 9. REPL Quality (3 checks)
 
-- REPL uses `shlex.split(line)` — not `line.split()` (quoted args must parse correctly)
-- REPL dispatches with `cli.main(args=repl_args, standalone_mode=False)` — never `**ctx.params`
-- Primary resource commands use `@click.argument` for positional params (not `--required-option`)
+- **[T1]** REPL uses `shlex.split(line)` — not `line.split()` (quoted args must parse correctly)
+- **[T1]** REPL dispatches with `cli.main(args=repl_args, standalone_mode=False)` — never `**ctx.params` (CONVENTIONS.md §REPL Rules)
+- **[T2]** Primary resource commands use `@click.argument` for positional params (not `--required-option`)
 
 ### 10. Error Handling & Resilience (8 checks)
 
-- `core/exceptions.py` exists with typed hierarchy (not generic RuntimeError)
-- Client maps HTTP status codes to domain exceptions
-- Auth module supports `CLI_WEB_<APP>_AUTH_JSON` environment variable
-- Polling operations use exponential backoff (not fixed `time.sleep()`)
-- `--json` mode outputs structured error JSON (`{"error": true, "code": "...", "message": "..."}`)
-- Long operations (>2s) show progress feedback when not in `--json` mode
-- Generation commands support `--wait` (poll until complete) and `--retry N` (rate-limit retry)
-- `--output <path>` flag on generation commands saves content to file
+- **[T1]** `core/exceptions.py` exists with typed hierarchy (not generic RuntimeError)
+- **[T1]** Client maps HTTP status codes to domain exceptions
+- **[T2]** Auth module supports `CLI_WEB_<APP>_AUTH_JSON` environment variable
+- **[T2]** Polling operations use exponential backoff (not fixed `time.sleep()`)
+- **[T1]** `--json` mode outputs structured error JSON (`{"error": true, "code": "...", "message": "..."}`)
+- **[T2]** Long operations (>2s) show progress feedback when not in `--json` mode
+- **[T2]** Generation commands support `--wait` (poll until complete) and `--retry N` (rate-limit retry)
+- **[T2]** `--output <path>` flag on generation commands saves content to file
 
-### 11. UX Patterns (4 checks)
+### 11. UX Patterns (4 checks — all Tier 2)
 
-- Partial ID resolution: get/rename/delete accept short prefixes (not full UUIDs only)
-- Persistent context: `use <id>` saves to `context.json`, `status` shows current context
-- `--notebook` optional when context is set (via `require_notebook()`)
-- Regional Google cookie domains supported (60+ ccTLDs, not just `.google.com`)
+- **[T2]** Partial ID resolution: get/rename/delete accept short prefixes (not full UUIDs only)
+- **[T2]** Persistent context: `use <id>` saves to `context.json`, `status` shows current context
+- **[T2]** `--notebook` optional when context is set (via `require_notebook()`)
+- **[T2]** Regional Google cookie domains supported (60+ ccTLDs, not just `.google.com`)

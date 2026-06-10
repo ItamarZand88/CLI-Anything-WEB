@@ -34,6 +34,12 @@ class CodeWikiClient:
     def close(self) -> None:
         self._http.close()
 
+    def __enter__(self) -> CodeWikiClient:
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
     def _call(self, rpc_id: str, params: list) -> Any:
         """Make a batchexecute RPC call."""
         url = build_url(rpc_id)
@@ -60,9 +66,7 @@ class CodeWikiClient:
                 retry_after=float(retry) if retry else None,
             )
         if resp.status_code >= 500:
-            raise ServerError(
-                f"Server error: {resp.status_code}", status_code=resp.status_code
-            )
+            raise ServerError(f"Server error: {resp.status_code}", status_code=resp.status_code)
         if resp.status_code >= 400:
             raise CodeWikiError(f"HTTP {resp.status_code}: {resp.text[:200]}")
 
@@ -76,7 +80,9 @@ class CodeWikiClient:
         if not raw:
             return []
         # Response is [[repo1, repo2, ...]] — unwrap outer array
-        items = raw[0] if isinstance(raw[0], list) and raw[0] and isinstance(raw[0][0], list) else raw
+        items = (
+            raw[0] if isinstance(raw[0], list) and raw[0] and isinstance(raw[0][0], list) else raw
+        )
         repos = []
         for item in items:
             if not isinstance(item, list) or len(item) < 6:
@@ -84,24 +90,26 @@ class CodeWikiClient:
             slug = item[0] or ""
             meta = item[3] if len(item) > 3 and isinstance(item[3], list) else [None, ""]
             info = item[5] if len(item) > 5 and isinstance(item[5], list) else []
-            repos.append(Repository(
-                slug=slug,
-                github_url=meta[1] if len(meta) > 1 else "",
-                description=info[0] if len(info) > 0 else "",
-                avatar_url=info[1] if len(info) > 1 else "",
-                stars=info[2] if len(info) > 2 else 0,
-            ))
+            repos.append(
+                Repository(
+                    slug=slug,
+                    github_url=meta[1] if len(meta) > 1 else "",
+                    description=info[0] if len(info) > 0 else "",
+                    avatar_url=info[1] if len(info) > 1 else "",
+                    stars=info[2] if len(info) > 2 else 0,
+                )
+            )
         return repos
 
-    def search_repos(
-        self, query: str, limit: int = 25, offset: int = 0
-    ) -> list[Repository]:
+    def search_repos(self, query: str, limit: int = 25, offset: int = 0) -> list[Repository]:
         """Search for repositories."""
         raw = self._call(RPCMethod.SEARCH_REPOS, [query, limit, query, offset])
         if not raw:
             return []
         # Response is [[repo1, repo2, ...]] — unwrap outer array
-        items = raw[0] if isinstance(raw[0], list) and raw[0] and isinstance(raw[0][0], list) else raw
+        items = (
+            raw[0] if isinstance(raw[0], list) and raw[0] and isinstance(raw[0][0], list) else raw
+        )
         repos = []
         for item in items:
             if not isinstance(item, list) or len(item) < 6:
@@ -116,14 +124,16 @@ class CodeWikiClient:
                     updated = datetime.fromtimestamp(ts[0])
                 except (ValueError, OSError, TypeError):
                     pass
-            repos.append(Repository(
-                slug=slug,
-                github_url=meta[1] if len(meta) > 1 else "",
-                description=info[0] if len(info) > 0 else "",
-                avatar_url=info[1] if len(info) > 1 else "",
-                stars=info[2] if len(info) > 2 else 0,
-                updated_at=updated,
-            ))
+            repos.append(
+                Repository(
+                    slug=slug,
+                    github_url=meta[1] if len(meta) > 1 else "",
+                    description=info[0] if len(info) > 0 else "",
+                    avatar_url=info[1] if len(info) > 1 else "",
+                    stars=info[2] if len(info) > 2 else 0,
+                    updated_at=updated,
+                )
+            )
         return repos
 
     # ── Wiki ────────────────────────────────────────────────
@@ -163,13 +173,15 @@ class CodeWikiClient:
                 for ref in sec[3]:
                     if isinstance(ref, list) and ref:
                         code_refs.append(ref[0])
-            sections.append(WikiSection(
-                title=sec[0] or "",
-                level=sec[1] if len(sec) > 1 else 1,
-                description=sec[2] if len(sec) > 2 else "",
-                code_refs=code_refs,
-                content=sec[4] if len(sec) > 4 else "",
-            ))
+            sections.append(
+                WikiSection(
+                    title=sec[0] or "",
+                    level=sec[1] if len(sec) > 1 else 1,
+                    description=sec[2] if len(sec) > 2 else "",
+                    code_refs=code_refs,
+                    content=sec[4] if len(sec) > 4 else "",
+                )
+            )
 
         repo = Repository(
             slug=repo_slug,

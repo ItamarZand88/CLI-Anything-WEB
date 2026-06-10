@@ -1,6 +1,5 @@
 """Output formatting for cli-web-gai."""
 
-import click
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -15,11 +14,13 @@ def print_search_result(result: SearchResult):
     """Print a search result in human-readable format."""
 
     console.print()
-    console.print(Panel(
-        Text(result.query, style="bold cyan"),
-        title="[bold]Google AI Mode[/bold]",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            Text(result.query, style="bold cyan"),
+            title="[bold]Google AI Mode[/bold]",
+            border_style="blue",
+        )
+    )
 
     console.print()
 

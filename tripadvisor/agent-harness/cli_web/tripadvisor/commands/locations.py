@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ..core.client import TripAdvisorClient
-from ..utils.helpers import handle_errors, print_json, resolve_json_mode, truncate
+from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
 console = Console()
 
@@ -21,7 +21,14 @@ def locations(ctx):
 
 @locations.command("search")
 @click.argument("query")
-@click.option("--max", "max_results", default=6, type=int, show_default=True, help="Maximum number of results.")
+@click.option(
+    "--max",
+    "max_results",
+    default=6,
+    type=int,
+    show_default=True,
+    help="Maximum number of results.",
+)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
 def search_locations(ctx, query, max_results, json_mode):
@@ -45,12 +52,14 @@ def search_locations(ctx, query, max_results, json_mode):
             results = client.search_locations(query, max_results=max_results)
 
         if json_mode:
-            print_json({
-                "success": True,
-                "query": query,
-                "count": len(results),
-                "locations": [loc.to_dict() for loc in results],
-            })
+            print_json(
+                {
+                    "success": True,
+                    "query": query,
+                    "count": len(results),
+                    "locations": [loc.to_dict() for loc in results],
+                }
+            )
             return
 
         if not results:
@@ -77,4 +86,6 @@ def search_locations(ctx, query, max_results, json_mode):
 
         console.print(table)
         click.echo(f"\nFound {len(results)} location(s) for '{query}'.")
-        click.echo("Tip: Use --geo-id GEO_ID with hotels/restaurants/attractions search for faster results.")
+        click.echo(
+            "Tip: Use --geo-id GEO_ID with hotels/restaurants/attractions search for faster results."
+        )

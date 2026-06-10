@@ -1,9 +1,15 @@
 """cli-web-stitch — CLI entry point and REPL for Google Stitch AI design tool."""
+
 import sys
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass
+if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf8"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except AttributeError:
         pass
 
@@ -13,13 +19,14 @@ import shlex
 import click
 
 from .commands.auth_cmd import auth
+from .commands.design import design
 from .commands.projects import projects
 from .commands.screens import screens
-from .commands.design import design
-from .utils.helpers import set_context_value, get_context_value, handle_errors
+from .utils.helpers import get_context_value, handle_errors, set_context_value
 
 
 @click.group(invoke_without_command=True)
+@click.version_option("0.1.0", prog_name="cli-web-stitch")
 @click.option("--json", "json_mode", is_flag=True, help="JSON output")
 @click.pass_context
 def cli(ctx, json_mode):
@@ -65,6 +72,7 @@ def show_status(use_json):
 
 
 # ── REPL ──────────────────────────────────────────────────────────────
+
 
 def _repl(ctx):
     from .utils.repl_skin import ReplSkin
@@ -139,3 +147,13 @@ def _print_repl_help():
     print("  design history                Generation history")
     print("  help                          Show this help")
     print("  quit                          Exit REPL")
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.stitch import __version__ as _pkg_version  # noqa: E402
+from cli_web.stitch.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.stitch.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="stitch", version=_pkg_version)
+register_doctor_command(cli, app_name="stitch", pkg="stitch")

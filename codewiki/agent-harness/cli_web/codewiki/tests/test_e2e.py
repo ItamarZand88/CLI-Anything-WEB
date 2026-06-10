@@ -17,10 +17,8 @@ import subprocess
 import sys
 
 import pytest
-
 from cli_web.codewiki.core.client import CodeWikiClient
 from cli_web.codewiki.core.models import ChatResponse, Repository, WikiPage, WikiSection
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -72,9 +70,9 @@ class TestLiveRepos:
             client.close()
 
         assert len(repos) > 0, "Expected at least one search result for 'react'"
-        assert any(
-            "react" in r.slug.lower() for r in repos
-        ), "At least one slug should contain 'react'"
+        assert any("react" in r.slug.lower() for r in repos), (
+            "At least one slug should contain 'react'"
+        )
 
     def test_search_empty_query_returns_empty(self):
         """Live: search with nonsense query returns empty list."""
@@ -207,18 +205,14 @@ class TestLiveChat:
             client.close()
 
         assert isinstance(response, ChatResponse)
-        assert len(response.answer) > 50, (
-            f"Expected answer > 50 chars, got {len(response.answer)}"
-        )
+        assert len(response.answer) > 50, f"Expected answer > 50 chars, got {len(response.answer)}"
         assert response.repo_slug == "facebook/react"
 
     def test_chat_no_rpc_leak(self):
         """Live: chat answer must not contain raw RPC data."""
         client = CodeWikiClient()
         try:
-            response = client.chat(
-                "Describe the architecture", "excalidraw/excalidraw"
-            )
+            response = client.chat("Describe the architecture", "excalidraw/excalidraw")
         finally:
             client.close()
 
@@ -229,9 +223,7 @@ class TestLiveChat:
         """Live: chat answer field is a plain string (not nested structure)."""
         client = CodeWikiClient()
         try:
-            response = client.chat(
-                "What programming language is used?", "facebook/react"
-            )
+            response = client.chat("What programming language is used?", "facebook/react")
         finally:
             client.close()
 
@@ -364,9 +356,7 @@ class TestCLISubprocess:
     @pytest.mark.e2e
     def test_wiki_not_found_returns_error_json(self):
         """Subprocess/live: wiki get for nonexistent repo exits non-zero with error JSON."""
-        result = self._run(
-            ["wiki", "get", "nonexistent-org-xyz/nonexistent-repo-abc", "--json"]
-        )
+        result = self._run(["wiki", "get", "nonexistent-org-xyz/nonexistent-repo-abc", "--json"])
         assert result.returncode != 0
         data = json.loads(result.stdout)
         assert data.get("error") is True
@@ -401,9 +391,7 @@ class TestReadOnlyRoundTrip:
         finally:
             client.close()
 
-        assert wiki.repo.slug == slug, (
-            f"wiki.repo.slug '{wiki.repo.slug}' != search slug '{slug}'"
-        )
+        assert wiki.repo.slug == slug, f"wiki.repo.slug '{wiki.repo.slug}' != search slug '{slug}'"
         assert len(wiki.sections) > 0, "Expected at least one section in wiki page"
 
     def test_featured_to_wiki_round_trip(self):

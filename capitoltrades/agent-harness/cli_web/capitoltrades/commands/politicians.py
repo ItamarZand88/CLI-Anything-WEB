@@ -1,11 +1,12 @@
 """Politician-related commands: list, get."""
+
 from __future__ import annotations
 
 import click
 
 from ..core.client import CapitoltradesClient
 from ..core.exceptions import NotFoundError
-from ..core.models import parse_politicians_list, parse_politician_detail
+from ..core.models import parse_politician_detail, parse_politicians_list
 from ..utils.helpers import handle_errors, print_json
 
 
@@ -17,8 +18,18 @@ def politicians():
 @politicians.command("list")
 @click.option("--page", type=int, default=1, show_default=True, help="Page number.")
 @click.option("--page-size", type=int, default=12, show_default=True, help="Rows per page.")
-@click.option("--party", type=click.Choice(["republican", "democrat", "independent"], case_sensitive=False), default=None, help="Filter by party.")
-@click.option("--chamber", type=click.Choice(["house", "senate"], case_sensitive=False), default=None, help="Filter by chamber.")
+@click.option(
+    "--party",
+    type=click.Choice(["republican", "democrat", "independent"], case_sensitive=False),
+    default=None,
+    help="Filter by party.",
+)
+@click.option(
+    "--chamber",
+    type=click.Choice(["house", "senate"], case_sensitive=False),
+    default=None,
+    help="Filter by chamber.",
+)
 @click.option("--state", type=str, default=None, help="Filter by state code (e.g. CA).")
 @click.pass_context
 def list_politicians(ctx, page, page_size, party, chamber, state):
@@ -38,7 +49,9 @@ def list_politicians(ctx, page, page_size, party, chamber, state):
             rows = parse_politicians_list(soup)
 
         if json_mode:
-            print_json({"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}})
+            print_json(
+                {"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}}
+            )
         else:
             if not rows:
                 click.echo("No politicians found.")
@@ -53,10 +66,25 @@ def list_politicians(ctx, page, page_size, party, chamber, state):
 
 
 @politicians.command("top")
-@click.option("--by", "sort_by", type=click.Choice(["trades", "volume"], case_sensitive=False), default="trades", show_default=True, help="Ranking metric.")
-@click.option("--page-size", type=int, default=10, show_default=True, help="Number of politicians to show.")
-@click.option("--party", type=click.Choice(["republican", "democrat", "independent"], case_sensitive=False), default=None)
-@click.option("--chamber", type=click.Choice(["house", "senate"], case_sensitive=False), default=None)
+@click.option(
+    "--by",
+    "sort_by",
+    type=click.Choice(["trades", "volume"], case_sensitive=False),
+    default="trades",
+    show_default=True,
+    help="Ranking metric.",
+)
+@click.option(
+    "--page-size", type=int, default=10, show_default=True, help="Number of politicians to show."
+)
+@click.option(
+    "--party",
+    type=click.Choice(["republican", "democrat", "independent"], case_sensitive=False),
+    default=None,
+)
+@click.option(
+    "--chamber", type=click.Choice(["house", "senate"], case_sensitive=False), default=None
+)
 @click.pass_context
 def top_politicians(ctx, sort_by, page_size, party, chamber):
     """Show the top politicians by trade count or volume (leaderboard)."""
@@ -79,11 +107,13 @@ def top_politicians(ctx, sort_by, page_size, party, chamber):
             rows = parse_politicians_list(soup)
 
         if json_mode:
-            print_json({
-                "success": True,
-                "data": rows,
-                "meta": {"sort_by": sort_by, "page_size": page_size},
-            })
+            print_json(
+                {
+                    "success": True,
+                    "data": rows,
+                    "meta": {"sort_by": sort_by, "page_size": page_size},
+                }
+            )
         else:
             if not rows:
                 click.echo("No politicians found.")

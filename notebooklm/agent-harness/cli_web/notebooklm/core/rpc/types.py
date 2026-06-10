@@ -12,27 +12,28 @@ class RPCMethod:
 
     Reverse-engineered from network traffic analysis.
     """
+
     # Notebooks
     LIST_NOTEBOOKS = "wXbhsf"
     CREATE_NOTEBOOK = "CCqFvf"
-    GET_NOTEBOOK = "rLM1Ne"      # Also returns sources embedded in response
+    GET_NOTEBOOK = "rLM1Ne"  # Also returns sources embedded in response
     RENAME_NOTEBOOK = "s0tc2d"
     DELETE_NOTEBOOK = "WWINqb"
 
     # Sources — ALL source ops use "izAoDd" with different param structures
-    ADD_SOURCE = "izAoDd"        # Add source (URL, text, file)
-    ADD_SOURCE_FILE = "o4cbdc"   # Register uploaded file as source
+    ADD_SOURCE = "izAoDd"  # Add source (URL, text, file)
+    ADD_SOURCE_FILE = "o4cbdc"  # Register uploaded file as source
     GET_SOURCE = "hizoJc"
     DELETE_SOURCE = "tGMBJ"
     REFRESH_SOURCE = "FLmJqe"
 
     # Chat (streaming endpoint, not batchexecute)
-    CHAT_QUERY = "yyryJe"        # Also GENERATE_MIND_MAP in reference
+    CHAT_QUERY = "yyryJe"  # Also GENERATE_MIND_MAP in reference
 
     # Artifacts (unified via R7cb6c)
-    CREATE_ARTIFACT = "R7cb6c"   # Generate ANY artifact (audio, video, report, quiz, etc.)
-    LIST_ARTIFACTS = "gArtLc"    # List all artifacts in a notebook
-    NOTES_ARTIFACT = "ciyUvf"    # GET_SUGGESTED_REPORTS — AI-suggested formats
+    CREATE_ARTIFACT = "R7cb6c"  # Generate ANY artifact (audio, video, report, quiz, etc.)
+    LIST_ARTIFACTS = "gArtLc"  # List all artifacts in a notebook
+    NOTES_ARTIFACT = "ciyUvf"  # GET_SUGGESTED_REPORTS — AI-suggested formats
     LIST_AUDIO_TYPES = "sqTeoe"
 
     # Notes
@@ -47,22 +48,22 @@ class RPCMethod:
     POLL_RESEARCH = "e3bVqc"
 
     # User/Config
-    GET_USER_INFO = "JFMDGd"     # Also GET_SHARE_STATUS in reference
+    GET_USER_INFO = "JFMDGd"  # Also GET_SHARE_STATUS in reference
     GET_CONFIG = "ZwVcOc"
-    SUMMARIZE = "VfAZjd"         # Summarize sources
+    SUMMARIZE = "VfAZjd"  # Summarize sources
 
 
 # Artifact type IDs (used with CREATE_ARTIFACT / R7cb6c)
 class ArtifactType:
     AUDIO = 1
-    REPORT = 2           # Briefing doc, study guide, blog post, etc.
-    STUDY_GUIDE = 2      # Alias — same as REPORT
-    BRIEFING_DOC = 2     # Alias — same as REPORT
+    REPORT = 2  # Briefing doc, study guide, blog post, etc.
+    STUDY_GUIDE = 2  # Alias — same as REPORT
+    BRIEFING_DOC = 2  # Alias — same as REPORT
     VIDEO = 3
-    QUIZ = 4             # Also flashcards
+    QUIZ = 4  # Also flashcards
     MIND_MAP = 5
     INFOGRAPHIC = 7
     SLIDE_DECK = 8
     DATA_TABLE = 9
-    FAQ = 4              # FAQ uses quiz type
-    TIMELINE = 5         # Timeline uses mind map type
+    FAQ = 4  # FAQ uses quiz type
+    TIMELINE = 5  # Timeline uses mind map type

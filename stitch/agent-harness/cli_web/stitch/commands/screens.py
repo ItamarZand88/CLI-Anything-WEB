@@ -1,4 +1,5 @@
 """Screen commands for cli-web-stitch."""
+
 from pathlib import Path
 
 import click
@@ -31,18 +32,22 @@ def screens_list(ctx, project_id, json_mode):
         items = client.list_screens(pid)
 
         if json_mode:
-            print_json(json_success([
-                {
-                    "id": s.id,
-                    "name": s.name,
-                    "description": s.description,
-                    "width": s.width,
-                    "height": s.height,
-                    "html_url": s.html_url,
-                    "agent_name": s.agent_name,
-                }
-                for s in items
-            ]))
+            print_json(
+                json_success(
+                    [
+                        {
+                            "id": s.id,
+                            "name": s.name,
+                            "description": s.description,
+                            "width": s.width,
+                            "height": s.height,
+                            "html_url": s.html_url,
+                            "agent_name": s.agent_name,
+                        }
+                        for s in items
+                    ]
+                )
+            )
         else:
             if not items:
                 click.echo("No screens found.")
@@ -53,8 +58,7 @@ def screens_list(ctx, project_id, json_mode):
 @screens.command("get")
 @click.argument("screen_id")
 @click.option("--project", "project_id", default=None, help="Project ID (uses active if omitted)")
-@click.option("--output", "-o", "output_file", default=None,
-              help="Save HTML to file")
+@click.option("--output", "-o", "output_file", default=None, help="Save HTML to file")
 @click.option("--json", "json_mode", is_flag=True, help="JSON output")
 @click.pass_context
 def screens_get(ctx, screen_id, project_id, output_file, json_mode):
@@ -65,7 +69,9 @@ def screens_get(ctx, screen_id, project_id, output_file, json_mode):
         client = StitchClient()
         items = client.list_screens(pid)
 
-        screen = resolve_partial_id(screen_id, items, id_attr="id", label_attr="name", kind="screen")
+        screen = resolve_partial_id(
+            screen_id, items, id_attr="id", label_attr="name", kind="screen"
+        )
 
         # Download HTML if requested
         html_saved = None
@@ -97,8 +103,9 @@ def screens_get(ctx, screen_id, project_id, output_file, json_mode):
 @screens.command("download")
 @click.argument("screen_id")
 @click.option("--project", "project_id", default=None, help="Project ID (uses active if omitted)")
-@click.option("--output", "-o", "output_dir", default=".",
-              help="Output directory (default: current dir)")
+@click.option(
+    "--output", "-o", "output_dir", default=".", help="Output directory (default: current dir)"
+)
 @click.option("--json", "json_mode", is_flag=True, help="JSON output")
 @click.pass_context
 def screens_download(ctx, screen_id, project_id, output_dir, json_mode):
@@ -109,7 +116,9 @@ def screens_download(ctx, screen_id, project_id, output_dir, json_mode):
         client = StitchClient()
         items = client.list_screens(pid)
 
-        screen = resolve_partial_id(screen_id, items, id_attr="id", label_attr="name", kind="screen")
+        screen = resolve_partial_id(
+            screen_id, items, id_attr="id", label_attr="name", kind="screen"
+        )
 
         if not screen.html_url:
             raise click.UsageError(f"Screen '{screen.name}' has no HTML file to download")
@@ -123,11 +132,15 @@ def screens_download(ctx, screen_id, project_id, output_dir, json_mode):
         out_path.write_bytes(content)
 
         if json_mode:
-            print_json(json_success({
-                "id": screen.id,
-                "name": screen.name,
-                "file": str(out_path),
-                "size": len(content),
-            }))
+            print_json(
+                json_success(
+                    {
+                        "id": screen.id,
+                        "name": screen.name,
+                        "file": str(out_path),
+                        "size": len(content),
+                    }
+                )
+            )
         else:
             click.echo(f"Downloaded: {out_path} ({len(content)} bytes)")

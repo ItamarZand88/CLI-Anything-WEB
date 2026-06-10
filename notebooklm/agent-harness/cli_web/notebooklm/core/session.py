@@ -1,6 +1,6 @@
 """Session state management for cli-web-notebooklm."""
+
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -8,8 +8,8 @@ class SessionState:
     """Holds runtime session context across commands."""
 
     # Currently selected notebook (for REPL mode context)
-    current_notebook_id: Optional[str] = None
-    current_notebook_title: Optional[str] = None
+    current_notebook_id: str | None = None
+    current_notebook_title: str | None = None
 
     # Output format preference
     json_output: bool = False
@@ -32,7 +32,7 @@ class SessionState:
         self._undo_stack.append((description, undo_fn))
         self._redo_stack.clear()  # Redo stack cleared on new action
 
-    def undo(self) -> Optional[str]:
+    def undo(self) -> str | None:
         """Undo the last action. Returns description or None if nothing to undo."""
         if not self._undo_stack:
             return None

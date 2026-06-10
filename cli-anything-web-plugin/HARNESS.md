@@ -2,8 +2,11 @@
 
 **Making Closed-Source Web Apps Agent-Native via Network Traffic Analysis**
 
-This is the methodology overview. Each phase is implemented by a dedicated skill.
-Read this file for the big picture; read the relevant skill for phase details.
+This is the navigational overview: pipeline, tool hierarchy, and the map of
+skills/scripts/references. Implementation rules are DEFINED once in
+`skills/shared/CONVENTIONS.md`; failure handling lives in
+`skills/shared/RECOVERY.md`. Read this file for the big picture; read the
+relevant skill for phase details.
 
 ---
 
@@ -28,43 +31,28 @@ REPL mode, auth management, session state, and comprehensive tests.
    are unreachable.
 5. **Structured Output** — JSON for agents, human-readable tables for interactive use.
 
-### Error Handling Architecture
+### The Conventions Spec
 
-Every generated CLI MUST include `core/exceptions.py` with a domain-specific exception
-hierarchy — typed exceptions enable retry logic, proper CLI exit codes, and structured
-JSON error responses. See `references/exception-hierarchy-example.py` for the complete
-template. Required types: `AppError` (base), `AuthError` (recoverable flag),
-`RateLimitError` (retry_after), `NetworkError`, `ServerError` (status_code), `NotFoundError`.
+All implementation rules — exception hierarchy, JSON envelope, auth rules,
+REPL rules, backoff, naming, UTF-8 fix, subprocess tests, protocol-leak
+checks — are defined in **`skills/shared/CONVENTIONS.md`**. Quick index:
 
-### Exponential Backoff & Polling
+| Rule | Where defined |
+|------|---------------|
+| Typed exception hierarchy + error codes | CONVENTIONS.md §Exception Hierarchy |
+| `--json` success/error envelope | CONVENTIONS.md §JSON Envelope |
+| Auth storage, env var, 3-attempt auto-refresh, cookie priority | CONVENTIONS.md §Auth Rules |
+| REPL: shlex, --json propagation, help-sync, positional args | CONVENTIONS.md §REPL Rules |
+| Exponential backoff, `--wait`/`--retry`/`--output` | CONVENTIONS.md §Exponential Backoff & Polling |
+| Windows UTF-8 fix (stdout AND stderr) | CONVENTIONS.md §Windows UTF-8 Fix |
+| `_resolve_cli` + `CLI_WEB_FORCE_INSTALLED` subprocess tests | CONVENTIONS.md §Subprocess Test Rule |
+| Protocol-leak smoke check (`wrb.fr`, empty `[]`, …) | CONVENTIONS.md §Protocol-Leak Smoke Check |
+| Naming (`cli-web-<app>`, namespaces, config dirs) | CONVENTIONS.md §Naming Conventions |
 
-Operations taking >2 seconds MUST use exponential backoff polling (2s→10s, factor 1.5,
-timeout 300s) — never fixed `time.sleep()`. Generation commands also need rate-limit
-retry (60s→300s backoff on 429). See `references/polling-backoff-example.py` for both
-patterns.
-
-### Progress & Output
-
-Use `rich>=13.0` for spinners/progress bars in interactive mode. Suppress in `--json`
-mode. See `references/rich-output-example.py` for patterns.
-
-### JSON Error Response Format
-
-When `--json` is active, errors MUST also be JSON — not plain text to stderr:
-
-```python
-# Success:
-{"success": true, "data": {...}}
-
-# Error:
-{"error": true, "code": "AUTH_EXPIRED", "message": "Session expired. Run: cli-web-<app> auth login"}
-{"error": true, "code": "RATE_LIMITED", "message": "Rate limited. Retry after 60s", "retry_after": 60}
-{"error": true, "code": "NOT_FOUND", "message": "Notebook abc123 not found"}
-```
-
-Error codes map directly from the exception hierarchy:
-`AuthError` → `AUTH_EXPIRED`, `RateLimitError` → `RATE_LIMITED`, `NotFoundError` → `NOT_FOUND`,
-`ServerError` → `SERVER_ERROR`, `NetworkError` → `NETWORK_ERROR`.
+When any hard gate fails (tracing-stop, parse-trace, validate-capture,
+phase-state, scaffold), follow the decision trees in
+**`skills/shared/RECOVERY.md`** — they bound retries and map each validator
+gate to a targeted remediation.
 
 ---
 
@@ -87,8 +75,7 @@ Error codes map directly from the exception hierarchy:
 | `httpx` | Runtime HTTP for unprotected sites and JSON APIs |
 
 > **CRITICAL**: Generated CLIs use Python `sync_playwright()` for auth login,
-> NOT `npx @playwright/cli`. The npx approach has interactive input race conditions
-> on Windows. See `auth-strategies.md` Known Pitfalls.
+> NOT `npx @playwright/cli`. See CONVENTIONS.md §Auth Rules.
 
 ### Development vs End-User
 
@@ -114,7 +101,7 @@ phases and invokes the next when done. Hard gates prevent skipping.
 | Phase | Skill | What it does | Hard Gate |
 |-------|-------|-------------|-----------|
 | 1 | `capture` | Assess site + capture traffic + explore + save auth | playwright-cli available (or public API shortcut) |
-| 2 | `methodology` | Analyze + Design + Implement CLI | raw-traffic.json exists |
+| 2 | `methodology` | Analyze + Design + Implement CLI | raw-traffic.json exists + validate-capture passed |
 | 3 | `testing` | Write tests + document results | Implementation complete |
 | 4 | `standards` | Publish, verify, smoke test, generate Claude skill | All tests pass |
 
@@ -126,6 +113,8 @@ phases and invokes the next when done. Hard gates prevent skipping.
 ```
 capture → methodology → testing → standards → DONE
 ```
+
+Gate failures: see `skills/shared/RECOVERY.md` for the per-gate decision trees.
 
 ### Parallelism Strategy
 
@@ -158,6 +147,15 @@ If playwright-cli cannot be used, fall back to chrome-devtools-mcp:
 
 These reference files provide detailed patterns for specific topics. They live
 under `skills/*/references/` and are loaded when the relevant skill activates.
+Read them **section-addressed** when possible (e.g., `auth-strategies.md`
+§"Cookie domain priority") instead of whole-file.
+
+### Shared Specs (`skills/shared/`)
+
+| File | Purpose |
+|------|---------|
+| `CONVENTIONS.md` | THE definition of every implementation rule (see index above) |
+| `RECOVERY.md` | Failure decision trees for every hard gate |
 
 ### Capture References (`skills/capture/references/`)
 
@@ -188,12 +186,12 @@ under `skills/*/references/` and are loaded when the relevant skill activates.
 
 | Script | Purpose | When to use |
 |--------|---------|-------------|
-| `scaffold-cli.py` | Generate full boilerplate structure from templates (exceptions, client, config, auth, CLI entry, setup.py) | Phase 2 — Step B.0, before implementing endpoint methods |
-| `validate-checklist.py` | Run ~65 mechanical checks from the quality checklist (AST + regex) | Phase 4 — before manual review, or via `/validate` command |
+| `scaffold-cli.py` | Generate the full boilerplate structure from `templates/*.tpl` (Jinja2, TEMPLATE_VERSION 2.0.0). Renders exceptions, client, unified auth, CLI entry, helpers, output, setup, conftest, README/SKILL skeletons; repeatable `--resource` flags scaffold `commands/<resource>.py` modules; writes `.manifest.json` provenance. Requires `pip install jinja2`. | Phase 2 — Step B.0, before implementing endpoint methods |
+| `validate-checklist.py` | Run the automated checks of the quality checklist (AST + regex), tiered: Tier 1 critical (blocks publish) and Tier 2 comprehensive. `--tier1-only` for fail-fast; judgment-based checks are covered by the Phase 4 review agents | Phase 4 — before manual review, or via `/validate` command |
 | `generate-test-docs.py` | AST-parse test files for TEST.md Part 1 (plan), run pytest for Part 2 (results) | Phase 3 — after writing tests |
 | `smoke-test.py` | Post-install CLI validation (--help, --version, --json, protocol leak detection) | Phase 4 — after `pip install -e .` |
-| `validate-capture.py` | Gate between Phase 1 and Phase 2 — checks entry count, protocol, WRITE ops, error rate, endpoint diversity | Phase 1 — end of Step 4 in capture skill |
-| `repl_skin.py` | Canonical REPL UI (banner, colors, help) — copied verbatim into every generated CLI's `utils/` | Phase 2 — copied by scaffold-cli.py |
+| `validate-capture.py` | Gate between Phase 1 and Phase 2 — checks entry count, protocol, WRITE ops, error rate, endpoint diversity. On failure see RECOVERY.md §validate-capture | Phase 1 — end of Step 4 in capture skill |
+| `repl_skin.py` | Vendored copy of the canonical REPL UI. **Canonical source: `cli-web-core/cli_web_core/repl_skin.py`** — this copy is synced by `cli-web-devkit resync`, never hand-edited. Copied into every generated CLI's `utils/` by scaffold-cli.py | Phase 2 — copied by scaffold-cli.py |
 | `setup.sh` | One-time plugin setup — verifies dependencies (playwright, mitmproxy optional) | Plugin install / CI |
 | `run-pipeline.py` | Pipeline orchestrator — `status` view (reads phase-state.json and adds next-action guidance), `parse` (Phase 1 tail), `validate` (Phase 4 tail). **Use this for human/agent-facing status**; use `phase-state.py` only to mutate state. | Any phase — `run-pipeline.py status <app-dir>` for next-action guidance |
 
@@ -211,59 +209,22 @@ Sibling modules imported by multiple scripts — single source of truth.
 
 | Phase | Skill | Primary scripts | Auxiliary scripts |
 |-------|-------|-----------------|-------------------|
-| 1. capture | `skills/capture/SKILL.md` | `site-fingerprint.js`, `parse-trace.py` (default) or `mitmproxy-capture.py` (--mitmproxy) | `capture-checkpoint.py` (resume), `launch-chrome-debug.sh` (fallback), `analyze-traffic.py` (auto-run by parse/mitmproxy) |
+| 1. capture | `skills/capture/SKILL.md` | `site-fingerprint.js`, `parse-trace.py` (default) or `mitmproxy-capture.py` (--mitmproxy), `validate-capture.py` (gate) | `capture-checkpoint.py` (resume), `launch-chrome-debug.sh` (fallback), `analyze-traffic.py` (auto-run by parse/mitmproxy) |
 | 2. methodology | `skills/methodology/SKILL.md` | `scaffold-cli.py` (Step B.0) | `repl_skin.py` (copied by scaffold-cli) |
 | 3. testing | `skills/testing/SKILL.md` | `generate-test-docs.py` (plan + results) | — |
-| 4. standards | `skills/standards/SKILL.md` | `validate-checklist.py`, `smoke-test.py` | 4 review agents in `agents/` (cross-cli-consistency, harness-compliance, output-ux, traffic-fidelity) |
-| any | — | `phase-state.py` (track), `run-pipeline.py status` (next action) | — |
+| 4. standards | `skills/standards/SKILL.md` | `validate-checklist.py`, `smoke-test.py` | 4 review agents in `agents/` (cross-cli-consistency, harness-compliance, output-ux, traffic-fidelity); optional `gap-analyzer` skill |
+| any | — | `phase-state.py` (track), `run-pipeline.py status` (next action) | `skills/shared/RECOVERY.md` on gate failure |
 
 ### Methodology References (`skills/methodology/references/`)
 
 | Reference | When to read | Used in |
 |-----------|-------------|---------|
 | `traffic-patterns.md` | Phase 2 — identifying API protocol (REST, GraphQL, SSR, batchexecute) | Phase 2 |
-| `auth-strategies.md` | Phase 2 — implementing auth module | Phase 2 |
+| `auth-strategies.md` | Phase 2 — implementing auth module (read section-addressed, e.g., §"Cookie domain priority") | Phase 2 |
 | `google-batchexecute.md` | Phase 2 — when target is a Google app | Phase 2 |
 | `ssr-patterns.md` | Phase 2 — when target uses SSR (Next.js, Nuxt, etc.) | Phase 2 |
 | `helpers-module-example.py` | Phase 2 — implementing utils/helpers.py | Phase 2 |
 | `persistent-context-example.py` | Phase 2 — persistent context commands | Phase 2 |
-
----
-
-## Critical Rules
-
-- Auth: `chmod 600 auth.json`, never hardcode. Tests fail (not skip) without auth.
-- Every command supports `--json` (on each command, not just group). REPL propagates via `ctx.obj`.
-- E2E tests include subprocess tests via `_resolve_cli()`.
-- README.md and TEST.md required in every CLI package.
-- REPL is default (`invoke_without_command=True`). Use unified `repl_skin.py`.
-- Generation: `--wait` + `--retry N` + `--output path`. CAPTCHAs pause and prompt.
-
-### Auth Resilience
-
-Auth module must support: (1) env var `CLI_WEB_<APP>_AUTH_JSON` for CI/CD,
-(2) **3-attempt auto-refresh on 401/403** (see below), never more,
-(3) `use <id>` / `status` context commands for stateful apps.
-See `auth-strategies.md` for all implementation patterns.
-
-#### Token Auto-Refresh (MANDATORY for auth-required CLIs)
-
-Session cookies expire. The CLI MUST handle this transparently with a 3-attempt
-retry in `client.py._request()`:
-
-| Attempt | Action |
-|---------|--------|
-| 0 | Try with current cookies |
-| 1 | Reload from `auth.json` on disk |
-| 2 | Headless browser refresh via `auth.py:refresh_auth()` |
-
-If all 3 fail → `AuthError("Session expired. Run: cli-web-<app> auth login")`.
-
-The `auth.py.tpl` and `client_rest_*.py.tpl` templates generate this by default.
-See `reddit/core/auth.py` and `linkedin/core/auth.py` for reference implementations.
-
-**CRITICAL: `.google.com` cookies must override regional duplicates** (e.g., `.google.co.il`).
-This is the #1 auth bug for international users. See `auth-strategies.md` "Cookie domain priority".
 
 ### Implementation Patterns (Reference Files)
 
@@ -271,13 +232,30 @@ These patterns are documented in reference files — read them during implementa
 
 | Pattern | Reference | Key |
 |---------|-----------|-----|
-| Exception hierarchy | `exception-hierarchy-example.py` | AppError → AuthError, RateLimitError, etc. |
+| Exception hierarchy | `exception-hierarchy-example.py` | CONVENTIONS.md §Exception Hierarchy |
 | Client architecture | `client-architecture-example.py` | Sub-clients for 3+ resources |
-| Polling/backoff | `polling-backoff-example.py` | --wait, --retry, rate limit retry |
+| Polling/backoff | `polling-backoff-example.py` | CONVENTIONS.md §Exponential Backoff & Polling |
 | Helpers module | `helpers-module-example.py` | handle_errors(), partial ID, _resolve_cli() |
 | Persistent context | `persistent-context-example.py` | use/status commands, context.json |
 | Rich output | `rich-output-example.py` | Tables, spinners, JSON error output |
-| Auth strategies | `auth-strategies.md` | All auth patterns, cookie priority, env var |
+| Auth strategies | `auth-strategies.md` | CONVENTIONS.md §Auth Rules |
+
+---
+
+## Critical Rules (index — definitions in CONVENTIONS.md)
+
+- Auth: `chmod 600 auth.json`, env var fallback, **3-attempt auto-refresh on
+  401/403** (never more), `.google.com` cookie priority, dual cookie formats
+  → CONVENTIONS.md §Auth Rules. Tests FAIL (not skip) without auth.
+- Every command supports `--json`; errors are JSON too → CONVENTIONS.md
+  §JSON Envelope.
+- REPL is default (`invoke_without_command=True`), shlex parsing, `--json`
+  propagation by prepending args, help-sync → CONVENTIONS.md §REPL Rules.
+- Exponential backoff for polling and 429s; generation commands take
+  `--wait` + `--retry N` + `--output path` → CONVENTIONS.md §Exponential
+  Backoff & Polling. CAPTCHAs pause and prompt.
+- E2E tests include subprocess tests → CONVENTIONS.md §Subprocess Test Rule.
+- README.md and TEST.md required in every CLI package.
 
 ---
 
@@ -290,38 +268,26 @@ full context and code examples.
 | Bug / Gotcha | Reference | Fix |
 |------|-----------|-----|
 | Auth login via npx fails on Windows | `auth-strategies.md` | Use Python `sync_playwright()` with persistent context |
-| `.google.co.il` cookies override `.google.com` | `auth-strategies.md` | `.google.com` cookies take priority over regional |
-| `load_cookies()` gets list vs dict format | `auth-strategies.md` | Handle both `[{name,value}]` and `{name: value}` |
+| `.google.co.il` cookies override `.google.com` | CONVENTIONS.md §Auth Rules | `.google.com` cookies take priority over regional |
+| `load_cookies()` gets list vs dict format | CONVENTIONS.md §Auth Rules | Handle both `[{name,value}]` and `{name: value}` |
 | RPC IDs reused for different operations | `google-batchexecute.md` | Always verify against traffic, never guess |
 | `httpx` → 401/403 on previously working site | `protection-detection.md` | Site added Cloudflare — switch to `curl_cffi` |
 | SSR slug URLs return 404 with bare IDs | `ssr-patterns.md` | Search first for canonical slug |
-| Windows garbled output | `methodology/SKILL.md` | `sys.stdout.reconfigure(encoding="utf-8")` at entry |
-
----
-
-## Naming Conventions
-
-| Convention | Value |
-|-----------|-------|
-| CLI command | `cli-web-<app>` |
-| Python namespace | `cli_web.<app>` |
-| App-specific SOP | `<APP>.md` |
-| Plugin slash command | `/cli-anything-web` |
-| Traffic capture dir | `traffic-capture/` |
-| Auth config dir | `~/.config/cli-web-<app>/` |
-| App names | No hyphens. Underscores OK (`monday_com`) |
+| Windows garbled output | CONVENTIONS.md §Windows UTF-8 Fix | Reconfigure stdout AND stderr to UTF-8 at entry |
 
 ---
 
 ## Generated CLI Structure
 
-Every generated CLI follows this package structure:
+Every generated CLI follows this package structure (naming rules:
+CONVENTIONS.md §Naming Conventions):
 
 ```
 <app>/
 +-- agent-harness/
     +-- <APP>.md                    # Software-specific SOP
     +-- setup.py                    # PyPI config (find_namespace_packages)
+    +-- .manifest.json              # Provenance (written by scaffold-cli.py)
     +-- cli_web/                    # Namespace package (NO __init__.py)
         +-- <app>/                  # Sub-package (HAS __init__.py)
             +-- __init__.py
@@ -330,8 +296,8 @@ Every generated CLI follows this package structure:
             +-- core/
             |   +-- __init__.py
             |   +-- client.py       # HTTP client (httpx or curl_cffi)
-            |   +-- auth.py         # Auth management
-            |   +-- session.py      # State + undo/redo
+            |   +-- auth.py         # Auth management (auth sites only)
+            |   +-- session.py      # State + undo/redo (stateful apps only)
             |   +-- models.py       # Response models
             |   +-- exceptions.py    # Domain-specific exception hierarchy
             |   +-- rpc/              # Optional: for non-REST protocols
@@ -344,7 +310,7 @@ Every generated CLI follows this package structure:
             |   +-- <resource>.py   # One file per API resource
             +-- utils/
             |   +-- __init__.py
-            |   +-- repl_skin.py    # Unified REPL (from plugin)
+            |   +-- repl_skin.py    # Vendored from cli-web-core (devkit-synced)
             |   +-- helpers.py      # Shared helpers (partial ID, error handler, context, polling)
             |   +-- output.py       # JSON/table formatting
             |   +-- config.py       # Config file management
@@ -354,4 +320,3 @@ Every generated CLI follows this package structure:
                 +-- test_core.py    # Unit tests (mocked HTTP)
                 +-- test_e2e.py     # E2E tests (live API)
 ```
-

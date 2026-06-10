@@ -9,11 +9,22 @@ setup(
     python_requires=">=3.10",
     install_requires=[
         "click>=8.0",
-        ${install_requires}
+{%- if http_client == "curl_cffi" %}
+        "curl_cffi",
+{%- else %}
+        "httpx",
+{%- endif %}
+{%- if protocol == "html-scraping" %}
+        "beautifulsoup4>=4.12",
+{%- endif %}
         "rich>=13.0",
         "prompt_toolkit>=3.0",
     ],
-    ${extras_require_block}
+{%- if auth_type in ("cookie", "google_sso") %}
+    extras_require={
+        "browser": ["playwright>=1.40.0"],
+    },
+{%- endif %}
     entry_points={
         "console_scripts": [
             "cli-web-${app_name}=cli_web.${app_name_underscore}.${app_name_underscore}_cli:main",

@@ -7,7 +7,11 @@ import sys
 
 # Windows UTF-8 fix — reconfigure both stdout and stderr
 for _stream in (sys.stdout, sys.stderr):
-    if _stream and getattr(_stream, "encoding", None) and _stream.encoding.lower() not in ("utf-8", "utf8"):
+    if (
+        _stream
+        and getattr(_stream, "encoding", None)
+        and _stream.encoding.lower() not in ("utf-8", "utf8")
+    ):
         try:
             _stream.reconfigure(encoding="utf-8", errors="replace")
         except AttributeError:
@@ -15,10 +19,10 @@ for _stream in (sys.stdout, sys.stderr):
 
 import click
 
-from .commands.locations import locations
-from .commands.hotels import hotels
-from .commands.restaurants import restaurants
 from .commands.attractions import attractions
+from .commands.hotels import hotels
+from .commands.locations import locations
+from .commands.restaurants import restaurants
 from .core.exceptions import TripAdvisorError
 from .utils.repl_skin import ReplSkin
 
@@ -131,6 +135,7 @@ def _repl(ctx: click.Context) -> None:
         except Exception as exc:
             if ctx.obj.get("json") and isinstance(exc, TripAdvisorError):
                 import json as _json
+
                 click.echo(_json.dumps(exc.to_dict()))
             else:
                 click.echo(f"Error: {exc}", err=True)
@@ -139,6 +144,15 @@ def _repl(ctx: click.Context) -> None:
 def main() -> None:
     """Entry point for cli-web-tripadvisor."""
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.tripadvisor.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.tripadvisor.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="tripadvisor", version="0.1.0")
+register_doctor_command(cli, app_name="tripadvisor", pkg="tripadvisor")
 
 
 if __name__ == "__main__":

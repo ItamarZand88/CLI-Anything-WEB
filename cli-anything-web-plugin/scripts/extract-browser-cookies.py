@@ -20,8 +20,8 @@ Usage:
 
 import argparse
 import asyncio
-import json
 import http.client
+import json
 import os
 import sys
 from pathlib import Path
@@ -54,18 +54,21 @@ async def extract_cookies(ws_url: str, domain: str) -> dict[str, str]:
         import websockets
     except ImportError:
         print(
-            "Error: 'websockets' package required.\n"
-            "Install with: pip install websockets",
+            "Error: 'websockets' package required.\nInstall with: pip install websockets",
             file=sys.stderr,
         )
         sys.exit(1)
 
     async with websockets.connect(ws_url) as ws:
         # Use Storage.getCookies CDP command
-        await ws.send(json.dumps({
-            "id": 1,
-            "method": "Storage.getCookies",
-        }))
+        await ws.send(
+            json.dumps(
+                {
+                    "id": 1,
+                    "method": "Storage.getCookies",
+                }
+            )
+        )
         response = json.loads(await ws.recv())
         all_cookies = response.get("result", {}).get("cookies", [])
 
@@ -95,23 +98,26 @@ def save_cookies(cookies: dict, path: str) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Extract auth cookies from Chrome debug profile"
-    )
+    parser = argparse.ArgumentParser(description="Extract auth cookies from Chrome debug profile")
     parser.add_argument(
-        "--port", type=int, default=9222,
+        "--port",
+        type=int,
+        default=9222,
         help="Chrome remote debugging port (default: 9222)",
     )
     parser.add_argument(
-        "--domain", required=True,
+        "--domain",
+        required=True,
         help="Cookie domain to filter (e.g., .google.com, .monday.com)",
     )
     parser.add_argument(
-        "--save", metavar="PATH",
+        "--save",
+        metavar="PATH",
         help="Save cookies to this JSON file (e.g., ~/.config/cli-web-notebooklm/auth.json)",
     )
     parser.add_argument(
-        "--json", action="store_true",
+        "--json",
+        action="store_true",
         help="Print cookies as JSON to stdout",
     )
     args = parser.parse_args()
@@ -134,7 +140,7 @@ def main():
         for name in sorted(cookies):
             val_preview = cookies[name][:8] + "..." if len(cookies[name]) > 8 else cookies[name]
             print(f"  {name}: {val_preview}")
-        print(f"\nUse --save <path> to save, or --json to print full values")
+        print("\nUse --save <path> to save, or --json to print full values")
 
 
 if __name__ == "__main__":

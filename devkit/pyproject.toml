@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cli-web-devkit"
+version = "0.1.0"
+description = "Fleet tooling for the CLI-Anything-Web monorepo: registry validation, CI matrix, manifests, drift detection, resync"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+# Stdlib-only by design: every command must run in CI and pre-commit hooks
+# without an install step beyond the package itself.
+dependencies = []
+
+[project.optional-dependencies]
+scaffold = ["jinja2>=3.1"]
+
+[project.scripts]
+cli-web-devkit = "cli_web_devkit.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["cli_web_devkit*"]

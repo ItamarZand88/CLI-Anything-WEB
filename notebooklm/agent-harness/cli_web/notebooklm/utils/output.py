@@ -1,10 +1,11 @@
 """Output formatting for cli-web-notebooklm."""
+
 import json
 import sys
 from datetime import datetime
 from typing import Any
 
-from ..core.models import Notebook, Source, User, Artifact
+from ..core.models import Artifact, Notebook, Source, User
 
 
 def _ts(unix_sec) -> str:
@@ -122,6 +123,7 @@ def handle_error(exc: Exception, json_mode: bool = False) -> None:
     Call in command except blocks. Always exits with code 1.
     """
     from ..core.exceptions import error_code_for
+
     code = error_code_for(exc)
     if json_mode:
         print(json_error(code, str(exc)))

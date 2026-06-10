@@ -1,5 +1,4 @@
 """Pytest configuration for cli-web-stitch tests."""
-import pytest
 
 
 def pytest_configure(config):

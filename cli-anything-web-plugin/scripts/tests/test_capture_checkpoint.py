@@ -3,6 +3,7 @@
 Drives the script via subprocess. Verifies that save → restore → update
 → clear round-trip through a sensible pipeline resume shape.
 """
+
 from __future__ import annotations
 
 import json
@@ -17,7 +18,8 @@ CHECKPOINT = SCRIPTS_DIR / "capture-checkpoint.py"
 def _run(*args: str, check: bool = True) -> subprocess.CompletedProcess:
     result = subprocess.run(
         [sys.executable, str(CHECKPOINT), *args],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if check and result.returncode != 0:
         raise AssertionError(f"capture-checkpoint.py failed: {result.stderr}")
@@ -30,6 +32,7 @@ def _restore(app_dir: Path) -> dict:
 
 # --- Cold start ---
 
+
 def test_restore_on_empty_app_reports_no_checkpoint(tmp_path):
     payload = _restore(tmp_path)
     assert payload["exists"] is False
@@ -37,9 +40,18 @@ def test_restore_on_empty_app_reports_no_checkpoint(tmp_path):
 
 # --- Save lifecycle ---
 
+
 def test_save_creates_checkpoint_with_step(tmp_path):
-    _run("save", str(tmp_path), "--step", "assessment",
-         "--session", "sess1", "--url", "https://x.test")
+    _run(
+        "save",
+        str(tmp_path),
+        "--step",
+        "assessment",
+        "--session",
+        "sess1",
+        "--url",
+        "https://x.test",
+    )
     payload = _restore(tmp_path)
     assert payload["exists"] is True
     assert payload["step"] == "assessment"
@@ -48,8 +60,16 @@ def test_save_creates_checkpoint_with_step(tmp_path):
 
 
 def test_save_adds_trace_entry(tmp_path):
-    _run("save", str(tmp_path), "--step", "tracing",
-         "--trace-id", "trace-42", "--trace-purpose", "probe")
+    _run(
+        "save",
+        str(tmp_path),
+        "--step",
+        "tracing",
+        "--trace-id",
+        "trace-42",
+        "--trace-purpose",
+        "probe",
+    )
     payload = _restore(tmp_path)
     traces = payload["active_traces"]
     assert len(traces) == 1
@@ -70,6 +90,7 @@ def test_save_preserves_prior_fields(tmp_path):
 
 # --- Update ---
 
+
 def test_update_changes_specific_fields(tmp_path):
     _run("save", str(tmp_path), "--step", "tracing", "--trace-id", "t1")
     _run("update", str(tmp_path), "--step", "full-capture", "--auth-saved")
@@ -85,6 +106,7 @@ def test_update_errors_on_missing_checkpoint(tmp_path):
 
 
 # --- Step sequencing / guidance ---
+
 
 def test_restore_computes_step_index_and_next(tmp_path):
     _run("save", str(tmp_path), "--step", "assessment")
@@ -104,6 +126,7 @@ def test_restore_complete_step_gives_ready_guidance(tmp_path):
 
 # --- Clear ---
 
+
 def test_clear_removes_checkpoint(tmp_path):
     _run("save", str(tmp_path), "--step", "assessment")
     _run("clear", str(tmp_path))
@@ -118,9 +141,16 @@ def test_clear_when_no_checkpoint_is_a_no_op(tmp_path):
 
 # --- Assessment JSON ---
 
+
 def test_save_accepts_assessment_json(tmp_path):
-    _run("save", str(tmp_path), "--step", "assessment",
-         "--assessment", '{"framework":"next","protection":"cloudflare"}')
+    _run(
+        "save",
+        str(tmp_path),
+        "--step",
+        "assessment",
+        "--assessment",
+        '{"framework":"next","protection":"cloudflare"}',
+    )
     payload = _restore(tmp_path)
     assert payload["assessment"]["framework"] == "next"
     assert payload["assessment"]["protection"] == "cloudflare"
@@ -128,7 +158,6 @@ def test_save_accepts_assessment_json(tmp_path):
 
 def test_save_ignores_malformed_assessment_json(tmp_path):
     # Should not crash; just warn and continue
-    result = _run("save", str(tmp_path), "--step", "assessment",
-                  "--assessment", "not json at all")
+    _run("save", str(tmp_path), "--step", "assessment", "--assessment", "not json at all")
     payload = _restore(tmp_path)
     assert payload["exists"] is True

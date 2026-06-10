@@ -1,5 +1,7 @@
 """Search commands for cli-web-amazon."""
+
 import click
+
 from ..core.client import AmazonClient
 from ..utils.helpers import handle_errors, print_json
 from ..utils.output import print_search_results
@@ -7,12 +9,15 @@ from ..utils.output import print_search_results
 
 @click.command("search")
 @click.argument("query")
-@click.option("--page", type=int, default=1, show_default=True,
-              help="Page number of results.")
-@click.option("--dept", "--department", "department", default=None,
-              help="Department filter (e.g., 'electronics', 'books').")
-@click.option("--json", "use_json", is_flag=True, default=False,
-              help="Output as JSON.")
+@click.option("--page", type=int, default=1, show_default=True, help="Page number of results.")
+@click.option(
+    "--dept",
+    "--department",
+    "department",
+    default=None,
+    help="Department filter (e.g., 'electronics', 'books').",
+)
+@click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def search(query, page, department, use_json):
     """Search Amazon products by keyword.
 

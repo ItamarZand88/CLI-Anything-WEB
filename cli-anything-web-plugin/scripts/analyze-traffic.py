@@ -31,7 +31,7 @@ import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import parse_qs, urlparse
 
 # Ensure sibling modules resolve whether invoked as a script or via importlib.
 _SCRIPT_DIR = str(Path(__file__).resolve().parent)
@@ -105,7 +105,7 @@ def detect_protocol(entries: list[dict]) -> dict:
     firebase_paths = []
 
     for e in entries:
-        url = (e.get("url") or "")
+        url = e.get("url") or ""
         method = e.get("method", "GET")
         mime = e.get("mime_type", "")
         body = e.get("post_data", "") or ""
@@ -136,7 +136,10 @@ def detect_protocol(entries: list[dict]) -> dict:
                 except json.JSONDecodeError:
                     pass  # Non-JSON body on GraphQL endpoint (e.g., multipart upload)
                 except TypeError as exc:
-                    print(f"Warning: unexpected type in GraphQL body parse for {url}: {exc}", file=sys.stderr)
+                    print(
+                        f"Warning: unexpected type in GraphQL body parse for {url}: {exc}",
+                        file=sys.stderr,
+                    )
 
         # --- Google batchexecute ---
         if "batchexecute" in url and not is_noise:
@@ -160,7 +163,11 @@ def detect_protocol(entries: list[dict]) -> dict:
                                 try:
                                     params_data = json.loads(inner[1])
                                 except (json.JSONDecodeError, TypeError):
-                                    params_data = inner[1][:200] if isinstance(inner[1], str) else str(inner[1])[:200]
+                                    params_data = (
+                                        inner[1][:200]
+                                        if isinstance(inner[1], str)
+                                        else str(inner[1])[:200]
+                                    )
                                 if rpcid not in batchexecute_rpc_details:
                                     batchexecute_rpc_details[rpcid] = {
                                         "call_count": 0,
@@ -181,7 +188,7 @@ def detect_protocol(entries: list[dict]) -> dict:
 
             # Extract service name: /_/ServiceName/data/batchexecute
             if not batchexecute_service:
-                m = re.search(r'/_/([^/]+)/data/batchexecute', url)
+                m = re.search(r"/_/([^/]+)/data/batchexecute", url)
                 if m:
                     batchexecute_service = m.group(1)
 
@@ -204,10 +211,9 @@ def detect_protocol(entries: list[dict]) -> dict:
             websocket_url_set.add(url)
             # Sub-protocol extraction (e.g. "graphql-ws", "stomp", "mqtt")
             subproto = headers.get(
-                "sec-websocket-protocol",
-                headers.get("Sec-WebSocket-Protocol", "")
+                "sec-websocket-protocol", headers.get("Sec-WebSocket-Protocol", "")
             )
-            for sp in (subproto.split(",") if subproto else []):
+            for sp in subproto.split(",") if subproto else []:
                 sp = sp.strip()
                 if sp:
                     websocket_subprotocols.add(sp)
@@ -235,7 +241,11 @@ def detect_protocol(entries: list[dict]) -> dict:
                         signals["json_rpc"] += 5
                         json_rpc_methods.append(parsed_body["method"])
                 elif isinstance(parsed_body, list) and len(parsed_body) > 0:
-                    if isinstance(parsed_body[0], dict) and "jsonrpc" in parsed_body[0] and "method" in parsed_body[0]:
+                    if (
+                        isinstance(parsed_body[0], dict)
+                        and "jsonrpc" in parsed_body[0]
+                        and "method" in parsed_body[0]
+                    ):
                         signals["json_rpc"] += 5
                         for item in parsed_body:
                             if isinstance(item, dict) and "method" in item:
@@ -268,7 +278,11 @@ def detect_protocol(entries: list[dict]) -> dict:
             if re.match(r".*/api/v\d+/", url) or "/api/" in url:
                 is_rest_candidate = True
             # JSON response to a non-noise request without matching another protocol
-            elif mime and "json" in mime.lower() and method in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+            elif (
+                mime
+                and "json" in mime.lower()
+                and method in ("GET", "POST", "PUT", "PATCH", "DELETE")
+            ):
                 is_rest_candidate = True
         if is_rest_candidate:
             # Don't count if already matched a specific protocol above
@@ -357,7 +371,7 @@ def detect_auth(entries: list[dict]) -> dict:
     api_key_headers = set()
     cookie_names = set()
 
-    for e in (e for e in entries if not _is_noise_url((e.get("url") or ""))):
+    for e in (e for e in entries if not _is_noise_url(e.get("url") or "")):
         headers = _normalize_headers(e.get("request_headers", {}))
         has_auth = False
 
@@ -391,7 +405,7 @@ def detect_auth(entries: list[dict]) -> dict:
 
     # Use actual count of non-noise entries as denominator (a request may have
     # both bearer and cookie, so summing individual counters would inflate total)
-    total = sum(1 for _ in (e for e in entries if not _is_noise_url((e.get("url") or "")))) or 1
+    total = sum(1 for _ in (e for e in entries if not _is_noise_url(e.get("url") or ""))) or 1
     patterns = {}
     if bearer_count > 0:
         patterns["bearer"] = round(bearer_count / total * 100, 1)
@@ -417,8 +431,11 @@ def detect_auth(entries: list[dict]) -> dict:
         result["api_key_header_names"] = sorted(api_key_headers)
     if cookie_names and primary == "cookie":
         # Show auth-relevant cookies (SID, session, etc.)
-        auth_cookies = [c for c in cookie_names
-                        if any(k in c.lower() for k in ("sid", "session", "auth", "token", "osid", "secure"))]
+        auth_cookies = [
+            c
+            for c in cookie_names
+            if any(k in c.lower() for k in ("sid", "session", "auth", "token", "osid", "secure"))
+        ]
         if auth_cookies:
             result["auth_cookie_names"] = sorted(auth_cookies)
 
@@ -520,9 +537,9 @@ def _recommend_client(active_protections: dict) -> str:
     return "httpx"
 
 
-_RE_UUID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.I)
-_RE_NUMERIC_ID = re.compile(r'^\d+$')
-_RE_HASH_ID = re.compile(r'^[0-9a-f]{16,}$', re.I)  # long hex IDs
+_RE_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+_RE_NUMERIC_ID = re.compile(r"^\d+$")
+_RE_HASH_ID = re.compile(r"^[0-9a-f]{16,}$", re.I)  # long hex IDs
 
 
 def _normalize_segment(segment: str) -> str:
@@ -538,14 +555,30 @@ def _normalize_segment(segment: str) -> str:
 
 
 _STATIC_MIME_PREFIXES = (
-    "image/", "font/", "audio/", "video/",
-    "text/css", "application/javascript", "application/x-javascript",
+    "image/",
+    "font/",
+    "audio/",
+    "video/",
+    "text/css",
+    "application/javascript",
+    "application/x-javascript",
     "text/javascript",
 )
 _STATIC_EXTENSIONS = (
-    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico",
-    ".woff", ".woff2", ".ttf", ".eot",
-    ".css", ".js", ".map",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".webp",
+    ".ico",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".eot",
+    ".css",
+    ".js",
+    ".map",
 )
 
 
@@ -563,15 +596,14 @@ def _is_static_asset(entry: dict) -> bool:
 def group_endpoints(entries: list[dict]) -> list[dict]:
     """Group API requests by URL prefix into resource groups."""
     api_entries = [
-        e for e in entries
-        if not _is_noise_url((e.get("url") or "")) and not _is_static_asset(e)
+        e for e in entries if not _is_noise_url(e.get("url") or "") and not _is_static_asset(e)
     ]
 
     # Parse URLs and group by prefix
     groups = defaultdict(lambda: {"methods": Counter(), "urls": set(), "count": 0})
 
     for e in api_entries:
-        url = (e.get("url") or "")
+        url = e.get("url") or ""
         method = e.get("method", "GET")
         parsed = urlparse(url)
 
@@ -600,21 +632,33 @@ def group_endpoints(entries: list[dict]) -> list[dict]:
             continue
         methods = dict(data["methods"])
         has_writes = any(m in methods for m in ("POST", "PUT", "PATCH", "DELETE"))
-        result.append({
-            "prefix": key,
-            "count": data["count"],
-            "methods": methods,
-            "has_writes": has_writes,
-            "unique_urls": len(data["urls"]),
-            "sample_urls": sorted(data["urls"])[:5],
-        })
+        result.append(
+            {
+                "prefix": key,
+                "count": data["count"],
+                "methods": methods,
+                "has_writes": has_writes,
+                "unique_urls": len(data["urls"]),
+                "sample_urls": sorted(data["urls"])[:5],
+            }
+        )
 
     return result[:20]  # Top 20 groups
 
 
 _PAGINATION_PARAMS = {
-    "page", "offset", "limit", "cursor", "after", "before",
-    "skip", "take", "per_page", "pagesize", "page_size", "startindex",
+    "page",
+    "offset",
+    "limit",
+    "cursor",
+    "after",
+    "before",
+    "skip",
+    "take",
+    "per_page",
+    "pagesize",
+    "page_size",
+    "startindex",
 }
 
 
@@ -623,7 +667,7 @@ def detect_pagination(entries: list[dict]) -> dict:
     paginated_endpoints = {}  # prefix → set of pagination params seen
 
     for e in entries:
-        url = (e.get("url") or "")
+        url = e.get("url") or ""
         if _is_noise_url(url):
             continue
         parsed = urlparse(url)
@@ -643,8 +687,7 @@ def detect_pagination(entries: list[dict]) -> dict:
     return {
         "has_pagination": True,
         "paginated_endpoints": [
-            {"prefix": k, "params": sorted(v)}
-            for k, v in sorted(paginated_endpoints.items())
+            {"prefix": k, "params": sorted(v)} for k, v in sorted(paginated_endpoints.items())
         ],
         "cli_note": "List commands on paginated endpoints should support --page/--limit/--cursor flags",
     }
@@ -681,7 +724,7 @@ def detect_rate_limits(entries: list[dict]) -> dict:
 
 def compute_stats(entries: list[dict]) -> dict:
     """Compute basic traffic statistics. Noise URLs excluded from method/status/MIME counts; domains include all entries."""
-    api_entries = [e for e in entries if not _is_noise_url((e.get("url") or ""))]
+    api_entries = [e for e in entries if not _is_noise_url(e.get("url") or "")]
 
     methods = Counter(e.get("method", "GET") for e in api_entries)
     statuses = Counter(e.get("status", 0) for e in api_entries)
@@ -693,7 +736,7 @@ def compute_stats(entries: list[dict]) -> dict:
     # Unique domains (from all entries, including noise — useful for awareness)
     domains = set()
     for e in entries:
-        parsed = urlparse((e.get("url") or ""))
+        parsed = urlparse(e.get("url") or "")
         if parsed.hostname:
             domains.add(parsed.hostname)
 
@@ -721,18 +764,22 @@ def suggest_commands(endpoint_groups: list[dict], protocol: dict) -> list[dict]:
             for rpc_id in rpc_ids[:20]:
                 detail = rpc_details.get(rpc_id, {})
                 count = detail.get("call_count", 1)
-                commands.append({
-                    "name": rpc_id,
-                    "method": "POST",
-                    "call_count": count,
-                    "description": f"RPC {rpc_id} (captured {count}x) — verify params in batchexecute_rpc_details",
-                })
-            return [{
-                "group": service,
-                "prefix": f"/_/{service}/data/batchexecute",
-                "note": "Map RPC IDs to CLI commands. See batchexecute_rpc_details for param structures.",
-                "commands": commands,
-            }]
+                commands.append(
+                    {
+                        "name": rpc_id,
+                        "method": "POST",
+                        "call_count": count,
+                        "description": f"RPC {rpc_id} (captured {count}x) — verify params in batchexecute_rpc_details",
+                    }
+                )
+            return [
+                {
+                    "group": service,
+                    "prefix": f"/_/{service}/data/batchexecute",
+                    "note": "Map RPC IDs to CLI commands. See batchexecute_rpc_details for param structures.",
+                    "commands": commands,
+                }
+            ]
 
     suggestions = []
 
@@ -744,40 +791,69 @@ def suggest_commands(endpoint_groups: list[dict], protocol: dict) -> list[dict]:
         parts = prefix.split("/")
         resource = parts[-1] if parts else "unknown"
         # Singularize simple cases
-        resource_singular = resource.rstrip("s") if resource.endswith("s") and len(resource) > 3 else resource
+        resource_singular = (
+            resource.rstrip("s") if resource.endswith("s") and len(resource) > 3 else resource
+        )
 
         commands = []
         if methods.get("GET", 0) > 0:
             commands.append({"name": "list", "method": "GET", "description": f"List {resource}"})
             if group["unique_urls"] > 1:
-                commands.append({"name": "get", "method": "GET", "description": f"Get a specific {resource_singular}"})
+                commands.append(
+                    {
+                        "name": "get",
+                        "method": "GET",
+                        "description": f"Get a specific {resource_singular}",
+                    }
+                )
         if methods.get("POST", 0) > 0:
-            commands.append({"name": "create", "method": "POST", "description": f"Create a new {resource_singular}"})
+            commands.append(
+                {
+                    "name": "create",
+                    "method": "POST",
+                    "description": f"Create a new {resource_singular}",
+                }
+            )
         if methods.get("PUT", 0) > 0 or methods.get("PATCH", 0) > 0:
-            commands.append({"name": "update", "method": "PUT/PATCH", "description": f"Update a {resource_singular}"})
+            commands.append(
+                {
+                    "name": "update",
+                    "method": "PUT/PATCH",
+                    "description": f"Update a {resource_singular}",
+                }
+            )
         if methods.get("DELETE", 0) > 0:
-            commands.append({"name": "delete", "method": "DELETE", "description": f"Delete a {resource_singular}"})
+            commands.append(
+                {
+                    "name": "delete",
+                    "method": "DELETE",
+                    "description": f"Delete a {resource_singular}",
+                }
+            )
 
         if commands:
-            suggestions.append({
-                "group": resource,
-                "prefix": prefix,
-                "commands": commands,
-            })
+            suggestions.append(
+                {
+                    "group": resource,
+                    "prefix": prefix,
+                    "commands": commands,
+                }
+            )
 
     return suggestions
 
 
 _AUTH_ENDPOINT_PATTERNS = re.compile(
-    r'/(login|auth|oauth|token|signin|sign-in|sso|callback|authorize)', re.I
+    r"/(login|auth|oauth|token|signin|sign-in|sso|callback|authorize)", re.I
 )
 _AUTH_COOKIE_NAMES = re.compile(
-    r'(session|auth|token|sid|jwt|access|refresh|id_token|csrftoken|_csrf)', re.I
+    r"(session|auth|token|sid|jwt|access|refresh|id_token|csrftoken|_csrf)", re.I
 )
 
 
 def detect_request_sequence(entries: list[dict]) -> dict:
     """Use timestamp field to detect auth flows, redirect chains, and request ordering."""
+
     # Check if timestamps are available and numeric
     def _ts(e: dict) -> float | None:
         v = e.get("timestamp")
@@ -799,14 +875,16 @@ def detect_request_sequence(entries: list[dict]) -> dict:
     for i, e in enumerate(timed[:20]):
         ts = _ts(e) or 0
         delta_ms = round((ts - prev_ts) * 1000, 1) if i > 0 else 0
-        url = (e.get("url") or "")
-        timeline.append({
-            "seq": i + 1,
-            "method": e.get("method", "GET"),
-            "url": url[:80],
-            "status": e.get("status", 0),
-            "delta_ms": delta_ms,
-        })
+        url = e.get("url") or ""
+        timeline.append(
+            {
+                "seq": i + 1,
+                "method": e.get("method", "GET"),
+                "url": url[:80],
+                "status": e.get("status", 0),
+                "delta_ms": delta_ms,
+            }
+        )
         prev_ts = ts
 
     # --- Auth flow detection ---
@@ -816,7 +894,7 @@ def detect_request_sequence(entries: list[dict]) -> dict:
 
     for i, e in enumerate(timed):
         seq = i + 1
-        url = (e.get("url") or "")
+        url = e.get("url") or ""
         method = e.get("method", "GET")
         status = e.get("status", 0)
         resp_cookies = e.get("response_cookies", []) or []
@@ -835,23 +913,27 @@ def detect_request_sequence(entries: list[dict]) -> dict:
 
         if is_auth_post or (auth_cookies_set and is_auth_endpoint):
             auth_flow["detected"] = True
-            auth_flow["steps"].append({
-                "seq": seq,
-                "action": "login",
-                "url": url[:80],
-                "cookies_set": auth_cookies_set if auth_cookies_set else [],
-            })
+            auth_flow["steps"].append(
+                {
+                    "seq": seq,
+                    "action": "login",
+                    "url": url[:80],
+                    "cookies_set": auth_cookies_set if auth_cookies_set else [],
+                }
+            )
         elif session_cookies_set:
             # Check if this request uses cookies that were set by an auth step
             req_cookies = e.get("request_cookies", {}) or {}
             used = [name for name in req_cookies if name in session_cookies_set]
             if used and not _is_noise_url(url):
-                auth_flow["steps"].append({
-                    "seq": seq,
-                    "action": "api_call",
-                    "url": url[:80],
-                    "cookies_used": used,
-                })
+                auth_flow["steps"].append(
+                    {
+                        "seq": seq,
+                        "action": "api_call",
+                        "url": url[:80],
+                        "cookies_used": used,
+                    }
+                )
                 # Only keep first 10 api_call steps to avoid huge output
                 if len(auth_flow["steps"]) > 15:
                     break
@@ -865,7 +947,7 @@ def detect_request_sequence(entries: list[dict]) -> dict:
 
     visited_redirects: set[str] = set()
     for e in timed:
-        url = (e.get("url") or "")
+        url = e.get("url") or ""
         status = e.get("status", 0)
         if status not in (301, 302, 303, 307, 308):
             continue
@@ -897,11 +979,13 @@ def detect_request_sequence(entries: list[dict]) -> dict:
         if chain_hops >= 1:
             # Final destination is the last Location or the last entry's URL
             final_url = location if location else chain_start
-            redirect_chains.append({
-                "from": chain_start[:120],
-                "to": final_url[:120],
-                "hops": chain_hops,
-            })
+            redirect_chains.append(
+                {
+                    "from": chain_start[:120],
+                    "to": final_url[:120],
+                    "hops": chain_hops,
+                }
+            )
 
     return {
         "has_timestamps": True,
@@ -925,7 +1009,7 @@ def detect_session_lifecycle(entries: list[dict]) -> dict:
     seen_set = set()  # dedupe (name, domain) for cookies_set list
 
     for e in entries:
-        url = (e.get("url") or "")
+        url = e.get("url") or ""
         parsed = urlparse(url)
         domain = parsed.hostname or ""
 
@@ -938,11 +1022,13 @@ def detect_session_lifecycle(entries: list[dict]) -> dict:
             key = (name, domain)
             if key not in seen_set:
                 seen_set.add(key)
-                cookies_set.append({
-                    "name": name,
-                    "set_by": url[:120],
-                    "domain": domain,
-                })
+                cookies_set.append(
+                    {
+                        "name": name,
+                        "set_by": url[:120],
+                        "domain": domain,
+                    }
+                )
 
         # Request cookies (sent with request)
         req_cookies = e.get("request_cookies", {}) or {}
@@ -954,10 +1040,7 @@ def detect_session_lifecycle(entries: list[dict]) -> dict:
 
     # Identify auth cookies
     all_cookie_names = set(c["name"] for c in cookies_set) | set(cookies_used.keys())
-    auth_cookies = sorted(
-        name for name in all_cookie_names
-        if _AUTH_COOKIE_NAMES.search(name)
-    )
+    auth_cookies = sorted(name for name in all_cookie_names if _AUTH_COOKIE_NAMES.search(name))
 
     # Determine session pattern
     if not cookies_set and not cookies_used:
@@ -999,7 +1082,7 @@ def classify_endpoints_by_size(entries: list[dict]) -> dict:
         if size is None:
             continue
 
-        url = (e.get("url") or "")
+        url = e.get("url") or ""
         if _is_noise_url(url) or _is_static_asset(e):
             continue
 
@@ -1042,11 +1125,13 @@ def classify_endpoints_by_size(entries: list[dict]) -> dict:
             classification = "medium (1-50KB)"
         else:
             classification = "large (>50KB)"
-        endpoint_sizes.append({
-            "prefix": prefix,
-            "avg_size": avg,
-            "classification": classification,
-        })
+        endpoint_sizes.append(
+            {
+                "prefix": prefix,
+                "avg_size": avg,
+                "classification": classification,
+            }
+        )
 
     return {
         "has_size_data": True,
@@ -1100,7 +1185,8 @@ def main():
         help="Path to raw-traffic.json (output of parse-trace.py)",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         help="Output file path (default: print to stdout)",
     )
     parser.add_argument(
@@ -1135,11 +1221,13 @@ def main():
         p = report["protocol"]
         a = report["auth"]
         s = report["stats"]
-        print(f"=== Traffic Analysis ===")
-        print(f"Requests: {s['total_requests']} ({s['read_operations']} reads, {s['write_operations']} writes)")
+        print("=== Traffic Analysis ===")
+        print(
+            f"Requests: {s['total_requests']} ({s['read_operations']} reads, {s['write_operations']} writes)"
+        )
         print(f"Read-only: {s['is_read_only']}")
         print(f"Protocol: {p['protocol']} (confidence: {p['confidence']}%)")
-        print(f"Auth: {a['primary']} ({', '.join(f'{k}:{v}%' for k,v in a['patterns'].items())})")
+        print(f"Auth: {a['primary']} ({', '.join(f'{k}:{v}%' for k, v in a['patterns'].items())})")
         if p.get("graphql_operations"):
             print(f"GraphQL operations: {', '.join(op['name'] for op in p['graphql_operations'])}")
         if p.get("batchexecute_rpc_ids"):
@@ -1160,7 +1248,9 @@ def main():
             print(f"Protections: {', '.join(report['protections']['protections'].keys())}")
             print(f"Recommended client: {report['protections']['recommended_client']}")
         if report["pagination"]["has_pagination"]:
-            ep_list = ", ".join(ep["prefix"] for ep in report["pagination"]["paginated_endpoints"][:3])
+            ep_list = ", ".join(
+                ep["prefix"] for ep in report["pagination"]["paginated_endpoints"][:3]
+            )
             print(f"Pagination detected: {ep_list}")
         if report["rate_limits"]["has_rate_limiting"]:
             print(f"Rate limiting: {report['rate_limits']['status_429_count']} x 429 responses")
@@ -1170,7 +1260,7 @@ def main():
             methods = ", ".join(f"{m}:{c}" for m, c in g["methods"].items())
             print(f"  {g['prefix']} ({g['count']} reqs, {methods})")
         if report["suggested_commands"]:
-            print(f"\nSuggested CLI commands:")
+            print("\nSuggested CLI commands:")
             for sg in report["suggested_commands"][:8]:
                 cmds = ", ".join(c["name"] for c in sg["commands"])
                 print(f"  {sg['group']}: {cmds}")
@@ -1178,15 +1268,21 @@ def main():
         # Request sequence
         seq = report.get("request_sequence", {})
         if seq.get("has_timestamps"):
-            print(f"\nRequest sequence: {len(seq.get('request_timeline', []))} requests in timeline")
+            print(
+                f"\nRequest sequence: {len(seq.get('request_timeline', []))} requests in timeline"
+            )
             if seq.get("auth_flow", {}).get("detected"):
                 steps = seq["auth_flow"]["steps"]
                 login_steps = [s for s in steps if s["action"] == "login"]
                 api_steps = [s for s in steps if s["action"] == "api_call"]
-                print(f"  Auth flow: {len(login_steps)} login step(s), {len(api_steps)} authenticated API call(s)")
+                print(
+                    f"  Auth flow: {len(login_steps)} login step(s), {len(api_steps)} authenticated API call(s)"
+                )
             if seq.get("redirect_chains"):
                 for chain in seq["redirect_chains"][:3]:
-                    print(f"  Redirect: {chain['from'][:60]} -> {chain['to'][:60]} ({chain['hops']} hops)")
+                    print(
+                        f"  Redirect: {chain['from'][:60]} -> {chain['to'][:60]} ({chain['hops']} hops)"
+                    )
 
         # Session lifecycle
         sess = report.get("session_lifecycle", {})
@@ -1194,7 +1290,9 @@ def main():
             print(f"\nSession lifecycle: pattern={sess.get('session_pattern', 'unknown')}")
             if sess.get("auth_cookies"):
                 print(f"  Auth cookies: {', '.join(sess['auth_cookies'][:10])}")
-            print(f"  Cookies set: {len(sess.get('cookies_set', []))}, Cookies used: {len(sess.get('cookies_used', {}))}")
+            print(
+                f"  Cookies set: {len(sess.get('cookies_set', []))}, Cookies used: {len(sess.get('cookies_used', {}))}"
+            )
 
         # Endpoint sizes
         esz = report.get("endpoint_sizes", {})
@@ -1202,7 +1300,9 @@ def main():
             dist = esz.get("size_distribution", {})
             total_kb = esz.get("total_data_bytes", 0) / 1024
             print(f"\nEndpoint sizes: {total_kb:.1f} KB total")
-            print(f"  Distribution: {dist.get('large', 0)} large, {dist.get('medium', 0)} medium, {dist.get('small', 0)} small, {dist.get('zero', 0)} zero")
+            print(
+                f"  Distribution: {dist.get('large', 0)} large, {dist.get('medium', 0)} medium, {dist.get('small', 0)} small, {dist.get('zero', 0)} zero"
+            )
             if esz.get("largest_response", {}).get("size", 0) > 0:
                 lr = esz["largest_response"]
                 print(f"  Largest: {lr['url'][:60]} ({lr['size']} bytes)")

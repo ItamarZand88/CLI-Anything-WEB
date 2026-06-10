@@ -2,10 +2,12 @@
 name: output-ux-reviewer
 version: 0.1.0
 description: >
-  Review a cli-web-* CLI from the end-user perspective.
-  Checks --help completeness, REPL help sync, JSON output quality,
-  protocol leak detection, and entry point correctness.
-  Returns scored findings. Use during Phase 4 standards review.
+  Review a cli-web-* CLI from the end-user perspective by RUNNING it.
+  Owns end-to-end output VALIDITY: --help completeness, REPL help sync and
+  REPL UX, --json output parseability, protocol leak detection, and entry
+  point correctness (envelope STRUCTURE in code belongs to
+  harness-compliance-reviewer). Returns scored findings. Use during Phase 4
+  standards review.
 tools: [Read, Grep, Glob, Bash]
 ---
 
@@ -27,7 +29,20 @@ Mark skipped checks as N/A, not as findings.
 
 ## Scope Boundary
 
-You own: user-facing behavior ONLY.
+You own: user-facing behavior ONLY — verified by RUNNING the CLI and
+inspecting actual output (you are the only reviewer with Bash).
+
+**JSON envelope division of labor (explicit):**
+- **You own end-to-end output VALIDITY**: run commands with `--json` and
+  verify the output parses as JSON, has no protocol leaks (`wrb.fr`,
+  `af.httprm`, empty `[]`, nulls where data belongs — CONVENTIONS.md
+  §Protocol-Leak Smoke Check), errors come back as JSON not stderr text,
+  and REPL UX works (help, exit, banner).
+- **harness-compliance-reviewer owns the envelope STRUCTURE check**: how
+  the code defines `to_dict()`/`json_success()`/`handle_errors()`. Do NOT
+  re-report structural code defects — if live output is wrong, report the
+  observed output; the structural root cause is its territory.
+
 Do NOT report API coverage issues (that's traffic-fidelity-reviewer).
 Do NOT report code quality issues (that's harness-compliance-reviewer).
 

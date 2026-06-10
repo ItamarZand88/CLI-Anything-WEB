@@ -1,6 +1,6 @@
 """Response models for cli-web-gai."""
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass

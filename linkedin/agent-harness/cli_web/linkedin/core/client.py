@@ -1,4 +1,5 @@
 """HTTP client for cli-web-linkedin (curl_cffi for anti-bot bypass)."""
+
 from __future__ import annotations
 
 import json
@@ -11,10 +12,9 @@ from curl_cffi import requests as curl_requests
 
 from .auth import load_auth, refresh_auth
 from .exceptions import (
-    LinkedinError,
     AuthError,
+    LinkedinError,
     NetworkError,
-    RateLimitError,
     raise_for_status,
 )
 
@@ -38,14 +38,16 @@ def _build_li_track() -> str:
         tz_offset = -time.timezone // 60  # minutes, sign matches JS convention
     except Exception:
         tz_offset = 0
-    return json.dumps({
-        "clientVersion": "1.13.0",
-        "mpVersion": "1.13.0",
-        "osName": "web",
-        "timezoneOffset": tz_offset,
-        "deviceFormFactor": "DESKTOP",
-        "mpName": "voyager-web",
-    })
+    return json.dumps(
+        {
+            "clientVersion": "1.13.0",
+            "mpVersion": "1.13.0",
+            "osName": "web",
+            "timezoneOffset": tz_offset,
+            "deviceFormFactor": "DESKTOP",
+            "mpName": "voyager-web",
+        }
+    )
 
 
 def _extract_csrf(cookies: dict) -> str:
@@ -141,7 +143,7 @@ class LinkedinClient:
         try:
             resp = self._session.request(method, url, **kwargs)
         except Exception as exc:
-            raise NetworkError(f"Connection failed: {exc}")
+            raise NetworkError(f"Connection failed: {exc}") from exc
 
         # Rate limit — honour Retry-After and retry once
         if resp.status_code == 429 and _attempt < 1:
@@ -183,8 +185,7 @@ class LinkedinClient:
         now = time.time()
         if now - self._last_refresh < self._REFRESH_COOLDOWN:
             raise AuthError(
-                "Session expired (refresh on cooldown). "
-                "Run: cli-web-linkedin auth login",
+                "Session expired (refresh on cooldown). Run: cli-web-linkedin auth login",
                 recoverable=False,
             )
         self._last_refresh = now
@@ -195,8 +196,7 @@ class LinkedinClient:
             self._session.headers["csrf-token"] = csrf
         else:
             raise AuthError(
-                "Session expired and auto-refresh failed. "
-                "Run: cli-web-linkedin auth login",
+                "Session expired and auto-refresh failed. Run: cli-web-linkedin auth login",
                 recoverable=False,
             )
 
@@ -216,14 +216,10 @@ class LinkedinClient:
             Parsed JSON response body.
         """
         # Build URL manually — LinkedIn rejects URL-encoded parentheses in variables
-        url = (
-            f"{GRAPHQL_URL}"
-            f"?includeWebMetadata=true"
-            f"&variables={variables_str}"
-            f"&queryId={query_id}"
-        )
+        url = f"{GRAPHQL_URL}?includeWebMetadata=true&variables={variables_str}&queryId={query_id}"
         resp = self._request(
-            "GET", url,
+            "GET",
+            url,
             headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
         data = resp.json()
@@ -244,7 +240,9 @@ class LinkedinClient:
         """
         url = f"{VOYAGER_API}/{path.lstrip('/')}"
         resp = self._request(
-            "GET", url, params=params,
+            "GET",
+            url,
+            params=params,
             headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
         return resp.json()
@@ -311,13 +309,12 @@ class LinkedinClient:
         """
         encoded = quote(username, safe="")
         return self._rest_get(
-            f"identity/dash/profiles",
+            "identity/dash/profiles",
             params={
                 "q": "memberIdentity",
                 "memberIdentity": encoded,
                 "decorationId": (
-                    "com.linkedin.voyager.dash.deco.identity.profile."
-                    "FullProfileWithEntities-93"
+                    "com.linkedin.voyager.dash.deco.identity.profile.FullProfileWithEntities-93"
                 ),
             },
         )
@@ -338,7 +335,8 @@ class LinkedinClient:
             f"&start={start}"
         )
         resp = self._request(
-            "GET", url,
+            "GET",
+            url,
             headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
         return resp.json()
@@ -394,7 +392,8 @@ class LinkedinClient:
         encoded_urn = quote(f"urn:li:fsd_jobPosting:{job_id}", safe="")
         url = f"{VOYAGER_API}/voyagerJobsDashJobPostings/{encoded_urn}"
         resp = self._request(
-            "GET", url,
+            "GET",
+            url,
             headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
         return resp.json()
@@ -418,8 +417,12 @@ class LinkedinClient:
         """
         reaction_type = reaction_type.upper()
         valid_types = {
-            "LIKE", "PRAISE", "EMPATHY", "INTEREST",
-            "APPRECIATION", "ENTERTAINMENT",
+            "LIKE",
+            "PRAISE",
+            "EMPATHY",
+            "INTEREST",
+            "APPRECIATION",
+            "ENTERTAINMENT",
         }
         if reaction_type not in valid_types:
             raise LinkedinError(
@@ -493,8 +496,7 @@ class LinkedinClient:
         }
         encoded = quote(comment_urn, safe="")
         url = f"{VOYAGER_API}/feed/dash/comments/{encoded}"
-        resp = self._request("PUT", url, json=payload,
-                             headers={"Content-Type": "application/json"})
+        resp = self._request("PUT", url, json=payload, headers={"Content-Type": "application/json"})
         try:
             return resp.json()
         except Exception:
@@ -548,7 +550,8 @@ class LinkedinClient:
             f"&q=filterVanityName"
         )
         resp = self._request(
-            "GET", url,
+            "GET",
+            url,
             headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
         return resp.json()
@@ -566,7 +569,8 @@ class LinkedinClient:
             f"&q=search&sortType=RECENTLY_ADDED"
         )
         resp = self._request(
-            "GET", url,
+            "GET",
+            url,
             headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
         return resp.json()
@@ -600,7 +604,8 @@ class LinkedinClient:
         encoded = quote(invitation_urn, safe="")
         url = f"{VOYAGER_API}/relationships/invitations/{encoded}?action=accept"
         resp = self._request(
-            "POST", url,
+            "POST",
+            url,
             headers={"Content-Type": "application/json"},
         )
         try:
@@ -613,7 +618,8 @@ class LinkedinClient:
         encoded = quote(invitation_urn, safe="")
         url = f"{VOYAGER_API}/relationships/invitations/{encoded}?action=decline"
         resp = self._request(
-            "POST", url,
+            "POST",
+            url,
             headers={"Content-Type": "application/json"},
         )
         try:
@@ -645,7 +651,8 @@ class LinkedinClient:
             f"&variables={encoded_vars}"
         )
         resp = self._request(
-            "GET", url,
+            "GET",
+            url,
             headers={"Accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
         return resp.json()
@@ -721,7 +728,7 @@ class LinkedinClient:
         """Unfollow a company."""
         encoded = quote(company_urn, safe="")
         url = f"{VOYAGER_API}/feed/follows/{encoded}"
-        resp = self._request("DELETE", url)
+        self._request("DELETE", url)
         return {}
 
     # ------------------------------------------------------------------

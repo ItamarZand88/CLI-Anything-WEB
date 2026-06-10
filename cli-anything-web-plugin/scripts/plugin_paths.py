@@ -10,6 +10,7 @@ Usage:
 
     tpl = get_templates_dir() / "exceptions.py.tpl"
 """
+
 from __future__ import annotations
 
 from pathlib import Path

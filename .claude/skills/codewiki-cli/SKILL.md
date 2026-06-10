@@ -1,84 +1,49 @@
 ---
 name: codewiki-cli
-description: Use cli-web-codewiki to browse Google Code Wiki — AI-generated documentation for open source repos, search for repositories, explore wiki sections and content, and ask Gemini questions about codebases. Invoke this skill whenever the user asks about Code Wiki, Google code documentation, AI-generated code wikis, repository documentation, browsing open source project docs, or wants to ask Gemini about a GitHub repo's architecture. Always prefer cli-web-codewiki over manually fetching the website.
+description: Browses Google Code Wiki (codewiki.google) via cli-web-codewiki — AI-generated documentation for open source repos. Search repositories, read wiki sections, download full wikis as markdown, and ask Gemini questions about a codebase. Use when the user asks about Code Wiki, AI-generated repo documentation, or wants to ask Gemini about a GitHub repo's architecture. Prefer cli-web-codewiki over fetching the website. No auth required.
 ---
 
 # cli-web-codewiki
 
-CLI for [Google Code Wiki](https://codewiki.google/) — AI-generated documentation for open source repositories powered by Gemini.
-
-## Quick Start
-
-```bash
-# Search for repositories
-cli-web-codewiki repos search "react" --json
-
-# Get wiki table of contents for a repo
-cli-web-codewiki wiki sections excalidraw/excalidraw --json
-
-# Ask Gemini about a repo
-cli-web-codewiki chat ask "How does the rendering engine work?" --repo excalidraw/excalidraw --json
-```
+Google Code Wiki on the command line: repo search, wiki reading, Gemini Q&A about codebases. Repos are referenced by slug `org/name` (e.g. `facebook/react`).
+Install: `pip install -e codewiki/agent-harness`
 
 ## Commands
 
-### repos — Browse repositories
+- `repos featured` — featured repositories on the homepage
+- `repos search QUERY` — search repositories. Options: `--limit N` (default 25), `--offset N`
+- `wiki sections ORG/REPO` — table of contents (section titles + descriptions)
+- `wiki section ORG/REPO TITLE` — one section by title (case-insensitive partial match)
+- `wiki get ORG/REPO` — full wiki content, all sections
+- `wiki download ORG/REPO` — save the full wiki as markdown files. Options: `-o/--output DIR` (default `<org>-<repo>-wiki/`)
+- `chat ask QUESTION --repo ORG/REPO` — ask Gemini about the repo's codebase
+
+## Examples
 
 ```bash
-# List featured repositories on the Code Wiki homepage
-cli-web-codewiki repos featured [--json]
+# Find a repo, then list its wiki sections
+cli-web-codewiki repos search "react" --json
+cli-web-codewiki wiki sections excalidraw/excalidraw --json
 
-# Search for repositories by name
-cli-web-codewiki repos search <QUERY> [--limit N] [--offset N] [--json]
+# Read just the overview section
+cli-web-codewiki wiki section facebook/react "Overview" --json
+
+# Ask Gemini about architecture (takes ~5-7s)
+cli-web-codewiki chat ask "How does the rendering engine work?" --repo excalidraw/excalidraw --json
+
+# Save a repo's whole wiki locally for offline reading
+cli-web-codewiki wiki download kubernetes/kubernetes -o k8s-wiki/
 ```
 
-**Output fields (--json):** `slug`, `github_url`, `description`, `avatar_url`, `stars`, `updated_at`
+## JSON output
 
-### wiki — Read wiki pages
+Add `--json` for structured output: `{"success": true, "data": ...}` on success, `{"error": true, "code": "...", "message": "..."}` on failure. `repos search` data: `[{slug, github_url, description, avatar_url, stars, updated_at}]`. `wiki get` data: `{repo, sections: [{title, level, description, content, code_refs}], section_count}`. `chat ask` data: `{answer, repo}` where `answer` is markdown with links to source code.
 
-```bash
-# Get full wiki content (all sections) for a repository
-cli-web-codewiki wiki get <ORG/REPO> [--json]
+## Utilities
 
-# List wiki sections (table of contents)
-cli-web-codewiki wiki sections <ORG/REPO> [--json]
+`cli-web-codewiki doctor [--json]` diagnoses local setup. `cli-web-codewiki mcp-serve` exposes the commands as MCP tools over stdio.
 
-# Get a specific section by title (case-insensitive partial match)
-cli-web-codewiki wiki section <ORG/REPO> <TITLE> [--json]
-```
+## Agent tips
 
-**Output fields (--json):**
-- `wiki get`: `repo` (slug, commit_hash), `sections` (title, level, description, content, code_refs), `section_count`
-- `wiki sections`: array of `{title, level, description, code_refs, content}`
-- `wiki section`: single section object
-
-### chat — Ask Gemini
-
-```bash
-# Ask Gemini a question about a repository's codebase
-cli-web-codewiki chat ask <QUESTION> --repo <ORG/REPO> [--json]
-```
-
-**Output fields (--json):** `answer` (markdown text with links to code), `repo`
-
-## Agent Patterns
-
-```bash
-# Find repos related to a topic and get their wiki
-cli-web-codewiki repos search "machine learning" --json | jq '.data[0].slug' -r | xargs -I{} cli-web-codewiki wiki sections {} --json
-
-# Get the overview section of a repo
-cli-web-codewiki wiki section facebook/react "Overview" --json | jq '.content'
-
-# Ask about architecture then get the relevant section
-cli-web-codewiki chat ask "What are the main components?" --repo kubernetes/kubernetes --json
-```
-
-## Notes
-
-- **No authentication required** — Code Wiki is fully public
-- **Protocol**: Google batchexecute RPC (BoqAngularSdlcAgentsUi service)
-- **Chat latency**: Gemini responses take ~5-7 seconds
-- Wiki content is Markdown with links to GitHub source code
-- Section titles support case-insensitive partial matching
-- Repos are referenced by slug format: `org/name` (e.g., `facebook/react`)
+- Prefer `wiki sections` + `wiki section` over `wiki get` — full wikis can be very large.
+- Wiki content is markdown with GitHub source links, useful to quote directly.

@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
-
 from cli_web.gh_trending.core.client import GitHubClient
 from cli_web.gh_trending.core.exceptions import (
     AppError,
@@ -17,7 +16,6 @@ from cli_web.gh_trending.core.exceptions import (
     ServerError,
 )
 from cli_web.gh_trending.core.models import _parse_int
-
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -92,6 +90,7 @@ EMPTY_HTML = """
 
 # ─── _parse_int tests ─────────────────────────────────────────────────────────
 
+
 class TestParseInt:
     def test_comma_separated(self):
         assert _parse_int("4,859") == 4859
@@ -110,6 +109,7 @@ class TestParseInt:
 
 
 # ─── HTML parser tests ────────────────────────────────────────────────────────
+
 
 class TestParseReposHTML:
     def test_parses_repo_fields(self):
@@ -159,6 +159,7 @@ class TestParseDevelopersHTML:
 
 # ─── HTTP client error handling tests ────────────────────────────────────────
 
+
 class TestClientHTTPErrors:
     def _mock_response(self, status_code: int, headers: dict | None = None, text: str = ""):
         resp = MagicMock()
@@ -171,9 +172,7 @@ class TestClientHTTPErrors:
         with patch("httpx.Client") as mock_client_cls:
             mock_client = MagicMock()
             mock_client_cls.return_value.__enter__.return_value = mock_client
-            mock_client.get.return_value = self._mock_response(
-                429, headers={"retry-after": "30"}
-            )
+            mock_client.get.return_value = self._mock_response(429, headers={"retry-after": "30"})
             client = GitHubClient()
             with pytest.raises(RateLimitError) as exc_info:
                 client._get("https://github.com/trending")
@@ -209,6 +208,7 @@ class TestClientHTTPErrors:
 
 # ─── Exception serialization tests ───────────────────────────────────────────
 
+
 class TestExceptionsToDicts:
     def test_app_error_to_dict(self):
         exc = AppError("something broke", "TEST_ERROR")
@@ -239,5 +239,3 @@ class TestExceptionsToDicts:
         exc = ParseError("bad html")
         d = exc.to_dict()
         assert d["code"] == "PARSE_ERROR"
-
-

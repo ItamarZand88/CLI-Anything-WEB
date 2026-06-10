@@ -28,6 +28,7 @@ _skin = ReplSkin("chatgpt", version="0.1.0")
 
 
 @click.group(invoke_without_command=True)
+@click.version_option("0.1.0", prog_name="cli-web-chatgpt")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
 def cli(ctx, json_mode: bool) -> None:
@@ -115,6 +116,16 @@ def _run_repl(ctx) -> None:
 
 def main():
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.chatgpt import __version__ as _pkg_version  # noqa: E402
+from cli_web.chatgpt.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.chatgpt.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="chatgpt", version=_pkg_version)
+register_doctor_command(cli, app_name="chatgpt", pkg="chatgpt")
 
 
 if __name__ == "__main__":

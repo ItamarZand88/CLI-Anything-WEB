@@ -56,7 +56,9 @@ def new(limit, after, use_json):
 
 
 @feed.command("top")
-@click.option("--time", "time_filter", type=click.Choice(TIME_CHOICES), default="day", help="Time period.")
+@click.option(
+    "--time", "time_filter", type=click.Choice(TIME_CHOICES), default="day", help="Time period."
+)
 @click.option("--limit", type=int, default=25, help="Number of posts (max 100).")
 @click.option("--after", default=None, help="Pagination cursor.")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")

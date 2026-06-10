@@ -20,9 +20,15 @@ def photos():
 
 @photos.command("search")
 @click.argument("query")
-@click.option("--orientation", type=click.Choice(["landscape", "portrait", "squarish"]), help="Filter by orientation.")
+@click.option(
+    "--orientation",
+    type=click.Choice(["landscape", "portrait", "squarish"]),
+    help="Filter by orientation.",
+)
 @click.option("--color", help="Filter by color (e.g., red, blue, green, black_and_white).")
-@click.option("--order-by", type=click.Choice(["relevant", "latest"]), default="relevant", help="Sort order.")
+@click.option(
+    "--order-by", type=click.Choice(["relevant", "latest"]), default="relevant", help="Sort order."
+)
 @click.option("--page", type=int, default=1, help="Page number.")
 @click.option("--per-page", type=int, default=20, help="Results per page (max 30).")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
@@ -31,12 +37,22 @@ def search(query, orientation, color, order_by, page, per_page, use_json):
     with handle_errors(json_mode=use_json):
         client = UnsplashClient()
         data = client.search_photos(
-            query, page=page, per_page=per_page,
-            orientation=orientation, color=color, order_by=order_by,
+            query,
+            page=page,
+            per_page=per_page,
+            orientation=orientation,
+            color=color,
+            order_by=order_by,
         )
         results = [format_photo_summary(p) for p in data.get("results", [])]
         if use_json:
-            print_json({"total": data.get("total", 0), "total_pages": data.get("total_pages", 0), "results": results})
+            print_json(
+                {
+                    "total": data.get("total", 0),
+                    "total_pages": data.get("total_pages", 0),
+                    "results": results,
+                }
+            )
         else:
             click.echo(f"Found {data.get('total', 0):,} photos for '{query}' (page {page})")
             photo_table(results, title=f"Search: {query}")
@@ -59,7 +75,11 @@ def get(photo_id, use_json):
 
 @photos.command("random")
 @click.option("--query", help="Filter random photos by keyword.")
-@click.option("--orientation", type=click.Choice(["landscape", "portrait", "squarish"]), help="Filter by orientation.")
+@click.option(
+    "--orientation",
+    type=click.Choice(["landscape", "portrait", "squarish"]),
+    help="Filter by orientation.",
+)
 @click.option("--count", type=int, default=1, help="Number of random photos (max 30).")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
 def random(query, orientation, count, use_json):
@@ -76,8 +96,15 @@ def random(query, orientation, count, use_json):
 
 @photos.command("download")
 @click.argument("photo_id")
-@click.option("--size", type=click.Choice(["raw", "full", "regular", "small", "thumb"]), default="full", help="Image size.")
-@click.option("--output", "-o", type=click.Path(), help="Output file path. Defaults to <photo_id>_<size>.jpg.")
+@click.option(
+    "--size",
+    type=click.Choice(["raw", "full", "regular", "small", "thumb"]),
+    default="full",
+    help="Image size.",
+)
+@click.option(
+    "--output", "-o", type=click.Path(), help="Output file path. Defaults to <photo_id>_<size>.jpg."
+)
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
 def download(photo_id, size, output, use_json):
     """Download a photo by ID."""
@@ -100,16 +127,20 @@ def download(photo_id, size, output, use_json):
 
         file_size = out_path.stat().st_size
         if use_json:
-            print_json({
-                "photo_id": photo.get("id"),
-                "size": size,
-                "file": str(out_path),
-                "bytes": file_size,
-                "description": photo.get("alt_description") or photo.get("description") or "",
-            })
+            print_json(
+                {
+                    "photo_id": photo.get("id"),
+                    "size": size,
+                    "file": str(out_path),
+                    "bytes": file_size,
+                    "description": photo.get("alt_description") or photo.get("description") or "",
+                }
+            )
         else:
             click.echo(f"  Downloaded: {out_path} ({file_size:,} bytes)")
-            click.echo(f"  Photo: {photo.get('alt_description') or photo.get('description') or photo_id}")
+            click.echo(
+                f"  Photo: {photo.get('alt_description') or photo.get('description') or photo_id}"
+            )
 
 
 @photos.command("stats")

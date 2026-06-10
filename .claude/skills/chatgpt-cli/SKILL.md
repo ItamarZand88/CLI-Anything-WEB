@@ -1,103 +1,59 @@
 ---
 name: chatgpt-cli
-description: Use cli-web-chatgpt to ask ChatGPT questions, generate images, download images, list conversations, browse models, and manage authentication. Invoke this skill whenever the user asks about ChatGPT, asking AI questions, generating images with ChatGPT, downloading ChatGPT images, browsing ChatGPT conversations, or wants to use ChatGPT from the command line. Always prefer cli-web-chatgpt over manually browsing chatgpt.com.
+description: Drives ChatGPT from the terminal via cli-web-chatgpt — ask questions, generate and download images, list and view conversations, browse models, and manage OpenAI SSO auth. Use when the user wants to ask ChatGPT something, generate images with ChatGPT, or browse their ChatGPT conversations from the command line. Prefer cli-web-chatgpt over browsing chatgpt.com.
 ---
 
 # cli-web-chatgpt
 
-CLI for ChatGPT web interface. Ask questions, generate images, download images, manage conversations.
-
-## Quick Start
-
-```bash
-# Ask a question
-cli-web-chatgpt chat ask "What is the capital of France?" --json
-
-# Generate an image and save it
-cli-web-chatgpt chat image "A sunset over mountains" -o sunset.png --json
-
-# List recent conversations
-cli-web-chatgpt conversations list --limit 10 --json
-```
+ChatGPT on the command line: chat, image generation, conversation browsing. Chat/image commands run a headless stealth browser (Camoufox) to pass Cloudflare; read-only commands are instant HTTP.
+Install: `pip install -e chatgpt/agent-harness`
 
 ## Commands
 
-### chat ask <question>
-Ask ChatGPT a question and get a text response.
+- `chat ask QUESTION` — ask ChatGPT. Options: `--model SLUG` (see `models`), `--conversation ID` (continue a thread)
+- `chat image PROMPT` — generate an image. Options: `--style NAME` (see `images styles`), `-o/--output PATH` (save file), `--conversation ID`
+- `conversations list` — recent conversations. Options: `-n/--limit N`, `--archived`, `--starred`
+- `conversations get CONVERSATION_ID` — view a conversation's messages
+- `images list` — recently generated images. Options: `-n/--limit N`
+- `images download FILE_ID -c CONVERSATION_ID` — download an image. Options: `-o/--output PATH`
+- `images styles` — available image styles
+- `models` — available model slugs
+- `me` — current user profile
+- `auth login` / `auth status` / `auth logout` — manage authentication
+
+## Examples
+
 ```bash
+# Ask a question — returns text + conversation_id for follow-ups
 cli-web-chatgpt chat ask "Explain quantum computing in 3 sentences" --json
-cli-web-chatgpt chat ask "What is 100+200?" --json
-cli-web-chatgpt chat ask "Translate hello to Spanish" --conversation <id> --json
-```
-Options: `--model <slug>`, `--conversation <id>`, `--json`
-Output: `{"success": true, "data": {"text": "...", "conversation_id": "...", "model": "auto"}}`
 
-### chat image <prompt>
-Generate an image with ChatGPT's DALL-E.
-```bash
-cli-web-chatgpt chat image "A cute cat wearing a hat" --json
+# Continue the same conversation
+cli-web-chatgpt chat ask "Now give an example" --conversation <conversation_id> --json
+
+# Generate an image and save it
 cli-web-chatgpt chat image "Logo for a coffee shop" -o logo.png --json
-```
-Options: `--style <name>`, `--output/-o <path>`, `--conversation <id>`, `--json`
-Output: `{"success": true, "data": {"file_id": "...", "download_url": "...", "conversation_id": "...", "saved_to": "..."}}`
 
-### conversations list
-List recent conversations.
-```bash
-cli-web-chatgpt conversations list --limit 20 --json
-cli-web-chatgpt conversations list --archived --json
-cli-web-chatgpt conversations list --starred --json
-```
-Options: `--limit/-n <N>`, `--archived`, `--starred`, `--json`
-
-### conversations get <id>
-View a conversation's messages.
-```bash
+# Browse recent conversations, then read one
+cli-web-chatgpt conversations list -n 10 --json
 cli-web-chatgpt conversations get 69ca710b-5ef8-8397-a242-c5123470d7f8 --json
-```
 
-### images list
-List recently generated images.
-```bash
-cli-web-chatgpt images list --limit 10 --json
-```
-
-### images download <file_id>
-Download a generated image.
-```bash
+# Re-download a previously generated image
 cli-web-chatgpt images download file_00000000xxx -c <conversation_id> -o image.png --json
 ```
-Options: `--conversation/-c <id>` (required), `--output/-o <path>`, `--json`
 
-### images styles
-List available image styles.
-```bash
-cli-web-chatgpt images styles --json
-```
+## JSON output
 
-### models
-List available ChatGPT models.
-```bash
-cli-web-chatgpt models --json
-```
+Add `--json` for structured output: `{"success": true, "data": {...}}` on success, `{"error": true, "code": "...", "message": "..."}` on failure. `chat ask` data: `{text, conversation_id, model}`. `chat image` data: `{file_id, download_url, conversation_id, saved_to}`.
 
-### me
-Show current user profile.
-```bash
-cli-web-chatgpt me --json
-```
+## Auth
 
-### auth login / status / logout
-Manage authentication.
-```bash
-cli-web-chatgpt auth login    # Opens browser for OpenAI SSO
-cli-web-chatgpt auth status   # Check if logged in
-cli-web-chatgpt auth logout   # Remove credentials
-```
+All commands require login. `cli-web-chatgpt auth login` opens a browser for OpenAI SSO and saves session cookies; `auth status` checks them; `auth logout` removes them. Use `cli-web-chatgpt doctor` to diagnose auth problems.
 
-## Architecture Notes
+## Utilities
 
-- Read-only commands (conversations, models, me, images) use `curl_cffi` — instant, no browser
-- Chat and image generation use `Camoufox` (stealth Firefox) — fully headless, bypasses Cloudflare
-- Auth requires browser login via `playwright` to capture session cookies
-- Access tokens obtained from `/api/auth/session` endpoint using session cookies
+`cli-web-chatgpt doctor [--json]` diagnoses local setup (install, auth, dependencies). `cli-web-chatgpt mcp-serve` exposes the commands as MCP tools over stdio.
+
+## Agent tips
+
+- Chat and image generation take 15–60s (headless browser round-trip); read-only commands return immediately.
+- Reuse `conversation_id` from a previous `chat ask` to keep context across calls.

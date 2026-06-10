@@ -36,13 +36,13 @@ CHECKPOINT_FILE = ".capture-state.json"
 
 # Ordered capture steps — each step implies all previous are complete
 STEPS = [
-    "setup",           # Browser opened, session started
-    "assessment",      # Site fingerprint complete (framework, protection, iframes, auth)
-    "post-auth",       # User logged in, auth state saved (skipped if no-auth)
-    "tracing",         # Trace started, exploration in progress
-    "full-capture",    # Trace stopped, all exploration done
-    "parsed",          # parse-trace.py ran, raw-traffic.json produced
-    "complete",        # Phase 1 done, ready for Phase 2
+    "setup",  # Browser opened, session started
+    "assessment",  # Site fingerprint complete (framework, protection, iframes, auth)
+    "post-auth",  # User logged in, auth state saved (skipped if no-auth)
+    "tracing",  # Trace started, exploration in progress
+    "full-capture",  # Trace stopped, all exploration done
+    "parsed",  # parse-trace.py ran, raw-traffic.json produced
+    "complete",  # Phase 1 done, ready for Phase 2
 ]
 
 
@@ -120,7 +120,7 @@ def cmd_restore(args: argparse.Namespace) -> None:
         "step": step,
         "step_index": step_index,
         "total_steps": len(STEPS),
-        "completed_steps": STEPS[:step_index + 1] if step_index >= 0 else [],
+        "completed_steps": STEPS[: step_index + 1] if step_index >= 0 else [],
         "next_step": STEPS[step_index + 1] if step_index < len(STEPS) - 1 else "done",
         "session_name": state.get("session_name"),
         "url": state.get("url"),

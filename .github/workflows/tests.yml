@@ -13,48 +13,85 @@ on:
         required: false
 
 jobs:
-  test:
+  lint:
+    name: lint & registry
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        cli:
-          - { name: futbin,      dir: futbin/agent-harness,      pkg: futbin }
-          - { name: notebooklm,  dir: notebooklm/agent-harness,  pkg: notebooklm }
-          - { name: gh-trending,  dir: gh-trending/agent-harness, pkg: gh_trending }
-          - { name: producthunt, dir: producthunt/agent-harness, pkg: producthunt }
-          - { name: unsplash,    dir: unsplash/agent-harness,    pkg: unsplash }
-          - { name: booking,     dir: booking/agent-harness,     pkg: booking }
-          - { name: stitch,      dir: stitch/agent-harness,      pkg: stitch }
-          - { name: pexels,      dir: pexels/agent-harness,      pkg: pexels }
-          - { name: reddit,      dir: reddit/agent-harness,      pkg: reddit }
-          - { name: gai,         dir: gai/agent-harness,         pkg: gai }
-          - { name: youtube,     dir: youtube/agent-harness,     pkg: youtube }
-          - { name: hackernews,  dir: hackernews/agent-harness,  pkg: hackernews }
-          - { name: codewiki,    dir: codewiki/agent-harness,    pkg: codewiki }
-          - { name: chatgpt,    dir: chatgpt/agent-harness,    pkg: chatgpt }
-          - { name: airbnb,       dir: airbnb/agent-harness,       pkg: airbnb }
-          - { name: amazon,       dir: amazon/agent-harness,       pkg: amazon }
-          - { name: tripadvisor,    dir: tripadvisor/agent-harness,    pkg: tripadvisor }
-          - { name: linkedin,       dir: linkedin/agent-harness,       pkg: linkedin }
-          - { name: capitoltrades,  dir: capitoltrades/agent-harness,  pkg: capitoltrades }
-
-    name: ${{ matrix.cli.name }}
-
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.ref }}
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff==0.15.8
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check .
+      - name: Validate registry.json against fleet
+        run: python devkit/cli_web_devkit/registry_check.py
+      - name: README fleet sections freshness
+        run: PYTHONPATH=devkit python -m cli_web_devkit docs --check
 
+  plugin:
+    name: plugin & devkit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test tooling
+        # jinja2: required by scaffold-cli.py (template engine) — the golden
+        # tests scaffold every profile combination. click: required by the
+        # cli-web-core mcp_server/doctor test suites.
+        run: pip install pytest pytest-cov mypy jinja2 click
+      - name: Plugin script, devkit & core tests (with coverage)
+        run: |
+          python -m pytest cli-anything-web-plugin/scripts/tests devkit/tests \
+            cli-web-core/tests --cov --cov-report=term-missing
+      - name: Mypy (devkit & core packages)
+        run: mypy
+
+  matrix:
+    name: build test matrix
+    runs-on: ubuntu-latest
+    outputs:
+      clis: ${{ steps.set.outputs.clis }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate matrix from registry.json
+        id: set
+        run: |
+          echo "clis=$(PYTHONPATH=devkit python -m cli_web_devkit matrix)" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: ${{ matrix.cli.name }} (py${{ matrix.python }})
+    needs: matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+        cli: ${{ fromJSON(needs.matrix.outputs.clis) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
       - name: Install CLI package
         run: pip install -e ${{ matrix.cli.dir }}
-
       - name: Install test dependencies
         run: pip install pytest
-
       - name: Run unit tests
         run: python -m pytest ${{ matrix.cli.dir }}/cli_web/${{ matrix.cli.pkg }}/tests/test_core.py -v

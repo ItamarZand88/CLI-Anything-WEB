@@ -1,22 +1,29 @@
 """HTTP client for NotebookLM batchexecute API."""
+
 import json
 import urllib.parse
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
 from .auth import fetch_tokens, fetch_user_info, load_cookies
 from .exceptions import (
-    AuthError, NetworkError, RateLimitError, ServerError, NotFoundError, RPCError,
+    NetworkError,
     NotebookLMError,
+    NotFoundError,
+    RateLimitError,
+    ServerError,
 )
 from .models import (
-    Notebook, Source, User, Artifact,
-    parse_notebook, parse_source, parse_user,
+    Artifact,
+    Notebook,
+    Source,
+    User,
+    parse_notebook,
+    parse_source,
 )
-from .rpc import encode_request, build_url, decode_response
-from .rpc.decoder import strip_prefix, parse_chunks
-from .rpc.types import RPCMethod, ArtifactType, BATCHEXECUTE_URL
+from .rpc import build_url, decode_response, encode_request
+from .rpc.types import ArtifactType, RPCMethod
 from .session import get_session
 
 BASE_URL = "https://notebooklm.google.com"
@@ -34,11 +41,17 @@ class NotebookLMClient:
     """
 
     def __init__(self):
-        self._cookies: Optional[dict] = None
-        self._csrf: Optional[str] = None
-        self._session_id: Optional[str] = None
-        self._build_label: Optional[str] = None
+        self._cookies: dict | None = None
+        self._csrf: str | None = None
+        self._session_id: str | None = None
+        self._build_label: str | None = None
         self._session = get_session()
+
+    def __enter__(self) -> "NotebookLMClient":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass  # No persistent connection — httpx calls are scoped per request.
 
     def _ensure_auth(self):
         """Load cookies and fetch tokens if not already done."""
@@ -104,11 +117,11 @@ class NotebookLMClient:
                 timeout=30.0,
             )
         except httpx.ConnectError as e:
-            raise NetworkError(f"Connection failed: {e}")
+            raise NetworkError(f"Connection failed: {e}") from e
         except httpx.TimeoutException as e:
-            raise NetworkError(f"Request timed out: {e}")
+            raise NetworkError(f"Request timed out: {e}") from e
         except httpx.RequestError as e:
-            raise NetworkError(f"Network error: {e}")
+            raise NetworkError(f"Network error: {e}") from e
 
         if resp.status_code in (401, 403) and retry_on_auth:
             self._refresh_tokens()
@@ -125,7 +138,9 @@ class NotebookLMClient:
             )
 
         if resp.status_code >= 500:
-            raise ServerError(f"HTTP {resp.status_code}: {resp.text[:200]}", status_code=resp.status_code)
+            raise ServerError(
+                f"HTTP {resp.status_code}: {resp.text[:200]}", status_code=resp.status_code
+            )
 
         if resp.status_code >= 400:
             raise NotebookLMError(f"HTTP {resp.status_code}: {resp.text[:200]}")
@@ -328,13 +343,15 @@ class NotebookLMClient:
         body = "&".join(body_parts) + "&"
 
         req_id = self._session.next_req_id()
-        url_params = urllib.parse.urlencode({
-            "f.sid": self._session_id or "",
-            "bl": self._build_label or "",
-            "hl": "en",
-            "_reqid": str(req_id),
-            "rt": "c",
-        })
+        url_params = urllib.parse.urlencode(
+            {
+                "f.sid": self._session_id or "",
+                "bl": self._build_label or "",
+                "hl": "en",
+                "_reqid": str(req_id),
+                "rt": "c",
+            }
+        )
         url = f"{GRPC_BASE}/GenerateFreeFormStreamed?{url_params}"
 
         headers = {
@@ -354,11 +371,11 @@ class NotebookLMClient:
                 timeout=60.0,
             )
         except httpx.ConnectError as e:
-            raise NetworkError(f"Connection failed: {e}")
+            raise NetworkError(f"Connection failed: {e}") from e
         except httpx.TimeoutException as e:
-            raise NetworkError(f"Request timed out: {e}")
+            raise NetworkError(f"Request timed out: {e}") from e
         except httpx.RequestError as e:
-            raise NetworkError(f"Network error: {e}")
+            raise NetworkError(f"Network error: {e}") from e
 
         if resp.status_code in (401, 403):
             self._refresh_tokens()
@@ -368,7 +385,9 @@ class NotebookLMClient:
             raise RateLimitError("Rate limited — please wait and try again")
 
         if resp.status_code >= 500:
-            raise ServerError(f"HTTP {resp.status_code}: {resp.text[:200]}", status_code=resp.status_code)
+            raise ServerError(
+                f"HTTP {resp.status_code}: {resp.text[:200]}", status_code=resp.status_code
+            )
 
         if resp.status_code >= 400:
             raise NotebookLMError(f"HTTP {resp.status_code}: {resp.text[:200]}")
@@ -400,8 +419,14 @@ class NotebookLMClient:
         Mind maps use GENERATE_MIND_MAP (yyryJe). All others use CREATE_ARTIFACT (R7cb6c).
         """
         type_names = {
-            1: "audio", 2: "report", 3: "video", 4: "quiz",
-            5: "mindmap", 7: "infographic", 8: "slide_deck", 9: "data_table",
+            1: "audio",
+            2: "report",
+            3: "video",
+            4: "quiz",
+            5: "mindmap",
+            7: "infographic",
+            8: "slide_deck",
+            9: "data_table",
         }
         type_name = type_names.get(artifact_type, "unknown")
 
@@ -423,8 +448,12 @@ class NotebookLMClient:
         return _parse_generation_result(result, type_name)
 
     def _build_artifact_params(
-        self, notebook_id: str, artifact_type: int,
-        sids_triple: list, sids_double: list, report_format: str,
+        self,
+        notebook_id: str,
+        artifact_type: int,
+        sids_triple: list,
+        sids_double: list,
+        report_format: str,
     ) -> list:
         """Build the full params array for CREATE_ARTIFACT (R7cb6c).
 
@@ -433,68 +462,166 @@ class NotebookLMClient:
         """
         if artifact_type == ArtifactType.AUDIO:
             return [
-                [2], notebook_id,
-                [None, None, 1, sids_triple, None, None,
-                 [None, [None, None, None, sids_double, "en", None, None]]],
+                [2],
+                notebook_id,
+                [
+                    None,
+                    None,
+                    1,
+                    sids_triple,
+                    None,
+                    None,
+                    [None, [None, None, None, sids_double, "en", None, None]],
+                ],
             ]
 
         if artifact_type == ArtifactType.REPORT:
             report_configs = {
-                "briefing": ("Briefing Doc", "Key insights and important quotes",
+                "briefing": (
+                    "Briefing Doc",
+                    "Key insights and important quotes",
                     "Create a comprehensive briefing document that includes an "
                     "Executive Summary, detailed analysis of key themes, important "
-                    "quotes with context, and actionable insights."),
-                "study-guide": ("Study Guide", "Short-answer quiz, essay questions, glossary",
+                    "quotes with context, and actionable insights.",
+                ),
+                "study-guide": (
+                    "Study Guide",
+                    "Short-answer quiz, essay questions, glossary",
                     "Create a comprehensive study guide that includes key concepts, "
                     "short-answer practice questions, essay prompts for deeper "
-                    "exploration, and a glossary of important terms."),
-                "blog-post": ("Blog Post", "Insightful takeaways in readable article format",
+                    "exploration, and a glossary of important terms.",
+                ),
+                "blog-post": (
+                    "Blog Post",
+                    "Insightful takeaways in readable article format",
                     "Write an engaging blog post that presents the key insights "
-                    "in an accessible, reader-friendly format."),
+                    "in an accessible, reader-friendly format.",
+                ),
             }
             title, desc, prompt = report_configs.get(report_format, report_configs["briefing"])
             return [
-                [2], notebook_id,
-                [None, None, 2, sids_triple, None, None, None,
-                 [None, [title, desc, None, sids_double, "en", prompt, None, True]]],
+                [2],
+                notebook_id,
+                [
+                    None,
+                    None,
+                    2,
+                    sids_triple,
+                    None,
+                    None,
+                    None,
+                    [None, [title, desc, None, sids_double, "en", prompt, None, True]],
+                ],
             ]
 
         if artifact_type == ArtifactType.VIDEO:
             return [
-                [2], notebook_id,
-                [None, None, 3, sids_triple, None, None, None, None,
-                 [None, None, [sids_double, "en", None, None, None, None]]],
+                [2],
+                notebook_id,
+                [
+                    None,
+                    None,
+                    3,
+                    sids_triple,
+                    None,
+                    None,
+                    None,
+                    None,
+                    [None, None, [sids_double, "en", None, None, None, None]],
+                ],
             ]
 
         if artifact_type == ArtifactType.QUIZ:
             return [
-                [2], notebook_id,
-                [None, None, 4, sids_triple, None, None, None, None, None,
-                 [None, [2, None, None, None, None, None, None, [None, None]]]],
+                [2],
+                notebook_id,
+                [
+                    None,
+                    None,
+                    4,
+                    sids_triple,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    [None, [2, None, None, None, None, None, None, [None, None]]],
+                ],
             ]
 
         if artifact_type == ArtifactType.INFOGRAPHIC:
             return [
-                [2], notebook_id,
-                [None, None, 7, sids_triple, None, None, None, None, None,
-                 None, None, None, None, None,
-                 [[None, "en", None, None, None, None]]],
+                [2],
+                notebook_id,
+                [
+                    None,
+                    None,
+                    7,
+                    sids_triple,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    [[None, "en", None, None, None, None]],
+                ],
             ]
 
         if artifact_type == ArtifactType.SLIDE_DECK:
             return [
-                [2], notebook_id,
-                [None, None, 8, sids_triple, None, None, None, None, None,
-                 None, None, None, None, None, None, None,
-                 [[None, "en", None, None]]],
+                [2],
+                notebook_id,
+                [
+                    None,
+                    None,
+                    8,
+                    sids_triple,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    [[None, "en", None, None]],
+                ],
             ]
 
         if artifact_type == ArtifactType.DATA_TABLE:
             return [
-                [2], notebook_id,
-                [None, None, 9, sids_triple, None, None, None, None, None,
-                 None, None, None, None, None, None, None, None, None,
-                 [None, [None, "en"]]],
+                [2],
+                notebook_id,
+                [
+                    None,
+                    None,
+                    9,
+                    sids_triple,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    [None, [None, "en"]],
+                ],
             ]
 
         # Fallback for unknown types
@@ -508,7 +635,10 @@ class NotebookLMClient:
         """
         params = [
             source_ids_triple,
-            None, None, None, None,
+            None,
+            None,
+            None,
+            None,
             ["interactive_mindmap", [["[CONTEXT]", ""]], ""],
             None,
             [2, None, [1]],
@@ -538,8 +668,16 @@ class NotebookLMClient:
         artifacts_data = result[0] if isinstance(result[0], list) else result
         artifacts = []
         status_names = {1: "in_progress", 2: "pending", 3: "completed", 4: "failed"}
-        type_names = {1: "audio", 2: "report", 3: "video", 4: "quiz",
-                      5: "mindmap", 7: "infographic", 8: "slide_deck", 9: "data_table"}
+        type_names = {
+            1: "audio",
+            2: "report",
+            3: "video",
+            4: "quiz",
+            5: "mindmap",
+            7: "infographic",
+            8: "slide_deck",
+            9: "data_table",
+        }
         for art in artifacts_data:
             if not isinstance(art, list) or len(art) < 1:
                 continue
@@ -562,7 +700,8 @@ class NotebookLMClient:
         """Get raw artifact list data for download parsing."""
         params = [[2], notebook_id, 'NOT artifact.status = "ARTIFACT_STATUS_SUGGESTED"']
         result = self._call(
-            RPCMethod.LIST_ARTIFACTS, params,
+            RPCMethod.LIST_ARTIFACTS,
+            params,
             source_path=f"/notebook/{notebook_id}",
         )
         if result and isinstance(result, list) and len(result) > 0:
@@ -577,8 +716,8 @@ class NotebookLMClient:
 
         Returns the output path on success.
         """
-        from pathlib import Path
         import csv
+        from pathlib import Path
 
         raw = self._list_artifacts_raw(notebook_id)
         art = None
@@ -607,9 +746,18 @@ class NotebookLMClient:
 
         # Audio — URL at art[6][5][0][0]
         if art_type == 1:
-            url = art[6][5][0][0] if (len(art) > 6 and isinstance(art[6], list)
-                                      and len(art[6]) > 5 and isinstance(art[6][5], list)
-                                      and art[6][5] and isinstance(art[6][5][0], list)) else None
+            url = (
+                art[6][5][0][0]
+                if (
+                    len(art) > 6
+                    and isinstance(art[6], list)
+                    and len(art[6]) > 5
+                    and isinstance(art[6][5], list)
+                    and art[6][5]
+                    and isinstance(art[6][5][0], list)
+                )
+                else None
+            )
             if not url:
                 raise ServerError("Audio URL not found in artifact data")
             return self._download_url(url, out)
@@ -696,15 +844,20 @@ class NotebookLMClient:
             if html_content and isinstance(html_content, str):
                 # Extract JSON from data-app-data attribute
                 import re
+
                 m = re.search(r'data-app-data="([^"]*)"', html_content)
                 if m:
                     import html as html_mod
+
                     app_data = html_mod.unescape(m.group(1))
                     out.write_text(app_data, encoding="utf-8")
                 else:
                     out.write_text(html_content, encoding="utf-8")
             else:
-                out.write_text(json.dumps(result, indent=2, ensure_ascii=False) if result else "{}", encoding="utf-8")
+                out.write_text(
+                    json.dumps(result, indent=2, ensure_ascii=False) if result else "{}",
+                    encoding="utf-8",
+                )
             return str(out)
 
         raise ServerError(f"Download not supported for artifact type {art_type}")
@@ -716,6 +869,7 @@ class NotebookLMClient:
         proper domain info — the flat dict approach doesn't work for cross-domain.
         """
         from .auth import AUTH_DIR
+
         state_file = AUTH_DIR / "playwright-state.json"
         cookies = httpx.Cookies()
 
@@ -776,11 +930,13 @@ class NotebookLMClient:
         types = []
         try:
             for entry in result[0][0]:
-                types.append({
-                    "id": entry[0] if len(entry) > 0 else "",
-                    "name": entry[1] if len(entry) > 1 else "",
-                    "description": entry[2] if len(entry) > 2 else "",
-                })
+                types.append(
+                    {
+                        "id": entry[0] if len(entry) > 0 else "",
+                        "name": entry[1] if len(entry) > 1 else "",
+                        "description": entry[2] if len(entry) > 2 else "",
+                    }
+                )
         except (IndexError, TypeError):
             pass
         return types
@@ -800,7 +956,8 @@ class NotebookLMClient:
 
 # ── Private helpers ────────────────────────────────────────────────────────────
 
-def _parse_notebook_content_entry(raw) -> Optional[Notebook]:
+
+def _parse_notebook_content_entry(raw) -> Notebook | None:
     """Parse a notebook from a wXbhsf list entry.
 
     wXbhsf returns a flat list. Each notebook "content entry" is:
@@ -848,7 +1005,9 @@ def _parse_generation_result(result, type_name: str) -> Artifact:
     The artifact data is at result[0].
     """
     if not result or not isinstance(result, list):
-        return Artifact(id="", artifact_type=type_name, content="Generation triggered — check artifacts list")
+        return Artifact(
+            id="", artifact_type=type_name, content="Generation triggered — check artifacts list"
+        )
 
     # Result is nested: result[0] is the artifact data array
     artifact_data = result[0] if isinstance(result[0], list) else result
@@ -865,10 +1024,12 @@ def _parse_generation_result(result, type_name: str) -> Artifact:
             content=f"Generation {status} (artifact_id={artifact_id})",
         )
 
-    return Artifact(id="", artifact_type=type_name, content="Generation triggered — check artifacts list")
+    return Artifact(
+        id="", artifact_type=type_name, content="Generation triggered — check artifacts list"
+    )
 
 
-def _extract_source_id_from_add(result) -> Optional[str]:
+def _extract_source_id_from_add(result) -> str | None:
     """Extract source ID from an izAoDd (ADD_SOURCE) response.
 
     The response structure varies but typically contains the source ID
@@ -960,7 +1121,7 @@ def _parse_streaming_chat(data: "str | bytes") -> str:
     return best_answer
 
 
-def _extract_answer_from_chunk(json_str: str) -> Optional[str]:
+def _extract_answer_from_chunk(json_str: str) -> str | None:
     """Extract answer text from a single wrb.fr response chunk.
 
     Structure: [[wrb.fr, rpc_id, inner_json_string, ...]]
@@ -998,7 +1159,7 @@ def _extract_answer_from_chunk(json_str: str) -> Optional[str]:
     return None
 
 
-def _parse_create_response(result) -> Optional[Notebook]:
+def _parse_create_response(result) -> Notebook | None:
     """Parse notebook from CCqFvf (create) response.
 
     Structure: ["", null, uuid, null, null, [flags...], ...]
@@ -1009,7 +1170,6 @@ def _parse_create_response(result) -> Optional[Notebook]:
         nb_id = result[2] if len(result) > 2 else None
         if not nb_id:
             return None
-        flags = result[5] if len(result) > 5 else []
         return Notebook(id=nb_id, title="", emoji="📓", is_pinned=False)
     except (IndexError, TypeError):
         return None

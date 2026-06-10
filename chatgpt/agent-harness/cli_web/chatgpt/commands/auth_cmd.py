@@ -5,7 +5,8 @@ from __future__ import annotations
 import click
 
 from ..core.auth import clear_auth, is_logged_in, load_auth, login_browser
-from ..utils.helpers import handle_errors, print_json
+from ..utils.helpers import handle_errors
+from ..utils.output import print_json
 
 
 @click.group("auth")
@@ -22,10 +23,12 @@ def login(ctx) -> None:
     with handle_errors(json_mode=json_mode):
         auth_data = login_browser()
         if json_mode:
-            print_json({
-                "success": True,
-                "data": {"message": "Logged in successfully"},
-            })
+            print_json(
+                {
+                    "success": True,
+                    "data": {"message": "Logged in successfully"},
+                }
+            )
         else:
             click.echo("Logged in successfully.")
             if auth_data.get("device_id"):
@@ -41,10 +44,12 @@ def status(ctx) -> None:
     with handle_errors(json_mode=json_mode):
         if not is_logged_in():
             if json_mode:
-                print_json({
-                    "success": True,
-                    "data": {"logged_in": False},
-                })
+                print_json(
+                    {
+                        "success": True,
+                        "data": {"logged_in": False},
+                    }
+                )
             else:
                 click.echo("Not logged in. Run: cli-web-chatgpt auth login")
             return
@@ -54,14 +59,16 @@ def status(ctx) -> None:
         device_id = auth.get("device_id", "unknown")
 
         if json_mode:
-            print_json({
-                "success": True,
-                "data": {
-                    "logged_in": True,
-                    "device_id": device_id,
-                    "token_preview": token_preview,
-                },
-            })
+            print_json(
+                {
+                    "success": True,
+                    "data": {
+                        "logged_in": True,
+                        "device_id": device_id,
+                        "token_preview": token_preview,
+                    },
+                }
+            )
         else:
             click.echo("Logged in.")
             click.echo(f"Device ID: {device_id}")

@@ -99,12 +99,19 @@ def format_channel(header: dict, metadata: dict | None = None) -> dict:
         desc = content.get("description", {}).get("descriptionPreviewViewModel", {})
         desc_text = desc.get("description", {}).get("content", "")
 
-        image = content.get("image", {}).get("decoratedAvatarViewModel", {}).get(
-            "avatar", {}).get("avatarViewModel", {}).get("image", {}).get("sources", [])
+        image = (
+            content.get("image", {})
+            .get("decoratedAvatarViewModel", {})
+            .get("avatar", {})
+            .get("avatarViewModel", {})
+            .get("image", {})
+            .get("sources", [])
+        )
         avatar = image[-1].get("url", "") if image else ""
 
-        metadata_row = content.get("metadata", {}).get("contentMetadataViewModel", {}).get(
-            "metadataRows", [])
+        metadata_row = (
+            content.get("metadata", {}).get("contentMetadataViewModel", {}).get("metadataRows", [])
+        )
         subs = ""
         videos = ""
         for row in metadata_row:
@@ -132,9 +139,9 @@ def format_trending_videos(contents: list) -> list[dict]:
     """Extract videos from trending browse response."""
     videos = []
     for section in contents:
-        items = (section.get("itemSectionRenderer", {}).get("contents", []) or
-                 section.get("shelfRenderer", {}).get("content", {}).get(
-                     "expandedShelfContentsRenderer", {}).get("items", []))
+        items = section.get("itemSectionRenderer", {}).get("contents", []) or section.get(
+            "shelfRenderer", {}
+        ).get("content", {}).get("expandedShelfContentsRenderer", {}).get("items", [])
         for item in items:
             renderer = item.get("videoRenderer")
             if renderer:

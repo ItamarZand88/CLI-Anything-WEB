@@ -5,10 +5,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
-import click
 import pytest
-from click.testing import CliRunner
-
 from cli_web.youtube.core.exceptions import (
     AuthError,
     NetworkError,
@@ -23,25 +20,32 @@ from cli_web.youtube.core.models import (
     format_video_detail,
     format_video_from_renderer,
 )
-from cli_web.youtube.utils.helpers import handle_errors, resolve_json_mode
+from cli_web.youtube.utils.helpers import handle_errors
 from cli_web.youtube.youtube_cli import cli
-
+from click.testing import CliRunner
 
 # ── Sample Data ──────────────────────────────────────────────
 
 SAMPLE_VIDEO_RENDERER = {
     "videoId": "abc123",
     "title": {"runs": [{"text": "Test Video Title"}]},
-    "ownerText": {"runs": [{"text": "Test Channel", "navigationEndpoint": {
-        "browseEndpoint": {"browseId": "UC_test123"}
-    }}]},
+    "ownerText": {
+        "runs": [
+            {
+                "text": "Test Channel",
+                "navigationEndpoint": {"browseEndpoint": {"browseId": "UC_test123"}},
+            }
+        ]
+    },
     "viewCountText": {"simpleText": "1,234,567 views"},
     "lengthText": {"simpleText": "10:30"},
     "publishedTimeText": {"simpleText": "2 days ago"},
-    "thumbnail": {"thumbnails": [
-        {"url": "https://i.ytimg.com/vi/abc123/default.jpg"},
-        {"url": "https://i.ytimg.com/vi/abc123/hqdefault.jpg"},
-    ]},
+    "thumbnail": {
+        "thumbnails": [
+            {"url": "https://i.ytimg.com/vi/abc123/default.jpg"},
+            {"url": "https://i.ytimg.com/vi/abc123/hqdefault.jpg"},
+        ]
+    },
 }
 
 SAMPLE_VIDEO_DETAILS = {
@@ -53,9 +57,11 @@ SAMPLE_VIDEO_DETAILS = {
     "lengthSeconds": "630",
     "shortDescription": "This is a test video description",
     "keywords": ["test", "python", "tutorial"],
-    "thumbnail": {"thumbnails": [
-        {"url": "https://i.ytimg.com/vi/abc123/maxresdefault.jpg"},
-    ]},
+    "thumbnail": {
+        "thumbnails": [
+            {"url": "https://i.ytimg.com/vi/abc123/maxresdefault.jpg"},
+        ]
+    },
     "isLiveContent": False,
 }
 
@@ -73,14 +79,21 @@ SAMPLE_SEARCH_RESPONSE = {
         "twoColumnSearchResultsRenderer": {
             "primaryContents": {
                 "sectionListRenderer": {
-                    "contents": [{
-                        "itemSectionRenderer": {
-                            "contents": [
-                                {"videoRenderer": SAMPLE_VIDEO_RENDERER},
-                                {"videoRenderer": {**SAMPLE_VIDEO_RENDERER, "videoId": "def456"}},
-                            ]
+                    "contents": [
+                        {
+                            "itemSectionRenderer": {
+                                "contents": [
+                                    {"videoRenderer": SAMPLE_VIDEO_RENDERER},
+                                    {
+                                        "videoRenderer": {
+                                            **SAMPLE_VIDEO_RENDERER,
+                                            "videoId": "def456",
+                                        }
+                                    },
+                                ]
+                            }
                         }
-                    }]
+                    ]
                 }
             }
         }
@@ -94,6 +107,7 @@ SAMPLE_PLAYER_RESPONSE = {
 
 
 # ── Model Tests ──────────────────────────────────────────────
+
 
 class TestModels:
     def test_format_video_from_renderer(self):
@@ -162,6 +176,7 @@ class TestModels:
 
 # ── Exception Tests ──────────────────────────────────────────
 
+
 class TestExceptions:
     def test_youtube_error_to_dict(self):
         exc = YouTubeError("something broke")
@@ -201,6 +216,7 @@ class TestExceptions:
 
 # ── Helper Tests ─────────────────────────────────────────────
 
+
 class TestHelpers:
     def test_handle_errors_youtube_error_exits_1(self):
         with pytest.raises(SystemExit) as exc_info:
@@ -234,6 +250,7 @@ class TestHelpers:
 
 # ── Client Tests (Mocked) ───────────────────────────────────
 
+
 class TestClientMocked:
     @patch("cli_web.youtube.core.client.httpx.Client")
     def test_search_returns_videos(self, mock_client_class):
@@ -245,6 +262,7 @@ class TestClientMocked:
         mock_client_class.return_value = mock_session
 
         from cli_web.youtube.core.client import YouTubeClient
+
         client = YouTubeClient()
         result = client.search("python")
         assert result["query"] == "python"
@@ -262,6 +280,7 @@ class TestClientMocked:
         mock_client_class.return_value = mock_session
 
         from cli_web.youtube.core.client import YouTubeClient
+
         client = YouTubeClient()
         result = client.video_detail("abc123")
         assert result["id"] == "abc123"
@@ -277,6 +296,7 @@ class TestClientMocked:
         mock_client_class.return_value = mock_session
 
         from cli_web.youtube.core.client import YouTubeClient
+
         client = YouTubeClient()
         with pytest.raises(NotFoundError):
             client.search("test")
@@ -291,6 +311,7 @@ class TestClientMocked:
         mock_client_class.return_value = mock_session
 
         from cli_web.youtube.core.client import YouTubeClient
+
         client = YouTubeClient()
         with pytest.raises(RateLimitError) as exc_info:
             client.search("test")
@@ -306,6 +327,7 @@ class TestClientMocked:
         mock_client_class.return_value = mock_session
 
         from cli_web.youtube.core.client import YouTubeClient
+
         client = YouTubeClient()
         with pytest.raises(ServerError) as exc_info:
             client.search("test")
@@ -313,6 +335,7 @@ class TestClientMocked:
 
 
 # ── CLI Click Tests ──────────────────────────────────────────
+
 
 class TestCLIClick:
     def test_help(self):
@@ -382,6 +405,8 @@ class TestCLIClick:
         mock_class.return_value = mock_client
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["video", "get", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "--json"])
+        result = runner.invoke(
+            cli, ["video", "get", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "--json"]
+        )
         assert result.exit_code == 0
         mock_client.video_detail.assert_called_once_with("dQw4w9WgXcQ")

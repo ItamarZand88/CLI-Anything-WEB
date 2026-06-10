@@ -3,6 +3,16 @@
 Concrete targets for each site profile. Used during Step 3 (full capture) to
 exercise enough of the API surface that `validate-capture.py` passes.
 
+## Contents
+
+- Auth + CRUD
+- Auth + Generation
+- Auth + Read-only
+- No-auth + CRUD
+- No-auth + Read-only
+- Coverage heuristics — "have I browsed enough?"
+- When a checklist step can't be completed
+
 > **Pacing:** leave **1–2 seconds** between clicks/form submits on any site
 > flagged with `cloudflare`, `akamai`, `datadome`, `awsWaf`, or `rateLimit`.
 > Faster exploration triggers per-IP challenges within ~30 requests.

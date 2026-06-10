@@ -5,6 +5,15 @@
 
 Capture detailed execution traces containing full HTTP request/response bodies, DOM snapshots, screenshots, and timing data. This is the primary input for CLI generation.
 
+## Contents
+
+- Basic Usage
+- What Traces Capture
+- Trace File Structure
+- How It Connects to Our Pipeline
+- Best Practices
+- Trace Lifecycle Management
+
 ## Basic Usage
 
 ```bash

@@ -14,9 +14,7 @@ setup(
         "rich>=13.0",
         "prompt_toolkit>=3.0",
     ],
-    extras_require={
-        
-    },
+    extras_require={},
     entry_points={
         "console_scripts": [
             "cli-web-capitoltrades=cli_web.capitoltrades.capitoltrades_cli:main",

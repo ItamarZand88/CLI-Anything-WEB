@@ -1,4 +1,5 @@
 """Configuration management for cli-web-notebooklm."""
+
 import json
 from pathlib import Path
 

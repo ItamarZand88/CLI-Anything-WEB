@@ -4,9 +4,13 @@
 class FutbinError(Exception):
     """Base exception for all futbin CLI errors."""
 
+    def to_dict(self) -> dict:
+        return {"error": True, "code": error_code_for(self), "message": str(self)}
+
 
 class AuthError(FutbinError):
     """Authentication issue (cookies expired, login required)."""
+
     def __init__(self, message: str, recoverable: bool = True):
         self.recoverable = recoverable
         super().__init__(message)
@@ -18,9 +22,16 @@ class NetworkError(FutbinError):
 
 class RateLimitError(FutbinError):
     """HTTP 429 — too many requests."""
+
     def __init__(self, message: str, retry_after: float | None = None):
         self.retry_after = retry_after
         super().__init__(message)
+
+    def to_dict(self) -> dict:
+        d = super().to_dict()
+        if self.retry_after is not None:
+            d["retry_after"] = self.retry_after
+        return d
 
 
 class ParsingError(FutbinError):
@@ -33,6 +44,7 @@ class NotFoundError(FutbinError):
 
 class ServerError(FutbinError):
     """FUTBIN returned 5xx."""
+
     def __init__(self, message: str, status_code: int = 500):
         self.status_code = status_code
         super().__init__(message)

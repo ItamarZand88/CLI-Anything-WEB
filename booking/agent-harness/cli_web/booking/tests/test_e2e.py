@@ -12,10 +12,8 @@ import subprocess
 import sys
 
 import pytest
-
 from cli_web.booking.core.auth import is_authenticated
 from cli_web.booking.core.client import BookingClient
-
 
 # ── Helpers ────────────────────────────────────────────────────────
 
@@ -29,7 +27,9 @@ def _resolve_cli(name):
         return [path]
     if force:
         raise RuntimeError(f"{name} not found in PATH. Install with: pip install -e .")
-    module = name.replace("cli-web-", "cli_web.").replace("-", ".") + "." + name.split("-")[-1] + "_cli"
+    module = (
+        name.replace("cli-web-", "cli_web.").replace("-", ".") + "." + name.split("-")[-1] + "_cli"
+    )
     print(f"[_resolve_cli] Falling back to: {sys.executable} -m {module}")
     return [sys.executable, "-m", module]
 
@@ -37,9 +37,7 @@ def _resolve_cli(name):
 def _require_auth():
     """Fail (not skip) if auth is not configured."""
     if not is_authenticated():
-        pytest.fail(
-            "WAF cookies not configured. Run: cli-web-booking auth login"
-        )
+        pytest.fail("WAF cookies not configured. Run: cli-web-booking auth login")
 
 
 # ── Live E2E: AutoComplete (no auth needed) ───────────────────────
@@ -219,12 +217,19 @@ class TestCLISubprocess:
         if not is_authenticated():
             pytest.fail("WAF cookies not configured. Run: cli-web-booking auth login")
 
-        result = self._run([
-            "search", "find", "Paris",
-            "--checkin", "2026-04-01",
-            "--checkout", "2026-04-04",
-            "--json",
-        ], check=False)
+        result = self._run(
+            [
+                "search",
+                "find",
+                "Paris",
+                "--checkin",
+                "2026-04-01",
+                "--checkout",
+                "2026-04-04",
+                "--json",
+            ],
+            check=False,
+        )
 
         if result.returncode != 0:
             # May fail if cookies expired

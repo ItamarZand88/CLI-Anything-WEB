@@ -1,0 +1,98 @@
+name: Fleet Canary
+
+# Scheduled live-site smoke: runs each registry-declared read-only canary
+# command against the real target sites and opens/updates an issue when a
+# CLI breaks (site redesign, new anti-bot protection, API move).
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # daily 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install devkit and canary CLIs
+        run: |
+          pip install -e devkit
+          python - <<'EOF'
+          import json
+          import subprocess
+
+          reg = json.load(open("registry.json"))
+          for cli in reg["clis"]:
+              if cli.get("canary"):
+                  subprocess.run(
+                      ["pip", "install", "-q", "-e", cli["directory"]], check=True
+                  )
+          EOF
+
+      - name: Run canaries
+        id: canary
+        run: |
+          set +e
+          cli-web-devkit canary --json > canary-report.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat canary-report.json
+
+      - name: Open or update breakage issue
+        if: steps.canary.outputs.exit_code != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('canary-report.json', 'utf8'));
+            const failures = report.results.filter(r => !r.ok);
+            const byCli = {};
+            for (const f of failures) (byCli[f.cli] ??= []).push(f);
+
+            const title = `Fleet canary: ${Object.keys(byCli).length} CLI(s) failing against live sites`;
+            const lines = [
+              'The scheduled fleet canary detected live-site breakage.',
+              '',
+              ...Object.entries(byCli).flatMap(([cli, fails]) => [
+                `### ${cli}`,
+                ...fails.map(f => `- \`${f.argv.join(' ')}\` — ${f.detail}`),
+                '',
+              ]),
+              '_Likely causes: site redesign, API change, or new anti-bot protection._',
+              '_Next step: run `/refine` on the affected CLI (see cli-anything-web-plugin)._',
+            ];
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'site-breakage',
+            });
+            const body = lines.join('\n');
+            if (issues.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['site-breakage'],
+              });
+            }
+
+      - name: Fail job on canary failures
+        if: steps.canary.outputs.exit_code != '0'
+        run: exit 1

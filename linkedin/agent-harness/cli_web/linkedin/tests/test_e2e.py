@@ -4,6 +4,7 @@ Tests FAIL (not skip) if auth is missing.
 Requires: li_at cookie in ~/.config/cli-web-linkedin/auth.json
           or CLI_WEB_LINKEDIN_AUTH_JSON env var.
 """
+
 from __future__ import annotations
 
 import json
@@ -205,14 +206,8 @@ class TestProfileE2E:
         data = client.get_profile("williamhgates")
         assert isinstance(data, dict), f"Expected dict, got {type(data)}"
         # Should have profile elements or direct fields
-        has_data = (
-            "elements" in data
-            or "firstName" in data
-            or "miniProfile" in str(data)
-        )
-        assert has_data, (
-            f"Profile get response missing expected fields: {list(data.keys())}"
-        )
+        has_data = "elements" in data or "firstName" in data or "miniProfile" in str(data)
+        assert has_data, f"Profile get response missing expected fields: {list(data.keys())}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -264,6 +259,4 @@ class TestJobsE2E:
         assert len(elements) > 0, "Job search returned no elements"
         card = elements[0].get("jobCardUnion", {}).get("jobPostingCard", {})
         assert card, "First element has no jobPostingCard"
-        assert "jobPostingTitle" in card, (
-            f"Job card missing 'jobPostingTitle': {list(card.keys())}"
-        )
+        assert "jobPostingTitle" in card, f"Job card missing 'jobPostingTitle': {list(card.keys())}"

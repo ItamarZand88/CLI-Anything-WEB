@@ -1,6 +1,6 @@
 ---
 name: sync-check
-description: Use after fixing a bug, adding a command, changing auth behavior, or modifying any CLI code to ensure all related documentation stays synchronized. Also use before committing changes, after refactoring, or when you notice documentation drift. Triggers on "sync check", "update docs", "propagate changes", "did I forget to update", "what else needs updating", or "before I commit".
+description: Walks the documentation dependency web after a CLI code change and reports which downstream files (skills, SOPs, READMEs, plugin references) are out of sync. Use after fixing a bug, adding a command, changing auth behavior, refactoring, or before committing — and when the user says "sync check", "update docs", "propagate changes", "did I forget to update", "what else needs updating", or "before I commit".
 ---
 
 # Sync Check

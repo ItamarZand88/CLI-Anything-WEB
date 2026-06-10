@@ -1,4 +1,5 @@
 """Shared CLI helpers for cli-web-futbin."""
+
 import json
 import sys
 from contextlib import contextmanager
@@ -8,14 +9,9 @@ from typing import Any
 import click
 
 from ..core.exceptions import (
-    AuthError,
     FutbinError,
-    InvalidInputError,
-    NetworkError,
-    NotFoundError,
     ParsingError,
     RateLimitError,
-    ServerError,
     error_code_for,
 )
 
@@ -26,6 +22,7 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 # ---------------------------------------------------------------------------
 # Partial ID resolution (for player search results)
 # ---------------------------------------------------------------------------
+
 
 def resolve_partial_id(partial, items, id_attr="id", label_attr="name", kind="item"):
     """Resolve a partial ID prefix to a full item.
@@ -41,10 +38,7 @@ def resolve_partial_id(partial, items, id_attr="id", label_attr="name", kind="it
             return item
 
     # Prefix match
-    matches = [
-        item for item in items
-        if str(getattr(item, id_attr, "")).startswith(partial_str)
-    ]
+    matches = [item for item in items if str(getattr(item, id_attr, "")).startswith(partial_str)]
 
     if len(matches) == 1:
         matched = matches[0]
@@ -74,6 +68,7 @@ def resolve_partial_id(partial, items, id_attr="id", label_attr="name", kind="it
 # Error handler context manager
 # ---------------------------------------------------------------------------
 
+
 @contextmanager
 def handle_errors(json_mode: bool = False):
     """Context manager that catches exceptions and outputs proper error messages.
@@ -93,10 +88,12 @@ def handle_errors(json_mode: bool = False):
     except FutbinError as exc:
         code = error_code_for(exc)
         if json_mode:
-            click.echo(json.dumps(
-                {"error": True, "code": code, "message": str(exc)},
-                ensure_ascii=False,
-            ))
+            click.echo(
+                json.dumps(
+                    {"error": True, "code": code, "message": str(exc)},
+                    ensure_ascii=False,
+                )
+            )
         else:
             hint = ""
             if isinstance(exc, RateLimitError) and exc.retry_after:
@@ -107,18 +104,36 @@ def handle_errors(json_mode: bool = False):
         sys.exit(1)
     except Exception as exc:
         if json_mode:
-            click.echo(json.dumps(
-                {"error": True, "code": "INTERNAL_ERROR", "message": str(exc)},
-                ensure_ascii=False,
-            ))
+            click.echo(
+                json.dumps(
+                    {"error": True, "code": "INTERNAL_ERROR", "message": str(exc)},
+                    ensure_ascii=False,
+                )
+            )
         else:
             click.echo(f"Error: {exc}", err=True)
         sys.exit(2)
 
 
 # ---------------------------------------------------------------------------
+# JSON mode resolution
+# ---------------------------------------------------------------------------
+
+
+def resolve_json_mode(use_json: bool) -> bool:
+    """Resolve --json flag, checking parent context too."""
+    if use_json:
+        return True
+    ctx = click.get_current_context(silent=True)
+    if ctx and ctx.obj:
+        return ctx.obj.get("json", False)
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Persistent config
 # ---------------------------------------------------------------------------
+
 
 def _load_config() -> dict:
     """Load config.json, returning empty dict on failure."""

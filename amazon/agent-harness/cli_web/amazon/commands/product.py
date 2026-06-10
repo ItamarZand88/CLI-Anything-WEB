@@ -1,5 +1,7 @@
 """Product commands for cli-web-amazon."""
+
 import click
+
 from ..core.client import AmazonClient
 from ..utils.helpers import handle_errors, print_json
 from ..utils.output import print_product
@@ -13,8 +15,7 @@ def product():
 
 @product.command("get")
 @click.argument("asin")
-@click.option("--json", "use_json", is_flag=True, default=False,
-              help="Output as JSON.")
+@click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def get_product(asin, use_json):
     """Get product details by ASIN.
 
@@ -33,5 +34,3 @@ def get_product(asin, use_json):
             print_json(p.to_dict())
         else:
             print_product(p)
-
-

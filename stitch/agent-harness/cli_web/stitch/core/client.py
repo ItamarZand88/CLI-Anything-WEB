@@ -1,21 +1,31 @@
 """HTTP client for Stitch batchexecute API."""
-import json
+
 import time
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
 from .auth import fetch_tokens, fetch_user_info, load_cookies
 from .exceptions import (
-    AuthError, NetworkError, RateLimitError, ServerError, NotFoundError, RPCError,
+    AuthError,
+    NetworkError,
+    NotFoundError,
+    RateLimitError,
+    RPCError,
+    ServerError,
     StitchError,
 )
 from .models import (
-    Project, Screen, Session, User,
-    parse_project, parse_screen, parse_session,
+    Project,
+    Screen,
+    Session,
+    User,
+    parse_project,
+    parse_screen,
+    parse_session,
 )
-from .rpc import encode_request, build_url, decode_response
-from .rpc.types import RPCMethod, BASE_URL
+from .rpc import build_url, decode_response, encode_request
+from .rpc.types import BASE_URL, RPCMethod
 from .session import get_session
 
 DOWNLOAD_BASE = "https://contribution.usercontent.google.com/download"
@@ -28,11 +38,17 @@ class StitchClient:
     """
 
     def __init__(self):
-        self._cookies: Optional[dict] = None
-        self._csrf: Optional[str] = None
-        self._session_id: Optional[str] = None
-        self._build_label: Optional[str] = None
+        self._cookies: dict | None = None
+        self._csrf: str | None = None
+        self._session_id: str | None = None
+        self._build_label: str | None = None
         self._session = get_session()
+
+    def __enter__(self) -> "StitchClient":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass  # No persistent connection — httpx calls are scoped per request.
 
     def _ensure_auth(self):
         """Load cookies and fetch tokens if not already done."""
@@ -84,11 +100,11 @@ class StitchClient:
                 timeout=30.0,
             )
         except httpx.ConnectError as e:
-            raise NetworkError(f"Connection failed: {e}")
+            raise NetworkError(f"Connection failed: {e}") from e
         except httpx.TimeoutException as e:
-            raise NetworkError(f"Request timed out: {e}")
+            raise NetworkError(f"Request timed out: {e}") from e
         except httpx.RequestError as e:
-            raise NetworkError(f"Network error: {e}")
+            raise NetworkError(f"Network error: {e}") from e
 
         if resp.status_code in (401, 403) and retry_on_auth:
             self._refresh_tokens()
@@ -105,7 +121,9 @@ class StitchClient:
             )
 
         if resp.status_code >= 500:
-            raise ServerError(f"HTTP {resp.status_code}: {resp.text[:200]}", status_code=resp.status_code)
+            raise ServerError(
+                f"HTTP {resp.status_code}: {resp.text[:200]}", status_code=resp.status_code
+            )
 
         if resp.status_code >= 400:
             raise StitchError(f"HTTP {resp.status_code}: {resp.text[:200]}")
@@ -128,7 +146,7 @@ class StitchClient:
                     projects.append(p)
         return projects
 
-    def get_project(self, project_id: str) -> Optional[Project]:
+    def get_project(self, project_id: str) -> Project | None:
         """Get project details."""
         resource_name = _to_resource(project_id)
         result = self._call(
@@ -140,7 +158,7 @@ class StitchClient:
             return parse_project(result)
         return None
 
-    def create_project(self) -> Optional[Project]:
+    def create_project(self) -> Project | None:
         """Create a new empty project.
 
         The CREATE_PROJECT RPC params are: [[null, null, null, null, null, 4]]
@@ -157,7 +175,7 @@ class StitchClient:
         platform: str = "app",
         timeout: float = 300.0,
         on_progress: Any = None,
-    ) -> Optional[Project]:
+    ) -> Project | None:
         """Create a new project and generate a design from prompt."""
         project = self.create_project()
         if not project:
@@ -182,7 +200,7 @@ class StitchClient:
         )
         return True
 
-    def duplicate_project(self, project_id: str) -> Optional[str]:
+    def duplicate_project(self, project_id: str) -> str | None:
         """Duplicate a project. Returns the new project ID.
 
         Uses vW3whd RPC with params [resource_name].
@@ -200,7 +218,7 @@ class StitchClient:
                 return new_resource.split("/")[-1]
         return None
 
-    def rename_project(self, project_id: str, new_title: str) -> Optional[Project]:
+    def rename_project(self, project_id: str, new_title: str) -> Project | None:
         """Rename a project using GET_PROJECT_STATE (f6CJY) with updated title.
 
         The rename is done by sending the full project state with the new title
@@ -236,7 +254,7 @@ class StitchClient:
             return parse_project(result)
         return None
 
-    def get_design_system(self, project_id: str) -> Optional[dict]:
+    def get_design_system(self, project_id: str) -> dict | None:
         """Get the design system (colors, typography) for a project.
 
         Returns a dict with 'name', 'colors' (Material Design 3 tokens),
@@ -346,10 +364,12 @@ class StitchClient:
             if resp.status_code in (401, 403):
                 raise AuthError("Auth failed downloading screen HTML", recoverable=True)
             if resp.status_code >= 400:
-                raise ServerError(f"HTTP {resp.status_code} downloading screen", status_code=resp.status_code)
+                raise ServerError(
+                    f"HTTP {resp.status_code} downloading screen", status_code=resp.status_code
+                )
             return resp.content
         except httpx.RequestError as e:
-            raise NetworkError(f"Download failed: {e}")
+            raise NetworkError(f"Download failed: {e}") from e
 
     # ── Design (Generation) ──────────────────────────────────────────────
 
@@ -359,7 +379,7 @@ class StitchClient:
         prompt: str,
         platform: str = "app",
         model: str = "flash",
-    ) -> Optional[Session]:
+    ) -> Session | None:
         """Send an AI design prompt to generate or modify screens.
 
         Args:
@@ -386,7 +406,15 @@ class StitchClient:
         # ["projects/<id>", [null, null, null, [prompt, null, model_id, null, [], null, null, 1, [], platform_id], null, null, 1]]
         params = [
             resource_name,
-            [None, None, None, [prompt, None, model_id, None, [], None, None, 1, [], platform_id], None, None, 1],
+            [
+                None,
+                None,
+                None,
+                [prompt, None, model_id, None, [], None, None, 1, [], platform_id],
+                None,
+                None,
+                1,
+            ],
         ]
         result = self._call(
             RPCMethod.SEND_PROMPT,
@@ -397,7 +425,7 @@ class StitchClient:
             return parse_session(result)
         return None
 
-    def poll_session(self, session_resource_name: str) -> Optional[Session]:
+    def poll_session(self, session_resource_name: str) -> Session | None:
         """Poll a generation session for progress."""
         result = self._call(
             RPCMethod.POLL_SESSION,
@@ -415,7 +443,7 @@ class StitchClient:
         model: str = "flash",
         timeout: float = 300.0,
         on_progress: Any = None,
-    ) -> Optional[Session]:
+    ) -> Session | None:
         """Send prompt and poll until generation completes.
 
         Args:
@@ -478,7 +506,7 @@ class StitchClient:
 
     # ── User ──────────────────────────────────────────────────────────────
 
-    def get_user(self) -> Optional[User]:
+    def get_user(self) -> User | None:
         """Get current user info."""
         self._ensure_auth()
         info = fetch_user_info(self._cookies or {})
@@ -501,5 +529,5 @@ def _to_resource(project_id: str) -> str:
 def _bare_id(project_id: str) -> str:
     """Extract bare ID from resource name."""
     if project_id.startswith("projects/"):
-        return project_id[len("projects/"):]
+        return project_id[len("projects/") :]
     return project_id

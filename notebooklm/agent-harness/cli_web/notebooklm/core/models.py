@@ -1,6 +1,6 @@
 """Data models for NotebookLM CLI."""
-from dataclasses import dataclass, field
-from typing import Optional
+
+from dataclasses import dataclass
 
 
 @dataclass
@@ -8,8 +8,8 @@ class Notebook:
     id: str
     title: str
     emoji: str = "📓"
-    created_at: Optional[int] = None  # Unix timestamp
-    updated_at: Optional[int] = None  # Unix timestamp
+    created_at: int | None = None  # Unix timestamp
+    updated_at: int | None = None  # Unix timestamp
     source_count: int = 0
     is_pinned: bool = False
 
@@ -22,9 +22,9 @@ class Source:
     id: str
     name: str
     source_type: str = "unknown"  # "url", "text", "pdf"
-    url: Optional[str] = None
+    url: str | None = None
     char_count: int = 0
-    created_at: Optional[int] = None  # Unix timestamp
+    created_at: int | None = None  # Unix timestamp
 
 
 @dataclass
@@ -38,14 +38,14 @@ class Artifact:
     id: str
     artifact_type: str  # "mindmap", "notes", "briefing"
     content: str  # JSON string for mindmap, text for notes
-    title: Optional[str] = None
+    title: str | None = None
 
 
 @dataclass
 class User:
     email: str
     display_name: str
-    avatar_url: Optional[str] = None
+    avatar_url: str | None = None
 
 
 @dataclass
@@ -55,7 +55,7 @@ class AudioType:
     description: str
 
 
-def parse_notebook(raw: list) -> Optional[Notebook]:
+def parse_notebook(raw: list) -> Notebook | None:
     """Parse a notebook object from the raw batchexecute response.
 
     The raw structure from wXbhsf/CCqFvf/rLM1Ne is:
@@ -84,16 +84,28 @@ def parse_notebook(raw: list) -> Optional[Notebook]:
                 return None
 
             flags = header[5] if len(header) > 5 else []
-            is_pinned = bool(flags[0]) if flags and isinstance(flags, list) and len(flags) > 0 else False
-            created_sec = flags[5][0] if (flags and len(flags) > 5 and isinstance(flags[5], list)) else None
-            updated_sec = flags[8][0] if (flags and len(flags) > 8 and isinstance(flags[8], list)) else None
-            emoji = header[3] if len(header) > 3 and isinstance(header[3], str) and header[3] else "📓"
+            is_pinned = (
+                bool(flags[0]) if flags and isinstance(flags, list) and len(flags) > 0 else False
+            )
+            created_sec = (
+                flags[5][0] if (flags and len(flags) > 5 and isinstance(flags[5], list)) else None
+            )
+            updated_sec = (
+                flags[8][0] if (flags and len(flags) > 8 and isinstance(flags[8], list)) else None
+            )
+            emoji = (
+                header[3] if len(header) > 3 and isinstance(header[3], str) and header[3] else "📓"
+            )
 
             title = ""
             source_count = 0
             if title_block and isinstance(title_block, list):
                 title = title_block[0] if title_block[0] else ""
-                sources = title_block[1] if len(title_block) > 1 and isinstance(title_block[1], list) else []
+                sources = (
+                    title_block[1]
+                    if len(title_block) > 1 and isinstance(title_block[1], list)
+                    else []
+                )
                 source_count = len(sources)
         else:
             # rLM1Ne-style: [title, sources_list, uuid, emoji?, ...]
@@ -107,8 +119,12 @@ def parse_notebook(raw: list) -> Optional[Notebook]:
             emoji = raw[3] if len(raw) > 3 and isinstance(raw[3], str) and raw[3] else "📓"
             flags = raw[5] if len(raw) > 5 and isinstance(raw[5], list) else []
             is_pinned = bool(flags[0]) if flags and isinstance(flags, list) else False
-            created_sec = flags[5][0] if (flags and len(flags) > 5 and isinstance(flags[5], list)) else None
-            updated_sec = flags[8][0] if (flags and len(flags) > 8 and isinstance(flags[8], list)) else None
+            created_sec = (
+                flags[5][0] if (flags and len(flags) > 5 and isinstance(flags[5], list)) else None
+            )
+            updated_sec = (
+                flags[8][0] if (flags and len(flags) > 8 and isinstance(flags[8], list)) else None
+            )
 
         return Notebook(
             id=nb_id,
@@ -123,7 +139,7 @@ def parse_notebook(raw: list) -> Optional[Notebook]:
         return None
 
 
-def parse_source(raw: list) -> Optional[Source]:
+def parse_source(raw: list) -> Source | None:
     """Parse a source object from the raw batchexecute response.
 
     Source structure from izAoDd:
@@ -138,9 +154,17 @@ def parse_source(raw: list) -> Optional[Source]:
         meta = raw[2] if len(raw) > 2 else []
 
         char_count = meta[1] if isinstance(meta, list) and len(meta) > 1 else 0
-        created_sec = meta[2][0] if (isinstance(meta, list) and len(meta) > 2 and isinstance(meta[2], list)) else None
+        created_sec = (
+            meta[2][0]
+            if (isinstance(meta, list) and len(meta) > 2 and isinstance(meta[2], list))
+            else None
+        )
         type_id = meta[4] if isinstance(meta, list) and len(meta) > 4 else None
-        urls = meta[7] if isinstance(meta, list) and len(meta) > 7 and isinstance(meta[7], list) else []
+        urls = (
+            meta[7]
+            if isinstance(meta, list) and len(meta) > 7 and isinstance(meta[7], list)
+            else []
+        )
 
         # type_id: 4=text, 5=url, 11=url (wikipedia), 8=text
         src_type_map = {4: "text", 5: "url", 8: "text", 11: "url"}
@@ -159,7 +183,7 @@ def parse_source(raw: list) -> Optional[Source]:
         return None
 
 
-def parse_user(raw: list) -> Optional[User]:
+def parse_user(raw: list) -> User | None:
     """Parse user info from JFMDGd response.
 
     Structure: [[[email, 1, [], ["Display Name", "avatar_url"]]], null, 1000]

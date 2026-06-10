@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import json
-import sys
 from unittest.mock import MagicMock, patch
 
-import click
 import pytest
-
 from cli_web.chatgpt.core.exceptions import (
     AuthError,
     ChatGPTError,
@@ -17,8 +14,7 @@ from cli_web.chatgpt.core.exceptions import (
     RateLimitError,
     ServerError,
 )
-from cli_web.chatgpt.utils.helpers import handle_errors, json_error, print_json, truncate
-
+from cli_web.chatgpt.utils.helpers import handle_errors, json_error, truncate
 
 # ── Exception hierarchy tests ──────────────────────────────────
 
@@ -267,3 +263,87 @@ class TestAuth:
         assert not auth_file.exists()
 
 
+# ── Auth retry tests (3-attempt contract, CONVENTIONS.md §Auth Rules) ──
+
+
+class TestAuthRetry:
+    """401/403 → reload auth.json → headless refresh_auth() → AuthError. Never >3."""
+
+    def _response(self, status_code: int, json_data: dict | None = None) -> MagicMock:
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.headers = {}
+        resp.text = ""
+        resp.json.return_value = json_data or {}
+        return resp
+
+    def _client(self):
+        from cli_web.chatgpt.core.client import ChatGPTClient
+
+        client = ChatGPTClient()
+        client._auth = {"access_token": "stale", "device_id": "", "cookies": {}}
+        client._session = MagicMock()
+        return client
+
+    def test_three_attempts_then_auth_error(self):
+        client = self._client()
+        client._session.get.return_value = self._response(401)
+
+        with (
+            patch(
+                "cli_web.chatgpt.core.client.load_auth",
+                return_value={"access_token": "disk", "device_id": "", "cookies": {}},
+            ) as mock_load,
+            patch(
+                "cli_web.chatgpt.core.client.refresh_auth",
+                return_value={"access_token": "fresh", "device_id": "", "cookies": {}},
+            ) as mock_refresh,
+        ):
+            with pytest.raises(AuthError):
+                client._get("/backend-api/me")
+
+        assert client._session.get.call_count == 3
+        assert mock_load.call_count == 1
+        assert mock_refresh.call_count == 1
+
+    def test_success_after_disk_reload_stops_retrying(self):
+        client = self._client()
+        client._session.get.side_effect = [
+            self._response(401),
+            self._response(200, json_data={"id": "user-1"}),
+        ]
+
+        with (
+            patch(
+                "cli_web.chatgpt.core.client.load_auth",
+                return_value={"access_token": "disk", "device_id": "", "cookies": {}},
+            ),
+            patch("cli_web.chatgpt.core.client.refresh_auth") as mock_refresh,
+        ):
+            data = client._get("/backend-api/me")
+
+        assert data == {"id": "user-1"}
+        assert client._session.get.call_count == 2
+        mock_refresh.assert_not_called()
+        assert client._auth["access_token"] == "disk"
+
+    def test_post_three_attempts_then_auth_error(self):
+        client = self._client()
+        client._session.post.return_value = self._response(403)
+
+        with (
+            patch(
+                "cli_web.chatgpt.core.client.load_auth",
+                return_value={"access_token": "disk", "device_id": "", "cookies": {}},
+            ) as mock_load,
+            patch(
+                "cli_web.chatgpt.core.client.refresh_auth",
+                return_value={"access_token": "fresh", "device_id": "", "cookies": {}},
+            ) as mock_refresh,
+        ):
+            with pytest.raises(AuthError):
+                client._post("/backend-api/whatever", data={})
+
+        assert client._session.post.call_count == 3
+        assert mock_load.call_count == 1
+        assert mock_refresh.call_count == 1

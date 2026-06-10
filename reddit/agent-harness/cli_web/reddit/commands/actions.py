@@ -8,8 +8,8 @@ from ..core.client import RedditClient
 from ..core.exceptions import SubmitError
 from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
-
 # ── Vote ──────────────────────────────────────────────────────
+
 
 @click.group("vote")
 def vote():
@@ -63,6 +63,7 @@ def unvote(thing_id, use_json):
 
 # ── Submit ────────────────────────────────────────────────────
 
+
 @click.group("submit")
 def submit():
     """Submit posts to subreddits (requires login)."""
@@ -95,7 +96,9 @@ def submit_flairs(subreddit, use_json):
 @click.argument("subreddit")
 @click.argument("title")
 @click.argument("body")
-@click.option("--flair", "flair_id", default=None, help="Flair ID (use 'submit flairs <sub>' to list).")
+@click.option(
+    "--flair", "flair_id", default=None, help="Flair ID (use 'submit flairs <sub>' to list)."
+)
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
 def submit_text(subreddit, title, body, flair_id, use_json):
     """Submit a text (self) post.
@@ -115,11 +118,13 @@ def submit_text(subreddit, title, body, flair_id, use_json):
             msg = "; ".join(str(e) for e in errors)
             raise SubmitError(f"Submit failed: {msg}")
         if use_json:
-            print_json({
-                "success": True,
-                "id": data.get("name", ""),
-                "url": data.get("url", ""),
-            })
+            print_json(
+                {
+                    "success": True,
+                    "id": data.get("name", ""),
+                    "url": data.get("url", ""),
+                }
+            )
         else:
             click.echo(f"  Posted to r/{subreddit}: {data.get('url', '')}")
 
@@ -128,7 +133,9 @@ def submit_text(subreddit, title, body, flair_id, use_json):
 @click.argument("subreddit")
 @click.argument("title")
 @click.argument("url")
-@click.option("--flair", "flair_id", default=None, help="Flair ID (use 'submit flairs <sub>' to list).")
+@click.option(
+    "--flair", "flair_id", default=None, help="Flair ID (use 'submit flairs <sub>' to list)."
+)
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
 def submit_link(subreddit, title, url, flair_id, use_json):
     """Submit a link post.
@@ -146,16 +153,19 @@ def submit_link(subreddit, title, url, flair_id, use_json):
             msg = "; ".join(str(e) for e in errors)
             raise SubmitError(f"Submit failed: {msg}")
         if use_json:
-            print_json({
-                "success": True,
-                "id": data.get("name", ""),
-                "url": data.get("url", ""),
-            })
+            print_json(
+                {
+                    "success": True,
+                    "id": data.get("name", ""),
+                    "url": data.get("url", ""),
+                }
+            )
         else:
             click.echo(f"  Posted to r/{subreddit}: {data.get('url', '')}")
 
 
 # ── Comment ───────────────────────────────────────────────────
+
 
 @click.group("comment")
 def comment_group():
@@ -221,6 +231,7 @@ def delete_thing(thing_id, use_json):
 
 
 # ── Save ──────────────────────────────────────────────────────
+
 
 @click.group("saved")
 def saved_group():

@@ -1,24 +1,29 @@
 """Unit tests for cli-web-amazon core modules (mocked HTTP)."""
+
 import json
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from cli_web.amazon.core.exceptions import (
-    AmazonError, NetworkError, NotFoundError,
-    ParsingError, RateLimitError, ServerError, error_code_for,
+    NotFoundError,
+    RateLimitError,
+    ServerError,
+    error_code_for,
 )
 from cli_web.amazon.core.models import (
-    SearchResult, Product, BestSeller, Suggestion,
+    BestSeller,
+    Product,
+    SearchResult,
+    Suggestion,
 )
 from cli_web.amazon.utils.helpers import handle_errors, sanitize_filename
-
 
 # ---------------------------------------------------------------------------
 # Exception hierarchy tests
 # ---------------------------------------------------------------------------
 
-class TestExceptions(unittest.TestCase):
 
+class TestExceptions(unittest.TestCase):
     def test_rate_limit_error_with_retry_after(self):
         exc = RateLimitError("too many requests", retry_after=60.0)
         self.assertEqual(exc.retry_after, 60.0)
@@ -44,8 +49,8 @@ class TestExceptions(unittest.TestCase):
 # Model tests
 # ---------------------------------------------------------------------------
 
-class TestModels(unittest.TestCase):
 
+class TestModels(unittest.TestCase):
     def test_search_result_to_dict(self):
         r = SearchResult(
             asin="B0GRZ78683",
@@ -85,10 +90,10 @@ class TestModels(unittest.TestCase):
         self.assertEqual(d["type"], "KEYWORD")
 
 
-
 # ---------------------------------------------------------------------------
 # Client tests (mocked)
 # ---------------------------------------------------------------------------
+
 
 class TestClientSuggestions(unittest.TestCase):
     """Test suggestions API with mocked httpx."""
@@ -102,6 +107,7 @@ class TestClientSuggestions(unittest.TestCase):
 
     def test_get_suggestions_parses_keywords(self):
         from cli_web.amazon.core.client import AmazonClient
+
         suggestions_json = {
             "suggestions": [
                 {"value": "laptop", "type": "KEYWORD"},
@@ -109,8 +115,9 @@ class TestClientSuggestions(unittest.TestCase):
             ]
         }
         with AmazonClient() as client:
-            with patch.object(client._client, "get",
-                              return_value=self._mock_response(suggestions_json)):
+            with patch.object(
+                client._client, "get", return_value=self._mock_response(suggestions_json)
+            ):
                 results = client.get_suggestions("laptop")
 
         self.assertEqual(len(results), 2)
@@ -119,14 +126,17 @@ class TestClientSuggestions(unittest.TestCase):
 
     def test_get_suggestions_empty_results(self):
         from cli_web.amazon.core.client import AmazonClient
+
         with AmazonClient() as client:
-            with patch.object(client._client, "get",
-                              return_value=self._mock_response({"suggestions": []})):
+            with patch.object(
+                client._client, "get", return_value=self._mock_response({"suggestions": []})
+            ):
                 results = client.get_suggestions("zzzzzzz")
         self.assertEqual(results, [])
 
     def test_get_suggestions_429_raises_rate_limit(self):
         from cli_web.amazon.core.client import AmazonClient
+
         resp = MagicMock()
         resp.status_code = 429
         resp.headers = {"retry-after": "30"}
@@ -164,9 +174,11 @@ class TestClientSearch(unittest.TestCase):
 
     def test_search_returns_products(self):
         from cli_web.amazon.core.client import AmazonClient
+
         with AmazonClient() as client:
-            with patch.object(client._client, "get",
-                              return_value=self._mock_html_response(self.SEARCH_HTML)):
+            with patch.object(
+                client._client, "get", return_value=self._mock_html_response(self.SEARCH_HTML)
+            ):
                 results = client.search("laptop")
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0].asin, "B0GRZ78683")
@@ -175,17 +187,21 @@ class TestClientSearch(unittest.TestCase):
 
     def test_search_empty_page(self):
         from cli_web.amazon.core.client import AmazonClient
+
         with AmazonClient() as client:
-            with patch.object(client._client, "get",
-                              return_value=self._mock_html_response("<html></html>")):
+            with patch.object(
+                client._client, "get", return_value=self._mock_html_response("<html></html>")
+            ):
                 results = client.search("xyzabc123")
         self.assertEqual(results, [])
 
     def test_search_url_normalization(self):
         from cli_web.amazon.core.client import AmazonClient
+
         with AmazonClient() as client:
-            with patch.object(client._client, "get",
-                              return_value=self._mock_html_response(self.SEARCH_HTML)):
+            with patch.object(
+                client._client, "get", return_value=self._mock_html_response(self.SEARCH_HTML)
+            ):
                 results = client.search("laptop")
         # URL should start with https://www.amazon.com
         self.assertTrue(results[0].url.startswith("https://www.amazon.com"))
@@ -214,9 +230,11 @@ class TestClientProductDetail(unittest.TestCase):
 
     def test_get_product_parses_all_fields(self):
         from cli_web.amazon.core.client import AmazonClient
+
         with AmazonClient() as client:
-            with patch.object(client._client, "get",
-                              return_value=self._mock_html_response(self.PRODUCT_HTML)):
+            with patch.object(
+                client._client, "get", return_value=self._mock_html_response(self.PRODUCT_HTML)
+            ):
                 product = client.get_product("B0GRZ78683")
 
         self.assertEqual(product.asin, "B0GRZ78683")
@@ -229,9 +247,11 @@ class TestClientProductDetail(unittest.TestCase):
 
     def test_get_product_url(self):
         from cli_web.amazon.core.client import AmazonClient
+
         with AmazonClient() as client:
-            with patch.object(client._client, "get",
-                              return_value=self._mock_html_response(self.PRODUCT_HTML)):
+            with patch.object(
+                client._client, "get", return_value=self._mock_html_response(self.PRODUCT_HTML)
+            ):
                 product = client.get_product("B0GRZ78683")
         self.assertEqual(product.url, "https://www.amazon.com/dp/B0GRZ78683")
 
@@ -268,9 +288,11 @@ class TestClientBestSellers(unittest.TestCase):
 
     def test_get_bestsellers_parses_items(self):
         from cli_web.amazon.core.client import AmazonClient
+
         with AmazonClient() as client:
-            with patch.object(client._client, "get",
-                              return_value=self._mock_html_response(self.BESTSELLERS_HTML)):
+            with patch.object(
+                client._client, "get", return_value=self._mock_html_response(self.BESTSELLERS_HTML)
+            ):
                 items = client.get_bestsellers("electronics")
 
         self.assertEqual(len(items), 2)
@@ -281,9 +303,11 @@ class TestClientBestSellers(unittest.TestCase):
 
     def test_get_bestsellers_rank_order(self):
         from cli_web.amazon.core.client import AmazonClient
+
         with AmazonClient() as client:
-            with patch.object(client._client, "get",
-                              return_value=self._mock_html_response(self.BESTSELLERS_HTML)):
+            with patch.object(
+                client._client, "get", return_value=self._mock_html_response(self.BESTSELLERS_HTML)
+            ):
                 items = client.get_bestsellers("electronics")
         self.assertEqual(items[0].rank, 1)
         self.assertEqual(items[1].rank, 2)
@@ -293,8 +317,8 @@ class TestClientBestSellers(unittest.TestCase):
 # Helpers tests
 # ---------------------------------------------------------------------------
 
-class TestHelpers(unittest.TestCase):
 
+class TestHelpers(unittest.TestCase):
     def test_sanitize_filename_basic(self):
         self.assertEqual(sanitize_filename("my product"), "my product")
 
@@ -315,6 +339,7 @@ class TestHelpers(unittest.TestCase):
 
     def test_handle_errors_json_mode_outputs_json(self):
         from unittest.mock import patch as mock_patch
+
         output = []
         with mock_patch("click.echo", side_effect=output.append):
             try:

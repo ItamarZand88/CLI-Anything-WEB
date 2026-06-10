@@ -1,4 +1,5 @@
 """Main CLI entry point for cli-web-notebooklm."""
+
 import shlex
 import sys
 
@@ -16,16 +17,18 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf8"):
 
 import click
 
+from .commands.artifacts import artifacts
+from .commands.chat import chat
 from .commands.notebooks import notebooks
 from .commands.sources import sources
-from .commands.chat import chat
-from .commands.artifacts import artifacts
 from .core.auth import (
-    login_browser, login_from_cookies_json, get_auth_status,
+    get_auth_status,
+    login_browser,
+    login_from_cookies_json,
 )
 from .core.client import NotebookLMClient
 from .core.exceptions import AuthError, NotebookLMError
-from .utils.output import print_json, print_user, error, handle_error
+from .utils.output import error, handle_error, print_json, print_user
 from .utils.repl_skin import ReplSkin
 
 APP_NAME = "notebooklm"
@@ -35,6 +38,7 @@ _skin = ReplSkin(APP_NAME, version=VERSION)
 
 
 @click.group(invoke_without_command=True)
+@click.version_option("0.1.0", prog_name="cli-web-notebooklm")
 @click.pass_context
 def main(ctx):
     """cli-web-notebooklm — NotebookLM CLI.
@@ -127,6 +131,7 @@ main.add_command(artifacts)
 
 # ── Auth commands ─────────────────────────────────────────────────────────────
 
+
 @main.group()
 def auth():
     """Manage authentication."""
@@ -175,16 +180,26 @@ def auth_refresh():
     If cookies themselves have expired, run 'auth login' instead.
     """
     try:
-        from .core.auth import load_cookies, fetch_tokens, _save_auth
+        from .core.auth import fetch_tokens, load_cookies
+
         cookies = load_cookies()
         csrf, session_id, build_label = fetch_tokens(cookies)
         # Save the refreshed session info
-        from .core.auth import AUTH_DIR
         import json
+
+        from .core.auth import AUTH_DIR
+
         session_file = AUTH_DIR / "session.json"
-        session_file.write_text(json.dumps({
-            "at": csrf, "f_sid": session_id, "bl": build_label,
-        }), encoding="utf-8")
+        session_file.write_text(
+            json.dumps(
+                {
+                    "at": csrf,
+                    "f_sid": session_id,
+                    "bl": build_label,
+                }
+            ),
+            encoding="utf-8",
+        )
         click.echo(f"[OK] Tokens refreshed -- session {session_id[:8]}...")
     except AuthError as e:
         error(f"{e}\n\nTokens AND cookies expired. Run: cli-web-notebooklm auth login")
@@ -192,11 +207,13 @@ def auth_refresh():
 
 # ── Context commands ─────────────────────────────────────────────────────────
 
+
 @main.command("use")
 @click.argument("notebook_id")
 def use_notebook(notebook_id):
     """Set the current notebook context (persists across sessions)."""
     from .utils.helpers import handle_errors, set_context_value
+
     with handle_errors():
         client = NotebookLMClient()
         nb = client.get_notebook(notebook_id)
@@ -204,6 +221,7 @@ def use_notebook(notebook_id):
         set_context_value("notebook_title", nb.title)
         # Also update in-memory session
         from .core.session import get_session
+
         get_session().set_notebook(nb.id, nb.title)
         _skin.success(f"Now using: {nb.display_title()} ({nb.id})")
 
@@ -212,7 +230,8 @@ def use_notebook(notebook_id):
 @click.option("--json", "as_json", is_flag=True, default=False)
 def show_status(as_json):
     """Show current context (selected notebook, auth status)."""
-    from .utils.helpers import handle_errors, get_context_value
+    from .utils.helpers import get_context_value, handle_errors
+
     with handle_errors(json_mode=as_json):
         context = {
             "notebook_id": get_context_value("notebook_id"),
@@ -229,10 +248,13 @@ def show_status(as_json):
             else:
                 click.echo("Notebook: (none selected — use: cli-web-notebooklm use <id>)")
             valid = auth.get("valid", False)
-            click.echo(f"Auth:     {'OK' if valid else 'Not configured'} — {auth.get('message', '')}")
+            click.echo(
+                f"Auth:     {'OK' if valid else 'Not configured'} — {auth.get('message', '')}"
+            )
 
 
 # ── Whoami ────────────────────────────────────────────────────────────────────
+
 
 @main.command("whoami")
 @click.option("--json", "as_json", is_flag=True, default=False)
@@ -242,13 +264,28 @@ def whoami(as_json):
         client = NotebookLMClient()
         user = client.get_user()
         if as_json:
-            print_json({"email": user.email, "display_name": user.display_name, "avatar_url": user.avatar_url})
+            print_json(
+                {
+                    "email": user.email,
+                    "display_name": user.display_name,
+                    "avatar_url": user.avatar_url,
+                }
+            )
         else:
             print_user(user)
     except NotebookLMError as e:
         handle_error(e, as_json)
     except Exception as e:
         handle_error(e, as_json)
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.notebooklm.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.notebooklm.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(main, app_name="notebooklm", version="0.1.0")
+register_doctor_command(main, app_name="notebooklm", pkg="notebooklm")
 
 
 if __name__ == "__main__":

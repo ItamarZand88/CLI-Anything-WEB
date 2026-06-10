@@ -32,12 +32,19 @@ class BotBlockedError(AirbnbError):
 class RateLimitError(AirbnbError):
     """API rate limit exceeded."""
 
-    def __init__(self, message: str = "Rate limit exceeded", retry_after: float | None = None) -> None:
+    def __init__(
+        self, message: str = "Rate limit exceeded", retry_after: float | None = None
+    ) -> None:
         super().__init__(message)
         self.retry_after = retry_after
 
     def to_dict(self) -> dict:
-        return {"error": True, "code": "RATE_LIMITED", "message": str(self), "retry_after": self.retry_after}
+        return {
+            "error": True,
+            "code": "RATE_LIMITED",
+            "message": str(self),
+            "retry_after": self.retry_after,
+        }
 
 
 class NetworkError(AirbnbError):
@@ -55,7 +62,12 @@ class ServerError(AirbnbError):
         self.status_code = status_code
 
     def to_dict(self) -> dict:
-        return {"error": True, "code": "SERVER_ERROR", "message": str(self), "status_code": self.status_code}
+        return {
+            "error": True,
+            "code": "SERVER_ERROR",
+            "message": str(self),
+            "status_code": self.status_code,
+        }
 
 
 class NotFoundError(AirbnbError):

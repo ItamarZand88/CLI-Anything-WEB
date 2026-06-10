@@ -11,14 +11,13 @@ import subprocess
 import sys
 
 import pytest
-
 from cli_web.pexels.core.client import PexelsClient
 from cli_web.pexels.core.exceptions import NotFoundError
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _resolve_cli(name):
     force = os.environ.get("CLI_WEB_FORCE_INSTALLED", "").strip() == "1"
@@ -35,6 +34,7 @@ def _resolve_cli(name):
 # ---------------------------------------------------------------------------
 # Live E2E tests — uses PexelsClient directly
 # ---------------------------------------------------------------------------
+
 
 class TestPexelsLive:
     """Live tests against pexels.com via PexelsClient."""
@@ -108,6 +108,7 @@ class TestPexelsLive:
 # ---------------------------------------------------------------------------
 # Subprocess tests — runs cli-web-pexels as a real process
 # ---------------------------------------------------------------------------
+
 
 class TestCLISubprocess:
     """Subprocess tests that exercise the installed CLI binary."""

@@ -19,14 +19,14 @@ import sys
 def _resolve_cli(name: str) -> list[str]:
     """Resolve CLI command — installed binary first, then Python module fallback."""
     import shutil
+
     # CI override: force installed binary path resolution
     if os.environ.get("CLI_WEB_FORCE_INSTALLED"):
         binary = shutil.which(name)
         if binary:
             return [binary]
         raise RuntimeError(
-            f"CLI_WEB_FORCE_INSTALLED is set but '{name}' not found on PATH. "
-            "Run: pip install -e ."
+            f"CLI_WEB_FORCE_INSTALLED is set but '{name}' not found on PATH. Run: pip install -e ."
         )
     binary = shutil.which(name)
     if binary:
@@ -42,12 +42,16 @@ CLI = _resolve_cli("cli-web-airbnb")
 # search stays
 # ---------------------------------------------------------------------------
 
+
 class TestSearchStays:
     def test_search_returns_listings(self):
         result = subprocess.run(
             CLI + ["search", "stays", "London, UK", "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
@@ -61,11 +65,24 @@ class TestSearchStays:
 
     def test_search_with_dates_and_guests(self):
         result = subprocess.run(
-            CLI + ["search", "stays", "Paris, France",
-                   "--adults", "2", "--checkin", "2025-08-01", "--checkout", "2025-08-05",
-                   "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            CLI
+            + [
+                "search",
+                "stays",
+                "Paris, France",
+                "--adults",
+                "2",
+                "--checkin",
+                "2025-08-01",
+                "--checkout",
+                "2025-08-05",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
@@ -74,8 +91,11 @@ class TestSearchStays:
     def test_search_with_max_price(self):
         result = subprocess.run(
             CLI + ["search", "stays", "Berlin, Germany", "--max-price", "200", "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
@@ -85,8 +105,11 @@ class TestSearchStays:
         # First page
         result1 = subprocess.run(
             CLI + ["search", "stays", "London, UK", "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result1.returncode == 0
         data1 = json.loads(result1.stdout)
@@ -94,22 +117,28 @@ class TestSearchStays:
         if cursor:
             result2 = subprocess.run(
                 CLI + ["search", "stays", "London, UK", "--cursor", cursor, "--json"],
-                capture_output=True, text=True, timeout=60,
-                encoding="utf-8", errors="replace",
+                capture_output=True,
+                text=True,
+                timeout=60,
+                encoding="utf-8",
+                errors="replace",
             )
             assert result2.returncode == 0
             data2 = json.loads(result2.stdout)
             assert data2["success"] is True
             # Second page listings differ from first
-            ids1 = {l["id"] for l in data1["listings"]}
-            ids2 = {l["id"] for l in data2["listings"]}
+            ids1 = {listing["id"] for listing in data1["listings"]}
+            ids2 = {listing["id"] for listing in data2["listings"]}
             assert ids1 != ids2, "Page 2 should differ from page 1"
 
     def test_search_json_structure(self):
         result = subprocess.run(
             CLI + ["search", "stays", "New York, NY, United States", "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -122,8 +151,11 @@ class TestSearchStays:
         """Verify the listing JSON fields are real data, not empty stubs."""
         result = subprocess.run(
             CLI + ["search", "stays", "London, UK", "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -140,13 +172,17 @@ class TestSearchStays:
 # --json flag placement (both group-level and subcommand-level)
 # ---------------------------------------------------------------------------
 
+
 class TestJsonFlagPlacement:
     def test_json_flag_at_group_level_search(self):
         """--json before subcommand returns valid JSON."""
         result = subprocess.run(
             CLI + ["--json", "search", "stays", "London, UK"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
@@ -156,8 +192,11 @@ class TestJsonFlagPlacement:
         """--json after 'stays' subcommand must NOT raise 'No such option'."""
         result = subprocess.run(
             CLI + ["search", "stays", "London, UK", "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, (
             f"--json at end of subcommand failed.\n"
@@ -171,8 +210,11 @@ class TestJsonFlagPlacement:
         """--json at group level works for autocomplete locations."""
         result = subprocess.run(
             CLI + ["--json", "autocomplete", "locations", "Lond"],
-            capture_output=True, text=True, timeout=30,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=30,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
@@ -182,8 +224,11 @@ class TestJsonFlagPlacement:
         """--json at end of autocomplete locations must work."""
         result = subprocess.run(
             CLI + ["autocomplete", "locations", "Lond", "--json"],
-            capture_output=True, text=True, timeout=30,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=30,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, (
             f"--json at end of subcommand failed.\nstderr: {result.stderr}"
@@ -196,12 +241,16 @@ class TestJsonFlagPlacement:
 # listings get
 # ---------------------------------------------------------------------------
 
+
 class TestListingsGet:
     def test_get_listing_returns_name(self):
         result = subprocess.run(
             CLI + ["listings", "get", "1603496841117193305", "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
@@ -212,8 +261,11 @@ class TestListingsGet:
     def test_get_listing_not_found(self):
         result = subprocess.run(
             CLI + ["listings", "get", "99999999999999", "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         # Either a not-found error or a parse error is acceptable
         if result.returncode != 0:
@@ -225,8 +277,11 @@ class TestListingsGet:
         # Step 1: search for listings
         search_result = subprocess.run(
             CLI + ["search", "stays", "London, UK", "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert search_result.returncode == 0
         search_data = json.loads(search_result.stdout)
@@ -236,8 +291,11 @@ class TestListingsGet:
         first_id = search_data["listings"][0]["id"]
         get_result = subprocess.run(
             CLI + ["listings", "get", first_id, "--json"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert get_result.returncode == 0, f"stderr: {get_result.stderr}"
         detail = json.loads(get_result.stdout)
@@ -252,12 +310,16 @@ class TestListingsGet:
 # autocomplete
 # ---------------------------------------------------------------------------
 
+
 class TestAutocomplete:
     def test_locations_returns_suggestions(self):
         result = subprocess.run(
             CLI + ["autocomplete", "locations", "Lond", "--json"],
-            capture_output=True, text=True, timeout=30,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=30,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
@@ -267,8 +329,11 @@ class TestAutocomplete:
     def test_locations_num_results(self):
         result = subprocess.run(
             CLI + ["autocomplete", "locations", "Paris", "--num-results", "3", "--json"],
-            capture_output=True, text=True, timeout=30,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=30,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -278,8 +343,11 @@ class TestAutocomplete:
         """Each suggestion must have query and display fields."""
         result = subprocess.run(
             CLI + ["autocomplete", "locations", "Tokyo", "--json"],
-            capture_output=True, text=True, timeout=30,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=30,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -293,12 +361,16 @@ class TestAutocomplete:
 # CLI help and version
 # ---------------------------------------------------------------------------
 
+
 class TestCliHelp:
     def test_help_loads(self):
         result = subprocess.run(
             CLI + ["--help"],
-            capture_output=True, text=True, timeout=15,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=15,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         assert "search" in result.stdout
@@ -308,8 +380,11 @@ class TestCliHelp:
     def test_search_help(self):
         result = subprocess.run(
             CLI + ["search", "stays", "--help"],
-            capture_output=True, text=True, timeout=15,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=15,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         assert "--checkin" in result.stdout
@@ -318,8 +393,11 @@ class TestCliHelp:
     def test_version(self):
         result = subprocess.run(
             CLI + ["--version"],
-            capture_output=True, text=True, timeout=15,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=15,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         assert "0.1.0" in result.stdout
@@ -327,8 +405,11 @@ class TestCliHelp:
     def test_listings_help(self):
         result = subprocess.run(
             CLI + ["listings", "get", "--help"],
-            capture_output=True, text=True, timeout=15,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=15,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         assert "--json" in result.stdout
@@ -346,8 +427,11 @@ class TestCLISubprocess:
         """The installed CLI binary must be on PATH and exit 0 for --help."""
         result = subprocess.run(
             CLI + ["--help"],
-            capture_output=True, text=True, timeout=15,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=15,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"Binary failed: {result.stderr}"
         assert "cli-web-airbnb" in result.stdout.lower() or "search" in result.stdout
@@ -356,8 +440,11 @@ class TestCLISubprocess:
         """listings reviews subcommand must be registered and return help."""
         result = subprocess.run(
             CLI + ["listings", "reviews", "--help"],
-            capture_output=True, text=True, timeout=15,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=15,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         assert "--limit" in result.stdout
@@ -367,8 +454,11 @@ class TestCLISubprocess:
         """listings availability subcommand must be registered and return help."""
         result = subprocess.run(
             CLI + ["listings", "availability", "--help"],
-            capture_output=True, text=True, timeout=15,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=15,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0
         assert "--month" in result.stdout
@@ -378,8 +468,11 @@ class TestCLISubprocess:
         """listings reviews must return real review data for a known listing."""
         result = subprocess.run(
             CLI + ["--json", "listings", "reviews", "1603496841117193305"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
@@ -394,8 +487,11 @@ class TestCLISubprocess:
         """listings availability must return calendar data for a known listing."""
         result = subprocess.run(
             CLI + ["--json", "listings", "availability", "1603496841117193305"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)

@@ -4,6 +4,7 @@ Uses curl_cffi with Chrome TLS fingerprinting to bypass the AWS CloudFront
 bot protection in front of capitoltrades.com. Falls back to BeautifulSoup for
 HTML parsing and native JSON for the BFF autocomplete endpoint.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -24,10 +25,12 @@ class CapitoltradesClient:
         self._impersonate = impersonate or self.IMPERSONATE
         self._timeout = timeout
         self._session = curl_requests.Session(impersonate=self._impersonate)
-        self._session.headers.update({
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "accept-language": "en-US,en;q=0.9",
-        })
+        self._session.headers.update(
+            {
+                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "accept-language": "en-US,en;q=0.9",
+            }
+        )
 
     def _request(self, method: str, url: str, **kwargs: Any):
         kwargs.setdefault("timeout", self._timeout)
@@ -41,6 +44,7 @@ class CapitoltradesClient:
     def get_html(self, path: str, params: dict | None = None):
         """GET a page on capitoltrades.com and return parsed BeautifulSoup."""
         from bs4 import BeautifulSoup
+
         if not path.startswith("http"):
             path = self.BASE_URL + path
         resp = self._request("GET", path, params=params)

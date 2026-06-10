@@ -1,4 +1,5 @@
 """Config and file management for cli-web-futbin."""
+
 from __future__ import annotations
 
 import json

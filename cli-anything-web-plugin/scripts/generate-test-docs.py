@@ -14,6 +14,7 @@ Usage:
     # Generate full TEST.md (both parts)
     python generate-test-docs.py full <tests-dir> --app-name hackernews
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,10 +25,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
 # AST parsing — extract test classes and methods
 # ---------------------------------------------------------------------------
+
 
 def parse_test_file(path: Path) -> list[dict]:
     """Parse a test file and extract test classes with their methods.
@@ -60,7 +61,8 @@ def parse_test_file(path: Path) -> list[dict]:
             top_funcs.append(node.name)
         elif isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
             methods = [
-                n.name for n in ast.iter_child_nodes(node)
+                n.name
+                for n in ast.iter_child_nodes(node)
                 if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
                 and n.name.startswith("test_")
             ]
@@ -73,19 +75,24 @@ def parse_test_file(path: Path) -> list[dict]:
                 elif "Unit" in node.name:
                     layer = "Unit (mocked)"
 
-                results.append({
-                    "class": node.name,
-                    "methods": methods,
-                    "layer": layer,
-                })
+                results.append(
+                    {
+                        "class": node.name,
+                        "methods": methods,
+                        "layer": layer,
+                    }
+                )
 
     if top_funcs:
         # Prepend module-level functions before classes
-        results.insert(0, {
-            "class": f"(module-level in {filename})",
-            "methods": top_funcs,
-            "layer": default_layer,
-        })
+        results.insert(
+            0,
+            {
+                "class": f"(module-level in {filename})",
+                "methods": top_funcs,
+                "layer": default_layer,
+            },
+        )
 
     return results
 
@@ -93,6 +100,7 @@ def parse_test_file(path: Path) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Part 1: Test Plan
 # ---------------------------------------------------------------------------
+
 
 def generate_plan(tests_dir: Path, app_name: str) -> str:
     """Generate TEST.md Part 1 from test files."""
@@ -153,6 +161,7 @@ def generate_plan(tests_dir: Path, app_name: str) -> str:
 # Part 2: Test Results
 # ---------------------------------------------------------------------------
 
+
 def generate_results(tests_dir: Path, app_name: str) -> str:
     """Run pytest and generate TEST.md Part 2."""
     lines = [
@@ -174,9 +183,13 @@ def generate_results(tests_dir: Path, app_name: str) -> str:
 
     # Run pytest
     cmd = [
-        sys.executable, "-m", "pytest",
+        sys.executable,
+        "-m",
+        "pytest",
         str(tests_dir),
-        "-v", "--tb=short", "-q",
+        "-v",
+        "--tb=short",
+        "-q",
     ]
 
     try:
@@ -206,7 +219,7 @@ def generate_results(tests_dir: Path, app_name: str) -> str:
     time_match = re.search(r"in ([\d.]+)s", output)
     elapsed = time_match.group(1) + "s" if time_match else "N/A"
 
-    pass_rate = f"{passed}/{total} ({passed/total*100:.0f}%)" if total > 0 else "N/A"
+    pass_rate = f"{passed}/{total} ({passed / total * 100:.0f}%)" if total > 0 else "N/A"
 
     lines.append("### Summary\n")
     lines.append("| Metric | Value |")
@@ -234,6 +247,7 @@ def generate_results(tests_dir: Path, app_name: str) -> str:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main():
     parser = argparse.ArgumentParser(description="Generate TEST.md for cli-web-* CLI.")
     parser.add_argument(
@@ -244,7 +258,10 @@ def main():
     parser.add_argument("tests_dir", type=Path, help="Path to tests/ directory")
     parser.add_argument("--app-name", required=True, help="CLI app name")
     parser.add_argument(
-        "--output", "-o", type=Path, default=None,
+        "--output",
+        "-o",
+        type=Path,
+        default=None,
         help="Output file path (default: <tests-dir>/TEST.md)",
     )
 

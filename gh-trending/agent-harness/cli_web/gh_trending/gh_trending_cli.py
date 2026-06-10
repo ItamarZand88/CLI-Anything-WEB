@@ -9,11 +9,15 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except AttributeError:
         pass
+if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf8"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass
 
 import shlex
 
 import click
-
 from cli_web.gh_trending.commands.developers import developers_group
 from cli_web.gh_trending.commands.repos import repos_group
 from cli_web.gh_trending.core.exceptions import AppError
@@ -112,6 +116,15 @@ def _run_repl(ctx: click.Context) -> None:
 
 def main():
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.gh_trending.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.gh_trending.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="gh-trending", version="0.1.0")
+register_doctor_command(cli, app_name="gh-trending", pkg="gh_trending")
 
 
 if __name__ == "__main__":

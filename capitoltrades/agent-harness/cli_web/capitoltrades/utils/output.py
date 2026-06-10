@@ -1,4 +1,5 @@
 """Structured JSON output helpers for cli-web-capitoltrades."""
+
 from __future__ import annotations
 
 import json

@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
-
 from cli_web.hackernews.core.client import HackerNewsClient
 from cli_web.hackernews.core.exceptions import (
     AppError,
@@ -17,7 +16,6 @@ from cli_web.hackernews.core.exceptions import (
     ServerError,
 )
 from cli_web.hackernews.core.models import Comment, SearchResult, Story, User
-
 
 # ─── Model tests ─────────────────────────────────────────────────────────────
 
@@ -106,9 +104,7 @@ class TestClientHTTPErrors:
     def test_rate_limit_raises(self):
         client = HackerNewsClient()
         client._client = MagicMock()
-        client._client.get.return_value = self._mock_response(
-            429, headers={"retry-after": "30"}
-        )
+        client._client.get.return_value = self._mock_response(429, headers={"retry-after": "30"})
         with pytest.raises(RateLimitError) as exc_info:
             client._get_json("https://hacker-news.firebaseio.com/v0/topstories.json")
         assert exc_info.value.retry_after == 30
@@ -275,16 +271,20 @@ class TestAuthModule:
             client._extract_auth_token(html, 99999)
 
     def test_parse_stories_from_html_extracts_ids(self):
-        html = '''
+        html = """
         <tr class="athing submission" id="12345"><td></td></tr>
         <tr class="athing submission" id="67890"><td></td></tr>
-        '''
+        """
         client = HackerNewsClient(user_cookie="test")
         # Mock _fetch_items_parallel to return stories based on IDs
-        with patch.object(client, "_fetch_items_parallel", return_value=[
-            Story(id=12345, title="Story 1"),
-            Story(id=67890, title="Story 2"),
-        ]):
+        with patch.object(
+            client,
+            "_fetch_items_parallel",
+            return_value=[
+                Story(id=12345, title="Story 1"),
+                Story(id=67890, title="Story 2"),
+            ],
+        ):
             stories = client._parse_stories_from_html(html)
             assert len(stories) == 2
 
@@ -294,5 +294,72 @@ class TestAuthModule:
         resp.status_code = 403
         client._web_client = MagicMock()
         client._web_client.request.return_value = resp
-        with pytest.raises(AuthError):
-            client._get_html("https://news.ycombinator.com/item?id=1")
+        with (
+            patch(
+                "cli_web.hackernews.core.client.load_auth",
+                side_effect=AuthError("not logged in"),
+            ),
+            patch(
+                "cli_web.hackernews.core.client.refresh_auth",
+                side_effect=AuthError("session expired"),
+            ),
+        ):
+            with pytest.raises(AuthError):
+                client._get_html("https://news.ycombinator.com/item?id=1")
+
+
+# ─── Auth retry tests (3-attempt contract, CONVENTIONS.md §Auth Rules) ───────
+
+
+class TestAuthRetry:
+    """401/403 → reload auth.json → headless refresh_auth() → AuthError. Never >3."""
+
+    def _response(self, status_code: int) -> MagicMock:
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.text = "<html></html>"
+        return resp
+
+    def test_three_attempts_then_auth_error(self):
+        client = HackerNewsClient(user_cookie="alice&stale")
+        client._web_client = MagicMock()
+        client._web_client.request.return_value = self._response(403)
+
+        with (
+            patch(
+                "cli_web.hackernews.core.client.load_auth",
+                return_value={"user_cookie": "alice&disk", "username": "alice"},
+            ) as mock_load,
+            patch(
+                "cli_web.hackernews.core.client.refresh_auth",
+                return_value={"user_cookie": "alice&fresh", "username": "alice"},
+            ) as mock_refresh,
+        ):
+            with pytest.raises(AuthError):
+                client._web_request("GET", "https://news.ycombinator.com/submit")
+
+        assert client._web_client.request.call_count == 3
+        assert mock_load.call_count == 1
+        assert mock_refresh.call_count == 1
+
+    def test_success_after_disk_reload_stops_retrying(self):
+        client = HackerNewsClient(user_cookie="alice&stale")
+        client._web_client = MagicMock()
+        client._web_client.request.side_effect = [
+            self._response(403),
+            self._response(200),
+        ]
+
+        with (
+            patch(
+                "cli_web.hackernews.core.client.load_auth",
+                return_value={"user_cookie": "alice&disk", "username": "alice"},
+            ),
+            patch("cli_web.hackernews.core.client.refresh_auth") as mock_refresh,
+        ):
+            response = client._web_request("GET", "https://news.ycombinator.com/submit")
+
+        assert response.status_code == 200
+        assert client._web_client.request.call_count == 2
+        mock_refresh.assert_not_called()
+        assert client._user_cookie == "alice&disk"

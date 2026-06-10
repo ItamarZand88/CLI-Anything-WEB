@@ -3,6 +3,20 @@
 Eval commands for identifying SSR frameworks, SPA roots, and client-side state.
 Every command uses `npx @playwright/cli@latest -s=<app> eval`.
 
+## Contents
+
+- All-in-One Site Fingerprint (RECOMMENDED)
+- 1. Next.js Pages Router
+- 2. Next.js App Router
+- 3. Nuxt 2 / Nuxt 3
+- 4. Remix
+- 5. SvelteKit
+- 6. Gatsby
+- 7. Google batchexecute
+- 8. Generic SPA Root
+- 9. Redux / Vuex / Preloaded State
+- Force SPA Navigation Trick
+
 ---
 
 > **WARNING: `eval` Serialization Failures**

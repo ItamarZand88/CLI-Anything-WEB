@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import click
-
 from cli_web.hackernews.core import auth
 from cli_web.hackernews.core.client import HackerNewsClient
 from cli_web.hackernews.utils.helpers import handle_errors, resolve_json_mode
-from cli_web.hackernews.utils.output import print_comments_list, print_json, print_stories_table, print_user_profile
+from cli_web.hackernews.utils.output import (
+    print_comments_list,
+    print_json,
+    print_stories_table,
+    print_user_profile,
+)
 
 
 @click.group("user")

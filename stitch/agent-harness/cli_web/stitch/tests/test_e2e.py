@@ -10,20 +10,20 @@ Run:
     python -m pytest cli_web/stitch/tests/test_e2e.py -v -s -m e2e       # E2E only
     python -m pytest cli_web/stitch/tests/test_e2e.py -v -s -m subprocess # subprocess only
 """
+
 import json
 import os
 import subprocess
 import time
 
 import pytest
-
 from cli_web.stitch.core.auth import get_auth_status
 from cli_web.stitch.core.client import StitchClient
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _resolve_cli(name: str) -> list[str]:
     """Find the installed CLI command."""
@@ -45,6 +45,7 @@ def _find_ready_project(client: StitchClient) -> str:
 # E2E Live Tests (real API calls)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.e2e
 class TestE2E:
     """Live tests against the Stitch batchexecute API."""
@@ -58,8 +59,10 @@ class TestE2E:
                 f"Run: cli-web-stitch auth login. "
                 f"Error: {status.get('message')}"
             )
-        print(f"[verify] Auth OK -- {status.get('cookie_count')} cookies, "
-              f"session {status.get('session_id')}")
+        print(
+            f"[verify] Auth OK -- {status.get('cookie_count')} cookies, "
+            f"session {status.get('session_id')}"
+        )
 
     def test_list_projects(self):
         """List projects returns at least one project with valid fields."""
@@ -70,8 +73,7 @@ class TestE2E:
         p = projects[0]
         assert p.id
         assert p.resource_name.startswith("projects/")
-        print(f"[verify] Found {len(projects)} projects, "
-              f"first: id={p.id} title={p.title}")
+        print(f"[verify] Found {len(projects)} projects, first: id={p.id} title={p.title}")
 
     def test_get_project(self):
         """Get a specific project by ID."""
@@ -93,8 +95,7 @@ class TestE2E:
         s = screens[0]
         assert s.id
         assert s.name
-        print(f"[verify] Found {len(screens)} screens, "
-              f"first: id={s.id} name={s.name}")
+        print(f"[verify] Found {len(screens)} screens, first: id={s.id} name={s.name}")
 
     def test_design_history(self):
         """List generation sessions for a project."""
@@ -106,8 +107,7 @@ class TestE2E:
         if sessions:
             s = sessions[0]
             assert s.resource_name
-            print(f"[verify] Found {len(sessions)} sessions, "
-                  f"first prompt: {s.prompt[:50]}")
+            print(f"[verify] Found {len(sessions)} sessions, first prompt: {s.prompt[:50]}")
         else:
             print(f"[verify] No sessions in project {pid} (OK)")
 
@@ -149,6 +149,7 @@ class TestE2E:
 # Subprocess Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.subprocess
 class TestCLISubprocess:
     """Test the installed CLI binary via subprocess."""
@@ -163,9 +164,7 @@ class TestCLISubprocess:
             errors="replace",
             timeout=15,
         )
-        assert result.returncode == 0, (
-            f"--help failed (rc={result.returncode}): {result.stderr}"
-        )
+        assert result.returncode == 0, f"--help failed (rc={result.returncode}): {result.stderr}"
         out = result.stdout.lower()
         assert "stitch" in out, f"'stitch' not in --help output: {result.stdout[:300]}"
 
@@ -216,8 +215,13 @@ class TestCLISubprocess:
             pytest.skip("No ready project to test screens list")
 
         result = subprocess.run(
-            _resolve_cli("cli-web-stitch") + [
-                "screens", "list", "--project", pid, "--json",
+            _resolve_cli("cli-web-stitch")
+            + [
+                "screens",
+                "list",
+                "--project",
+                pid,
+                "--json",
             ],
             capture_output=True,
             text=True,

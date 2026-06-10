@@ -1,8 +1,8 @@
 """Market analysis utilities — price trend computation, signals, value metrics."""
+
 from __future__ import annotations
 
 import statistics
-from typing import Optional
 
 
 def compute_price_analysis(prices: list[list], current_price: int) -> dict:
@@ -41,7 +41,9 @@ def compute_price_analysis(prices: list[list], current_price: int) -> dict:
     trend_30d = ((recent_30[-1] - recent_30[0]) / recent_30[0] * 100) if recent_30[0] > 0 else 0
 
     # Volatility (coefficient of variation of 30d prices)
-    volatility = (statistics.stdev(recent_30) / avg_30d * 100) if len(recent_30) > 1 and avg_30d > 0 else 0
+    volatility = (
+        (statistics.stdev(recent_30) / avg_30d * 100) if len(recent_30) > 1 and avg_30d > 0 else 0
+    )
 
     # Signal
     signal = "HOLD"
@@ -64,7 +66,7 @@ def compute_price_analysis(prices: list[list], current_price: int) -> dict:
     }
 
 
-def compute_platform_gap(ps_price: Optional[int], pc_price: Optional[int]) -> dict:
+def compute_platform_gap(ps_price: int | None, pc_price: int | None) -> dict:
     """Compute cross-platform price gap."""
     if not ps_price or not pc_price or ps_price <= 0 or pc_price <= 0:
         return {"gap_pct": 0, "gap_coins": 0, "cheaper_on": "unknown"}
@@ -80,7 +82,7 @@ def compute_platform_gap(ps_price: Optional[int], pc_price: Optional[int]) -> di
     }
 
 
-def compute_value_score(stats: dict, price: Optional[int]) -> Optional[float]:
+def compute_value_score(stats: dict, price: int | None) -> float | None:
     """Compute value score: total_stats / (price / 1000). Higher = better value."""
     if not stats or not price or price <= 0:
         return None
@@ -97,7 +99,7 @@ def compute_total_stats(stats: dict) -> int:
     return sum(v for v in stats.values() if isinstance(v, (int, float)))
 
 
-def compute_coins_per_stat(total_stats: int, price: Optional[int]) -> Optional[float]:
+def compute_coins_per_stat(total_stats: int, price: int | None) -> float | None:
     """Compute coins per stat point. Lower = better value."""
     if not total_stats or not price or price <= 0:
         return None

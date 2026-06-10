@@ -10,6 +10,7 @@ Usage:
     python smoke-test.py cli-web-hackernews --auth-type cookie --skip-auth
     python smoke-test.py cli-web-hackernews --json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,7 +19,6 @@ import re
 import shutil
 import subprocess
 import sys
-
 
 # Protocol leak patterns (from standards/SKILL.md)
 LEAK_PATTERNS = [
@@ -77,11 +77,13 @@ class SmokeTest:
         self.cli_cmd: list[str] = []
 
     def _record(self, name: str, passed: bool, detail: str = ""):
-        self.results.append({
-            "name": name,
-            "status": "pass" if passed else "fail",
-            "detail": detail,
-        })
+        self.results.append(
+            {
+                "name": name,
+                "status": "pass" if passed else "fail",
+                "detail": detail,
+            }
+        )
 
     def resolve_cli(self) -> bool:
         """Find the CLI binary."""
@@ -211,7 +213,7 @@ class SmokeTest:
     def print_summary(self) -> int:
         """Print colored summary. Returns number of failures."""
         print(f"\nSmoke Test: {self.cli_name}")
-        print(f"{'='*50}")
+        print(f"{'=' * 50}")
 
         failures = 0
         for r in self.results:
@@ -240,23 +242,25 @@ class SmokeTest:
     def to_json(self) -> str:
         passed = sum(1 for r in self.results if r["status"] == "pass")
         failed = sum(1 for r in self.results if r["status"] == "fail")
-        return json.dumps({
-            "cli_name": self.cli_name,
-            "passed": passed,
-            "failed": failed,
-            "results": self.results,
-        }, indent=2)
+        return json.dumps(
+            {
+                "cli_name": self.cli_name,
+                "passed": passed,
+                "failed": failed,
+                "results": self.results,
+            },
+            indent=2,
+        )
 
 
 def main():
     parser = argparse.ArgumentParser(description="Smoke test a cli-web-* CLI.")
     parser.add_argument("cli_name", help="CLI command name (e.g., cli-web-hackernews)")
-    parser.add_argument("--auth-type", default="cookie",
-                        choices=["none", "cookie", "api-key", "google-sso"])
-    parser.add_argument("--skip-auth", action="store_true",
-                        help="Skip auth-related checks")
-    parser.add_argument("--json", dest="json_mode", action="store_true",
-                        help="Output as JSON")
+    parser.add_argument(
+        "--auth-type", default="cookie", choices=["none", "cookie", "api-key", "google-sso"]
+    )
+    parser.add_argument("--skip-auth", action="store_true", help="Skip auth-related checks")
+    parser.add_argument("--json", dest="json_mode", action="store_true", help="Output as JSON")
 
     args = parser.parse_args()
 

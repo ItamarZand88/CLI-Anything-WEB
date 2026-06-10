@@ -7,13 +7,18 @@ try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except AttributeError:
     pass
+try:
+    if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf8"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except AttributeError:
+    pass
 
 import atexit
 import shlex
 
 import click
 
-from .commands.search import search_group, close_client
+from .commands.search import close_client, search_group
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin(app="gai", version="0.1.0")
@@ -131,6 +136,16 @@ def main():
         cli()
     finally:
         close_client()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.gai import __version__ as _pkg_version  # noqa: E402
+from cli_web.gai.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.gai.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="gai", version=_pkg_version)
+register_doctor_command(cli, app_name="gai", pkg="gai")
 
 
 if __name__ == "__main__":

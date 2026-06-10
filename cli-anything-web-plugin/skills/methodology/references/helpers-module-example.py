@@ -10,6 +10,7 @@ Every generated CLI should have utils/helpers.py with these utilities:
 
 These eliminate boilerplate across all command files.
 """
+
 import json
 import sys
 from contextlib import contextmanager
@@ -18,10 +19,10 @@ from typing import Any
 
 import click
 
-
 # ---------------------------------------------------------------------------
 # Partial ID resolution
 # ---------------------------------------------------------------------------
+
 
 def resolve_partial_id(partial, items, id_attr="id", label_attr="title", kind="item"):
     """Resolve a partial ID prefix to a full item.
@@ -49,12 +50,15 @@ def resolve_partial_id(partial, items, id_attr="id", label_attr="title", kind="i
         raise click.BadParameter(f"No {kind} matching '{partial}'")
 
     lines = [f"  {getattr(m, id_attr)[:16]}...  {getattr(m, label_attr, '')}" for m in matches[:5]]
-    raise click.BadParameter(f"Ambiguous: '{partial}' matches {len(matches)} {kind}s:\n" + "\n".join(lines))
+    raise click.BadParameter(
+        f"Ambiguous: '{partial}' matches {len(matches)} {kind}s:\n" + "\n".join(lines)
+    )
 
 
 # ---------------------------------------------------------------------------
 # Error handler context manager
 # ---------------------------------------------------------------------------
+
 
 @contextmanager
 def handle_errors(json_mode=False):
@@ -117,6 +121,7 @@ def _error_code_for(exc):
 # In practice, derive from a constant: APP_NAME = "notebooklm"
 CONTEXT_FILE = Path.home() / ".config" / "cli-web-<app>" / "context.json"
 
+
 def get_context_value(key):
     """Get a value from persistent context.json."""
     try:
@@ -125,6 +130,7 @@ def get_context_value(key):
     except (json.JSONDecodeError, OSError):
         pass
     return None
+
 
 def set_context_value(key, value):
     """Set a value in persistent context.json."""
@@ -137,6 +143,7 @@ def set_context_value(key, value):
     ctx[key] = value
     CONTEXT_FILE.parent.mkdir(parents=True, exist_ok=True)
     CONTEXT_FILE.write_text(json.dumps(ctx, indent=2), encoding="utf-8")
+
 
 # Rename to match your app's primary entity (e.g., require_project, require_workspace)
 def require_notebook(notebook_arg):
@@ -158,6 +165,7 @@ def require_notebook(notebook_arg):
 
 _INVALID = set('/\\:*?"<>|')
 
+
 def sanitize_filename(name, max_length=240):
     """Convert a title to a safe filename."""
     if not name or not name.strip():
@@ -170,6 +178,7 @@ def sanitize_filename(name, max_length=240):
 # Retry on rate limit
 # ---------------------------------------------------------------------------
 
+
 def retry_on_rate_limit(fn, max_retries=3):
     """Retry a function on RateLimitError with exponential backoff.
 
@@ -180,6 +189,7 @@ def retry_on_rate_limit(fn, max_retries=3):
         )
     """
     import time
+
     # Import your app's RateLimitError for explicit type checking
     # from .core.exceptions import RateLimitError
     for attempt in range(max_retries + 1):
@@ -189,15 +199,16 @@ def retry_on_rate_limit(fn, max_retries=3):
             # Prefer isinstance(e, RateLimitError) when your exception hierarchy is available.
             # This fallback uses duck-typing for portability across apps.
             is_rate_limit = (
-                hasattr(e, 'retry_after')
-                or 'rate limit' in str(e).lower()
-                or '429' in str(e)
+                hasattr(e, "retry_after") or "rate limit" in str(e).lower() or "429" in str(e)
             )
             if not is_rate_limit:
                 raise
             if attempt == max_retries:
                 raise
-            delay = getattr(e, 'retry_after', None) or (60 * (2 ** attempt))
+            delay = getattr(e, "retry_after", None) or (60 * (2**attempt))
             delay = min(delay, 300)
-            click.echo(f"  Rate limited. Retrying in {delay:.0f}s ({attempt+1}/{max_retries})...", err=True)
+            click.echo(
+                f"  Rate limited. Retrying in {delay:.0f}s ({attempt + 1}/{max_retries})...",
+                err=True,
+            )
             time.sleep(delay)

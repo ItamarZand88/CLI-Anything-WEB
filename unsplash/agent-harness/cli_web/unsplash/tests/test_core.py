@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import json
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from cli_web.unsplash.core.client import UnsplashClient
 from cli_web.unsplash.core.exceptions import (
     NetworkError,
@@ -25,8 +23,8 @@ from cli_web.unsplash.core.models import (
 )
 from cli_web.unsplash.utils.helpers import handle_errors, json_error, truncate
 
-
 # ── Exception hierarchy tests ────────────────────────────────────
+
 
 class TestExceptionHierarchy:
     def test_all_inherit_from_base(self):
@@ -46,6 +44,7 @@ class TestExceptionHierarchy:
 
 
 # ── Client HTTP error mapping tests ─────────────────────────────
+
 
 class TestClientErrorMapping:
     def _mock_response(self, status_code, json_data=None, text="", headers=None):
@@ -71,9 +70,7 @@ class TestClientErrorMapping:
     def test_429_raises_rate_limit(self, mock_session_cls):
         mock_session = MagicMock()
         mock_session_cls.return_value = mock_session
-        mock_session.get.return_value = self._mock_response(
-            429, headers={"retry-after": "30"}
-        )
+        mock_session.get.return_value = self._mock_response(429, headers={"retry-after": "30"})
 
         client = UnsplashClient()
         with pytest.raises(RateLimitError) as exc_info:
@@ -124,6 +121,7 @@ class TestClientErrorMapping:
 
 
 # ── Client method parameter tests ────────────────────────────────
+
 
 class TestClientMethods:
     @patch("cli_web.unsplash.core.client.curl_requests.Session")
@@ -187,6 +185,7 @@ class TestClientMethods:
 
 # ── Model formatting tests ───────────────────────────────────────
 
+
 class TestModels:
     SAMPLE_PHOTO = {
         "id": "abc123",
@@ -203,8 +202,20 @@ class TestModels:
         "premium": False,
         "user": {"id": "u1", "username": "photographer", "name": "Photo Grapher"},
         "urls": {"raw": "https://raw", "regular": "https://regular"},
-        "exif": {"make": "Canon", "model": "EOS R5", "aperture": "2.8", "exposure_time": "1/500", "focal_length": "50", "iso": 200},
-        "location": {"name": "Malibu, CA", "city": "Malibu", "country": "USA", "position": {"latitude": 34.03, "longitude": -118.68}},
+        "exif": {
+            "make": "Canon",
+            "model": "EOS R5",
+            "aperture": "2.8",
+            "exposure_time": "1/500",
+            "focal_length": "50",
+            "iso": 200,
+        },
+        "location": {
+            "name": "Malibu, CA",
+            "city": "Malibu",
+            "country": "USA",
+            "position": {"latitude": 34.03, "longitude": -118.68},
+        },
         "tags": [{"title": "sunset"}, {"title": "ocean"}, {"title": "sky"}],
     }
 
@@ -233,8 +244,12 @@ class TestModels:
 
     def test_format_user_summary(self):
         user = {
-            "username": "jdoe", "name": "John Doe", "bio": "Photographer",
-            "location": "NYC", "total_photos": 100, "total_likes": 500,
+            "username": "jdoe",
+            "name": "John Doe",
+            "bio": "Photographer",
+            "location": "NYC",
+            "total_photos": 100,
+            "total_likes": 500,
             "total_collections": 10,
         }
         result = format_user_summary(user)
@@ -244,8 +259,11 @@ class TestModels:
 
     def test_format_collection_summary(self):
         coll = {
-            "id": 42, "title": "Nature", "description": "Nature photos",
-            "total_photos": 250, "user": {"name": "Jane", "username": "jane"},
+            "id": 42,
+            "title": "Nature",
+            "description": "Nature photos",
+            "total_photos": 250,
+            "user": {"name": "Jane", "username": "jane"},
         }
         result = format_collection_summary(coll)
         assert result["id"] == 42
@@ -254,8 +272,11 @@ class TestModels:
 
     def test_format_topic_summary(self):
         topic = {
-            "slug": "nature", "title": "Nature", "description": "A topic",
-            "total_photos": 5000, "featured": True,
+            "slug": "nature",
+            "title": "Nature",
+            "description": "A topic",
+            "total_photos": 5000,
+            "featured": True,
         }
         result = format_topic_summary(topic)
         assert result["slug"] == "nature"
@@ -264,6 +285,7 @@ class TestModels:
 
 
 # ── Helper function tests ────────────────────────────────────────
+
 
 class TestHelpers:
     def test_json_error_format(self):
@@ -321,20 +343,24 @@ class TestHelpers:
 
 # ── CLI Click integration tests ──────────────────────────────────
 
+
 class TestCLIClick:
     @pytest.fixture
     def runner(self):
         from click.testing import CliRunner
+
         return CliRunner()
 
     def test_version_flag(self, runner):
         from cli_web.unsplash.unsplash_cli import cli
+
         result = runner.invoke(cli, ["--version"])
         assert result.exit_code == 0
         assert "0.1.0" in result.output
 
     def test_help_flag(self, runner):
         from cli_web.unsplash.unsplash_cli import cli
+
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
         assert "photos" in result.output
@@ -345,12 +371,25 @@ class TestCLIClick:
     def test_photos_search_json(self, runner):
         from cli_web.unsplash.unsplash_cli import cli
 
-        mock_data = {"total": 1, "total_pages": 1, "results": [{
-            "id": "x1", "slug": "test-x1", "width": 100, "height": 100,
-            "alt_description": "test", "description": None, "likes": 5,
-            "color": "#000", "premium": False, "user": {"name": "A", "username": "a"},
-            "urls": {"regular": "https://img"},
-        }]}
+        mock_data = {
+            "total": 1,
+            "total_pages": 1,
+            "results": [
+                {
+                    "id": "x1",
+                    "slug": "test-x1",
+                    "width": 100,
+                    "height": 100,
+                    "alt_description": "test",
+                    "description": None,
+                    "likes": 5,
+                    "color": "#000",
+                    "premium": False,
+                    "user": {"name": "A", "username": "a"},
+                    "urls": {"regular": "https://img"},
+                }
+            ],
+        }
         with patch("cli_web.unsplash.commands.photos.UnsplashClient") as MockClient:
             MockClient.return_value.search_photos.return_value = mock_data
             result = runner.invoke(cli, ["photos", "search", "test", "--json"])
@@ -364,11 +403,23 @@ class TestCLIClick:
         from cli_web.unsplash.unsplash_cli import cli
 
         mock_photo = {
-            "id": "abc", "slug": "test-abc", "width": 800, "height": 600,
-            "description": "test", "alt_description": "alt test", "likes": 10,
-            "views": 100, "downloads": 50, "created_at": "2024-01-01T00:00:00Z",
-            "color": "#fff", "premium": False, "user": {"username": "u", "name": "U"},
-            "urls": {}, "exif": {}, "location": {}, "tags": [],
+            "id": "abc",
+            "slug": "test-abc",
+            "width": 800,
+            "height": 600,
+            "description": "test",
+            "alt_description": "alt test",
+            "likes": 10,
+            "views": 100,
+            "downloads": 50,
+            "created_at": "2024-01-01T00:00:00Z",
+            "color": "#fff",
+            "premium": False,
+            "user": {"username": "u", "name": "U"},
+            "urls": {},
+            "exif": {},
+            "location": {},
+            "tags": [],
         }
         with patch("cli_web.unsplash.commands.photos.UnsplashClient") as MockClient:
             MockClient.return_value.get_photo.return_value = mock_photo
@@ -382,7 +433,13 @@ class TestCLIClick:
         from cli_web.unsplash.unsplash_cli import cli
 
         mock_topics = [
-            {"slug": "nature", "title": "Nature", "description": "", "total_photos": 5000, "featured": True},
+            {
+                "slug": "nature",
+                "title": "Nature",
+                "description": "",
+                "total_photos": 5000,
+                "featured": True,
+            },
         ]
         with patch("cli_web.unsplash.commands.topics.UnsplashClient") as MockClient:
             MockClient.return_value.list_topics.return_value = mock_topics

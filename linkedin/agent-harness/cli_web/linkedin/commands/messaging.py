@@ -1,4 +1,5 @@
 """Messaging commands for cli-web-linkedin."""
+
 from __future__ import annotations
 
 import click
@@ -30,7 +31,7 @@ def list_conversations(ctx, limit, json_mode):
 
         # Extract conversations from GraphQL response
         gql_data = data.get("data", {})
-        for key, val in gql_data.items():
+        for _key, val in gql_data.items():
             if isinstance(val, dict) and "elements" in val:
                 elements = val["elements"]
                 if not elements:
@@ -80,7 +81,7 @@ def read_messages(ctx, conversation_urn, limit, json_mode):
 
         # Extract messages from GraphQL response
         gql_data = data.get("data", {})
-        for key, val in gql_data.items():
+        for _key, val in gql_data.items():
             if isinstance(val, dict) and "elements" in val:
                 elements = val["elements"]
                 if not elements:

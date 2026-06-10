@@ -3,31 +3,31 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 
 @dataclass
 class Listing:
     """An Airbnb stay listing (search result or detail)."""
+
     id: str
     id_b64: str
     name: str
     url: str
-    rating: Optional[str] = None
-    price: Optional[str] = None
-    price_qualifier: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    rating: str | None = None
+    price: str | None = None
+    price_qualifier: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     badges: list = field(default_factory=list)
-    room_type: Optional[str] = None
-    location: Optional[str] = None
-    review_count: Optional[int] = None
-    host_name: Optional[str] = None
-    description: Optional[str] = None
+    room_type: str | None = None
+    location: str | None = None
+    review_count: int | None = None
+    host_name: str | None = None
+    description: str | None = None
     amenities: list = field(default_factory=list)
-    bedrooms: Optional[int] = None
-    bathrooms: Optional[float] = None
-    max_guests: Optional[int] = None
+    bedrooms: int | None = None
+    bathrooms: float | None = None
+    max_guests: int | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -56,13 +56,14 @@ class Listing:
 @dataclass
 class Review:
     """A single Airbnb guest review."""
+
     id: str
-    rating: Optional[int] = None
-    date: Optional[str] = None
-    reviewer: Optional[str] = None
-    reviewer_location: Optional[str] = None
-    comment: Optional[str] = None
-    host_response: Optional[str] = None
+    rating: int | None = None
+    date: str | None = None
+    reviewer: str | None = None
+    reviewer_location: str | None = None
+    comment: str | None = None
+    host_response: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -79,14 +80,15 @@ class Review:
 @dataclass
 class AvailabilityDay:
     """A single day in an Airbnb availability calendar."""
+
     date: str
     available: bool = False
     checkin: bool = False
     checkout: bool = False
     bookable: bool = False
-    min_nights: Optional[int] = None
-    max_nights: Optional[int] = None
-    price: Optional[str] = None
+    min_nights: int | None = None
+    max_nights: int | None = None
+    price: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -104,9 +106,10 @@ class AvailabilityDay:
 @dataclass
 class AvailabilityMonth:
     """A single month in an Airbnb availability calendar."""
+
     month: int
     year: int
-    days: List[AvailabilityDay] = field(default_factory=list)
+    days: list[AvailabilityDay] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -119,10 +122,11 @@ class AvailabilityMonth:
 @dataclass
 class LocationSuggestion:
     """An autocomplete location suggestion."""
+
     query: str
-    place_id: Optional[str] = None
-    display: Optional[str] = None
-    acp_id: Optional[str] = None
+    place_id: str | None = None
+    display: str | None = None
+    acp_id: str | None = None
 
     def to_dict(self) -> dict:
         return {

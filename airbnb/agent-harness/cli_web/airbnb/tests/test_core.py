@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import base64
 import json
-import sys
-import pytest
-
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import click
-from click.testing import CliRunner
-
+import pytest
+from cli_web.airbnb.core.client import (
+    _decode_listing_id,
+    _encode_listing_id,
+    _extract_niobe_data,
+    _location_to_slug,
+    _parse_search_listing,
+)
 from cli_web.airbnb.core.exceptions import (
     AirbnbError,
     AuthError,
@@ -23,25 +26,18 @@ from cli_web.airbnb.core.exceptions import (
     ServerError,
 )
 from cli_web.airbnb.core.models import Listing, LocationSuggestion
-from cli_web.airbnb.core.client import (
-    _decode_listing_id,
-    _encode_listing_id,
-    _location_to_slug,
-    _extract_niobe_data,
-    _parse_search_listing,
-)
 from cli_web.airbnb.utils.helpers import (
     handle_errors,
     json_error,
     resolve_json_mode,
-    print_json,
     truncate,
 )
-
+from click.testing import CliRunner
 
 # ---------------------------------------------------------------------------
 # Exception hierarchy
 # ---------------------------------------------------------------------------
+
 
 def test_airbnb_error_is_exception():
     err = AirbnbError("test")
@@ -83,6 +79,7 @@ def test_exception_hierarchy():
 # Listing ID encode/decode
 # ---------------------------------------------------------------------------
 
+
 def test_decode_listing_id_roundtrip():
     """Decoded b64 ID matches the original integer string."""
     original = "770993223449115417"
@@ -115,6 +112,7 @@ def test_decode_invalid_id_passthrough():
 # ---------------------------------------------------------------------------
 # Location slug
 # ---------------------------------------------------------------------------
+
 
 def test_location_to_slug_simple():
     assert _location_to_slug("London, UK") == "London--UK"
@@ -184,17 +182,11 @@ def test_extract_niobe_data_empty():
 SAMPLE_LISTING_RAW = {
     "demandStayListing": {
         "id": "RGVtYW5kU3RheUxpc3Rpbmc6NzcwOTkzMjIzNDQ5MTE1NDE3",
-        "location": {
-            "coordinate": {"latitude": 51.5, "longitude": -0.1}
-        }
+        "location": {"coordinate": {"latitude": 51.5, "longitude": -0.1}},
     },
-    "nameLocalized": {
-        "localizedStringWithTranslationPreference": "Cozy Room with View"
-    },
+    "nameLocalized": {"localizedStringWithTranslationPreference": "Cozy Room with View"},
     "avgRatingLocalized": "4.98 (42)",
-    "structuredDisplayPrice": {
-        "primaryLine": {"price": "$142", "qualifier": "total"}
-    },
+    "structuredDisplayPrice": {"primaryLine": {"price": "$142", "qualifier": "total"}},
     "badges": [{"text": "Guest favorite"}],
 }
 
@@ -250,10 +242,15 @@ def test_parse_search_listing_empty_badges():
 # Models
 # ---------------------------------------------------------------------------
 
+
 def test_listing_to_dict_complete():
     listing = Listing(
-        id="123", id_b64="abc", name="Test", url="https://airbnb.com/rooms/123",
-        rating="4.5 (10)", price="$100",
+        id="123",
+        id_b64="abc",
+        name="Test",
+        url="https://airbnb.com/rooms/123",
+        rating="4.5 (10)",
+        price="$100",
     )
     d = listing.to_dict()
     assert d["id"] == "123"
@@ -264,18 +261,47 @@ def test_listing_to_dict_complete():
 def test_listing_all_fields_in_dict():
     """to_dict() must include ALL model fields."""
     listing = Listing(
-        id="1", id_b64="b64", name="N", url="u",
-        rating="4.9", price="$50", price_qualifier="night",
-        latitude=48.8, longitude=2.3, badges=["Superhost"],
-        room_type="Private room", location="Paris", review_count=100,
-        host_name="Alice", description="Nice place", amenities=["WiFi", "Kitchen"],
-        bedrooms=1, bathrooms=1.0, max_guests=2,
+        id="1",
+        id_b64="b64",
+        name="N",
+        url="u",
+        rating="4.9",
+        price="$50",
+        price_qualifier="night",
+        latitude=48.8,
+        longitude=2.3,
+        badges=["Superhost"],
+        room_type="Private room",
+        location="Paris",
+        review_count=100,
+        host_name="Alice",
+        description="Nice place",
+        amenities=["WiFi", "Kitchen"],
+        bedrooms=1,
+        bathrooms=1.0,
+        max_guests=2,
     )
     d = listing.to_dict()
     required_keys = [
-        "id", "id_b64", "name", "url", "rating", "price", "price_qualifier",
-        "latitude", "longitude", "badges", "room_type", "location", "review_count",
-        "host_name", "description", "amenities", "bedrooms", "bathrooms", "max_guests",
+        "id",
+        "id_b64",
+        "name",
+        "url",
+        "rating",
+        "price",
+        "price_qualifier",
+        "latitude",
+        "longitude",
+        "badges",
+        "room_type",
+        "location",
+        "review_count",
+        "host_name",
+        "description",
+        "amenities",
+        "bedrooms",
+        "bathrooms",
+        "max_guests",
     ]
     for key in required_keys:
         assert key in d, f"Missing key in to_dict(): {key}"
@@ -300,6 +326,7 @@ def test_location_suggestion_display_fallback():
 # helpers: json_error
 # ---------------------------------------------------------------------------
 
+
 def test_json_error_structure():
     out = json_error("AUTH_EXPIRED", "Token expired")
     data = json.loads(out)
@@ -317,6 +344,7 @@ def test_json_error_extra_fields():
 # ---------------------------------------------------------------------------
 # helpers: truncate
 # ---------------------------------------------------------------------------
+
 
 def test_truncate_short_string():
     assert truncate("Hello", 10) == "Hello"
@@ -339,6 +367,7 @@ def test_truncate_empty():
 # ---------------------------------------------------------------------------
 # helpers: resolve_json_mode
 # ---------------------------------------------------------------------------
+
 
 def test_resolve_json_mode_explicit_true():
     assert resolve_json_mode(True) is True
@@ -383,6 +412,7 @@ def test_resolve_json_mode_ctx_false():
 # ---------------------------------------------------------------------------
 # helpers: handle_errors exit codes
 # ---------------------------------------------------------------------------
+
 
 def test_handle_errors_auth_exits_1():
     with pytest.raises(SystemExit) as exc:
@@ -494,6 +524,7 @@ def test_handle_errors_json_mode_bot_blocked():
 # Client: HTTP status → exception mapping (mocked)
 # ---------------------------------------------------------------------------
 
+
 def _make_mock_response(status_code: int, json_data=None, headers=None):
     """Create a mock curl_cffi response."""
     resp = MagicMock()
@@ -506,6 +537,7 @@ def _make_mock_response(status_code: int, json_data=None, headers=None):
 
 def test_client_raises_bot_blocked_on_403():
     from cli_web.airbnb.core.client import AirbnbClient
+
     client = AirbnbClient()
     mock_resp = _make_mock_response(403)
     with patch.object(client._session, "get", return_value=mock_resp):
@@ -515,6 +547,7 @@ def test_client_raises_bot_blocked_on_403():
 
 def test_client_raises_not_found_on_404():
     from cli_web.airbnb.core.client import AirbnbClient
+
     client = AirbnbClient()
     mock_resp = _make_mock_response(404)
     with patch.object(client._session, "get", return_value=mock_resp):
@@ -524,6 +557,7 @@ def test_client_raises_not_found_on_404():
 
 def test_client_raises_rate_limit_on_429():
     from cli_web.airbnb.core.client import AirbnbClient
+
     client = AirbnbClient()
     mock_resp = _make_mock_response(429, headers={"Retry-After": "30"})
     with patch.object(client._session, "get", return_value=mock_resp):
@@ -534,6 +568,7 @@ def test_client_raises_rate_limit_on_429():
 
 def test_client_raises_server_error_on_503():
     from cli_web.airbnb.core.client import AirbnbClient
+
     client = AirbnbClient()
     mock_resp = _make_mock_response(503)
     with patch.object(client._session, "get", return_value=mock_resp):
@@ -544,6 +579,7 @@ def test_client_raises_server_error_on_503():
 
 def test_client_raises_network_error_on_exception():
     from cli_web.airbnb.core.client import AirbnbClient
+
     client = AirbnbClient()
     with patch.object(client._session, "get", side_effect=Exception("timeout")):
         with pytest.raises(NetworkError):
@@ -553,6 +589,7 @@ def test_client_raises_network_error_on_exception():
 def test_client_raises_parse_error_when_no_niobe():
     """search_stays raises ParseError when SSR page has no niobeClientData."""
     from cli_web.airbnb.core.client import AirbnbClient
+
     client = AirbnbClient()
     mock_resp = _make_mock_response(200)
     mock_resp.text = "<html><body>No data here</body></html>"
@@ -568,24 +605,28 @@ def test_client_autocomplete_parses_response():
     explore_search_params (NOT inside the params array).
     """
     from cli_web.airbnb.core.client import AirbnbClient
+
     client = AirbnbClient()
-    mock_resp = _make_mock_response(200, json_data={
-        "autocomplete_terms": [
-            {
-                "display_name": "London",
-                "explore_search_params": {
-                    "place_id": "ChIJdd4hrwug2EcRmSrV3Vo6llI",  # top-level field
-                    "query": "London",                            # top-level field
-                    "params": [
-                        {"key": "acp_id", "value": "4360b783-7c07-41a0-a227-a17d1c3d3895"},
-                    ]
-                },
-                "location": {
-                    "google_place_id": "ChIJdd4hrwug2EcRmSrV3Vo6llI",
+    mock_resp = _make_mock_response(
+        200,
+        json_data={
+            "autocomplete_terms": [
+                {
+                    "display_name": "London",
+                    "explore_search_params": {
+                        "place_id": "ChIJdd4hrwug2EcRmSrV3Vo6llI",  # top-level field
+                        "query": "London",  # top-level field
+                        "params": [
+                            {"key": "acp_id", "value": "4360b783-7c07-41a0-a227-a17d1c3d3895"},
+                        ],
+                    },
+                    "location": {
+                        "google_place_id": "ChIJdd4hrwug2EcRmSrV3Vo6llI",
+                    },
                 }
-            }
-        ]
-    })
+            ]
+        },
+    )
     with patch.object(client._session, "get", return_value=mock_resp):
         suggestions = client.autocomplete_locations("Lond")
     assert len(suggestions) == 1
@@ -598,6 +639,7 @@ def test_client_autocomplete_parses_response():
 def test_client_autocomplete_empty_response():
     """autocomplete_locations returns [] when API returns no terms."""
     from cli_web.airbnb.core.client import AirbnbClient
+
     client = AirbnbClient()
     mock_resp = _make_mock_response(200, json_data={"autocomplete_terms": []})
     with patch.object(client._session, "get", return_value=mock_resp):

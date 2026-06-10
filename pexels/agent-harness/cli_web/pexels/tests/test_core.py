@@ -1,30 +1,27 @@
 """Unit tests for cli-web-pexels core modules."""
 
 import json
-import sys
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import patch, MagicMock
-
+from cli_web.pexels.core.client import PexelsClient
 from cli_web.pexels.core.exceptions import (
+    NetworkError,
+    NotFoundError,
+    ParseError,
     PexelsError,
     RateLimitError,
     ServerError,
-    NotFoundError,
-    NetworkError,
-    ParseError,
     error_code_for,
 )
-from cli_web.pexels.core.client import PexelsClient
 from cli_web.pexels.core.models import (
-    normalize_photo,
-    normalize_video_detail,
-    normalize_user,
     normalize_collection,
+    normalize_photo,
+    normalize_user,
+    normalize_video_detail,
 )
 from cli_web.pexels.utils.helpers import handle_errors, sanitize_filename
 from cli_web.pexels.utils.output import print_json, print_pagination
-
 
 # ── Exception hierarchy tests ─────────────────────────────────────────
 
@@ -70,11 +67,11 @@ class TestExceptionHierarchy:
 
 
 NEXT_DATA_HTML = (
-    '<html><head></head><body>'
+    "<html><head></head><body>"
     '<script id="__NEXT_DATA__" type="application/json">'
     '{"props":{"pageProps":{"initialData":{"data":[{"attributes":{"id":1}}],'
     '"pagination":{"current_page":1,"total_pages":5}}}}}'
-    '</script></body></html>'
+    "</script></body></html>"
 )
 
 NO_NEXT_DATA_HTML = "<html><head></head><body><p>No data here</p></body></html>"
@@ -145,7 +142,10 @@ class TestNormalizers:
                 "height": 3000,
                 "license": "free",
                 "user": {"first_name": "John", "last_name": "Doe", "username": "johndoe"},
-                "image": {"large": "https://img.pexels.com/large.jpg", "download_link": "https://dl.pexels.com/1072179"},
+                "image": {
+                    "large": "https://img.pexels.com/large.jpg",
+                    "download_link": "https://dl.pexels.com/1072179",
+                },
                 "tags": [{"name": "nature"}, {"name": "green"}],
                 "colors": ["#2E8B57"],
             }
@@ -169,14 +169,37 @@ class TestNormalizers:
                 "height": 1080,
                 "license": "free",
                 "created_at": "2024-01-15",
-                "user": {"first_name": "Jane", "last_name": "Smith", "username": "jsmith", "slug": "jsmith-123"},
+                "user": {
+                    "first_name": "Jane",
+                    "last_name": "Smith",
+                    "username": "jsmith",
+                    "slug": "jsmith-123",
+                },
                 "video": {
-                    "thumbnail": {"small": "https://thumb/s.jpg", "medium": "https://thumb/m.jpg", "large": "https://thumb/l.jpg"},
+                    "thumbnail": {
+                        "small": "https://thumb/s.jpg",
+                        "medium": "https://thumb/m.jpg",
+                        "large": "https://thumb/l.jpg",
+                    },
                     "src": "https://video/src.mp4",
                     "preview_src": "https://video/preview.mp4",
                     "video_files": [
-                        {"quality": "hd", "width": 1920, "height": 1080, "fps": 30.0, "file_type": "video/mp4", "link": "https://dl/hd.mp4"},
-                        {"quality": "sd", "width": 960, "height": 540, "fps": 25.0, "file_type": "video/mp4", "link": "https://dl/sd.mp4"},
+                        {
+                            "quality": "hd",
+                            "width": 1920,
+                            "height": 1080,
+                            "fps": 30.0,
+                            "file_type": "video/mp4",
+                            "link": "https://dl/hd.mp4",
+                        },
+                        {
+                            "quality": "sd",
+                            "width": 960,
+                            "height": 540,
+                            "fps": 25.0,
+                            "file_type": "video/mp4",
+                            "link": "https://dl/sd.mp4",
+                        },
                     ],
                 },
                 "tags": [{"name": "sunset"}, {"name": "timelapse"}],

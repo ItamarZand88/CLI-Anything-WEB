@@ -44,7 +44,8 @@ from pathlib import Path
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 
-from mitmproxy import options as mopt, http  # noqa: E402
+from mitmproxy import http
+from mitmproxy import options as mopt  # noqa: E402
 from mitmproxy.tools.dump import DumpMaster  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -56,9 +57,12 @@ _SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
 
-from traffic_utils import NOISE_PATTERNS, STATIC_EXTENSIONS  # noqa: E402,F401
+from traffic_utils import (  # noqa: E402,F401
+    NOISE_PATTERNS,
+    STATIC_EXTENSIONS,
+    is_static_asset,  # noqa: E402
+)
 from traffic_utils import is_noise_url as _is_noise  # noqa: E402
-from traffic_utils import is_static_asset  # noqa: E402
 
 
 def _is_static(url: str) -> bool:
@@ -70,6 +74,7 @@ def _is_static(url: str) -> bool:
 # mitmproxy Addon — captures traffic into a list
 # ---------------------------------------------------------------------------
 
+
 class TrafficRecorder:
     """mitmproxy addon that records HTTP request/response pairs.
 
@@ -78,17 +83,39 @@ class TrafficRecorder:
     """
 
     # MIME types that are never useful for CLI generation
-    SKIP_MIMES = frozenset((
-        "image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml",
-        "image/avif", "image/x-icon", "image/bmp", "image/tiff",
-        "font/woff", "font/woff2", "font/ttf", "font/otf",
-        "application/font-woff", "application/font-woff2",
-        "video/mp4", "video/webm", "audio/mpeg", "audio/ogg",
-        "application/octet-stream",
-    ))
+    SKIP_MIMES = frozenset(
+        (
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp",
+            "image/svg+xml",
+            "image/avif",
+            "image/x-icon",
+            "image/bmp",
+            "image/tiff",
+            "font/woff",
+            "font/woff2",
+            "font/ttf",
+            "font/otf",
+            "application/font-woff",
+            "application/font-woff2",
+            "video/mp4",
+            "video/webm",
+            "audio/mpeg",
+            "audio/ogg",
+            "application/octet-stream",
+        )
+    )
 
-    def __init__(self, *, filter_static: bool = True, filter_noise: bool = True,
-                 dedup: bool = True, max_body_bytes: int = 0):
+    def __init__(
+        self,
+        *,
+        filter_static: bool = True,
+        filter_noise: bool = True,
+        dedup: bool = True,
+        max_body_bytes: int = 0,
+    ):
         self.entries: list[dict] = []
         self._lock = threading.Lock()
         self.filter_static = filter_static
@@ -96,8 +123,13 @@ class TrafficRecorder:
         self.dedup = dedup
         self.max_body_bytes = max_body_bytes  # 0 = unlimited
         self._seen: set[str] = set()  # for dedup
-        self._stats = {"total_seen": 0, "filtered_static": 0,
-                       "filtered_noise": 0, "deduped": 0, "captured": 0}
+        self._stats = {
+            "total_seen": 0,
+            "filtered_static": 0,
+            "filtered_noise": 0,
+            "deduped": 0,
+            "captured": 0,
+        }
 
     def response(self, flow: http.HTTPFlow) -> None:
         """Called when a full response has been received."""
@@ -167,9 +199,7 @@ class TrafficRecorder:
         # Compute timing
         time_ms = 0.0
         if flow.response and flow.response.timestamp_end and flow.request.timestamp_start:
-            time_ms = round(
-                (flow.response.timestamp_end - flow.request.timestamp_start) * 1000, 1
-            )
+            time_ms = round((flow.response.timestamp_end - flow.request.timestamp_start) * 1000, 1)
 
         # Build entry — backward-compatible with parse-trace.py schema
         entry = {
@@ -182,7 +212,8 @@ class TrafficRecorder:
             "response_body": response_body,
             "mime_type": (
                 flow.response.headers.get("content-type", "").split(";")[0].strip()
-                if flow.response else ""
+                if flow.response
+                else ""
             ),
             "time_ms": time_ms,
             # --- Enhanced fields (new, ignored by analyze-traffic.py) ---
@@ -190,7 +221,9 @@ class TrafficRecorder:
             "request_cookies": dict(flow.request.cookies) if flow.request.cookies else {},
             "response_cookies": self._extract_set_cookies(flow),
             "request_body_size": len(flow.request.content) if flow.request.content else 0,
-            "response_body_size": len(flow.response.content) if flow.response and flow.response.content else 0,
+            "response_body_size": len(flow.response.content)
+            if flow.response and flow.response.content
+            else 0,
             "http_version": flow.request.http_version,
         }
 
@@ -201,19 +234,21 @@ class TrafficRecorder:
     def error(self, flow: http.HTTPFlow) -> None:
         """Called when a flow error occurs (connection reset, timeout, etc.)."""
         with self._lock:
-            self.entries.append({
-                "url": flow.request.url,
-                "method": flow.request.method,
-                "request_headers": dict(flow.request.headers),
-                "post_data": None,
-                "status": 0,
-                "response_headers": {},
-                "response_body": None,
-                "mime_type": "",
-                "time_ms": 0,
-                "error": str(flow.error) if flow.error else "unknown error",
-                "timestamp": flow.request.timestamp_start,
-            })
+            self.entries.append(
+                {
+                    "url": flow.request.url,
+                    "method": flow.request.method,
+                    "request_headers": dict(flow.request.headers),
+                    "post_data": None,
+                    "status": 0,
+                    "response_headers": {},
+                    "response_body": None,
+                    "mime_type": "",
+                    "time_ms": 0,
+                    "error": str(flow.error) if flow.error else "unknown error",
+                    "timestamp": flow.request.timestamp_start,
+                }
+            )
 
     @staticmethod
     def _extract_set_cookies(flow: http.HTTPFlow) -> list[dict]:
@@ -239,13 +274,19 @@ class TrafficRecorder:
         with self._lock:
             self.entries.clear()
         self._seen.clear()
-        self._stats = {"total_seen": 0, "filtered_static": 0,
-                       "filtered_noise": 0, "deduped": 0, "captured": 0}
+        self._stats = {
+            "total_seen": 0,
+            "filtered_static": 0,
+            "filtered_noise": 0,
+            "deduped": 0,
+            "captured": 0,
+        }
 
 
 # ---------------------------------------------------------------------------
 # Proxy lifecycle — start/stop mitmproxy in a background thread
 # ---------------------------------------------------------------------------
+
 
 class ProxyManager:
     """Manages mitmproxy DumpMaster in a background thread."""
@@ -319,8 +360,10 @@ class ProxyManager:
 # Browser session — launch Playwright through the proxy
 # ---------------------------------------------------------------------------
 
-def run_browser_session(url: str, proxy_port: int, *, headless: bool = False,
-                        timeout: int = 0) -> None:
+
+def run_browser_session(
+    url: str, proxy_port: int, *, headless: bool = False, timeout: int = 0
+) -> None:
     """Launch a Playwright browser pointed at the mitmproxy proxy.
 
     If timeout > 0, auto-closes after that many seconds.
@@ -350,7 +393,7 @@ def run_browser_session(url: str, proxy_port: int, *, headless: bool = False,
 
         print(f"  Navigating to {url} ...")
         page.goto(url, wait_until="domcontentloaded", timeout=60_000)
-        print(f"  Page loaded. Browser is live.")
+        print("  Page loaded. Browser is live.")
 
         if timeout > 0:
             print(f"  Auto-closing in {timeout}s. Interact with the page now.")
@@ -371,6 +414,7 @@ def run_browser_session(url: str, proxy_port: int, *, headless: bool = False,
 # ---------------------------------------------------------------------------
 # Site fingerprint — quick assessment via Playwright (no proxy needed)
 # ---------------------------------------------------------------------------
+
 
 def run_fingerprint(url: str, proxy_port: int) -> dict | None:
     """Run site fingerprint via the proxy to detect framework/protection.
@@ -455,6 +499,7 @@ def run_fingerprint(url: str, proxy_port: int) -> dict | None:
 # Output — write raw-traffic.json + auto-run analysis
 # ---------------------------------------------------------------------------
 
+
 def write_output(entries: list[dict], output_path: Path, stats: dict) -> None:
     """Write captured traffic to JSON and auto-run analysis."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -464,9 +509,11 @@ def write_output(entries: list[dict], output_path: Path, stats: dict) -> None:
     )
 
     print(f"\n  Captured {stats['captured']} API requests -> {output_path}")
-    print(f"  (filtered: {stats['filtered_static']} static, "
-          f"{stats['filtered_noise']} noise, {stats['deduped']} dupes "
-          f"of {stats['total_seen']} total)")
+    print(
+        f"  (filtered: {stats['filtered_static']} static, "
+        f"{stats['filtered_noise']} noise, {stats['deduped']} dupes "
+        f"of {stats['total_seen']} total)"
+    )
 
     # Auto-run analysis (same as parse-trace.py)
     if not entries:
@@ -477,6 +524,7 @@ def write_output(entries: list[dict], output_path: Path, stats: dict) -> None:
     if analyze_script.exists():
         try:
             import importlib.util
+
             spec = importlib.util.spec_from_file_location("analyze_traffic", analyze_script)
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
@@ -488,9 +536,11 @@ def write_output(entries: list[dict], output_path: Path, stats: dict) -> None:
             p = report["protocol"]
             a = report["auth"]
             s = report["stats"]
-            print(f"  Analysis: protocol={p['protocol']} ({p['confidence']}%), "
-                  f"auth={a['primary']}, "
-                  f"requests={s['total_requests']} ({s['read_operations']}R/{s['write_operations']}W)")
+            print(
+                f"  Analysis: protocol={p['protocol']} ({p['confidence']}%), "
+                f"auth={a['primary']}, "
+                f"requests={s['total_requests']} ({s['read_operations']}R/{s['write_operations']}W)"
+            )
             if p.get("graphql_operations"):
                 ops = [op["name"] for op in p["graphql_operations"]]
                 print(f"    GraphQL ops: {', '.join(ops)}")
@@ -504,6 +554,7 @@ def write_output(entries: list[dict], output_path: Path, stats: dict) -> None:
 # ---------------------------------------------------------------------------
 # State file helpers for start-proxy / stop-proxy mode
 # ---------------------------------------------------------------------------
+
 
 def _state_file_path(port: int = 0) -> Path:
     """State file namespaced by port for parallel session support."""
@@ -555,7 +606,9 @@ def _is_pid_alive(pid: int) -> bool:
         try:
             result = subprocess.run(
                 ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             return str(pid) in result.stdout
         except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -578,6 +631,7 @@ def _cleanup_state_files(port: int = 0) -> None:
 # Daemon mode — runs as a background process for start-proxy
 # ---------------------------------------------------------------------------
 
+
 def _run_daemon(port: int, traffic_file: str, **recorder_kwargs) -> None:
     """Run the proxy as a long-lived daemon process.
 
@@ -596,7 +650,7 @@ def _run_daemon(port: int, traffic_file: str, **recorder_kwargs) -> None:
         _cleanup_state_files(port)
         sys.exit(1)
 
-    print(f"  Proxy ready. Waiting for stop signal...")
+    print("  Proxy ready. Waiting for stop signal...")
 
     # Poll for stop signal file
     stop_path = _stop_signal_path(port)
@@ -610,7 +664,10 @@ def _run_daemon(port: int, traffic_file: str, **recorder_kwargs) -> None:
                     output_path = traffic_file
                 break
             if not proxy._thread.is_alive():
-                print("  Proxy thread died unexpectedly. Flushing traffic and exiting.", file=sys.stderr)
+                print(
+                    "  Proxy thread died unexpectedly. Flushing traffic and exiting.",
+                    file=sys.stderr,
+                )
                 _flush_traffic(proxy.recorder.snapshot(), Path(traffic_file))
                 break
             # Periodically flush traffic to disk as a safety measure
@@ -650,6 +707,7 @@ def _flush_traffic(entries: list[dict], path: Path) -> None:
 # Subcommand handlers
 # ---------------------------------------------------------------------------
 
+
 def cmd_start_proxy(args) -> None:
     """Start the proxy as a background daemon process."""
     port = args.port
@@ -657,19 +715,29 @@ def cmd_start_proxy(args) -> None:
     # Check for existing proxy on this port
     existing = _read_state(port)
     if existing:
-        print(f"Error: Proxy already running (PID {existing['pid']}) on port {existing['port']}.",
-              file=sys.stderr)
-        print(f"  Run 'stop-proxy' first, or delete {_state_file_path(port)} if stale.", file=sys.stderr)
+        print(
+            f"Error: Proxy already running (PID {existing['pid']}) on port {existing['port']}.",
+            file=sys.stderr,
+        )
+        print(
+            f"  Run 'stop-proxy' first, or delete {_state_file_path(port)} if stale.",
+            file=sys.stderr,
+        )
         sys.exit(1)
     import tempfile
+
     fd, traffic_file = tempfile.mkstemp(prefix="mitmproxy-traffic-", suffix=".json")
     os.close(fd)  # Close the fd, we'll write via Path
 
     # Build daemon command — re-invoke ourselves with --_daemon flag
     daemon_cmd = [
-        sys.executable, __file__, "--_daemon",
-        "--port", str(port),
-        "--traffic-file", traffic_file,
+        sys.executable,
+        __file__,
+        "--_daemon",
+        "--port",
+        str(port),
+        "--traffic-file",
+        traffic_file,
     ]
     if args.include_static:
         daemon_cmd.append("--include-static")
@@ -721,13 +789,16 @@ def cmd_start_proxy(args) -> None:
     # Wait briefly to see if daemon started successfully
     time.sleep(2)
     if proc.poll() is not None:
-        print(f"Error: Daemon process exited immediately (exit code {proc.returncode}).",
-              file=sys.stderr)
+        print(
+            f"Error: Daemon process exited immediately (exit code {proc.returncode}).",
+            file=sys.stderr,
+        )
         _cleanup_state_files(port)
         sys.exit(1)
 
     # Verify the proxy is actually listening on the port
     import socket
+
     proxy_ready = False
     for _ in range(20):  # Try for up to 10 seconds
         try:
@@ -740,9 +811,11 @@ def cmd_start_proxy(args) -> None:
             time.sleep(0.5)
 
     if not proxy_ready:
-        print(f"Error: Proxy process started (PID {proc.pid}) but is not listening on port {port}.",
-              file=sys.stderr)
-        print(f"  The daemon may have failed to initialize mitmproxy.", file=sys.stderr)
+        print(
+            f"Error: Proxy process started (PID {proc.pid}) but is not listening on port {port}.",
+            file=sys.stderr,
+        )
+        print("  The daemon may have failed to initialize mitmproxy.", file=sys.stderr)
         _cleanup_state_files(port)
         try:
             proc.kill()
@@ -750,15 +823,17 @@ def cmd_start_proxy(args) -> None:
             pass
         sys.exit(1)
 
-    print(f"mitmproxy-capture v1.0.0 — proxy started")
+    print("mitmproxy-capture v1.0.0 — proxy started")
     print(f"  PID:   {proc.pid}")
     print(f"  Proxy: http://127.0.0.1:{port}")
     print(f"  State: {_state_file_path(port)}")
-    print(f"")
-    print(f"  Use this proxy URL with your browser:")
-    print(f"    npx @playwright/cli@latest open <url> --proxy-server=http://127.0.0.1:{port} --ignore-https-errors")
-    print(f"")
-    print(f"  When done, run:")
+    print("")
+    print("  Use this proxy URL with your browser:")
+    print(
+        f"    npx @playwright/cli@latest open <url> --proxy-server=http://127.0.0.1:{port} --ignore-https-errors"
+    )
+    print("")
+    print("  When done, run:")
     print(f"    python {Path(__file__).name} stop-proxy -o raw-traffic.json")
 
 
@@ -768,8 +843,7 @@ def cmd_stop_proxy(args) -> None:
     port_hint = getattr(args, "port", 0)
     state = _read_state(port_hint)
     if not state:
-        print(f"Error: No running proxy found. No state file in {Path.cwd()}.",
-              file=sys.stderr)
+        print(f"Error: No running proxy found. No state file in {Path.cwd()}.", file=sys.stderr)
         sys.exit(1)
 
     pid = state["pid"]
@@ -777,7 +851,7 @@ def cmd_stop_proxy(args) -> None:
     traffic_file = state["traffic_file"]
     output_path = args.output
 
-    print(f"mitmproxy-capture v1.0.0 — stopping proxy")
+    print("mitmproxy-capture v1.0.0 — stopping proxy")
     print(f"  PID:    {pid}")
     print(f"  Port:   {port}")
     print(f"  Output: {output_path}")
@@ -789,15 +863,14 @@ def cmd_stop_proxy(args) -> None:
     )
 
     # Wait for daemon to write output and exit
-    print(f"  Waiting for daemon to flush traffic...")
+    print("  Waiting for daemon to flush traffic...")
     deadline = time.time() + 30  # 30s timeout
     while time.time() < deadline:
         if not _is_pid_alive(pid):
             break
         time.sleep(0.5)
     else:
-        print(f"  Warning: Daemon did not exit within 30s. Killing PID {pid}...",
-              file=sys.stderr)
+        print(f"  Warning: Daemon did not exit within 30s. Killing PID {pid}...", file=sys.stderr)
         _force_kill(pid)
 
     # Check if output was written by the daemon
@@ -813,6 +886,7 @@ def cmd_stop_proxy(args) -> None:
         tf = Path(traffic_file)
         if tf.exists():
             import shutil
+
             out.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(tf, out)
             try:
@@ -822,8 +896,10 @@ def cmd_stop_proxy(args) -> None:
                 print(f"  Done. Output written to {output_path}")
             tf.unlink(missing_ok=True)
         else:
-            print(f"  Warning: No traffic data found. The proxy may not have captured any requests.",
-                  file=sys.stderr)
+            print(
+                "  Warning: No traffic data found. The proxy may not have captured any requests.",
+                file=sys.stderr,
+            )
 
     # Check daemon log for errors
     log_file = state.get("log_file")
@@ -844,8 +920,7 @@ def _force_kill(pid: int) -> None:
     """Force-kill a process by PID (cross-platform)."""
     try:
         if sys.platform == "win32":
-            subprocess.run(["taskkill", "/F", "/PID", str(pid)],
-                           capture_output=True, timeout=5)
+            subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True, timeout=5)
         else:
             os.kill(pid, signal.SIGKILL)
     except (ProcessLookupError, PermissionError, subprocess.TimeoutExpired):
@@ -854,12 +929,12 @@ def _force_kill(pid: int) -> None:
 
 def cmd_capture(args) -> None:
     """All-in-one capture mode (original behavior)."""
-    print(f"mitmproxy-capture v1.0.0")
+    print("mitmproxy-capture v1.0.0")
     print(f"  Target: {args.url}")
     print(f"  Proxy:  127.0.0.1:{args.port}")
 
     # Start proxy
-    print(f"  Starting mitmproxy proxy...")
+    print("  Starting mitmproxy proxy...")
     proxy = ProxyManager(
         port=args.port,
         filter_static=not args.include_static,
@@ -874,11 +949,11 @@ def cmd_capture(args) -> None:
         print(f"  Is port {args.port} already in use? Try --port <other>", file=sys.stderr)
         sys.exit(1)
 
-    print(f"  Proxy ready.")
+    print("  Proxy ready.")
 
     # Optional fingerprint
     if args.fingerprint:
-        print(f"  Running site fingerprint...")
+        print("  Running site fingerprint...")
         fp = run_fingerprint(args.url, args.port)
         if fp:
             fp_path = Path(args.output).parent / "fingerprint.json"
@@ -919,22 +994,28 @@ def cmd_capture(args) -> None:
 # Shared argument helpers
 # ---------------------------------------------------------------------------
 
+
 def _add_filter_args(parser: argparse.ArgumentParser) -> None:
     """Add common filtering arguments to a parser."""
     parser.add_argument(
-        "--include-static", action="store_true",
+        "--include-static",
+        action="store_true",
         help="Include static assets (JS, CSS, images) — filtered by default",
     )
     parser.add_argument(
-        "--include-noise", action="store_true",
+        "--include-noise",
+        action="store_true",
         help="Include analytics/tracking requests — filtered by default",
     )
     parser.add_argument(
-        "--no-dedup", action="store_true",
+        "--no-dedup",
+        action="store_true",
         help="Disable request deduplication",
     )
     parser.add_argument(
-        "--max-body", type=int, default=0,
+        "--max-body",
+        type=int,
+        default=0,
         help="Max response body size in bytes (0 = unlimited)",
     )
 
@@ -942,6 +1023,7 @@ def _add_filter_args(parser: argparse.ArgumentParser) -> None:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -955,51 +1037,72 @@ def main():
 
     # --- capture (all-in-one, original mode) ---
     cap = subparsers.add_parser(
-        "capture", help="All-in-one: start proxy, open browser, capture, write output",
+        "capture",
+        help="All-in-one: start proxy, open browser, capture, write output",
     )
     cap.add_argument("url", help="URL to open in the browser")
     cap.add_argument(
-        "--output", "-o", default="raw-traffic.json",
+        "--output",
+        "-o",
+        default="raw-traffic.json",
         help="Output file path (default: raw-traffic.json)",
     )
     cap.add_argument(
-        "--port", "-p", type=int, default=8080,
+        "--port",
+        "-p",
+        type=int,
+        default=8080,
         help="Proxy port (default: 8080)",
     )
     _add_filter_args(cap)
     cap.add_argument(
-        "--headless", action="store_true",
+        "--headless",
+        action="store_true",
         help="Run browser in headless mode",
     )
     cap.add_argument(
-        "--timeout", "-t", type=int, default=0,
+        "--timeout",
+        "-t",
+        type=int,
+        default=0,
         help="Auto-close browser after N seconds (0 = wait for Enter)",
     )
     cap.add_argument(
-        "--fingerprint", action="store_true",
+        "--fingerprint",
+        action="store_true",
         help="Run site fingerprint before capture",
     )
 
     # --- start-proxy ---
     sp = subparsers.add_parser(
-        "start-proxy", help="Start proxy daemon in background (agent browses separately)",
+        "start-proxy",
+        help="Start proxy daemon in background (agent browses separately)",
     )
     sp.add_argument(
-        "--port", "-p", type=int, default=8080,
+        "--port",
+        "-p",
+        type=int,
+        default=8080,
         help="Proxy port (default: 8080)",
     )
     _add_filter_args(sp)
 
     # --- stop-proxy ---
     stp = subparsers.add_parser(
-        "stop-proxy", help="Stop proxy daemon and write captured traffic",
+        "stop-proxy",
+        help="Stop proxy daemon and write captured traffic",
     )
     stp.add_argument(
-        "--output", "-o", default="raw-traffic.json",
+        "--output",
+        "-o",
+        default="raw-traffic.json",
         help="Output file path (default: raw-traffic.json)",
     )
     stp.add_argument(
-        "--port", "-p", type=int, default=0,
+        "--port",
+        "-p",
+        type=int,
+        default=0,
         help="Port of the proxy to stop (default: auto-detect from state file)",
     )
 
@@ -1038,11 +1141,16 @@ def main():
         )
         compat_parser.add_argument("url", help="URL to open in the browser")
         compat_parser.add_argument(
-            "--output", "-o", default="raw-traffic.json",
+            "--output",
+            "-o",
+            default="raw-traffic.json",
             help="Output file path (default: raw-traffic.json)",
         )
         compat_parser.add_argument(
-            "--port", "-p", type=int, default=8080,
+            "--port",
+            "-p",
+            type=int,
+            default=8080,
             help="Proxy port (default: 8080)",
         )
         _add_filter_args(compat_parser)

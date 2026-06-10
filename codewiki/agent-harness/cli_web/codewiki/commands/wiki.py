@@ -117,14 +117,18 @@ def wiki_section(repo: str, title: str, as_json: bool) -> None:
         if len(matches) > 1:
             candidates = [s.title for s in matches]
             if as_json:
-                print_json({
-                    "error": True,
-                    "code": "AMBIGUOUS_MATCH",
-                    "message": f"Multiple sections match '{title}'",
-                    "candidates": candidates,
-                })
+                print_json(
+                    {
+                        "error": True,
+                        "code": "AMBIGUOUS_MATCH",
+                        "message": f"Multiple sections match '{title}'",
+                        "candidates": candidates,
+                    }
+                )
             else:
-                click.echo(f"Multiple sections match '{title}'. Please be more specific:\n", err=True)
+                click.echo(
+                    f"Multiple sections match '{title}'. Please be more specific:\n", err=True
+                )
                 for s in matches:
                     click.echo(f"  {_indent(s.level)}{s.title}", err=True)
             raise SystemExit(1)
@@ -155,7 +159,9 @@ def _slugify(text: str) -> str:
 
 @wiki_group.command("download")
 @click.argument("repo")
-@click.option("--output", "-o", default=None, help="Output directory (default: <org>-<repo>-wiki/).")
+@click.option(
+    "--output", "-o", default=None, help="Output directory (default: <org>-<repo>-wiki/)."
+)
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
 def wiki_download(repo: str, output: str | None, as_json: bool) -> None:
     """Download full wiki as organized markdown files into a folder."""
@@ -240,16 +246,18 @@ def wiki_download(repo: str, output: str | None, as_json: bool) -> None:
         files_written.insert(0, "index.md")
 
         if as_json:
-            print_json({
-                "success": True,
-                "data": {
-                    "repo": repo,
-                    "output_dir": str(out_dir),
-                    "files": files_written,
-                    "chapters": len(chapters),
-                    "total_sections": len(wiki.sections),
-                },
-            })
+            print_json(
+                {
+                    "success": True,
+                    "data": {
+                        "repo": repo,
+                        "output_dir": str(out_dir),
+                        "files": files_written,
+                        "chapters": len(chapters),
+                        "total_sections": len(wiki.sections),
+                    },
+                }
+            )
         else:
             click.echo(f"\nDownloaded wiki for {wiki.repo.slug} to {out_dir}/")
             click.echo(f"  {len(chapters)} chapters, {len(wiki.sections)} sections\n")

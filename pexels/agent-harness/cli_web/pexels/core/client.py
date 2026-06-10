@@ -19,22 +19,20 @@ from .exceptions import (
     ServerError,
 )
 from .models import (
-    normalize_photo,
-    normalize_photo_detail,
-    normalize_video,
-    normalize_video_detail,
-    normalize_user,
-    normalize_media_item,
     normalize_collection,
     normalize_collection_summary,
+    normalize_media_item,
+    normalize_photo,
+    normalize_photo_detail,
+    normalize_user,
+    normalize_video,
+    normalize_video_detail,
 )
 
 BASE_URL = "https://www.pexels.com"
 SUGGESTIONS_URL = f"{BASE_URL}/en-us/api/v3/search/suggestions"
 
-_NEXT_DATA_RE = re.compile(
-    r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.DOTALL
-)
+_NEXT_DATA_RE = re.compile(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.DOTALL)
 
 _HEADERS = {
     "User-Agent": (
@@ -53,6 +51,12 @@ class PexelsClient:
     def __init__(self, timeout: float = 30.0):
         self.timeout = timeout
 
+    def __enter__(self) -> "PexelsClient":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass  # No persistent connection — curl_cffi calls are scoped per request.
+
     def _request(self, url: str, params: dict | None = None) -> curl_requests.Response:
         """Make an HTTP GET request with Cloudflare bypass."""
         try:
@@ -65,11 +69,11 @@ class PexelsClient:
                 allow_redirects=True,
             )
         except RequestException as e:
-            raise NetworkError(f"Request failed: {e}")
+            raise NetworkError(f"Request failed: {e}") from e
         except Exception as e:
             if "timeout" in str(e).lower():
-                raise NetworkError(f"Request timed out: {url}")
-            raise NetworkError(f"Connection failed: {e}")
+                raise NetworkError(f"Request timed out: {url}") from e
+            raise NetworkError(f"Connection failed: {e}") from e
 
         self._check_status(resp, url)
         return resp
@@ -104,7 +108,7 @@ class PexelsClient:
         try:
             data = json.loads(match.group(1))
         except json.JSONDecodeError as e:
-            raise ParseError(f"Invalid __NEXT_DATA__ JSON: {e}")
+            raise ParseError(f"Invalid __NEXT_DATA__ JSON: {e}") from e
 
         return data.get("props", {}).get("pageProps", {})
 
@@ -190,10 +194,7 @@ class PexelsClient:
         return {
             "user": normalize_user(user),
             "media": {
-                "data": [
-                    normalize_media_item(m)
-                    for m in (media_page.get("data") or [])
-                ],
+                "data": [normalize_media_item(m) for m in (media_page.get("data") or [])],
                 "pagination": media_page.get("pagination", {}),
             },
         }
@@ -204,10 +205,7 @@ class PexelsClient:
         props = self._get_page(f"/@{username}/", params)
         media_page = props.get("firstPageOfMedia") or props.get("initialData") or {}
         return {
-            "data": [
-                normalize_media_item(m)
-                for m in (media_page.get("data") or [])
-            ],
+            "data": [normalize_media_item(m) for m in (media_page.get("data") or [])],
             "pagination": media_page.get("pagination", {}),
         }
 
@@ -224,10 +222,7 @@ class PexelsClient:
         return {
             "collection": normalize_collection(collection),
             "media": {
-                "data": [
-                    normalize_media_item(m)
-                    for m in (initial.get("data") or [])
-                ],
+                "data": [normalize_media_item(m) for m in (initial.get("data") or [])],
                 "pagination": initial.get("pagination", {}),
             },
         }
@@ -237,13 +232,8 @@ class PexelsClient:
         props = self._get_page("/discover/")
         initial = props.get("initialData", {})
         return {
-            "popular": [
-                normalize_collection_summary(c)
-                for c in (initial.get("popular") or [])
-            ],
-            "collections": self._flatten_collection_groups(
-                initial.get("collections") or []
-            ),
+            "popular": [normalize_collection_summary(c) for c in (initial.get("popular") or [])],
+            "collections": self._flatten_collection_groups(initial.get("collections") or []),
         }
 
     # ── Suggestions ────────────────────────────────────────────────────
@@ -267,7 +257,7 @@ class PexelsClient:
                 allow_redirects=True,
             )
         except Exception as e:
-            raise NetworkError(f"Download failed: {e}")
+            raise NetworkError(f"Download failed: {e}") from e
 
         self._check_status(resp, url)
 
@@ -284,22 +274,26 @@ class PexelsClient:
             if isinstance(group, list):
                 for item in group:
                     attrs = item.get("attributes", {})
-                    result.append({
+                    result.append(
+                        {
+                            "id": attrs.get("id"),
+                            "title": attrs.get("title"),
+                            "slug": attrs.get("slug"),
+                            "media_count": attrs.get("collection_media_count"),
+                            "photos_count": attrs.get("photos_count"),
+                            "videos_count": attrs.get("videos_count"),
+                        }
+                    )
+            elif isinstance(group, dict):
+                attrs = group.get("attributes", {})
+                result.append(
+                    {
                         "id": attrs.get("id"),
                         "title": attrs.get("title"),
                         "slug": attrs.get("slug"),
                         "media_count": attrs.get("collection_media_count"),
                         "photos_count": attrs.get("photos_count"),
                         "videos_count": attrs.get("videos_count"),
-                    })
-            elif isinstance(group, dict):
-                attrs = group.get("attributes", {})
-                result.append({
-                    "id": attrs.get("id"),
-                    "title": attrs.get("title"),
-                    "slug": attrs.get("slug"),
-                    "media_count": attrs.get("collection_media_count"),
-                    "photos_count": attrs.get("photos_count"),
-                    "videos_count": attrs.get("videos_count"),
-                })
+                    }
+                )
         return result

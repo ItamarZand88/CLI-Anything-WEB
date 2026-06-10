@@ -1,16 +1,16 @@
 ---
 name: methodology
+version: 0.3.0
 description: >
-  Analyze captured HTTP traffic, design CLI architecture, and implement the Python
-  CLI package. Covers Phase 2 of the pipeline: parse raw-traffic.json, identify
-  protocol type, map endpoints, design Click command groups, implement with parallel
-  subagents.
-  TRIGGER when: "analyze traffic", "design CLI", "implement CLI", "build CLI from
-  network traffic", "generate API wrapper", "reverse engineer web API", "start Phase 2",
-  raw-traffic.json exists and capture is complete, or after the capture skill finishes.
-  DO NOT trigger for: traffic recording (use capture), test writing (use testing),
-  or quality checks (use standards).
-version: 0.2.0
+  Analyzes captured HTTP traffic, designs the CLI architecture, and implements the
+  Python CLI package (Phase 2): parse raw-traffic.json, identify the protocol, write
+  api-spec.json, scaffold from templates, and implement endpoint methods and Click
+  command groups. Use after a capture completes and raw-traffic.json exists.
+when_to_use: >
+  Trigger phrases: "analyze traffic", "design CLI", "implement CLI", "build CLI from
+  network traffic", "generate API wrapper", "reverse engineer web API", "start
+  Phase 2", or after the capture skill finishes. Not for traffic recording (capture),
+  test writing (testing), or quality checks (standards).
 ---
 
 # CLI-Anything-Web Methodology (Phase 2)
@@ -18,6 +18,20 @@ version: 0.2.0
 Analyze captured traffic, design the CLI command structure, and implement the
 complete Python CLI package. This skill owns the core transformation from raw
 HTTP traffic to a production-ready CLI.
+
+Copy this checklist and check off items as you complete them:
+
+```
+Phase 2 Progress:
+- [ ] Prerequisites: raw-traffic.json exists (+ auth state if the site needs auth)
+- [ ] Step A: traffic analyzed, protocol identified, <APP>.md written
+- [ ] Step A: api-spec.json written (every endpoint cites raw-traffic.json evidence)
+       and passes `cli-web-devkit spec validate`
+- [ ] Step B.0: scaffolded via scaffold-cli.py (.manifest.json present)
+- [ ] Step B: client endpoint methods implemented from the spec
+- [ ] Step B: command modules implemented + registered, REPL help in sync
+- [ ] Smoke check passed (no protocol leaks), phase-state marked complete
+```
 
 ---
 
@@ -28,7 +42,8 @@ Do NOT start unless:
 - [ ] Auth state was captured during Phase 1 (if the site requires auth)
 
 If raw-traffic.json is missing or has no WRITE operations, invoke the
-`capture` skill first.
+`capture` skill first. If Phase 1 state shows `failed`, follow
+`skills/shared/RECOVERY.md` §phase-state Check Failures before re-running.
 
 **Exception for read-only sites:** If the site is genuinely read-only (search engine,
 dashboard, analytics viewer with no create/update/delete), the trace may contain only
@@ -55,11 +70,12 @@ no login needed), the "Auth state captured" prerequisite does not apply. Note
    verify its findings and fill in anything marked "unknown" by reading `raw-traffic.json`
    manually.
 
-   **Enhanced analysis (v1.3.0, when captured via mitmproxy-capture.py):**
-   - `request_sequence`: Timeline-ordered requests with auth flow detection (login → token → API calls)
-   - `session_lifecycle`: Cookie inventory, auth cookie identification, session pattern (cookie_auth/token_refresh/no_session)
-   - `endpoint_sizes`: Response body size classification per endpoint (small/medium/large) and total data transferred
-   These fields are only present when `mitmproxy-capture.py` was used. If missing (`has_timestamps: false`), rely on manual analysis.
+   **Enhanced analysis (present only when captured via mitmproxy):**
+   `request_sequence` (timeline-ordered requests with auth-flow detection),
+   `session_lifecycle` (cookie inventory, auth-cookie identification, session
+   pattern), and `endpoint_sizes` (response-size classification). If these
+   are missing (`has_timestamps: false`), the capture came from the default
+   trace path — rely on manual analysis for sequence/session detail.
 
    If `traffic-analysis.json` doesn't exist, run the analyzer:
    ```bash
@@ -111,7 +127,21 @@ no login needed), the "Auth state captured" prerequisite does not apply. Note
 
 7. Write `<APP>.md` -- software-specific SOP document
 
-**Output:** `<APP>.md` with API map, data model, auth scheme.
+8. Write `agent-harness/api-spec.json` -- the machine-readable API spec.
+   Every endpoint MUST carry an `evidence` field citing its captured traffic
+   entry (`raw-traffic.json#<index>`) — never invent endpoints (this is the
+   structural enforcement of the RPC-ID verification rule). Schema and
+   validator:
+
+   ```bash
+   cli-web-devkit spec validate <app>/agent-harness/api-spec.json
+   ```
+
+   Downstream consumers: client method implementation (Step B), the
+   gap-analyzer (`cli-web-devkit gaps`), and the traffic-fidelity review in
+   Phase 4 (spec-vs-traffic becomes a deterministic diff).
+
+**Output:** `<APP>.md` (human SOP) + `api-spec.json` (machine spec, validated).
 
 **References:** `traffic-patterns.md`, `google-batchexecute.md`, `ssr-patterns.md`
 
@@ -174,7 +204,8 @@ Key points: `cli_web/` namespace (NO `__init__.py`), `<app>/` sub-package (HAS `
 
 ### Step B.0: Scaffold Core Modules
 
-Run the scaffold generator script to create all boilerplate files:
+Run the scaffold generator script (v2 — Jinja2 templates, requires
+`pip install jinja2`) to create all boilerplate files:
 
 ```bash
 python ${CLAUDE_PLUGIN_ROOT}/scripts/scaffold-cli.py <app>/agent-harness \
@@ -182,23 +213,33 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/scaffold-cli.py <app>/agent-harness \
   --protocol <rest|graphql|html-scraping|batchexecute> \
   --http-client <httpx|curl_cffi> \
   --auth-type <none|cookie|api-key|google-sso> \
-  --resources <comma-separated-resources> \
+  --resource <name> [--resource <name> ...] \
   [--has-polling] [--has-context] [--has-partial-ids]
 ```
 
-This generates exceptions.py, client.py skeleton, helpers.py, config.py, output.py,
-the CLI entry point with REPL, setup.py, conftest.py, repl_skin.py, and (for
-batchexecute) the rpc/ subpackage.
+This renders exceptions.py, client.py skeleton, the unified auth.py (google-sso
+handled via a template conditional), helpers.py, config.py, output.py, the CLI
+entry point with REPL, one `commands/<resource>.py` per `--resource` flag,
+setup.py, conftest.py, test_e2e.py skeleton, README/SKILL skeletons,
+repl_skin.py, and (for batchexecute) the rpc/ subpackage. It also writes
+`.manifest.json` (template version + profile) at the harness root — keep it;
+fleet tooling depends on it. See `skills/boilerplate/SKILL.md` for the
+template → output map and per-profile flag recipes.
 
-> **Fallback**: If the script is unavailable, read `${CLAUDE_PLUGIN_ROOT}/skills/boilerplate/SKILL.md`
-> and follow its instructions to scaffold manually.
+> **Fallback**: If the script is unavailable, follow
+> `skills/shared/RECOVERY.md` §scaffold-cli.py Unavailable — adapt from the
+> newest generated CLI (e.g., `capitoltrades/agent-harness/`), do NOT
+> reconstruct boilerplate from memory.
 
 After scaffolding, review the generated files and customize `client.py` with actual
 endpoint methods from `<APP>.md`.
 
 ### Implementation Rules
 
-- **`exceptions.py`** -- implement first. Required types: AppError (base), AuthError(recoverable), RateLimitError(retry_after), NetworkError, ServerError(status_code), NotFoundError. See `references/exception-hierarchy-example.py` for the complete template.
+All rules below are DEFINED in `skills/shared/CONVENTIONS.md` — this section
+tells you when to apply them during implementation.
+
+- **`exceptions.py`** -- implement first. Required hierarchy and error-code mapping: CONVENTIONS.md §Exception Hierarchy. Complete code: `references/exception-hierarchy-example.py`.
 
 - **`client.py`** -- HTTP client with exception mapping and auth retry:
   - **HTTP library choice:**
@@ -213,9 +254,9 @@ endpoint methods from `<APP>.md`.
       Add `curl_cffi, beautifulsoup4` to `setup.py` instead of `httpx`.
   - Centralized auth header/cookie injection
   - Automatic JSON parsing with response body verification
-  - **Status code → exception mapping**: 401/403→`AuthError`, 404→`NotFoundError`, 429→`RateLimitError`, 5xx→`ServerError`
-  - **Auth retry (3-attempt auto-refresh)**: On 401/403: attempt 0 = try current cookies, attempt 1 = reload from `auth.json` on disk, attempt 2 = headless browser refresh via `refresh_auth()` in `auth.py`. See HARNESS.md "Token Auto-Refresh" for the full pattern. The `auth.py.tpl` and `client_rest_*.py.tpl` templates generate this by default.
-  - Exponential backoff for rate limits (see `references/polling-backoff-example.py`)
+  - **Status code → exception mapping**: 401/403→`AuthError`, 404→`NotFoundError`, 429→`RateLimitError`, 5xx→`ServerError` (CONVENTIONS.md §Exception Hierarchy)
+  - **Auth retry (3-attempt auto-refresh)**: current cookies → reload `auth.json` → headless refresh, never more. The full table is CONVENTIONS.md §Auth Rules; the templates generate it by default.
+  - Exponential backoff for rate limits (CONVENTIONS.md §Exponential Backoff & Polling; code in `references/polling-backoff-example.py`)
   - For apps with 3+ resource types: split into namespaced sub-clients (`client.notebooks.list()`, `client.sources.add()`)
   - See `references/client-architecture-example.py` for the full pattern
 
@@ -227,11 +268,13 @@ endpoint methods from `<APP>.md`.
   auth (e.g., API key for write operations) — in that case, implement a minimal
   auth module.
 
-  **For browser-delegated auth (Google, Microsoft, etc.):** Full playwright-cli login flow
-  with cookie domain priority for international users.
+  **For browser-delegated auth (Google, Microsoft, etc.):** Python
+  `sync_playwright()` login flow with cookie domain priority for international
+  users (CONVENTIONS.md §Auth Rules).
 
-  See `references/auth-strategies.md` for all patterns (browser login, cookie priority, API key, env var, context commands).
-  Store cookies at `~/.config/cli-web-<app>/auth.json` with chmod 600.
+  Storage, env var, cookie priority, and dual-format handling are defined in
+  CONVENTIONS.md §Auth Rules; implementation code for each pattern is in
+  `references/auth-strategies.md` (read section-addressed).
 
 - **Anti-bot resilient client construction** (when detected in Phase 2):
   - Extract session tokens via CDP first (cookies), then HTTP GET + HTML parsing (CSRF, session IDs)
@@ -249,26 +292,26 @@ endpoint methods from `<APP>.md`.
 
 - **Progress feedback** -- Use `rich>=13.0` spinners for operations >2s (suppress in --json mode). See `references/rich-output-example.py`.
 
-- **JSON error output** -- `--json` mode errors are JSON too, not plain text. Standard codes: AUTH_EXPIRED, RATE_LIMITED, NOT_FOUND, SERVER_ERROR, NETWORK_ERROR. Implement via `utils/output.py` json_error().
+- **JSON error output** -- `--json` mode errors are JSON too, not plain text (CONVENTIONS.md §JSON Envelope). Implement via `utils/output.py` json_error().
 
 - **All commands use `handle_errors(json_mode)` context manager** — centralizes error handling, exit codes (1=user, 2=system, 130=interrupt), and JSON errors. See `references/helpers-module-example.py`.
 
-- **Generation commands support `--wait`, `--retry N`, `--output path`** — for agent-scriptable end-to-end workflows. See `references/polling-backoff-example.py`.
+- **Generation commands support `--wait`, `--retry N`, `--output path`** — CONVENTIONS.md §Exponential Backoff & Polling; code in `references/polling-backoff-example.py`.
 
-- **Windows UTF-8 fix** — Add at the top of `<app>_cli.py` before any imports that print:
-  ```python
-  import sys
-  if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
-      try: sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-      except AttributeError: pass
-  ```
+- **Windows UTF-8 fix** — at the top of `<app>_cli.py`, reconfigure BOTH stdout AND stderr to UTF-8 before any import that prints (CONVENTIONS.md §Windows UTF-8 Fix has the exact snippet).
 - **HTML table parsers MUST extract ALL visible columns** — not just name/price,
   because missing fields in `--json` output make the CLI useless for filtering and analysis.
   If the site shows version, club, nation, stats, skills, weak foot — parse all of them.
   Empty fields in `--json` output = incomplete parser.
-- Entry point: `cli-web-<app>` via setup.py console_scripts
+- Entry point: `cli-web-<app>` via setup.py console_scripts (CONVENTIONS.md §Naming Conventions)
 - Namespace: `cli_web.*`
-- Copy `repl_skin.py` from plugin for consistent REPL experience
+- `utils/repl_skin.py`, `utils/doctor.py`, and `utils/mcp_server.py` are all
+  vendored by scaffold-cli.py (canonical source: `cli-web-core/cli_web_core/`,
+  synced via `cli-web-devkit resync`) — never hand-edit the per-CLI copies.
+  The entry point registers the fleet-standard `doctor` and `mcp-serve`
+  commands from the vendored adapters (`register_doctor_command(cli, ...)`,
+  `register_mcp_command(cli, ...)`); both derive from the Click tree, so no
+  per-command wiring is needed.
 - **`utils/helpers.py`** -- shared CLI helpers (generate for every CLI):
   - `resolve_partial_id(partial, items)` — prefix-match UUIDs for get/rename/delete
   - `handle_errors(json_mode)` — context manager replacing try/except in all commands
@@ -285,79 +328,19 @@ endpoint methods from `<APP>.md`.
 
 ### REPL Implementation Rules (Critical)
 
-These three bugs appear in almost every generated REPL. Get them right the first time:
+The four REPL rules are defined with code examples in
+**CONVENTIONS.md §REPL Rules** — apply them as you wire up `<app>_cli.py`:
 
-**1. Use `shlex.split()`, never `line.split()`**
+1. Parse REPL lines with `shlex.split(line)`, never `line.split()`.
+2. Propagate `--json` by PREPENDING it to the args list passed to
+   `cli.main(args=..., standalone_mode=False)` — never `**ctx.params`.
+3. Help-sync: every commit that adds a command/option updates
+   `_print_repl_help()` in the same commit.
+4. Required single values are `@click.argument` positionals, not
+   `@click.option(..., required=True)`.
 
-```python
-# ✓ Correct — handles quoted args: players search "messi" -> ['players', 'search', 'messi']
-import shlex
-args = shlex.split(line)
-
-# ✗ Wrong — produces: ['players', 'search', '"messi"'] — quotes become part of the value
-args = line.split()
-```
-
-**2. Never pass `**ctx.params` to `cli.main()` in REPL dispatch**
-
-```python
-# ✓ Correct — preserve --json flag by prepending to args
-repl_args = ["--json"] + args if ctx.obj.get("json") else args
-cli.main(args=repl_args, standalone_mode=False)
-
-# ✗ Wrong — ctx.params = {"json_mode": False} gets passed to Context.__init__()
-# which doesn't accept it → TypeError: Context.__init__() got an unexpected
-# keyword argument 'json_mode'
-cli.main(args=args, standalone_mode=False, **ctx.params)
-```
-
-**3. Keep `_print_repl_help()` in sync with the actual command surface**
-
-The `_print_repl_help()` function in `<app>_cli.py` is the user's first discovery surface — it's what they see when they type `help` in the REPL. It must mirror the real commands, including all key options. A REPL that shows outdated or incomplete help is confusing and makes the CLI feel broken.
-
-```python
-# ✓ Correct — help lists actual options users can pass
-def _print_repl_help():
-    _skin.info("Available commands:")
-    print("  players list [OPTIONS]")
-    print("    --position <GK|ST|CM|...>    Filter by position")
-    print("    --rating-min N --rating-max N  Rating range")
-    print("    --cheapest                   Sort cheapest first")
-
-# ✗ Wrong — stale help doesn't mention new --position, --rating-min, etc.
-def _print_repl_help():
-    print("  players list [--min-price N]   List players with filters")
-```
-
-Rule: **every time you add options to a command, update `_print_repl_help()` in the same commit**.
-
----
-
-**4. Use `@click.argument` for positional REPL params, not `@click.option("--x", required=True)`**
-
-REPL commands show `players search <query>` in help. If `query` is a `--query` option,
-users typing `players search messi` get "Error: Missing option '--query'".
-Use positional arguments for natural command-line style:
-
-```python
-# ✓ Correct — users type: players search messi  OR  players get 21610
-@players.command()
-@click.argument("query")
-def search(query): ...
-
-@players.command()
-@click.argument("player_id", type=int)
-def get(player_id): ...
-
-# ✗ Wrong — users get an error unless they type: players search --query messi
-@players.command()
-@click.option("--query", required=True)
-def search(query): ...
-```
-
-Rule of thumb: if a command takes a single required value that would be a positional arg
-in a shell command (`git checkout main`, `grep pattern`), use `@click.argument`.
-Use `@click.option` only for optional or named parameters (`--rating-min`, `--platform`).
+These bugs appear in almost every generated REPL — read the §REPL Rules
+section before writing the entry point, not after the REPL breaks.
 
 ### Parallel Implementation (dispatch independent modules as subagents)
 
@@ -393,7 +376,9 @@ Phase B (parallel): Dispatch ALL independent work simultaneously
   All run concurrently — each only depends on Phase A modules
 
 Phase C (sequential): Wire everything together
-  utils/helpers.py → <app>_cli.py → __main__.py → setup.py → copy repl_skin.py
+  utils/helpers.py → <app>_cli.py → __main__.py → setup.py
+  (repl_skin.py, doctor.py, mcp_server.py were already vendored by
+   scaffold-cli.py in Step B.0; the entry point registers doctor + mcp-serve)
 ```
 
 **Key parallelism rules:**
@@ -411,11 +396,11 @@ Before invoking testing, install (`pip install -e .`) and verify:
 3. `cli-web-<app> <resource> list --json` returns real data
 4. One WRITE command works (if applicable)
 
-**Red flags — fix before testing:**
-- `wrb.fr`, `af.httprm` in output → decoder broken
-- `[]` or `null` where data expected → wrong params or client-side operation
-- Wrong field values (e.g., "3" instead of prompt text) → parser index mismatch
-- Null write response → may be client-side, see `references/google-batchexecute.md` "Client-Side Operations"
+**Red flags — fix before testing:** the full table is CONVENTIONS.md
+§Protocol-Leak Smoke Check (`wrb.fr`/`af.httprm` leaks, empty `[]`/`null`,
+parser index mismatches). One methodology-specific case: a null WRITE response
+may mean the operation is client-side — see `references/google-batchexecute.md`
+"Client-Side Operations".
 
 Update phase state:
 ```bash
@@ -448,7 +433,7 @@ Do NOT skip testing -- every CLI must have comprehensive tests before publishing
 |-------------|-------|
 | **Preceded by** | `capture` (Phase 1) |
 | **Followed by** | `testing` (Phase 3) |
-| **References** | `traffic-patterns.md`, `auth-strategies.md`, `google-batchexecute.md`, `ssr-patterns.md`, `exception-hierarchy-example.py`, `client-architecture-example.py`, `polling-backoff-example.py`, `rich-output-example.py` |
+| **References** | `skills/shared/CONVENTIONS.md` (all rules), `skills/shared/RECOVERY.md` (gate failures), `traffic-patterns.md`, `auth-strategies.md`, `google-batchexecute.md`, `ssr-patterns.md`, `exception-hierarchy-example.py`, `client-architecture-example.py`, `polling-backoff-example.py`, `rich-output-example.py` |
 
 ---
 

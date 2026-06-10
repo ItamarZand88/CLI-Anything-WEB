@@ -1,24 +1,27 @@
 """Unit tests for cli-web-futbin core — mocked HTTP, no network."""
+
 import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from cli_web.futbin.core.client import FutbinClient, _coin_str_to_int
-from cli_web.futbin.core.models import Player, MarketItem
-
+from cli_web.futbin.core.models import MarketItem, Player
 
 # ── Coin string parsing ───────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("value,expected", [
-    ("150K", 150_000),
-    ("1.2M", 1_200_000),
-    ("1,234", 1_234),
-    ("500", 500),
-    ("", None),
-    (None, None),
-    ("N/A", None),
-])
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("150K", 150_000),
+        ("1.2M", 1_200_000),
+        ("1,234", 1_234),
+        ("500", 500),
+        ("", None),
+        (None, None),
+        ("N/A", None),
+    ],
+)
 def test_coin_str_to_int(value, expected):
     assert _coin_str_to_int(value) == expected
 
@@ -31,8 +34,10 @@ PLAYER_SEARCH_JSON = [
         "name": "Kylian Mbappé",
         "position": "ST",
         "version": "Normal",
-        "location": {"type": "futbin.frontenddata.Location.LocationDontUseThisDirectly",
-                     "url": "/26/player/40/kylian-mbappe"},
+        "location": {
+            "type": "futbin.frontenddata.Location.LocationDontUseThisDirectly",
+            "url": "/26/player/40/kylian-mbappe",
+        },
         "clubImage": {"fixed": {"type": "...", "name": "Real Madrid", "url": {}}},
         "nationImage": {"fixed": {"type": "...", "name": "France", "url": {}}},
         "playerImage": {"fixed": {"url": {}}},
@@ -223,6 +228,7 @@ def test_parse_evolution_list(mock_httpx_class):
 
 # ── Model serialization ───────────────────────────────────────────────────────
 
+
 def test_player_to_dict():
     p = Player(
         id=40,
@@ -250,15 +256,28 @@ def test_player_to_dict():
 # ===========================================================================
 
 from cli_web.futbin.core.exceptions import (
-    FutbinError, AuthError, NetworkError, RateLimitError,
-    ParsingError, NotFoundError, ServerError, InvalidInputError,
+    AuthError,
+    FutbinError,
+    InvalidInputError,
+    NetworkError,
+    NotFoundError,
+    ParsingError,
+    RateLimitError,
+    ServerError,
     error_code_for,
 )
 
 
 def test_all_exceptions_inherit_from_base():
-    for cls in (AuthError, NetworkError, RateLimitError, ParsingError,
-                NotFoundError, ServerError, InvalidInputError):
+    for cls in (
+        AuthError,
+        NetworkError,
+        RateLimitError,
+        ParsingError,
+        NotFoundError,
+        ServerError,
+        InvalidInputError,
+    ):
         assert issubclass(cls, FutbinError), f"{cls.__name__} not subclass of FutbinError"
 
 
@@ -289,9 +308,10 @@ def test_server_error_status_code():
 # Helpers tests
 # ===========================================================================
 
-import click
 from pathlib import Path
 from unittest.mock import patch as mock_patch
+
+import click
 
 
 def test_resolve_partial_id_exact():
@@ -299,7 +319,8 @@ def test_resolve_partial_id_exact():
 
     class Item:
         def __init__(self, id, name=""):
-            self.id = id; self.name = name
+            self.id = id
+            self.name = name
 
     items = [Item(123, "Alice"), Item(456, "Bob"), Item(789, "Carol")]
     result = resolve_partial_id("456", items, kind="player")
@@ -311,7 +332,8 @@ def test_resolve_partial_id_prefix():
 
     class Item:
         def __init__(self, id, name=""):
-            self.id = id; self.name = name
+            self.id = id
+            self.name = name
 
     items = [Item(1230, "Alice"), Item(4560, "Bob"), Item(7890, "Carol")]
     result = resolve_partial_id("78", items, kind="player")
@@ -323,7 +345,8 @@ def test_resolve_partial_id_no_match():
 
     class Item:
         def __init__(self, id, name=""):
-            self.id = id; self.name = name
+            self.id = id
+            self.name = name
 
     items = [Item(123, "Alice")]
     with pytest.raises(click.BadParameter):
@@ -332,7 +355,8 @@ def test_resolve_partial_id_no_match():
 
 def test_sanitize_filename():
     from cli_web.futbin.utils.helpers import sanitize_filename
-    assert sanitize_filename('test/file:name*') == "test_file_name_"
+
+    assert sanitize_filename("test/file:name*") == "test_file_name_"
     assert sanitize_filename("") == "untitled"
     assert sanitize_filename("   ") == "untitled"
     assert len(sanitize_filename("a" * 300)) == 240
@@ -340,6 +364,7 @@ def test_sanitize_filename():
 
 def test_handle_errors_app_error_exits_1():
     from cli_web.futbin.utils.helpers import handle_errors
+
     with pytest.raises(SystemExit) as exc:
         with handle_errors():
             raise NotFoundError("not found")
@@ -348,6 +373,7 @@ def test_handle_errors_app_error_exits_1():
 
 def test_handle_errors_generic_exits_2():
     from cli_web.futbin.utils.helpers import handle_errors
+
     with pytest.raises(SystemExit) as exc:
         with handle_errors():
             raise ValueError("bug")
@@ -355,8 +381,10 @@ def test_handle_errors_generic_exits_2():
 
 
 def test_handle_errors_json_mode():
-    from cli_web.futbin.utils.helpers import handle_errors
     import io
+
+    from cli_web.futbin.utils.helpers import handle_errors
+
     captured = io.StringIO()
     with pytest.raises(SystemExit):
         with mock_patch("click.echo", side_effect=lambda msg, **kw: captured.write(str(msg))):
@@ -368,14 +396,20 @@ def test_handle_errors_json_mode():
 
 
 def test_persistent_config():
-    from cli_web.futbin.utils.helpers import (
-        get_config_value, set_config_value, clear_config,
-    )
     import tempfile
+
+    from cli_web.futbin.utils.helpers import (
+        clear_config,
+        get_config_value,
+        set_config_value,
+    )
+
     with tempfile.TemporaryDirectory() as tmp:
         tmp_file = Path(tmp) / "config.json"
-        with mock_patch("cli_web.futbin.utils.helpers.CONFIG_FILE", tmp_file), \
-             mock_patch("cli_web.futbin.utils.helpers.CONFIG_DIR", Path(tmp)):
+        with (
+            mock_patch("cli_web.futbin.utils.helpers.CONFIG_FILE", tmp_file),
+            mock_patch("cli_web.futbin.utils.helpers.CONFIG_DIR", Path(tmp)),
+        ):
             set_config_value("year", 25)
             assert get_config_value("year") == 25
             set_config_value("platform", "pc")
@@ -386,6 +420,7 @@ def test_persistent_config():
 
 def test_require_year_default():
     from cli_web.futbin.utils.helpers import require_year
+
     assert require_year(25) == 25
     assert require_year(None) == 26  # default
 
@@ -395,7 +430,11 @@ def test_require_year_default():
 # ===========================================================================
 
 from cli_web.futbin.core.models import (
-    Position, Platform, SBCDetail, EvolutionDetail, PlayerComparison,
+    EvolutionDetail,
+    Platform,
+    PlayerComparison,
+    Position,
+    SBCDetail,
 )
 
 
@@ -426,11 +465,33 @@ def test_evolution_detail_to_dict():
 
 
 def test_player_comparison_to_dict():
-    p1 = Player(id=1, name="A", position="ST", version="", rating=90,
-                club="", nation="", year=26, url="", stats={"pac": 95})
-    p2 = Player(id=2, name="B", position="ST", version="", rating=88,
-                club="", nation="", year=26, url="", stats={"pac": 85})
-    comp = PlayerComparison(player1=p1, player2=p2, stat_diffs={"pac": {"player1": 95, "player2": 85, "diff": 10}})
+    p1 = Player(
+        id=1,
+        name="A",
+        position="ST",
+        version="",
+        rating=90,
+        club="",
+        nation="",
+        year=26,
+        url="",
+        stats={"pac": 95},
+    )
+    p2 = Player(
+        id=2,
+        name="B",
+        position="ST",
+        version="",
+        rating=88,
+        club="",
+        nation="",
+        year=26,
+        url="",
+        stats={"pac": 85},
+    )
+    comp = PlayerComparison(
+        player1=p1, player2=p2, stat_diffs={"pac": {"player1": 95, "player2": 85, "diff": 10}}
+    )
     d = comp.to_dict()
     assert d["stat_diffs"]["pac"]["diff"] == 10
     assert d["player1"]["name"] == "A"
@@ -438,6 +499,7 @@ def test_player_comparison_to_dict():
 
 def test_price_history_to_dict():
     from cli_web.futbin.core.models import PriceHistory
+
     h = PriceHistory(
         player_id=40,
         player_name="Mbappé",
@@ -455,11 +517,15 @@ def test_price_history_to_dict():
 
 
 def test_fodder_tier_to_dict():
-    from cli_web.futbin.core.models import FodderTier, FodderPlayer
-    tier = FodderTier(rating=88, players=[
-        FodderPlayer(id=63, name="Lewandowski", position="ST", price="4.8K"),
-        FodderPlayer(id=32, name="Saka", position="RW", price="5K"),
-    ])
+    from cli_web.futbin.core.models import FodderPlayer, FodderTier
+
+    tier = FodderTier(
+        rating=88,
+        players=[
+            FodderPlayer(id=63, name="Lewandowski", position="ST", price="4.8K"),
+            FodderPlayer(id=32, name="Saka", position="RW", price="5K"),
+        ],
+    )
     d = tier.to_dict()
     assert d["rating"] == 88
     assert d["cheapest_price"] == "4.8K"
@@ -469,6 +535,7 @@ def test_fodder_tier_to_dict():
 
 def test_price_history_empty():
     from cli_web.futbin.core.models import PriceHistory
+
     h = PriceHistory(player_id=999, player_name="Unknown", year=26)
     d = h.to_dict()
     assert d["ps_current"] is None

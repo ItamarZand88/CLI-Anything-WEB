@@ -3,13 +3,9 @@
 from __future__ import annotations
 
 import json
-import sys
 from unittest.mock import MagicMock, patch
 
-import click
 import pytest
-from click.testing import CliRunner
-
 from cli_web.reddit.core.exceptions import (
     AuthError,
     NetworkError,
@@ -33,11 +29,10 @@ from cli_web.reddit.core.models import (
 from cli_web.reddit.utils.helpers import (
     handle_errors,
     json_error,
-    print_json,
     resolve_json_mode,
     truncate,
 )
-
+from click.testing import CliRunner
 
 # ── Sample fixtures ─────────────────────────────────────────
 
@@ -135,6 +130,7 @@ def _mock_response(status_code=200, json_data=None, text="", headers=None):
 
 
 # ── Model tests ──────────────────────────────────────────────
+
 
 @pytest.mark.unit
 class TestModels:
@@ -276,16 +272,16 @@ class TestModels:
 
 # ── Client tests ──────────────────────────────────────────────
 
+
 @pytest.mark.unit
 class TestClient:
     """Test HTTP client with mocked responses."""
 
     @patch("cli_web.reddit.core.client.curl_requests.Session")
-    @patch("cli_web.reddit.core.client.load_auth", return_value=None)
     @patch("cli_web.reddit.core.client.get_bearer_token", return_value=None)
-    @patch("cli_web.reddit.core.client.get_cookies", return_value=None)
-    def test_feed_hot(self, mock_cookies, mock_token, mock_auth, MockSession):
+    def test_feed_hot(self, mock_token, MockSession):
         from cli_web.reddit.core.client import RedditClient
+
         session = MagicMock()
         MockSession.return_value = session
         session.get.return_value = _mock_response(json_data=SAMPLE_LISTING)
@@ -295,11 +291,10 @@ class TestClient:
         assert data["data"]["children"][0]["kind"] == "t3"
 
     @patch("cli_web.reddit.core.client.curl_requests.Session")
-    @patch("cli_web.reddit.core.client.load_auth", return_value=None)
     @patch("cli_web.reddit.core.client.get_bearer_token", return_value=None)
-    @patch("cli_web.reddit.core.client.get_cookies", return_value=None)
-    def test_404_raises_not_found(self, mock_cookies, mock_token, mock_auth, MockSession):
+    def test_404_raises_not_found(self, mock_token, MockSession):
         from cli_web.reddit.core.client import RedditClient
+
         session = MagicMock()
         MockSession.return_value = session
         session.get.side_effect = [_mock_response(200), _mock_response(404)]
@@ -309,14 +304,16 @@ class TestClient:
             client.feed_hot()
 
     @patch("cli_web.reddit.core.client.curl_requests.Session")
-    @patch("cli_web.reddit.core.client.load_auth", return_value=None)
     @patch("cli_web.reddit.core.client.get_bearer_token", return_value=None)
-    @patch("cli_web.reddit.core.client.get_cookies", return_value=None)
-    def test_429_raises_rate_limit(self, mock_cookies, mock_token, mock_auth, MockSession):
+    def test_429_raises_rate_limit(self, mock_token, MockSession):
         from cli_web.reddit.core.client import RedditClient
+
         session = MagicMock()
         MockSession.return_value = session
-        session.get.side_effect = [_mock_response(200), _mock_response(429, headers={"retry-after": "60"})]
+        session.get.side_effect = [
+            _mock_response(200),
+            _mock_response(429, headers={"retry-after": "60"}),
+        ]
 
         client = RedditClient()
         with pytest.raises(RateLimitError) as exc_info:
@@ -324,11 +321,10 @@ class TestClient:
         assert exc_info.value.retry_after == 60.0
 
     @patch("cli_web.reddit.core.client.curl_requests.Session")
-    @patch("cli_web.reddit.core.client.load_auth", return_value=None)
     @patch("cli_web.reddit.core.client.get_bearer_token", return_value=None)
-    @patch("cli_web.reddit.core.client.get_cookies", return_value=None)
-    def test_500_raises_server_error(self, mock_cookies, mock_token, mock_auth, MockSession):
+    def test_500_raises_server_error(self, mock_token, MockSession):
         from cli_web.reddit.core.client import RedditClient
+
         session = MagicMock()
         MockSession.return_value = session
         session.get.side_effect = [_mock_response(200), _mock_response(500)]
@@ -339,11 +335,10 @@ class TestClient:
         assert exc_info.value.status_code == 500
 
     @patch("cli_web.reddit.core.client.curl_requests.Session")
-    @patch("cli_web.reddit.core.client.load_auth", return_value=None)
     @patch("cli_web.reddit.core.client.get_bearer_token", return_value=None)
-    @patch("cli_web.reddit.core.client.get_cookies", return_value=None)
-    def test_403_raises_auth_error(self, mock_cookies, mock_token, mock_auth, MockSession):
+    def test_403_raises_auth_error(self, mock_token, MockSession):
         from cli_web.reddit.core.client import RedditClient
+
         session = MagicMock()
         MockSession.return_value = session
         session.get.side_effect = [_mock_response(200), _mock_response(403)]
@@ -353,11 +348,10 @@ class TestClient:
             client.feed_hot()
 
     @patch("cli_web.reddit.core.client.curl_requests.Session")
-    @patch("cli_web.reddit.core.client.load_auth", return_value=None)
     @patch("cli_web.reddit.core.client.get_bearer_token", return_value=None)
-    @patch("cli_web.reddit.core.client.get_cookies", return_value=None)
-    def test_generic_4xx_raises_reddit_error(self, mock_cookies, mock_token, mock_auth, MockSession):
+    def test_generic_4xx_raises_reddit_error(self, mock_token, MockSession):
         from cli_web.reddit.core.client import RedditClient
+
         session = MagicMock()
         MockSession.return_value = session
         session.get.side_effect = [_mock_response(200), _mock_response(418, text="I'm a teapot")]
@@ -367,11 +361,10 @@ class TestClient:
             client.feed_hot()
 
     @patch("cli_web.reddit.core.client.curl_requests.Session")
-    @patch("cli_web.reddit.core.client.load_auth", return_value=None)
     @patch("cli_web.reddit.core.client.get_bearer_token", return_value=None)
-    @patch("cli_web.reddit.core.client.get_cookies", return_value=None)
-    def test_network_error(self, mock_cookies, mock_token, mock_auth, MockSession):
+    def test_network_error(self, mock_token, MockSession):
         from cli_web.reddit.core.client import RedditClient
+
         session = MagicMock()
         MockSession.return_value = session
         session.get.side_effect = [_mock_response(200), ConnectionError("fail")]
@@ -382,6 +375,7 @@ class TestClient:
 
 
 # ── Helpers tests ──────────────────────────────────────────────
+
 
 @pytest.mark.unit
 class TestHelpers:
@@ -472,12 +466,14 @@ class TestHelpers:
 
 # ── CLI Click tests ──────────────────────────────────────────
 
+
 @pytest.mark.unit
 class TestCLIClick:
     """Test CLI commands with Click test runner and mocked client."""
 
     def test_version(self):
         from cli_web.reddit.reddit_cli import cli
+
         runner = CliRunner()
         result = runner.invoke(cli, ["--version"])
         assert result.exit_code == 0
@@ -485,6 +481,7 @@ class TestCLIClick:
 
     def test_help(self):
         from cli_web.reddit.reddit_cli import cli
+
         runner = CliRunner()
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
@@ -493,6 +490,7 @@ class TestCLIClick:
     @patch("cli_web.reddit.commands.feed.RedditClient")
     def test_feed_hot_json(self, MockClient):
         from cli_web.reddit.reddit_cli import cli
+
         instance = MockClient.return_value
         instance.feed_hot.return_value = SAMPLE_LISTING
 
@@ -506,6 +504,7 @@ class TestCLIClick:
     @patch("cli_web.reddit.commands.search.RedditClient")
     def test_search_posts_json(self, MockClient):
         from cli_web.reddit.reddit_cli import cli
+
         instance = MockClient.return_value
         instance.search_posts.return_value = SAMPLE_LISTING
 
@@ -519,6 +518,7 @@ class TestCLIClick:
     def test_root_json_flows_to_subcommand(self, MockClient):
         """Root --json flag should be inherited by subcommands."""
         from cli_web.reddit.reddit_cli import cli
+
         instance = MockClient.return_value
         instance.feed_hot.return_value = SAMPLE_LISTING
 
@@ -531,6 +531,7 @@ class TestCLIClick:
     @patch("cli_web.reddit.commands.feed.RedditClient")
     def test_feed_hot_json_error_on_not_found(self, MockClient):
         from cli_web.reddit.reddit_cli import cli
+
         instance = MockClient.return_value
         instance.feed_hot.side_effect = NotFoundError("not found")
 
@@ -543,6 +544,7 @@ class TestCLIClick:
     @patch("cli_web.reddit.commands.feed.RedditClient")
     def test_feed_new_json(self, MockClient):
         from cli_web.reddit.reddit_cli import cli
+
         instance = MockClient.return_value
         instance.feed_new.return_value = SAMPLE_LISTING
 
@@ -555,6 +557,7 @@ class TestCLIClick:
     @patch("cli_web.reddit.commands.search.RedditClient")
     def test_search_posts_json_error_on_network(self, MockClient):
         from cli_web.reddit.reddit_cli import cli
+
         instance = MockClient.return_value
         instance.search_posts.side_effect = NetworkError("timeout")
 

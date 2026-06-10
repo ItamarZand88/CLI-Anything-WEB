@@ -47,8 +47,11 @@ class ServerError(AppError):
 class AuthError(AppError):
     """Authentication failed or credentials missing."""
 
-    def __init__(self, message: str = "Authentication required. Run: cli-web-hackernews auth login",
-                 recoverable: bool = False):
+    def __init__(
+        self,
+        message: str = "Authentication required. Run: cli-web-hackernews auth login",
+        recoverable: bool = False,
+    ):
         self.recoverable = recoverable
         super().__init__(message, "AUTH_EXPIRED")
 

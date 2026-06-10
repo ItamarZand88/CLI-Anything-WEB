@@ -32,6 +32,7 @@ class TestLiveSearch:
     @pytest.fixture(autouse=True)
     def _client(self):
         from cli_web.gai.core.client import GAIClient
+
         self.client = GAIClient(headless=True, lang="en", timeout=45000)
         yield
         self.client.close()
@@ -39,6 +40,7 @@ class TestLiveSearch:
     def test_search_returns_answer_with_structure(self):
         """Search returns a well-structured result with answer and valid JSON."""
         from cli_web.gai.core.exceptions import CaptchaError
+
         try:
             result = self.client.search("What is the capital of France?")
         except CaptchaError:

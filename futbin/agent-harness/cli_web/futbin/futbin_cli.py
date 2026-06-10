@@ -9,6 +9,7 @@ Usage:
     cli-web-futbin sbc list
     cli-web-futbin evolutions list
 """
+
 import sys
 
 # Force UTF-8 output on Windows to handle Unicode player names (ć, é, ö, etc.)
@@ -24,12 +25,11 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf8"):
         pass
 
 import click
-
-from cli_web.futbin.commands.players import players
-from cli_web.futbin.commands.market import market
-from cli_web.futbin.commands.sbc import sbc
-from cli_web.futbin.commands.evolutions import evolutions
 from cli_web.futbin.commands.config_cmd import config
+from cli_web.futbin.commands.evolutions import evolutions
+from cli_web.futbin.commands.market import market
+from cli_web.futbin.commands.players import players
+from cli_web.futbin.commands.sbc import sbc
 from cli_web.futbin.utils.repl_skin import ReplSkin
 
 VERSION = "0.1.0"
@@ -39,20 +39,24 @@ _skin = ReplSkin(APP_NAME, version=VERSION)
 
 
 @click.group(invoke_without_command=True)
+@click.option("--json", "json_mode", is_flag=True, default=False, help="Output as JSON.")
 @click.version_option(VERSION, prog_name="cli-web-futbin")
 @click.pass_context
-def cli(ctx: click.Context):
+def cli(ctx: click.Context, json_mode: bool):
     """
     cli-web-futbin — EA FC Ultimate Team database CLI.
 
     Search players, check prices, browse SBCs and Evolutions.
     Run without a subcommand to enter interactive REPL mode.
     """
+    ctx.ensure_object(dict)
+    ctx.obj["json"] = json_mode
+
     if ctx.invoked_subcommand is None:
-        _run_repl()
+        _run_repl(ctx)
 
 
-def _run_repl():
+def _run_repl(ctx: click.Context):
     """Interactive REPL mode."""
     _skin.print_banner()
     _skin.info("Type 'help' for available commands, 'quit' to exit.")
@@ -75,7 +79,10 @@ def _run_repl():
 
         # Parse and dispatch
         import shlex
+
         args = shlex.split(line)
+        if ctx.obj.get("json"):
+            args = ["--json"] + args
         try:
             cli.main(args, standalone_mode=False, prog_name="cli-web-futbin")
         except SystemExit:
@@ -137,6 +144,14 @@ cli.add_command(market)
 cli.add_command(sbc)
 cli.add_command(evolutions)
 cli.add_command(config)
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.futbin.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.futbin.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="futbin", version="0.1.0")
+register_doctor_command(cli, app_name="futbin", pkg="futbin")
 
 
 if __name__ == "__main__":

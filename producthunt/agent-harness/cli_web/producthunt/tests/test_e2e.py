@@ -15,10 +15,10 @@ import unittest
 from cli_web.producthunt.core.client import ProductHuntClient
 from cli_web.producthunt.core.models import Post, User
 
-
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
+
 
 def _resolve_cli(name: str) -> list[str]:
     if os.environ.get("CLI_WEB_FORCE_INSTALLED"):
@@ -32,6 +32,7 @@ def _resolve_cli(name: str) -> list[str]:
 # ---------------------------------------------------------------------------
 # TestLiveAPI
 # ---------------------------------------------------------------------------
+
 
 class TestLiveAPI(unittest.TestCase):
     """E2E tests that hit the real Product Hunt site."""
@@ -94,6 +95,7 @@ class TestLiveAPI(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # TestCLISubprocess
 # ---------------------------------------------------------------------------
+
 
 class TestCLISubprocess(unittest.TestCase):
     """Subprocess tests invoking the CLI binary."""

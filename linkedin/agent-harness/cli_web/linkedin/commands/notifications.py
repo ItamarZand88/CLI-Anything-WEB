@@ -1,4 +1,5 @@
 """Notifications commands for cli-web-linkedin."""
+
 from __future__ import annotations
 
 import click

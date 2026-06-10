@@ -31,7 +31,13 @@ def search(query, page, per_page, use_json):
         data = client.search_users(query, page=page, per_page=per_page)
         results = [format_user_summary(u) for u in data.get("results", [])]
         if use_json:
-            print_json({"total": data.get("total", 0), "total_pages": data.get("total_pages", 0), "results": results})
+            print_json(
+                {
+                    "total": data.get("total", 0),
+                    "total_pages": data.get("total_pages", 0),
+                    "results": results,
+                }
+            )
         else:
             click.echo(f"Found {data.get('total', 0):,} users for '{query}' (page {page})")
             user_table(results, title=f"Search: {query}")
@@ -65,7 +71,11 @@ def get_user(username, use_json):
 @click.argument("username")
 @click.option("--page", type=int, default=1, help="Page number.")
 @click.option("--per-page", type=int, default=20, help="Results per page.")
-@click.option("--order-by", type=click.Choice(["latest", "oldest", "popular", "views", "downloads"]), help="Sort order.")
+@click.option(
+    "--order-by",
+    type=click.Choice(["latest", "oldest", "popular", "views", "downloads"]),
+    help="Sort order.",
+)
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
 def user_photos(username, page, per_page, order_by, use_json):
     """List photos by a user."""

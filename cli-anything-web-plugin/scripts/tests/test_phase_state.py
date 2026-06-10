@@ -4,6 +4,7 @@ phase-state.py is a CLI tool used by every Phase 2/3/4 skill to check whether
 the previous phase is done and to mark the current one complete/failed. These
 tests drive it via subprocess to mirror real usage.
 """
+
 from __future__ import annotations
 
 import json
@@ -20,7 +21,8 @@ PHASE_STATE = SCRIPTS_DIR / "phase-state.py"
 def _run(*args: str, check: bool = True) -> subprocess.CompletedProcess:
     result = subprocess.run(
         [sys.executable, str(PHASE_STATE), *args],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if check and result.returncode not in (0, 1):
         raise AssertionError(f"phase-state.py failed: {result.stderr}")
@@ -33,6 +35,7 @@ def _status(app_dir: Path) -> dict:
 
 # --- Fresh state ---
 
+
 def test_status_on_fresh_app_reports_all_phases_pending(tmp_path):
     report = _status(tmp_path)
     for phase in ("capture", "methodology", "testing", "standards"):
@@ -43,8 +46,18 @@ def test_status_on_fresh_app_reports_all_phases_pending(tmp_path):
 
 # --- complete ---
 
+
 def test_complete_marks_phase_done_and_persists_output(tmp_path):
-    _run("complete", str(tmp_path), "--phase", "capture", "--output", "/tmp/raw.json", "--notes", "went fine")
+    _run(
+        "complete",
+        str(tmp_path),
+        "--phase",
+        "capture",
+        "--output",
+        "/tmp/raw.json",
+        "--notes",
+        "went fine",
+    )
     report = _status(tmp_path)
     assert report["phases"]["capture"]["status"] == "done"
     assert report["phases"]["capture"]["output"] == "/tmp/raw.json"
@@ -64,9 +77,18 @@ def test_completing_phase_writes_state_file(tmp_path):
 
 # --- fail ---
 
+
 def test_fail_marks_phase_with_error_and_type(tmp_path):
-    _run("fail", str(tmp_path), "--phase", "testing",
-         "--error", "3 tests failed", "--error-type", "retryable")
+    _run(
+        "fail",
+        str(tmp_path),
+        "--phase",
+        "testing",
+        "--error",
+        "3 tests failed",
+        "--error-type",
+        "retryable",
+    )
     report = _status(tmp_path)
     assert report["phases"]["testing"]["status"] == "failed"
     assert report["phases"]["testing"]["error"] == "3 tests failed"
@@ -76,8 +98,16 @@ def test_fail_marks_phase_with_error_and_type(tmp_path):
 def test_failed_phase_shows_in_next_action(tmp_path):
     # Mark capture done so the next-action logic picks up on a real failure
     _run("complete", str(tmp_path), "--phase", "capture")
-    _run("fail", str(tmp_path), "--phase", "methodology",
-         "--error", "boom", "--error-type", "retryable")
+    _run(
+        "fail",
+        str(tmp_path),
+        "--phase",
+        "methodology",
+        "--error",
+        "boom",
+        "--error-type",
+        "retryable",
+    )
     report = _status(tmp_path)
     # current_phase should point at the failed phase
     assert report["current_phase"] == "methodology"
@@ -92,6 +122,7 @@ def test_fail_with_fatal_error_type_suggests_force(tmp_path):
 
 # --- reset ---
 
+
 def test_reset_returns_phase_to_pending(tmp_path):
     _run("complete", str(tmp_path), "--phase", "capture")
     _run("reset", str(tmp_path), "--phase", "capture")
@@ -100,6 +131,7 @@ def test_reset_returns_phase_to_pending(tmp_path):
 
 
 # --- check (exit code contract) ---
+
 
 def test_check_exit_0_when_phase_done(tmp_path):
     _run("complete", str(tmp_path), "--phase", "capture")
@@ -124,6 +156,7 @@ def test_check_with_force_always_exits_1(tmp_path):
 
 # --- Pipeline-complete terminal state ---
 
+
 def test_all_phases_complete_shows_ready_message(tmp_path):
     for phase in ("capture", "methodology", "testing", "standards"):
         _run("complete", str(tmp_path), "--phase", phase)
@@ -133,6 +166,7 @@ def test_all_phases_complete_shows_ready_message(tmp_path):
 
 
 # --- Argparse contract ---
+
 
 @pytest.mark.parametrize("bad_phase", ["setup", "build", "deploy", "CAPTURE"])
 def test_rejects_unknown_phase_name(tmp_path, bad_phase):

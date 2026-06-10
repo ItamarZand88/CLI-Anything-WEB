@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass
@@ -47,6 +47,7 @@ def _parse_int(text: str) -> int:
         return 0
     # Extract first number group (handles "1,394 stars today")
     import re
+
     text = text.strip()
     match = re.search(r"[\d,]+", text)
     if not match:

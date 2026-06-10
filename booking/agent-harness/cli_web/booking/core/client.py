@@ -13,10 +13,9 @@ from typing import Any
 from bs4 import BeautifulSoup
 from curl_cffi import requests as curl_requests
 
-from .auth import load_cookies
+from .auth import load_cookies, refresh_auth
 from .exceptions import (
     AuthError,
-    BookingError,
     NetworkError,
     NotFoundError,
     RateLimitError,
@@ -48,6 +47,12 @@ class BookingClient:
         self.lang = lang
         self.currency = currency
         self._cookies: dict[str, str] | None = None
+
+    def __enter__(self) -> BookingClient:
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass  # No persistent session — requests are per-call (curl_cffi)
 
     def _get_cookies(self) -> dict[str, str]:
         """Load WAF cookies, caching for the session."""
@@ -82,8 +87,7 @@ class BookingClient:
                 status_code=resp.status_code,
             )
 
-    def _graphql(self, operation: str, query: str,
-                 variables: dict | None = None) -> dict:
+    def _graphql(self, operation: str, query: str, variables: dict | None = None) -> dict:
         """Execute a GraphQL query (no WAF cookies needed)."""
         try:
             resp = curl_requests.post(
@@ -98,14 +102,14 @@ class BookingClient:
                 timeout=15,
             )
         except Exception as e:
-            raise NetworkError(f"GraphQL request failed: {e}")
+            raise NetworkError(f"GraphQL request failed: {e}") from e
 
         self._check_status(resp, GRAPHQL_URL)
 
         try:
             data = resp.json()
-        except (json.JSONDecodeError, ValueError):
-            raise ServerError("Invalid JSON response from GraphQL endpoint")
+        except (json.JSONDecodeError, ValueError) as exc:
+            raise ServerError("Invalid JSON response from GraphQL endpoint") from exc
 
         if "errors" in data and not data.get("data"):
             errors = data["errors"]
@@ -114,11 +118,17 @@ class BookingClient:
 
         return data.get("data", {})
 
-    def _fetch_html(self, url: str, params: dict | None = None) -> BeautifulSoup:
+    def _fetch_html(self, url: str, params: dict | None = None, _attempt: int = 0) -> BeautifulSoup:
         """Fetch an SSR HTML page with WAF cookies.
 
         Uses only the aws-waf-token cookie — the bkng cookie contains
         affiliate data that triggers redirects on hotel detail pages.
+
+        On a WAF challenge or 401/403, runs the 3-attempt auth refresh
+        (CONVENTIONS.md §Auth Rules — never more than 3 attempts):
+          attempt 0 → current cookies
+          attempt 1 → reload auth.json from disk
+          attempt 2 → headless refresh via refresh_auth()
         """
         all_cookies = self._get_cookies()
         # Only use WAF-essential cookies to avoid affiliate redirects
@@ -144,10 +154,22 @@ class BookingClient:
                 timeout=20,
             )
         except Exception as e:
-            raise NetworkError(f"HTTP request failed: {e}")
+            raise NetworkError(f"HTTP request failed: {e}") from e
 
-        self._check_waf(resp)
-        self._check_status(resp, url)
+        try:
+            self._check_waf(resp)
+            self._check_status(resp, url)
+        except AuthError:  # includes WAFChallengeError
+            if _attempt >= 2:
+                raise
+            if _attempt == 0:
+                try:
+                    self._cookies = load_cookies()  # reload auth.json from disk
+                except AuthError:
+                    self._cookies = all_cookies  # keep in-memory; refresh next
+            else:
+                self._cookies = refresh_auth()
+            return self._fetch_html(url, params, _attempt=_attempt + 1)
 
         return BeautifulSoup(resp.text, "html.parser")
 
@@ -171,9 +193,7 @@ class BookingClient:
             }
         }
         data = self._graphql("AutoComplete", AUTOCOMPLETE_QUERY, variables)
-        results = (
-            data.get("autoCompleteSuggestions", {}).get("results", [])
-        )
+        results = data.get("autoCompleteSuggestions", {}).get("results", [])
         return [Destination.from_graphql(r) for r in results]
 
     # ── Search (SSR HTML) ───────────────────────────────────────────
@@ -321,9 +341,14 @@ class BookingClient:
         for script in ld_scripts:
             try:
                 data = json.loads(script.string)
-                if data.get("@type") in ("Hotel", "LodgingBusiness",
-                                          "Apartment", "Hostel",
-                                          "BedAndBreakfast", "Resort"):
+                if data.get("@type") in (
+                    "Hotel",
+                    "LodgingBusiness",
+                    "Apartment",
+                    "Hostel",
+                    "BedAndBreakfast",
+                    "Resort",
+                ):
                     return PropertyDetail.from_json_ld(data, slug)
             except (json.JSONDecodeError, TypeError):
                 continue

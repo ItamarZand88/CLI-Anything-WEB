@@ -37,7 +37,13 @@ def info(username, use_json):
 @user.command("posts")
 @click.argument("username")
 @click.option("--sort", type=click.Choice(SORT_CHOICES), default="new", help="Sort order.")
-@click.option("--time", "time_filter", type=click.Choice(TIME_CHOICES), default=None, help="Time period (for top sort).")
+@click.option(
+    "--time",
+    "time_filter",
+    type=click.Choice(TIME_CHOICES),
+    default=None,
+    help="Time period (for top sort).",
+)
 @click.option("--limit", type=int, default=25, help="Number of posts (max 100).")
 @click.option("--after", default=None, help="Pagination cursor.")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
@@ -59,7 +65,13 @@ def posts(username, sort, time_filter, limit, after, use_json):
 @user.command("comments")
 @click.argument("username")
 @click.option("--sort", type=click.Choice(SORT_CHOICES), default="new", help="Sort order.")
-@click.option("--time", "time_filter", type=click.Choice(TIME_CHOICES), default=None, help="Time period (for top sort).")
+@click.option(
+    "--time",
+    "time_filter",
+    type=click.Choice(TIME_CHOICES),
+    default=None,
+    help="Time period (for top sort).",
+)
 @click.option("--limit", type=int, default=25, help="Number of comments (max 100).")
 @click.option("--after", default=None, help="Pagination cursor.")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")

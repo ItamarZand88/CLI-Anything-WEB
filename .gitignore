@@ -30,3 +30,8 @@ venv/
 
 # Skill IDs (local registration metadata, not for version control)
 **/.skill_id
+
+# Coverage artifacts
+.coverage
+.coverage.*
+htmlcov/

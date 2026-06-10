@@ -1,18 +1,32 @@
 """HTTP client for FUTBIN — handles requests, HTML parsing, rate limiting."""
+
 from __future__ import annotations
 
-import time
 import re
-from typing import Any, Optional
-from urllib.parse import urljoin
+import time
+from typing import Any
 
 import httpx
 from bs4 import BeautifulSoup
+from cli_web.futbin.core.models import (
+    SBC,
+    Evolution,
+    EvolutionDetail,
+    FodderTier,
+    MarketDetail,
+    MarketItem,
+    Player,
+    PlayerComparison,
+    PriceHistory,
+    SBCDetail,
+)
 
-from cli_web.futbin.core.models import Player, SBC, Evolution, MarketItem, MarketDetail, PriceHistory, FodderTier
 from .exceptions import (
-    FutbinError, NetworkError, RateLimitError, ServerError,
-    NotFoundError, ParsingError, InvalidInputError,
+    NetworkError,
+    NotFoundError,
+    ParsingError,
+    RateLimitError,
+    ServerError,
 )
 
 BASE_URL = "https://www.futbin.com"
@@ -20,7 +34,7 @@ DEFAULT_YEAR = 26
 REQUEST_DELAY = 0.5  # seconds between requests — be respectful
 
 
-def _coin_str_to_int(value: str) -> Optional[int]:
+def _coin_str_to_int(value: str) -> int | None:
     """Convert '1.2M', '150K', '1,234' to int."""
     if not value:
         return None
@@ -56,7 +70,7 @@ class FutbinClient:
 
     BASE_URL = BASE_URL
 
-    def _get(self, path: str, params: Optional[dict] = None) -> httpx.Response:
+    def _get(self, path: str, params: dict | None = None) -> httpx.Response:
         """Rate-limited GET request."""
         elapsed = time.time() - self._last_request
         if elapsed < REQUEST_DELAY:
@@ -79,11 +93,13 @@ class FutbinClient:
         if resp.status_code == 404:
             raise NotFoundError(f"Not found: {path}")
         if resp.status_code >= 500:
-            raise ServerError(f"Server error {resp.status_code}: {path}", status_code=resp.status_code)
+            raise ServerError(
+                f"Server error {resp.status_code}: {path}", status_code=resp.status_code
+            )
         resp.raise_for_status()
         return resp
 
-    def _soup(self, path: str, params: Optional[dict] = None) -> BeautifulSoup:
+    def _soup(self, path: str, params: dict | None = None) -> BeautifulSoup:
         resp = self._get(path, params)
         soup = BeautifulSoup(resp.text, "html.parser")
         if not soup.body and not soup.find():
@@ -110,16 +126,8 @@ class FutbinClient:
         players = []
         for item in data:
             rating_sq = item.get("ratingSquare", {})
-            club = (
-                item.get("clubImage", {})
-                .get("fixed", {})
-                .get("name", "")
-            )
-            nation = (
-                item.get("nationImage", {})
-                .get("fixed", {})
-                .get("name", "")
-            )
+            club = item.get("clubImage", {}).get("fixed", {}).get("name", "")
+            nation = item.get("nationImage", {}).get("fixed", {}).get("name", "")
             url = item.get("location", {}).get("url", "")
             players.append(
                 Player(
@@ -140,7 +148,7 @@ class FutbinClient:
     # Player Detail (HTML scraping)
     # ──────────────────────────────────────────────
 
-    def get_player(self, player_id: int, year: int = DEFAULT_YEAR) -> Optional[Player]:
+    def get_player(self, player_id: int, year: int = DEFAULT_YEAR) -> Player | None:
         """Fetch full player detail including stats and prices.
 
         FUTBIN requires the slug in the URL (/{year}/player/{id}/{slug}).
@@ -161,8 +169,7 @@ class FutbinClient:
         # FUTBIN sometimes works with any slug if the ID is valid
         try:
             soup = self._soup(f"/{year}/player/{player_id}/player")
-            return self._parse_player_detail(soup, player_id, year,
-                                             f"/{year}/player/{player_id}")
+            return self._parse_player_detail(soup, player_id, year, f"/{year}/player/{player_id}")
         except (NotFoundError, ParsingError):
             return None
 
@@ -212,12 +219,16 @@ class FutbinClient:
         # Prices — from the first .price-box-original-player for each platform
         ps_price = None
         xbox_price = None  # PC price
-        ps_box = soup.find(class_=lambda c: c and "price-box-original-player" in c and "platform-ps-only" in c)
+        ps_box = soup.find(
+            class_=lambda c: c and "price-box-original-player" in c and "platform-ps-only" in c
+        )
         if ps_box:
             price_el = ps_box.find(class_="lowest-price-1")
             if price_el:
                 ps_price = _coin_str_to_int(price_el.get_text(strip=True))
-        pc_box = soup.find(class_=lambda c: c and "price-box-original-player" in c and "platform-pc-only" in c)
+        pc_box = soup.find(
+            class_=lambda c: c and "price-box-original-player" in c and "platform-pc-only" in c
+        )
         if pc_box:
             price_el = pc_box.find(class_="lowest-price-1")
             if price_el:
@@ -229,7 +240,12 @@ class FutbinClient:
         if desc_el:
             content = desc_el.get("content", "")
             # "Kylian Mbappé Gold Rare - EA FC 26 ..."
-            m = re.search(r"(?:Mbappé|" + re.escape(name.split()[-1] if name else "") + r")\s+(.+?)\s*-\s*EA FC", str(content))
+            m = re.search(
+                r"(?:Mbappé|"
+                + re.escape(name.split()[-1] if name else "")
+                + r")\s+(.+?)\s*-\s*EA FC",
+                str(content),
+            )
             if m:
                 version = m.group(1).strip()
 
@@ -240,7 +256,9 @@ class FutbinClient:
         weak_foot = None
         height = ""
         foot = ""
-        header_box = soup.find(class_="player-header-info-box") or soup.find(class_="player-info-box")
+        header_box = soup.find(class_="player-header-info-box") or soup.find(
+            class_="player-info-box"
+        )
         if header_box:
             header_text = header_box.get_text(" ", strip=True)
             # Skills/WF from "Skills 5 Weak Foot 4"
@@ -326,24 +344,24 @@ class FutbinClient:
 
     def list_players(
         self,
-        name: Optional[str] = None,
-        min_price: Optional[int] = None,
-        max_price: Optional[int] = None,
+        name: str | None = None,
+        min_price: int | None = None,
+        max_price: int | None = None,
         sort: str = "ps_price",
         order: str = "desc",
         year: int = DEFAULT_YEAR,
         page: int = 1,
-        position: Optional[str] = None,
-        rating_min: Optional[int] = None,
-        rating_max: Optional[int] = None,
-        version: Optional[str] = None,
+        position: str | None = None,
+        rating_min: int | None = None,
+        rating_max: int | None = None,
+        version: str | None = None,
         platform: str = "ps",
-        min_skills: Optional[int] = None,
-        min_wf: Optional[int] = None,
-        gender: Optional[str] = None,
-        league: Optional[int] = None,
-        nation: Optional[int] = None,
-        club: Optional[int] = None,
+        min_skills: int | None = None,
+        min_wf: int | None = None,
+        gender: str | None = None,
+        league: int | None = None,
+        nation: int | None = None,
+        club: int | None = None,
     ) -> tuple[list[Player], bool]:
         """List players from database with optional filters.
 
@@ -395,7 +413,11 @@ class FutbinClient:
             page_items = soup.find_all("li", class_="page-item")
             for item in page_items:
                 link = item.find("a")
-                if link and ("next" in link.get("rel", []) or "next" in link.get("aria-label", "").lower() or "»" in link.get_text()):
+                if link and (
+                    "next" in link.get("rel", [])
+                    or "next" in link.get("aria-label", "").lower()
+                    or "»" in link.get_text()
+                ):
                     has_next_page = True
                     break
         else:
@@ -510,17 +532,22 @@ class FutbinClient:
                 # or td.table-cross-price (used on /latest page)
                 ps_price = None
                 xbox_price = None
-                ps_cell = row.find("td", class_=lambda c: c and ("platform-ps-only" in c or "table-cross-price" in c))
+                ps_cell = row.find(
+                    "td",
+                    class_=lambda c: c and ("platform-ps-only" in c or "table-cross-price" in c),
+                )
                 if ps_cell:
                     price_text = ps_cell.get_text(strip=True)
                     # Price text may include % change suffix — take first part
-                    price_part = re.split(r'[+-]?\d+\.\d+%', price_text)[0].strip()
+                    price_part = re.split(r"[+-]?\d+\.\d+%", price_text)[0].strip()
                     if price_part:
                         ps_price = _coin_str_to_int(price_part)
-                pc_cell = row.find("td", class_=lambda c: c and ("platform-pc-only" in c or "table-pc-price" in c))
+                pc_cell = row.find(
+                    "td", class_=lambda c: c and ("platform-pc-only" in c or "table-pc-price" in c)
+                )
                 if pc_cell:
                     price_text = pc_cell.get_text(strip=True)
-                    price_part = re.split(r'[+-]?\d+\.\d+%', price_text)[0].strip()
+                    price_part = re.split(r"[+-]?\d+\.\d+%", price_text)[0].strip()
                     if price_part:
                         xbox_price = _coin_str_to_int(price_part)
 
@@ -583,7 +610,6 @@ class FutbinClient:
         current = ""
         change_pct = ""
         # The index table on the page has the current values too
-        items = []
         rows = soup.find_all("tr")
         for row in rows[1:]:
             cells = row.find_all("td")
@@ -613,9 +639,13 @@ class FutbinClient:
         name = f"Index {rating.upper()}" if not rating.isdigit() else f"Index {rating}"
 
         return MarketDetail(
-            name=name, rating=rating, current=current,
-            change_pct=change_pct, open_value=open_value,
-            lowest=lowest, highest=highest,
+            name=name,
+            rating=rating,
+            current=current,
+            change_pct=change_pct,
+            open_value=open_value,
+            lowest=lowest,
+            highest=highest,
         )
 
     # ──────────────────────────────────────────────
@@ -643,7 +673,11 @@ class FutbinClient:
         if not next_link:
             for item in soup.find_all("li", class_="page-item"):
                 link = item.find("a")
-                if link and ("next" in link.get("rel", []) or "next" in link.get("aria-label", "").lower() or "»" in link.get_text()):
+                if link and (
+                    "next" in link.get("rel", [])
+                    or "next" in link.get("aria-label", "").lower()
+                    or "»" in link.get_text()
+                ):
                     has_next = True
                     break
         else:
@@ -675,6 +709,7 @@ class FutbinClient:
         if ps_el:
             try:
                 import json as _json
+
                 ps_data = _json.loads(ps_el["data-ps-data"])
             except (ValueError, KeyError):
                 pass
@@ -683,6 +718,7 @@ class FutbinClient:
         if pc_el:
             try:
                 import json as _json
+
                 pc_data = _json.loads(pc_el["data-pc-data"])
             except (ValueError, KeyError):
                 pass
@@ -705,9 +741,10 @@ class FutbinClient:
     # SBC Fodder (cheapest by rating)
     # ──────────────────────────────────────────────
 
-    def get_sbc_fodder(self) -> list["FodderTier"]:
+    def get_sbc_fodder(self) -> list[FodderTier]:
         """Fetch cheapest players per rating tier from /squad-building-challenges/cheapest."""
         from .models import FodderPlayer
+
         soup = self._soup("/squad-building-challenges/cheapest")
         tiers = []
         seen_ratings = set()
@@ -743,10 +780,14 @@ class FutbinClient:
                 text = link.get_text(" ", strip=True)
                 m = re.match(r"(.+?)\s*\((\w+)\)\s*([\d,.]+[KkMm]?)", text)
                 if m:
-                    players.append(FodderPlayer(
-                        id=pid, name=m.group(1).strip(),
-                        position=m.group(2), price=m.group(3),
-                    ))
+                    players.append(
+                        FodderPlayer(
+                            id=pid,
+                            name=m.group(1).strip(),
+                            position=m.group(2),
+                            price=m.group(3),
+                        )
+                    )
 
             if players:
                 tiers.append(FodderTier(rating=rating, players=players))
@@ -759,9 +800,13 @@ class FutbinClient:
     # ──────────────────────────────────────────────
 
     def get_market_movers(
-        self, direction: str = "risers", platform: str = "ps",
-        page: int = 1, rating_min: int = 80,
-        min_price: int = 1000, max_price: int = 15_000_000,
+        self,
+        direction: str = "risers",
+        platform: str = "ps",
+        page: int = 1,
+        rating_min: int = 80,
+        min_price: int = 1000,
+        max_price: int = 15_000_000,
     ) -> tuple[list[Player], bool]:
         """Fetch biggest price movers. direction='risers' or 'fallers'."""
         price_field = f"{platform}_price" if platform == "ps" else "pc_price"
@@ -870,7 +915,7 @@ class FutbinClient:
     # SBCs
     # ──────────────────────────────────────────────
 
-    def list_sbcs(self, category: Optional[str] = None, year: int = DEFAULT_YEAR) -> list[SBC]:
+    def list_sbcs(self, category: str | None = None, year: int = DEFAULT_YEAR) -> list[SBC]:
         """List Squad Building Challenges."""
         params: dict = {}
         path = "/squad-building-challenges"
@@ -921,14 +966,18 @@ class FutbinClient:
             if exp_m:
                 expires = exp_m.group(1).strip()
 
-            # Coin prices — look for patterns like "62.6K" near "Coin" or at end
-            coin_matches = re.findall(r"([\d,]+(?:\.\d+)?[KkMm]?)\s*(?:Coin)?$|(?:^|\s)([\d,]+(?:\.\d+)?[KkMm])", text)
             # Look for the PS/Xbox prices at the end of the card text
             price_matches = re.findall(r"([\d]+(?:\.\d+)?[KkMm])", text)
             if price_matches:
                 try:
-                    cost_ps = _coin_str_to_int(price_matches[-2]) if len(price_matches) >= 2 else _coin_str_to_int(price_matches[-1])
-                    cost_xbox = _coin_str_to_int(price_matches[-1]) if len(price_matches) >= 2 else None
+                    cost_ps = (
+                        _coin_str_to_int(price_matches[-2])
+                        if len(price_matches) >= 2
+                        else _coin_str_to_int(price_matches[-1])
+                    )
+                    cost_xbox = (
+                        _coin_str_to_int(price_matches[-1]) if len(price_matches) >= 2 else None
+                    )
                 except (IndexError, ValueError):
                     pass
 
@@ -959,7 +1008,7 @@ class FutbinClient:
 
     def list_evolutions(
         self,
-        category: Optional[int] = None,
+        category: int | None = None,
         expiring: bool = False,
         year: int = DEFAULT_YEAR,
     ) -> list[Evolution]:
@@ -1036,9 +1085,8 @@ class FutbinClient:
                 unique.append(e)
         return unique
 
-    def compare_players(self, id1: int, id2: int, year: int = DEFAULT_YEAR) -> "PlayerComparison":
+    def compare_players(self, id1: int, id2: int, year: int = DEFAULT_YEAR) -> PlayerComparison:
         """Compare two players side-by-side."""
-        from .models import PlayerComparison
         p1 = self.get_player(id1, year=year)
         p2 = self.get_player(id2, year=year)
         if not p1:
@@ -1058,9 +1106,8 @@ class FutbinClient:
 
         return PlayerComparison(player1=p1, player2=p2, stat_diffs=diffs)
 
-    def get_sbc_detail(self, sbc_id: int, year: int = DEFAULT_YEAR) -> "SBCDetail":
+    def get_sbc_detail(self, sbc_id: int, year: int = DEFAULT_YEAR) -> SBCDetail:
         """Get structured SBC details (requirements, rewards, description)."""
-        from .models import SBCDetail
         url = f"/{year}/squad-building-challenge/{sbc_id}"
         soup = self._soup(url)
         if not soup:
@@ -1077,7 +1124,16 @@ class FutbinClient:
 
         # Extract requirements from requirement cards
         requirements = []
-        req_sections = soup.find_all(class_=lambda c: c and ("requirement" in c.lower() if isinstance(c, str) else any("requirement" in x.lower() for x in c)))
+        req_sections = soup.find_all(
+            class_=lambda c: (
+                c
+                and (
+                    "requirement" in c.lower()
+                    if isinstance(c, str)
+                    else any("requirement" in x.lower() for x in c)
+                )
+            )
+        )
         for section in req_sections[:10]:  # Limit to avoid noise
             text = section.get_text(" ", strip=True)
             if text and len(text) > 5:
@@ -1090,14 +1146,17 @@ class FutbinClient:
             reward = reward_el.get_text(strip=True)[:200]
 
         return SBCDetail(
-            id=sbc_id, name=name, year=year, description=description,
-            requirements=requirements, reward=reward,
+            id=sbc_id,
+            name=name,
+            year=year,
+            description=description,
+            requirements=requirements,
+            reward=reward,
             url=f"{self.BASE_URL}{url}",
         )
 
-    def get_evolution_detail(self, evo_id: int) -> "EvolutionDetail":
+    def get_evolution_detail(self, evo_id: int) -> EvolutionDetail:
         """Get structured evolution details (requirements, upgrades)."""
-        from .models import EvolutionDetail
         evo_id = int(evo_id)
         # Evolution detail pages require the slug in the URL
         # First try to find the slug from the list page
@@ -1133,15 +1192,20 @@ class FutbinClient:
 
         # Extract upgrades/boosts
         upgrades = []
-        upgrade_els = soup.find_all(class_=lambda c: c and ("upgrade" in str(c).lower() or "boost" in str(c).lower()))
+        upgrade_els = soup.find_all(
+            class_=lambda c: c and ("upgrade" in str(c).lower() or "boost" in str(c).lower())
+        )
         for el in upgrade_els[:10]:
             text = el.get_text(" ", strip=True)
             if text and len(text) > 3:
                 upgrades.append({"text": text[:200]})
 
         return EvolutionDetail(
-            id=evo_id, name=name, requirements=requirements,
-            upgrades=upgrades, url=f"{self.BASE_URL}{url}",
+            id=evo_id,
+            name=name,
+            requirements=requirements,
+            upgrades=upgrades,
+            url=f"{self.BASE_URL}{url}",
         )
 
     def close(self):

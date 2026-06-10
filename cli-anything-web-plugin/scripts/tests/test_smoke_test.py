@@ -4,12 +4,12 @@ Focuses on the pure helpers (check_json_valid, check_leaks,
 _parse_commands_from_help) and on SmokeTest's behavior against a
 synthetic stub CLI. Doesn't require any generated CLI to be installed.
 """
+
 from __future__ import annotations
 
 import importlib.util
 import os
 import stat
-import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -31,6 +31,7 @@ def smoke_mod() -> ModuleType:
 
 # --- Pure helpers ---
 
+
 def test_check_json_valid_accepts_valid_json(smoke_mod):
     ok, msg = smoke_mod.check_json_valid('{"a": 1}')
     assert ok is True
@@ -38,7 +39,7 @@ def test_check_json_valid_accepts_valid_json(smoke_mod):
 
 
 def test_check_json_valid_rejects_malformed(smoke_mod):
-    ok, msg = smoke_mod.check_json_valid('{bad')
+    ok, msg = smoke_mod.check_json_valid("{bad")
     assert ok is False
     assert "Invalid JSON" in msg
 
@@ -55,6 +56,7 @@ def test_check_json_valid_strips_whitespace(smoke_mod):
 
 
 # --- Leak detection ---
+
 
 def test_check_leaks_detects_batchexecute_wrb(smoke_mod):
     # Actual leak: raw batchexecute array bleeds through as-is, unescaped.
@@ -85,6 +87,7 @@ def test_check_leaks_returns_multiple_when_present(smoke_mod):
 
 
 # --- Help parsing ---
+
 
 def test_parse_commands_extracts_click_subcommands(smoke_mod):
     help_output = """Usage: cli-web-foo [OPTIONS] COMMAND [ARGS]...
@@ -119,6 +122,7 @@ def test_parse_commands_stops_at_blank_line(smoke_mod):
 
 # --- run_cli error paths ---
 
+
 def test_run_cli_reports_missing_binary(smoke_mod):
     code, out, err = smoke_mod.run_cli(["/nonexistent/cli-web-xxxxx"], ["--help"])
     assert code == -2
@@ -136,9 +140,7 @@ def test_run_cli_timeout_path(smoke_mod, tmp_path):
 
 def test_run_cli_captures_stdout_stderr(smoke_mod, tmp_path):
     script = tmp_path / "echo.py"
-    script.write_text(
-        "import sys; print('hello-stdout'); print('warn', file=sys.stderr)\n"
-    )
+    script.write_text("import sys; print('hello-stdout'); print('warn', file=sys.stderr)\n")
     code, out, err = smoke_mod.run_cli([sys.executable, str(script)], [])
     assert code == 0
     assert "hello-stdout" in out
@@ -146,6 +148,7 @@ def test_run_cli_captures_stdout_stderr(smoke_mod, tmp_path):
 
 
 # --- SmokeTest class behavior (using a fake CLI) ---
+
 
 @pytest.fixture
 def fake_cli(tmp_path):
@@ -165,7 +168,7 @@ def fake_cli(tmp_path):
         "    print('cli-web-fake 0.1.0')\n"
         "    sys.exit(0)\n"
         "if args == ['hello', '--json']:\n"
-        "    print('{\"success\": true, \"data\": \"hi\"}')\n"
+        '    print(\'{"success": true, "data": "hi"}\')\n'
         "    sys.exit(0)\n"
         "sys.exit(2)\n"
     )

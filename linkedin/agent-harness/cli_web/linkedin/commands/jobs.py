@@ -1,4 +1,5 @@
 """LinkedIn jobs commands."""
+
 from __future__ import annotations
 
 import click
@@ -60,21 +61,26 @@ def search_jobs(ctx, query, limit, json_mode):
         cards = _extract_job_cards(data)
 
         if json_mode:
-            print_json({
-                "success": True,
-                "count": len(cards),
-                "jobs": [
-                    {
-                        "title": get_text(c, "jobPostingTitle") or get_text(c, "title"),
-                        "company": get_text(c, "primaryDescription") or get_text(c, "companyName"),
-                        "location": get_text(c, "secondaryDescription") or get_text(c, "formattedLocation"),
-                        "urn": c.get("entityUrn", ""),
-                        "job_id": c.get("entityUrn", "").split("(")[1].split(",")[0]
-                            if "(" in c.get("entityUrn", "") else "",
-                    }
-                    for c in cards
-                ],
-            })
+            print_json(
+                {
+                    "success": True,
+                    "count": len(cards),
+                    "jobs": [
+                        {
+                            "title": get_text(c, "jobPostingTitle") or get_text(c, "title"),
+                            "company": get_text(c, "primaryDescription")
+                            or get_text(c, "companyName"),
+                            "location": get_text(c, "secondaryDescription")
+                            or get_text(c, "formattedLocation"),
+                            "urn": c.get("entityUrn", ""),
+                            "job_id": c.get("entityUrn", "").split("(")[1].split(",")[0]
+                            if "(" in c.get("entityUrn", "")
+                            else "",
+                        }
+                        for c in cards
+                    ],
+                }
+            )
             return
 
         if not cards:
@@ -134,7 +140,7 @@ def get_job(ctx, job_id, json_mode):
         if isinstance(desc, dict):
             desc = desc.get("text", "")
         if desc:
-            click.echo(f"\n  Description:")
+            click.echo("\n  Description:")
             for line in desc[:500].split("\n"):
                 click.echo(f"    {line}")
             if len(desc) > 500:

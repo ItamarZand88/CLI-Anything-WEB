@@ -22,6 +22,7 @@ import pytest
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _resolve_cli(*args: str) -> list[str]:
     """Return the command list to invoke the CLI."""
     if os.environ.get("CLI_WEB_FORCE_INSTALLED"):
@@ -44,6 +45,7 @@ def _run(*args: str, input_text: str | None = None) -> tuple[int, str, str]:
 # ---------------------------------------------------------------------------
 # Subprocess / --help tests (no network required)
 # ---------------------------------------------------------------------------
+
 
 class TestCLISubprocess:
     def test_help_loads(self):
@@ -105,6 +107,7 @@ class TestCLISubprocess:
 # Live E2E tests (require internet + curl_cffi)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.e2e
 class TestLocationsSearchLive:
     def test_search_paris(self):
@@ -115,7 +118,7 @@ class TestLocationsSearchLive:
         assert data["count"] > 0
         locs = data["locations"]
         assert len(locs) > 0
-        paris = next((l for l in locs if "187147" in l.get("geo_id", "")), None)
+        paris = next((loc for loc in locs if "187147" in loc.get("geo_id", "")), None)
         assert paris is not None, "Expected Paris geo_id 187147 in results"
 
     def test_search_new_york(self):
@@ -124,7 +127,7 @@ class TestLocationsSearchLive:
         data = json.loads(out)
         assert data["success"] is True
         # Should find NYC (60763) or New York state (28953)
-        geo_ids = [l["geo_id"] for l in data["locations"]]
+        geo_ids = [loc["geo_id"] for loc in data["locations"]]
         assert "60763" in geo_ids or "28953" in geo_ids
 
     def test_search_returns_fields(self):
@@ -144,8 +147,11 @@ class TestHotelsLive:
 
     def test_search_hotels_paris(self):
         rc, out, err = _run(
-            "hotels", "search", "Paris",
-            "--geo-id", self.GEO_ID,
+            "hotels",
+            "search",
+            "Paris",
+            "--geo-id",
+            self.GEO_ID,
             "--json",
         )
         assert rc == 0
@@ -157,8 +163,11 @@ class TestHotelsLive:
 
     def test_hotel_fields_present(self):
         rc, out, err = _run(
-            "hotels", "search", "Paris",
-            "--geo-id", self.GEO_ID,
+            "hotels",
+            "search",
+            "Paris",
+            "--geo-id",
+            self.GEO_ID,
             "--json",
         )
         assert rc == 0
@@ -169,7 +178,7 @@ class TestHotelsLive:
         assert "name" in hotel
         assert hotel["name"]  # non-empty name
         assert "url" in hotel
-        assert hotel["url"]   # non-empty URL
+        assert hotel["url"]  # non-empty URL
         assert "rating" in hotel
         assert "review_count" in hotel
         assert "price_range" in hotel
@@ -177,8 +186,11 @@ class TestHotelsLive:
 
     def test_hotel_url_format(self):
         rc, out, err = _run(
-            "hotels", "search", "Paris",
-            "--geo-id", self.GEO_ID,
+            "hotels",
+            "search",
+            "Paris",
+            "--geo-id",
+            self.GEO_ID,
             "--json",
         )
         assert rc == 0
@@ -195,8 +207,11 @@ class TestRestaurantsLive:
 
     def test_search_restaurants_paris(self):
         rc, out, err = _run(
-            "restaurants", "search", "Paris",
-            "--geo-id", self.GEO_ID,
+            "restaurants",
+            "search",
+            "Paris",
+            "--geo-id",
+            self.GEO_ID,
             "--json",
         )
         assert rc == 0
@@ -206,8 +221,11 @@ class TestRestaurantsLive:
 
     def test_restaurant_fields_present(self):
         rc, out, err = _run(
-            "restaurants", "search", "Paris",
-            "--geo-id", self.GEO_ID,
+            "restaurants",
+            "search",
+            "Paris",
+            "--geo-id",
+            self.GEO_ID,
             "--json",
         )
         assert rc == 0
@@ -228,8 +246,11 @@ class TestAttractionsLive:
 
     def test_search_attractions_paris(self):
         rc, out, err = _run(
-            "attractions", "search", "Paris",
-            "--geo-id", self.GEO_ID,
+            "attractions",
+            "search",
+            "Paris",
+            "--geo-id",
+            self.GEO_ID,
             "--json",
         )
         assert rc == 0
@@ -239,8 +260,11 @@ class TestAttractionsLive:
 
     def test_attraction_fields_present(self):
         rc, out, err = _run(
-            "attractions", "search", "Paris",
-            "--geo-id", self.GEO_ID,
+            "attractions",
+            "search",
+            "Paris",
+            "--geo-id",
+            self.GEO_ID,
             "--json",
         )
         assert rc == 0
@@ -255,8 +279,11 @@ class TestAttractionsLive:
     def test_eiffel_tower_in_results(self):
         """Eiffel Tower should appear somewhere in Paris attractions."""
         rc, out, err = _run(
-            "attractions", "search", "Paris",
-            "--geo-id", self.GEO_ID,
+            "attractions",
+            "search",
+            "Paris",
+            "--geo-id",
+            self.GEO_ID,
             "--json",
         )
         assert rc == 0

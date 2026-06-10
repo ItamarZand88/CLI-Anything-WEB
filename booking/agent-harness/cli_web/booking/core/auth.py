@@ -44,14 +44,14 @@ def load_cookies() -> dict[str, str]:
                 cookies = data
             else:
                 raise AuthError("Invalid auth JSON format in env var", recoverable=False)
-        except json.JSONDecodeError:
-            raise AuthError("Invalid JSON in CLI_WEB_BOOKING_AUTH_JSON", recoverable=False)
+        except json.JSONDecodeError as exc:
+            raise AuthError("Invalid JSON in CLI_WEB_BOOKING_AUTH_JSON", recoverable=False) from exc
     elif AUTH_FILE.exists():
         try:
             data = json.loads(AUTH_FILE.read_text(encoding="utf-8"))
             cookies = data.get("cookies", {})
         except (json.JSONDecodeError, OSError) as e:
-            raise AuthError(f"Failed to read auth file: {e}", recoverable=False)
+            raise AuthError(f"Failed to read auth file: {e}", recoverable=False) from e
     else:
         raise AuthError(
             "No WAF cookies found. Run: cli-web-booking auth login",
@@ -140,6 +140,69 @@ def _windows_playwright_event_loop():
     return _ctx()
 
 
+def refresh_auth() -> dict[str, str]:
+    """Headlessly re-obtain a fresh aws-waf-token via the WAF challenge.
+
+    Fully automatic — the AWS WAF JavaScript challenge resolves without user
+    interaction, so no login session is required. Launches a headless browser
+    with the persistent profile, waits for the challenge to set the
+    aws-waf-token cookie, then saves the cookies.
+
+    Returns the refreshed cookies on success.
+
+    Raises:
+        AuthError: If playwright is unavailable or no token was obtained.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError as exc:
+        raise AuthError(
+            "Playwright not installed. Run:\n"
+            "  pip install playwright\n"
+            "  playwright install chromium",
+            recoverable=False,
+        ) from exc
+
+    _ensure_config_dir()
+    browser_profile = CONFIG_DIR / "browser-profile"
+    browser_profile.mkdir(parents=True, exist_ok=True)
+
+    with _windows_playwright_event_loop(), sync_playwright() as p:
+        context = p.chromium.launch_persistent_context(
+            user_data_dir=str(browser_profile),
+            headless=True,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--password-store=basic",
+            ],
+            ignore_default_args=["--enable-automation"],
+        )
+        try:
+            page = context.pages[0] if context.pages else context.new_page()
+            page.goto("https://www.booking.com")
+
+            # Poll for the WAF token cookie — the challenge resolves
+            # automatically once its JavaScript runs (max ~30s).
+            raw_cookies: list[dict] = []
+            for _ in range(30):
+                raw_cookies = context.cookies("https://www.booking.com")
+                if any(c.get("name") == "aws-waf-token" for c in raw_cookies):
+                    break
+                page.wait_for_timeout(1000)
+        finally:
+            context.close()
+
+    cookies = _extract_cookies(raw_cookies)
+    if not cookies.get("aws-waf-token"):
+        raise AuthError(
+            "Headless WAF refresh failed. Run: cli-web-booking auth login",
+            recoverable=False,
+        )
+
+    save_cookies(cookies)
+    return cookies
+
+
 def login_browser() -> dict[str, str]:
     """Open browser via Python playwright for WAF challenge resolution.
 
@@ -153,13 +216,13 @@ def login_browser() -> dict[str, str]:
     """
     try:
         from playwright.sync_api import sync_playwright
-    except ImportError:
+    except ImportError as exc:
         raise AuthError(
             "Playwright not installed. Run:\n"
             "  pip install playwright\n"
             "  playwright install chromium",
             recoverable=False,
-        )
+        ) from exc
 
     _ensure_config_dir()
     state_file = CONFIG_DIR / "state.json"
@@ -186,9 +249,9 @@ def login_browser() -> dict[str, str]:
         print("Wait for the Booking.com homepage to load fully.")
         try:
             input("\nPress ENTER when the page has loaded... ")
-        except (EOFError, KeyboardInterrupt):
+        except (EOFError, KeyboardInterrupt) as exc:
             context.close()
-            raise AuthError("Login cancelled", recoverable=False)
+            raise AuthError("Login cancelled", recoverable=False) from exc
 
         # Save storage state
         context.storage_state(path=str(state_file))
@@ -198,7 +261,7 @@ def login_browser() -> dict[str, str]:
     try:
         state = json.loads(state_file.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as e:
-        raise AuthError(f"Failed to parse state file: {e}", recoverable=False)
+        raise AuthError(f"Failed to parse state file: {e}", recoverable=False) from e
 
     raw_cookies = state.get("cookies", [])
     if isinstance(raw_cookies, list):

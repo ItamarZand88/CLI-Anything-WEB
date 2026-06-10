@@ -4,7 +4,7 @@ import click
 
 from ..core.client import PexelsClient
 from ..utils.helpers import handle_errors
-from ..utils.output import print_json, print_user_detail, print_photos_table, print_pagination
+from ..utils.output import print_json, print_pagination, print_user_detail
 
 
 @click.group("users")

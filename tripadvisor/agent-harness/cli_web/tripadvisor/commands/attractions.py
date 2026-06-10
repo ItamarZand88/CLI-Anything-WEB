@@ -27,8 +27,12 @@ def attractions(ctx):
 
 @attractions.command("search")
 @click.argument("location")
-@click.option("--geo-id", default=None, metavar="ID", help="Use known geo_id to skip location lookup.")
-@click.option("--page", default=1, type=int, show_default=True, help="Page number (30 attractions per page).")
+@click.option(
+    "--geo-id", default=None, metavar="ID", help="Use known geo_id to skip location lookup."
+)
+@click.option(
+    "--page", default=1, type=int, show_default=True, help="Page number (30 attractions per page)."
+)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
 def search_attractions(ctx, location, geo_id, page, json_mode):
@@ -56,14 +60,16 @@ def search_attractions(ctx, location, geo_id, page, json_mode):
         attrlist = result.get("attractions", [])
 
         if json_mode:
-            print_json({
-                "success": True,
-                "location": location,
-                "geo_id": result.get("geo_id"),
-                "page": page,
-                "count": len(attrlist),
-                "attractions": [a.to_dict() for a in attrlist],
-            })
+            print_json(
+                {
+                    "success": True,
+                    "location": location,
+                    "geo_id": result.get("geo_id"),
+                    "page": page,
+                    "count": len(attrlist),
+                    "attractions": [a.to_dict() for a in attrlist],
+                }
+            )
             return
 
         if not attrlist:

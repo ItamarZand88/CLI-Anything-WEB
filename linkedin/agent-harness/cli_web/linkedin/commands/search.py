@@ -16,6 +16,7 @@ console = Console()
 # Helpers to extract display fields from LinkedIn search result elements
 # ---------------------------------------------------------------------------
 
+
 def _resolve_pointer(obj: dict, key: str, index: dict) -> dict | None:
     """Resolve a REST.li ``*key`` pointer against the included index."""
     # Direct value
@@ -54,7 +55,7 @@ def _extract_elements(data) -> list[dict]:
     # Handle double-nested data (GraphQL wraps in data.data)
     if "data" in gql and isinstance(gql["data"], dict):
         gql = gql["data"]
-    for key, val in gql.items():
+    for _key, val in gql.items():
         if isinstance(val, dict) and "elements" in val:
             for el in val["elements"]:
                 for item in el.get("items", []):
@@ -103,6 +104,7 @@ def _truncate(text: str, length: int = 60) -> str:
 # Click group
 # ---------------------------------------------------------------------------
 
+
 @click.group("search")
 @click.pass_context
 def search(ctx):
@@ -113,6 +115,7 @@ def search(ctx):
 # ---------------------------------------------------------------------------
 # search all
 # ---------------------------------------------------------------------------
+
 
 @search.command("all")
 @click.argument("query")
@@ -156,6 +159,7 @@ def search_all(ctx, query, limit, json_mode):
 # search people
 # ---------------------------------------------------------------------------
 
+
 @search.command("people")
 @click.argument("query")
 @click.option("--limit", default=10, type=int, show_default=True, help="Max results.")
@@ -194,8 +198,12 @@ def search_people(ctx, query, limit, json_mode):
         for idx, el in enumerate(results[:limit], 1):
             name = get_text(el, "title", "text") or get_text(el, "title")
             headline = get_text(el, "primarySubtitle", "text") or get_text(el, "primarySubtitle")
-            location = get_text(el, "secondarySubtitle", "text") or get_text(el, "secondarySubtitle")
-            table.add_row(str(idx), _truncate(name, 30), _truncate(headline, 50), _truncate(location, 25))
+            location = get_text(el, "secondarySubtitle", "text") or get_text(
+                el, "secondarySubtitle"
+            )
+            table.add_row(
+                str(idx), _truncate(name, 30), _truncate(headline, 50), _truncate(location, 25)
+            )
 
         console.print(table)
         click.echo(f"\nFound {len(results)} people.")
@@ -204,6 +212,7 @@ def search_people(ctx, query, limit, json_mode):
 # ---------------------------------------------------------------------------
 # search jobs
 # ---------------------------------------------------------------------------
+
 
 @search.command("jobs")
 @click.argument("query")
@@ -242,9 +251,19 @@ def search_jobs(ctx, query, limit, json_mode):
 
         for idx, el in enumerate(results[:limit], 1):
             title = get_text(el, "jobPostingTitle") or get_text(el, "title") or ""
-            company = get_text(el, "primaryDescription", "text") or get_text(el, "primaryDescription") or ""
-            location = get_text(el, "secondaryDescription", "text") or get_text(el, "secondaryDescription") or ""
-            table.add_row(str(idx), _truncate(title, 40), _truncate(company, 30), _truncate(location, 25))
+            company = (
+                get_text(el, "primaryDescription", "text")
+                or get_text(el, "primaryDescription")
+                or ""
+            )
+            location = (
+                get_text(el, "secondaryDescription", "text")
+                or get_text(el, "secondaryDescription")
+                or ""
+            )
+            table.add_row(
+                str(idx), _truncate(title, 40), _truncate(company, 30), _truncate(location, 25)
+            )
 
         console.print(table)
         click.echo(f"\nFound {len(results)} job(s).")
@@ -253,6 +272,7 @@ def search_jobs(ctx, query, limit, json_mode):
 # ---------------------------------------------------------------------------
 # search companies
 # ---------------------------------------------------------------------------
+
 
 @search.command("companies")
 @click.argument("query")
@@ -293,7 +313,9 @@ def search_companies(ctx, query, limit, json_mode):
             name = get_text(el, "title", "text") or get_text(el, "title")
             industry = get_text(el, "primarySubtitle", "text") or get_text(el, "primarySubtitle")
             info = get_text(el, "secondarySubtitle", "text") or get_text(el, "secondarySubtitle")
-            table.add_row(str(idx), _truncate(name, 35), _truncate(industry, 30), _truncate(info, 30))
+            table.add_row(
+                str(idx), _truncate(name, 35), _truncate(industry, 30), _truncate(info, 30)
+            )
 
         console.print(table)
         click.echo(f"\nFound {len(results)} company/companies.")

@@ -5,12 +5,12 @@ helpers, and auth (mocked filesystem).
 
 All tests use ``@pytest.mark.unit`` and never make real network calls.
 """
+
 import json
 import os
 import urllib.parse
 from dataclasses import dataclass
-from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import click
 import httpx
@@ -26,13 +26,6 @@ from cli_web.stitch.core.exceptions import (
     ServerError,
     StitchError,
 )
-from cli_web.stitch.core.rpc.encoder import build_url, encode_request
-from cli_web.stitch.core.rpc.decoder import (
-    decode_response,
-    extract_result,
-    parse_chunks,
-    strip_prefix,
-)
 from cli_web.stitch.core.models import (
     Project,
     Screen,
@@ -41,6 +34,13 @@ from cli_web.stitch.core.models import (
     parse_screen,
     parse_session,
 )
+from cli_web.stitch.core.rpc.decoder import (
+    decode_response,
+    extract_result,
+    parse_chunks,
+    strip_prefix,
+)
+from cli_web.stitch.core.rpc.encoder import build_url, encode_request
 from cli_web.stitch.utils.helpers import (
     get_context_value,
     handle_errors,
@@ -103,11 +103,11 @@ class TestDecoder:
     """Tests for ``core/rpc/decoder.py``."""
 
     REALISTIC_RESPONSE = (
-        b')]}\'\n'
-        b'\n'
-        b'69\n'
+        b")]}'\n"
+        b"\n"
+        b"69\n"
         b'[["wrb.fr","A7f2qf","[[\\"projects/123\\",\\"Test Project\\"]]",null,null,null,"generic"]]\n'
-        b'59\n'
+        b"59\n"
         b'[["di",157],["af.httprm",157,"6840575780498300498",12]]\n'
     )
 
@@ -149,9 +149,9 @@ class TestDecoder:
     @pytest.mark.unit
     def test_parse_chunks_extracts_json_arrays(self):
         text = (
-            '69\n'
+            "69\n"
             '[["wrb.fr","A7f2qf","[[1,2,3]]",null,null,null,"generic"]]\n'
-            '59\n'
+            "59\n"
             '[["di",157],["af.httprm",157,"123",12]]\n'
         )
         chunks = parse_chunks(text)
@@ -172,7 +172,9 @@ class TestDecoder:
     @pytest.mark.unit
     def test_extract_result_finds_wrb_fr_entry(self):
         chunks = [
-            json.dumps([["wrb.fr", "A7f2qf", '[["projects/123","Test"]]', None, None, None, "generic"]]),
+            json.dumps(
+                [["wrb.fr", "A7f2qf", '[["projects/123","Test"]]', None, None, None, "generic"]]
+            ),
             json.dumps([["di", 157], ["af.httprm", 157, "123", 12]]),
         ]
         result = extract_result(chunks, "A7f2qf")
@@ -229,11 +231,7 @@ class TestDecoder:
 
     @pytest.mark.unit
     def test_decode_response_from_bytes(self):
-        raw = (
-            b")]}'  \n"
-            b"69\n"
-            b'[["wrb.fr","A7f2qf","[1,2,3]",null,null,null,"generic"]]\n'
-        )
+        raw = b')]}\'  \n69\n[["wrb.fr","A7f2qf","[1,2,3]",null,null,null,"generic"]]\n'
         result = decode_response(raw, "A7f2qf")
         assert result == [1, 2, 3]
 
@@ -317,15 +315,15 @@ class TestParseProject:
     @pytest.mark.unit
     def test_full_project(self):
         raw = [
-            "projects/456",      # [0] resource_name
-            "My Design",         # [1] title
-            2,                   # [2] type
-            [1711000000, 0],     # [3] created_at
-            [1711100000, 0],     # [4] modified_at
-            4,                   # [5] status
+            "projects/456",  # [0] resource_name
+            "My Design",  # [1] title
+            2,  # [2] type
+            [1711000000, 0],  # [3] created_at
+            [1711100000, 0],  # [4] modified_at
+            4,  # [5] status
             ["file/res", None, "https://thumb.example.com/img.png"],  # [6] thumbnail
-            1,                   # [7] owner
-            1,                   # [8] theme_mode
+            1,  # [7] owner
+            1,  # [8] theme_mode
         ]
         p = parse_project(raw)
         assert isinstance(p, Project)
@@ -381,16 +379,23 @@ class TestParseScreen:
     @pytest.mark.unit
     def test_full_screen(self):
         raw = [
-            ["file/thumb", None, "https://thumb.example.com/screen.png"],   # [0] thumbnail
-            ["file/html", None, "https://dl.example.com/screen.html", None, None, "text/html"],  # [1] html
+            ["file/thumb", None, "https://thumb.example.com/screen.png"],  # [0] thumbnail
+            [
+                "file/html",
+                None,
+                "https://dl.example.com/screen.html",
+                None,
+                None,
+                "text/html",
+            ],  # [1] html
             None,  # [2]
             None,  # [3]
-            "screen_abc",   # [4] id
-            "AgentX",       # [5] agent_name
-            390,            # [6] width
-            844,            # [7] height
-            "Login Page",   # [8] name
-            "A login form", # [9] description
+            "screen_abc",  # [4] id
+            "AgentX",  # [5] agent_name
+            390,  # [6] width
+            844,  # [7] height
+            "Login Page",  # [8] name
+            "A login form",  # [9] description
             "projects/1/screens/screen_abc",  # [10] resource_name
         ]
         s = parse_screen(raw)
@@ -433,11 +438,11 @@ class TestParseSession:
     def test_full_session(self):
         raw = [
             "projects/1/sessions/sess_42",  # [0] resource_name
-            None,                           # [1]
-            2,                              # [2] status = completed
-            ["Build a login page"],         # [3] prompt
-            None,                           # [4] results
-            [1711200000, 0],                # [5] timestamp
+            None,  # [1]
+            2,  # [2] status = completed
+            ["Build a login page"],  # [3] prompt
+            None,  # [4] results
+            [1711200000, 0],  # [5] timestamp
         ]
         s = parse_session(raw)
         assert isinstance(s, Session)
@@ -503,9 +508,11 @@ class TestStitchClient:
     @pytest.fixture(autouse=True)
     def _patch_auth(self):
         """Patch auth functions so no real filesystem or network is touched."""
-        with patch("cli_web.stitch.core.client.load_cookies", return_value={"SID": "fake"}), \
-             patch("cli_web.stitch.core.client.fetch_tokens", return_value=("csrf", "sid", "bl")), \
-             patch("cli_web.stitch.core.client.get_session") as mock_sess:
+        with (
+            patch("cli_web.stitch.core.client.load_cookies", return_value={"SID": "fake"}),
+            patch("cli_web.stitch.core.client.fetch_tokens", return_value=("csrf", "sid", "bl")),
+            patch("cli_web.stitch.core.client.get_session") as mock_sess,
+        ):
             state = MagicMock()
             state.next_req_id.return_value = 200000
             mock_sess.return_value = state
@@ -513,6 +520,7 @@ class TestStitchClient:
 
     def _make_client(self):
         from cli_web.stitch.core.client import StitchClient
+
         return StitchClient()
 
     @pytest.mark.unit
@@ -542,8 +550,10 @@ class TestStitchClient:
     @pytest.mark.unit
     def test_auth_error_on_401_retries_then_raises(self):
         mock_resp = _mock_httpx_response(401, b"unauthorized", text="unauthorized")
-        with patch("cli_web.stitch.core.client.httpx.post", return_value=mock_resp), \
-             patch("cli_web.stitch.core.client.StitchClient._refresh_tokens"):
+        with (
+            patch("cli_web.stitch.core.client.httpx.post", return_value=mock_resp),
+            patch("cli_web.stitch.core.client.StitchClient._refresh_tokens"),
+        ):
             client = self._make_client()
             # First call with retry_on_auth=True will get 401, refresh, retry with False, get 401 again
             # The second call (retry_on_auth=False) still gets 401 but won't retry —
@@ -558,15 +568,19 @@ class TestStitchClient:
     def test_auth_error_on_403(self):
         mock_resp_403 = _mock_httpx_response(403, b"forbidden", text="forbidden")
         # After retry the second call also gets 403
-        with patch("cli_web.stitch.core.client.httpx.post", return_value=mock_resp_403), \
-             patch("cli_web.stitch.core.client.StitchClient._refresh_tokens"):
+        with (
+            patch("cli_web.stitch.core.client.httpx.post", return_value=mock_resp_403),
+            patch("cli_web.stitch.core.client.StitchClient._refresh_tokens"),
+        ):
             client = self._make_client()
             with pytest.raises(StitchError):
                 client.list_projects()
 
     @pytest.mark.unit
     def test_rate_limit_error_on_429(self):
-        mock_resp = _mock_httpx_response(429, b"too many", headers={"Retry-After": "60"}, text="too many")
+        mock_resp = _mock_httpx_response(
+            429, b"too many", headers={"Retry-After": "60"}, text="too many"
+        )
         with patch("cli_web.stitch.core.client.httpx.post", return_value=mock_resp):
             client = self._make_client()
             with pytest.raises(RateLimitError) as exc_info:
@@ -601,14 +615,18 @@ class TestStitchClient:
 
     @pytest.mark.unit
     def test_network_error_on_connect_failure(self):
-        with patch("cli_web.stitch.core.client.httpx.post", side_effect=httpx.ConnectError("refused")):
+        with patch(
+            "cli_web.stitch.core.client.httpx.post", side_effect=httpx.ConnectError("refused")
+        ):
             client = self._make_client()
             with pytest.raises(NetworkError, match="Connection failed"):
                 client.list_projects()
 
     @pytest.mark.unit
     def test_network_error_on_timeout(self):
-        with patch("cli_web.stitch.core.client.httpx.post", side_effect=httpx.TimeoutException("timed out")):
+        with patch(
+            "cli_web.stitch.core.client.httpx.post", side_effect=httpx.TimeoutException("timed out")
+        ):
             client = self._make_client()
             with pytest.raises(NetworkError, match="timed out"):
                 client.list_projects()
@@ -811,16 +829,20 @@ class TestContextValueRoundTrip:
     @pytest.mark.unit
     def test_round_trip(self, tmp_path):
         ctx_file = tmp_path / "context.json"
-        with patch("cli_web.stitch.utils.helpers.CONFIG_DIR", tmp_path), \
-             patch("cli_web.stitch.utils.helpers.CONTEXT_FILE", ctx_file):
+        with (
+            patch("cli_web.stitch.utils.helpers.CONFIG_DIR", tmp_path),
+            patch("cli_web.stitch.utils.helpers.CONTEXT_FILE", ctx_file),
+        ):
             set_context_value("project_id", "proj_123")
             assert get_context_value("project_id") == "proj_123"
 
     @pytest.mark.unit
     def test_get_missing_key_returns_none(self, tmp_path):
         ctx_file = tmp_path / "context.json"
-        with patch("cli_web.stitch.utils.helpers.CONFIG_DIR", tmp_path), \
-             patch("cli_web.stitch.utils.helpers.CONTEXT_FILE", ctx_file):
+        with (
+            patch("cli_web.stitch.utils.helpers.CONFIG_DIR", tmp_path),
+            patch("cli_web.stitch.utils.helpers.CONTEXT_FILE", ctx_file),
+        ):
             set_context_value("a", "1")
             assert get_context_value("b") is None
 
@@ -833,8 +855,10 @@ class TestContextValueRoundTrip:
     @pytest.mark.unit
     def test_set_overwrites_existing(self, tmp_path):
         ctx_file = tmp_path / "context.json"
-        with patch("cli_web.stitch.utils.helpers.CONFIG_DIR", tmp_path), \
-             patch("cli_web.stitch.utils.helpers.CONTEXT_FILE", ctx_file):
+        with (
+            patch("cli_web.stitch.utils.helpers.CONFIG_DIR", tmp_path),
+            patch("cli_web.stitch.utils.helpers.CONTEXT_FILE", ctx_file),
+        ):
             set_context_value("k", "v1")
             set_context_value("k", "v2")
             assert get_context_value("k") == "v2"
@@ -842,8 +866,10 @@ class TestContextValueRoundTrip:
     @pytest.mark.unit
     def test_multiple_keys(self, tmp_path):
         ctx_file = tmp_path / "context.json"
-        with patch("cli_web.stitch.utils.helpers.CONFIG_DIR", tmp_path), \
-             patch("cli_web.stitch.utils.helpers.CONTEXT_FILE", ctx_file):
+        with (
+            patch("cli_web.stitch.utils.helpers.CONFIG_DIR", tmp_path),
+            patch("cli_web.stitch.utils.helpers.CONTEXT_FILE", ctx_file),
+        ):
             set_context_value("a", "1")
             set_context_value("b", "2")
             assert get_context_value("a") == "1"
@@ -864,11 +890,14 @@ class TestLoadCookies:
         cookies = {"SID": "abc", "HSID": "def"}
         auth_file.write_text(json.dumps({"cookies": cookies}), encoding="utf-8")
 
-        with patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file), \
-             patch.dict(os.environ, {}, clear=False):
+        with (
+            patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file),
+            patch.dict(os.environ, {}, clear=False),
+        ):
             # Remove env var if present
             os.environ.pop("CLI_WEB_STITCH_AUTH_JSON", None)
             from cli_web.stitch.core.auth import load_cookies
+
             result = load_cookies()
         assert result == cookies
 
@@ -877,9 +906,12 @@ class TestLoadCookies:
         auth_file = tmp_path / "auth.json"  # Does not exist
         env_data = json.dumps({"cookies": {"SID": "from_env"}})
 
-        with patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file), \
-             patch.dict(os.environ, {"CLI_WEB_STITCH_AUTH_JSON": env_data}):
+        with (
+            patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file),
+            patch.dict(os.environ, {"CLI_WEB_STITCH_AUTH_JSON": env_data}),
+        ):
             from cli_web.stitch.core.auth import load_cookies
+
             result = load_cookies()
         assert result == {"SID": "from_env"}
 
@@ -887,10 +919,13 @@ class TestLoadCookies:
     def test_raises_auth_error_when_no_file(self, tmp_path):
         auth_file = tmp_path / "auth.json"  # Does not exist
 
-        with patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file), \
-             patch.dict(os.environ, {}, clear=False):
+        with (
+            patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file),
+            patch.dict(os.environ, {}, clear=False),
+        ):
             os.environ.pop("CLI_WEB_STITCH_AUTH_JSON", None)
             from cli_web.stitch.core.auth import load_cookies
+
             with pytest.raises(AuthError, match="Not authenticated"):
                 load_cookies()
 
@@ -905,10 +940,13 @@ class TestLoadCookies:
         ]
         auth_file.write_text(json.dumps({"cookies": raw_cookies}), encoding="utf-8")
 
-        with patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file), \
-             patch.dict(os.environ, {}, clear=False):
+        with (
+            patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file),
+            patch.dict(os.environ, {}, clear=False),
+        ):
             os.environ.pop("CLI_WEB_STITCH_AUTH_JSON", None)
             from cli_web.stitch.core.auth import load_cookies
+
             result = load_cookies()
         assert "SID" in result
         assert "HSID" in result
@@ -922,6 +960,7 @@ class TestExtractCookies:
     @pytest.mark.unit
     def test_prioritizes_google_com_over_regional(self):
         from cli_web.stitch.core.auth import _extract_cookies
+
         raw = [
             {"name": "SID", "value": "regional", "domain": ".google.co.il"},
             {"name": "SID", "value": "global", "domain": ".google.com"},
@@ -932,6 +971,7 @@ class TestExtractCookies:
     @pytest.mark.unit
     def test_regional_cookie_accepted_when_no_global(self):
         from cli_web.stitch.core.auth import _extract_cookies
+
         raw = [
             {"name": "SID", "value": "regional", "domain": ".google.co.il"},
         ]
@@ -941,6 +981,7 @@ class TestExtractCookies:
     @pytest.mark.unit
     def test_global_overrides_even_if_regional_comes_second(self):
         from cli_web.stitch.core.auth import _extract_cookies
+
         raw = [
             {"name": "SID", "value": "global", "domain": ".google.com"},
             {"name": "SID", "value": "regional", "domain": ".google.de"},
@@ -952,6 +993,7 @@ class TestExtractCookies:
     @pytest.mark.unit
     def test_filters_out_non_google_domains(self):
         from cli_web.stitch.core.auth import _extract_cookies
+
         raw = [
             {"name": "SID", "value": "val", "domain": ".google.com"},
             {"name": "tracking", "value": "x", "domain": ".facebook.com"},
@@ -963,6 +1005,7 @@ class TestExtractCookies:
     @pytest.mark.unit
     def test_accepts_stitch_domain(self):
         from cli_web.stitch.core.auth import _extract_cookies
+
         raw = [
             {"name": "NID", "value": "nid_val", "domain": ".stitch.withgoogle.com"},
         ]
@@ -972,11 +1015,13 @@ class TestExtractCookies:
     @pytest.mark.unit
     def test_empty_list(self):
         from cli_web.stitch.core.auth import _extract_cookies
+
         assert _extract_cookies([]) == {}
 
     @pytest.mark.unit
     def test_skips_entries_without_name(self):
         from cli_web.stitch.core.auth import _extract_cookies
+
         raw = [
             {"name": "", "value": "val", "domain": ".google.com"},
         ]
@@ -991,6 +1036,7 @@ class TestGetAuthStatus:
         auth_file = tmp_path / "auth.json"  # Does not exist
         with patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file):
             from cli_web.stitch.core.auth import get_auth_status
+
             status = get_auth_status()
         assert status["configured"] is False
 
@@ -999,10 +1045,15 @@ class TestGetAuthStatus:
         auth_file = tmp_path / "auth.json"
         auth_file.write_text(json.dumps({"cookies": {"SID": "x"}}), encoding="utf-8")
 
-        with patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file), \
-             patch("cli_web.stitch.core.auth.load_cookies", return_value={"SID": "x"}), \
-             patch("cli_web.stitch.core.auth.fetch_tokens", return_value=("csrf", "1234567890", "bl")):
+        with (
+            patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file),
+            patch("cli_web.stitch.core.auth.load_cookies", return_value={"SID": "x"}),
+            patch(
+                "cli_web.stitch.core.auth.fetch_tokens", return_value=("csrf", "1234567890", "bl")
+            ),
+        ):
             from cli_web.stitch.core.auth import get_auth_status
+
             status = get_auth_status()
         assert status["configured"] is True
         assert status["valid"] is True
@@ -1013,10 +1064,13 @@ class TestGetAuthStatus:
         auth_file = tmp_path / "auth.json"
         auth_file.write_text(json.dumps({"cookies": {"SID": "x"}}), encoding="utf-8")
 
-        with patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file), \
-             patch("cli_web.stitch.core.auth.load_cookies", return_value={"SID": "x"}), \
-             patch("cli_web.stitch.core.auth.fetch_tokens", side_effect=AuthError("expired")):
+        with (
+            patch("cli_web.stitch.core.auth.AUTH_FILE", auth_file),
+            patch("cli_web.stitch.core.auth.load_cookies", return_value={"SID": "x"}),
+            patch("cli_web.stitch.core.auth.fetch_tokens", side_effect=AuthError("expired")),
+        ):
             from cli_web.stitch.core.auth import get_auth_status
+
             status = get_auth_status()
         assert status["configured"] is True
         assert status["valid"] is False

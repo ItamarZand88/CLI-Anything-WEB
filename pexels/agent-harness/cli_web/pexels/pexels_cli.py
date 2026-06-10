@@ -12,12 +12,11 @@ for _stream in (sys.stdout, sys.stderr):
 import shlex
 
 import click
-
 from cli_web.pexels import __version__
-from cli_web.pexels.commands.photos import photos
-from cli_web.pexels.commands.videos import videos
-from cli_web.pexels.commands.users import users
 from cli_web.pexels.commands.collections import collections
+from cli_web.pexels.commands.photos import photos
+from cli_web.pexels.commands.users import users
+from cli_web.pexels.commands.videos import videos
 from cli_web.pexels.core.exceptions import PexelsError
 from cli_web.pexels.utils.repl_skin import ReplSkin
 
@@ -124,6 +123,16 @@ def _print_repl_help():
 def main():
     """Entry point for console_scripts."""
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.pexels import __version__ as _pkg_version  # noqa: E402
+from cli_web.pexels.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.pexels.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="pexels", version=_pkg_version)
+register_doctor_command(cli, app_name="pexels", pkg="pexels")
 
 
 if __name__ == "__main__":

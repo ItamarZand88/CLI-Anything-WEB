@@ -12,11 +12,10 @@ import subprocess
 import sys
 
 import pytest
-
 from cli_web.reddit.core.client import RedditClient
 
-
 # ── _resolve_cli helper ──────────────────────────────────────────
+
 
 def _resolve_cli(name):
     """Resolve installed CLI command; falls back to python -m for dev."""
@@ -34,6 +33,7 @@ def _resolve_cli(name):
 
 # ── Helpers ──────────────────────────────────────────────────────
 
+
 def _posts_from_listing(data: dict) -> list[dict]:
     """Extract post dicts from a Reddit listing response."""
     return [child["data"] for child in data["data"]["children"]]
@@ -46,6 +46,7 @@ def _assert_post_fields(post: dict) -> None:
 
 
 # ── Live API: Feed ───────────────────────────────────────────────
+
 
 @pytest.mark.live
 class TestFeedLive:
@@ -101,6 +102,7 @@ class TestFeedLive:
 
 
 # ── Live API: Subreddit ──────────────────────────────────────────
+
 
 @pytest.mark.live
 class TestSubredditLive:
@@ -159,6 +161,7 @@ class TestSubredditLive:
 
 # ── Live API: Search ─────────────────────────────────────────────
 
+
 @pytest.mark.live
 class TestSearchLive:
     """Live tests for search endpoints."""
@@ -188,6 +191,7 @@ class TestSearchLive:
 
 # ── Live API: User ───────────────────────────────────────────────
 
+
 @pytest.mark.live
 class TestUserLive:
     """Live tests for user endpoints."""
@@ -215,6 +219,7 @@ class TestUserLive:
 
 
 # ── Subprocess tests ─────────────────────────────────────────────
+
 
 @pytest.mark.subprocess
 class TestCLISubprocess:
@@ -244,7 +249,7 @@ class TestCLISubprocess:
         assert "sub" in out
         assert "search" in out
         assert "user" in out
-        print(f"[verify] --help lists all command groups")
+        print("[verify] --help lists all command groups")
 
     def test_version(self):
         r = self._run("--version")

@@ -3,15 +3,15 @@
 Live tests make real API calls to https://www.futbin.com
 CLI subprocess tests use the installed `cli-web-futbin` binary.
 """
+
 import json
 import os
 import shutil
 import subprocess
 import sys
 
-import pytest
-
 # ── CLI subprocess helper ─────────────────────────────────────────────────────
+
 
 def _resolve_cli(name: str) -> list[str]:
     """Resolve CLI binary, supporting CLI_WEB_FORCE_INSTALLED=1 for CI."""
@@ -42,6 +42,7 @@ def _run(*args: str, check: bool = True) -> subprocess.CompletedProcess:
 
 
 # ── CLI Subprocess Tests ──────────────────────────────────────────────────────
+
 
 def test_cli_help():
     result = _run("--help")
@@ -95,8 +96,10 @@ def test_cli_evolutions_list_json():
 
 # ── Live API Tests ────────────────────────────────────────────────────────────
 
+
 def test_players_search_live():
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         results = client.search_players("Mbappe", year=26)
     assert len(results) >= 1
@@ -111,6 +114,7 @@ def test_players_search_live():
 def test_players_search_returns_player_model():
     from cli_web.futbin.core.client import FutbinClient
     from cli_web.futbin.core.models import Player
+
     with FutbinClient() as client:
         results = client.search_players("Salah", year=26)
     assert len(results) >= 1
@@ -119,6 +123,7 @@ def test_players_search_returns_player_model():
 
 def test_market_index_live():
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         items = client.get_market_index()
     assert len(items) >= 1
@@ -133,6 +138,7 @@ def test_market_index_live():
 
 def test_sbc_list_live():
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         sbcs = client.list_sbcs()
     # SBCs may be empty if none active, but should not error
@@ -141,6 +147,7 @@ def test_sbc_list_live():
 
 def test_evolutions_list_live():
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         evos = client.list_evolutions()
     assert isinstance(evos, list)
@@ -149,8 +156,10 @@ def test_evolutions_list_live():
 
 def test_player_search_json_output():
     """Verify JSON output is fully serializable."""
-    from cli_web.futbin.core.client import FutbinClient
     import json as _json
+
+    from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         results = client.search_players("Ronaldo", year=26)
     data = [p.to_dict() for p in results]
@@ -162,9 +171,11 @@ def test_player_search_json_output():
 
 # ── Filter Tests ─────────────────────────────────────────────────────────────
 
+
 def test_list_players_position_filter():
     """Verify position filter is passed to FUTBIN and returns results."""
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         results, has_next = client.list_players(position="GK", sort="overall", order="desc")
     assert isinstance(results, list)
@@ -174,8 +185,11 @@ def test_list_players_position_filter():
 def test_list_players_rating_filter():
     """Verify rating range filter returns results."""
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
-        results, has_next = client.list_players(rating_min=90, rating_max=99, sort="overall", order="desc")
+        results, has_next = client.list_players(
+            rating_min=90, rating_max=99, sort="overall", order="desc"
+        )
     assert isinstance(results, list)
     assert isinstance(has_next, bool)
 
@@ -183,6 +197,7 @@ def test_list_players_rating_filter():
 def test_list_players_version_filter():
     """Verify version filter returns results."""
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         results, has_next = client.list_players(version="toty", sort="overall", order="desc")
     assert isinstance(results, list)
@@ -192,6 +207,7 @@ def test_list_players_version_filter():
 def test_list_players_cheapest():
     """Verify cheapest flag (sort=ps_price asc) returns results."""
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         results, has_next = client.list_players(
             position="ST", version="gold_rare", sort="ps_price", order="asc"
@@ -203,9 +219,12 @@ def test_list_players_cheapest():
 def test_cli_list_players_filters_json():
     """CLI: players list with position, rating filters returns valid JSON."""
     result = _run(
-        "players", "list",
-        "--position", "CAM",
-        "--rating-min", "85",
+        "players",
+        "list",
+        "--position",
+        "CAM",
+        "--rating-min",
+        "85",
         "--json",
     )
     assert result.returncode == 0
@@ -218,8 +237,10 @@ def test_cli_list_players_filters_json():
 def test_cli_list_players_cheapest():
     """CLI: players list --cheapest returns valid JSON."""
     result = _run(
-        "players", "list",
-        "--position", "GK",
+        "players",
+        "list",
+        "--position",
+        "GK",
         "--cheapest",
         "--json",
     )
@@ -231,6 +252,7 @@ def test_cli_list_players_cheapest():
 
 
 # ── New Market Commands ──────────────────────────────────────────────────────
+
 
 def test_cli_market_popular_json():
     """CLI: market popular returns valid JSON with player data."""
@@ -282,9 +304,11 @@ def test_cli_players_price_history_json():
 
 # ── Live API tests for new features ─────────────────────────────────────────
 
+
 def test_popular_players_live():
     """Live: get_popular_players returns player models."""
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         players = client.get_popular_players(limit=5)
     assert isinstance(players, list)
@@ -298,6 +322,7 @@ def test_popular_players_live():
 def test_latest_players_live():
     """Live: get_latest_players returns player models."""
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         players, has_next = client.get_latest_players()
     assert isinstance(players, list)
@@ -308,6 +333,7 @@ def test_latest_players_live():
 def test_price_history_live():
     """Live: get_price_history returns PriceHistory model."""
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         history = client.get_price_history(40)  # Mbappé
     assert history.player_id == 40
@@ -319,6 +345,7 @@ def test_price_history_live():
 
 
 # ── SBC Fodder + Market Movers ───────────────────────────────────────────────
+
 
 def test_cli_market_fodder_json():
     """CLI: market fodder returns valid JSON with rating tiers."""
@@ -355,6 +382,7 @@ def test_cli_market_movers_fallers_json():
 def test_sbc_fodder_live():
     """Live: get_sbc_fodder returns FodderTier models."""
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         tiers = client.get_sbc_fodder()
     assert isinstance(tiers, list)
@@ -369,6 +397,7 @@ def test_sbc_fodder_live():
 def test_market_movers_live():
     """Live: get_market_movers returns player list."""
     from cli_web.futbin.core.client import FutbinClient
+
     with FutbinClient() as client:
         players, has_next = client.get_market_movers(direction="risers")
     assert isinstance(players, list)

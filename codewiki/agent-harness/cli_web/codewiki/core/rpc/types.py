@@ -10,9 +10,7 @@ class RPCMethod:
     CHAT = "EgIxfe"
 
 
-BATCHEXECUTE_URL = (
-    "https://codewiki.google/_/BoqAngularSdlcAgentsUi/data/batchexecute"
-)
+BATCHEXECUTE_URL = "https://codewiki.google/_/BoqAngularSdlcAgentsUi/data/batchexecute"
 
 BASE_URL = "https://codewiki.google"
 

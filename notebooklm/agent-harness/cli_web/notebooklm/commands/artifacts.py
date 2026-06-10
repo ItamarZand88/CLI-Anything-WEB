@@ -1,14 +1,14 @@
 """Artifact commands: generate, download, list types."""
-import json
+
 import time
 
 import click
-from ..core.client import NotebookLMClient
-from ..core.exceptions import NotebookLMError, RateLimitError
-from ..core.rpc.types import ArtifactType
-from ..utils.output import print_artifact, print_json
-from ..utils.helpers import handle_errors, require_notebook, sanitize_filename
 
+from ..core.client import NotebookLMClient
+from ..core.exceptions import RateLimitError
+from ..core.rpc.types import ArtifactType
+from ..utils.helpers import handle_errors, require_notebook
+from ..utils.output import print_artifact, print_json
 
 ARTIFACT_TYPE_MAP = {
     "mindmap": ArtifactType.MIND_MAP,
@@ -32,7 +32,7 @@ def _retry_on_rate_limit(fn, max_retries=3):
         except RateLimitError as e:
             if attempt == max_retries:
                 raise
-            delay = e.retry_after or (60 * (2 ** attempt))
+            delay = e.retry_after or (60 * (2**attempt))
             delay = min(delay, 300)
             click.echo(
                 f"  Rate limited. Retrying in {delay:.0f}s "
@@ -51,7 +51,8 @@ def artifacts():
 @artifacts.command("generate")
 @click.option("--notebook", default=None, help="Notebook ID (or use current context).")
 @click.option(
-    "--type", "artifact_type",
+    "--type",
+    "artifact_type",
     type=click.Choice(list(ARTIFACT_TYPE_MAP.keys())),
     default="mindmap",
     show_default=True,
@@ -59,10 +60,15 @@ def artifacts():
 )
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 @click.option("--wait", is_flag=True, default=False, help="Wait for generation to complete.")
-@click.option("--retry", "max_retries", type=int, default=3, show_default=True,
-              help="Max retries on rate limit.")
-@click.option("--output", "-o", type=click.Path(), default=None,
-              help="Save content to file.")
+@click.option(
+    "--retry",
+    "max_retries",
+    type=int,
+    default=3,
+    show_default=True,
+    help="Max retries on rate limit.",
+)
+@click.option("--output", "-o", type=click.Path(), default=None, help="Save content to file.")
 def generate(notebook, artifact_type, use_json, wait, max_retries, output):
     """Generate an artifact from a notebook."""
     with handle_errors(json_mode=use_json):
@@ -87,12 +93,18 @@ def generate(notebook, artifact_type, use_json, wait, max_retries, output):
                 elapsed += interval
                 status = client.poll_artifact_status(nb_id, a.id)
                 if status.get("status") == "completed":
-                    a = type(a)(id=a.id, artifact_type=a.artifact_type,
-                                content=f"Completed: {status.get('title', artifact_type)}")
+                    a = type(a)(
+                        id=a.id,
+                        artifact_type=a.artifact_type,
+                        content=f"Completed: {status.get('title', artifact_type)}",
+                    )
                     break
                 if status.get("status") == "failed":
-                    a = type(a)(id=a.id, artifact_type=a.artifact_type,
-                                content=f"Failed: {status.get('title', artifact_type)}")
+                    a = type(a)(
+                        id=a.id,
+                        artifact_type=a.artifact_type,
+                        content=f"Failed: {status.get('title', artifact_type)}",
+                    )
                     break
                 interval = min(interval * 1.5, 10.0)
                 if not use_json:
@@ -110,6 +122,7 @@ def generate(notebook, artifact_type, use_json, wait, max_retries, output):
         elif output and a.content and not a.id:
             # Mind maps return inline content with no ID
             from pathlib import Path
+
             Path(output).write_text(a.content, encoding="utf-8")
             if not use_json:
                 click.echo(f"Saved to {output}")
@@ -123,10 +136,15 @@ def generate(notebook, artifact_type, use_json, wait, max_retries, output):
 @artifacts.command("generate-notes")
 @click.option("--notebook", default=None, help="Notebook ID (or use current context).")
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
-@click.option("--retry", "max_retries", type=int, default=3, show_default=True,
-              help="Max retries on rate limit.")
-@click.option("--output", "-o", type=click.Path(), default=None,
-              help="Save content to file.")
+@click.option(
+    "--retry",
+    "max_retries",
+    type=int,
+    default=3,
+    show_default=True,
+    help="Max retries on rate limit.",
+)
+@click.option("--output", "-o", type=click.Path(), default=None, help="Save content to file.")
 def generate_notes(notebook, use_json, max_retries, output):
     """Generate study notes from a notebook."""
     with handle_errors(json_mode=use_json):
@@ -140,6 +158,7 @@ def generate_notes(notebook, use_json, max_retries, output):
 
         if output and a.content:
             from pathlib import Path
+
             Path(output).write_text(a.content, encoding="utf-8")
             if not use_json:
                 click.echo(f"Saved to {output}")
@@ -163,8 +182,15 @@ def list_artifacts(notebook, use_json):
             print_json(artifacts_list)
         else:
             for a in artifacts_list:
-                status_icon = {"completed": "✓", "in_progress": "⏳", "pending": "⏳", "failed": "✗"}.get(a["status"], "?")
-                click.echo(f"  {status_icon} [{a['type']}] {a['title'] or '(untitled)'} — {a['id'][:12]}... ({a['status']})")
+                status_icon = {
+                    "completed": "✓",
+                    "in_progress": "⏳",
+                    "pending": "⏳",
+                    "failed": "✗",
+                }.get(a["status"], "?")
+                click.echo(
+                    f"  {status_icon} [{a['type']}] {a['title'] or '(untitled)'} — {a['id'][:12]}... ({a['status']})"
+                )
             if not artifacts_list:
                 click.echo("  No artifacts found.")
 

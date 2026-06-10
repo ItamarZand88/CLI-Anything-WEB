@@ -1,4 +1,5 @@
 """Tests for parse-trace.py: .network file parsing, static-asset filtering."""
+
 from __future__ import annotations
 
 import json
@@ -17,9 +18,7 @@ def _write_trace(traces_dir: Path, entries: list[dict]) -> Path:
         sha1 = None
         if body is not None:
             sha1 = f"sha_{len(lines)}"
-            (resources_dir / sha1).write_text(
-                body if isinstance(body, str) else json.dumps(body)
-            )
+            (resources_dir / sha1).write_text(body if isinstance(body, str) else json.dumps(body))
         resp = entry.get("snapshot", {}).get("response", {})
         if sha1:
             resp.setdefault("content", {})["_sha1"] = sha1
@@ -64,12 +63,15 @@ def test_parse_single_json_entry(parse_trace, tmp_path):
 
 
 def test_parse_filters_static_assets_by_default(parse_trace, tmp_path):
-    _write_trace(tmp_path, [
-        _make_entry("https://cdn.example.com/style.css"),
-        _make_entry("https://cdn.example.com/script.js"),
-        _make_entry("https://cdn.example.com/logo.png"),
-        _make_entry("https://api.example.com/data", body={"ok": True}),
-    ])
+    _write_trace(
+        tmp_path,
+        [
+            _make_entry("https://cdn.example.com/style.css"),
+            _make_entry("https://cdn.example.com/script.js"),
+            _make_entry("https://cdn.example.com/logo.png"),
+            _make_entry("https://api.example.com/data", body={"ok": True}),
+        ],
+    )
 
     entries = parse_trace.parse_traces(tmp_path, filter_static=True)
     assert len(entries) == 1
@@ -77,10 +79,13 @@ def test_parse_filters_static_assets_by_default(parse_trace, tmp_path):
 
 
 def test_parse_includes_static_when_requested(parse_trace, tmp_path):
-    _write_trace(tmp_path, [
-        _make_entry("https://cdn.example.com/style.css"),
-        _make_entry("https://api.example.com/data"),
-    ])
+    _write_trace(
+        tmp_path,
+        [
+            _make_entry("https://cdn.example.com/style.css"),
+            _make_entry("https://api.example.com/data"),
+        ],
+    )
 
     entries = parse_trace.parse_traces(tmp_path, filter_static=False)
     assert len(entries) == 2
@@ -123,7 +128,9 @@ def test_parse_falls_back_to_text_body_when_not_json(parse_trace, tmp_path):
 
 
 def test_parse_latest_only_picks_newest(parse_trace, tmp_path):
-    import os, time
+    import os
+    import time
+
     tmp_path.mkdir(exist_ok=True)
     (tmp_path / "resources").mkdir(exist_ok=True)
 

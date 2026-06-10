@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import click
-
 from cli_web.hackernews.core import auth
-from cli_web.hackernews.core.exceptions import AuthError
 from cli_web.hackernews.utils.helpers import handle_errors, print_json, resolve_json_mode
 
 
@@ -60,7 +58,9 @@ def auth_status(ctx, json_mode):
 
         result = auth.validate_auth()
         if json_mode:
-            print_json({"logged_in": True, "username": result["username"], "valid": result["valid"]})
+            print_json(
+                {"logged_in": True, "username": result["username"], "valid": result["valid"]}
+            )
         else:
             click.echo(f"Logged in as: {result['username']}")
             click.echo(f"Cookie valid: {'yes' if result['valid'] else 'no'}")

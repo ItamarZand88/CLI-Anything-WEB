@@ -23,8 +23,12 @@ class RateLimitError(AppError):
         super().__init__(message)
 
     def to_dict(self):
-        return {"error": True, "code": "RATE_LIMITED", "message": str(self),
-                "retry_after": self.retry_after}
+        return {
+            "error": True,
+            "code": "RATE_LIMITED",
+            "message": str(self),
+            "retry_after": self.retry_after,
+        }
 
 
 class NetworkError(AppError):

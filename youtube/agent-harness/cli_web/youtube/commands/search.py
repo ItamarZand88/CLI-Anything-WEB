@@ -30,5 +30,5 @@ def search_videos(query, limit, use_json):
         if use_json:
             print_json(result)
         else:
-            click.echo(f"\n  Search: \"{query}\" ({result['estimated_results']:,} results)\n")
+            click.echo(f'\n  Search: "{query}" ({result["estimated_results"]:,} results)\n')
             print_videos_table(result["videos"])

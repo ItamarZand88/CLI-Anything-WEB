@@ -1,12 +1,18 @@
 """Market commands: index, popular, latest, cheapest, analyze, scan, arbitrage."""
+
 import click
+
+from ..core.analysis import compute_platform_gap, compute_price_analysis
 from ..core.client import FutbinClient
-from ..core.analysis import compute_price_analysis, compute_platform_gap
+from ..utils.helpers import handle_errors, require_platform, require_year, resolve_json_mode
 from ..utils.output import (
-    print_json, print_table, print_players_rich,
-    print_analysis, print_scan_results, print_arbitrage,
+    print_analysis,
+    print_arbitrage,
+    print_json,
+    print_players_rich,
+    print_scan_results,
+    print_table,
 )
-from ..utils.helpers import handle_errors, require_platform, require_year
 
 
 @click.group()
@@ -16,10 +22,15 @@ def market():
 
 
 @market.command("index")
-@click.option("--rating", default=None, help="Show detail for a rating tier (81, 82, 83, 84, 85, 86, 100, icons).")
+@click.option(
+    "--rating",
+    default=None,
+    help="Show detail for a rating tier (81, 82, 83, 84, 85, 86, 100, icons).",
+)
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def index(rating, use_json):
     """Show market index. Use --rating for detailed view of a specific tier."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             if rating:
@@ -55,6 +66,7 @@ def index(rating, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def popular(limit, use_json):
     """Show trending/most-viewed players."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             players = client.get_popular_players(limit=min(limit, 250))
@@ -72,11 +84,14 @@ def popular(limit, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def latest(page, use_json):
     """Show newly released player cards."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             players, has_next = client.get_latest_players(page=page)
         if use_json:
-            print_json({"players": [p.to_dict() for p in players], "page": page, "has_next": has_next})
+            print_json(
+                {"players": [p.to_dict() for p in players], "page": page, "has_next": has_next}
+            )
         else:
             if not players:
                 click.echo("No new players found.")
@@ -89,30 +104,44 @@ def latest(page, use_json):
 @market.command("cheapest")
 @click.option("--rating-min", type=int, default=83, help="Minimum rating (default: 83).")
 @click.option("--rating-max", type=int, default=99, help="Maximum rating (default: 99).")
-@click.option("--min-price", type=int, default=200, help="Minimum price filter (default: 200, excludes extinct).")
+@click.option(
+    "--min-price",
+    type=int,
+    default=200,
+    help="Minimum price filter (default: 200, excludes extinct).",
+)
 @click.option("--max-price", type=int, default=None, help="Maximum price filter.")
 @click.option("--page", type=int, default=1, help="Page number.")
 @click.option("--platform", type=click.Choice(["ps", "pc"]), default=None, help="Platform.")
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def cheapest(rating_min, rating_max, min_price, max_price, page, platform, use_json):
     """Find cheapest players by rating — best value for SBCs and trading."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         plat = require_platform(platform)
         sort_field = f"{plat}_price" if plat == "ps" else "pc_price"
         with FutbinClient() as client:
             players, has_next = client.list_players(
-                sort=sort_field, order="asc",
-                rating_min=rating_min, rating_max=rating_max,
-                min_price=min_price, max_price=max_price,
-                platform=plat, page=page,
+                sort=sort_field,
+                order="asc",
+                rating_min=rating_min,
+                rating_max=rating_max,
+                min_price=min_price,
+                max_price=max_price,
+                platform=plat,
+                page=page,
             )
         if use_json:
-            print_json({"players": [p.to_dict() for p in players], "page": page, "has_next": has_next})
+            print_json(
+                {"players": [p.to_dict() for p in players], "page": page, "has_next": has_next}
+            )
         else:
             if not players:
                 click.echo("No players found in that price/rating range.")
             else:
-                print_players_rich(players, title=f"Cheapest {rating_min}-{rating_max} Rated (page {page})")
+                print_players_rich(
+                    players, title=f"Cheapest {rating_min}-{rating_max} Rated (page {page})"
+                )
                 if has_next:
                     click.echo(f"  More results — use --page {page + 1}")
 
@@ -123,6 +152,7 @@ def cheapest(rating_min, rating_max, min_price, max_price, page, platform, use_j
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def fodder(rating_min, rating_max, use_json):
     """SBC fodder prices — cheapest players at each rating tier (81-99)."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             tiers = client.get_sbc_fodder()
@@ -137,9 +167,9 @@ def fodder(rating_min, rating_max, use_json):
             if not tiers:
                 click.echo("No fodder data found.")
             else:
-                from ..utils.output import coins_display
                 from rich.console import Console
                 from rich.table import Table
+
                 console = Console()
                 table = Table(title="SBC Fodder Prices")
                 table.add_column("Rating", justify="right", style="bold")
@@ -162,7 +192,9 @@ def fodder(rating_min, rating_max, use_json):
 
 
 @market.command("movers")
-@click.option("--fallers", is_flag=True, default=False, help="Show biggest price fallers instead of risers.")
+@click.option(
+    "--fallers", is_flag=True, default=False, help="Show biggest price fallers instead of risers."
+)
 @click.option("--rating-min", type=int, default=80, help="Minimum rating (default: 80).")
 @click.option("--min-price", type=int, default=1000, help="Minimum price filter (default: 1000).")
 @click.option("--max-price", type=int, default=15000000, help="Maximum price filter.")
@@ -171,17 +203,28 @@ def fodder(rating_min, rating_max, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def movers(fallers, rating_min, min_price, max_price, platform, page, use_json):
     """Show biggest price movers — risers (default) or fallers."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         plat = require_platform(platform)
         direction = "fallers" if fallers else "risers"
         with FutbinClient() as client:
             players, has_next = client.get_market_movers(
-                direction=direction, platform=plat, page=page,
-                rating_min=rating_min, min_price=min_price,
+                direction=direction,
+                platform=plat,
+                page=page,
+                rating_min=rating_min,
+                min_price=min_price,
                 max_price=max_price,
             )
         if use_json:
-            print_json({"players": [p.to_dict() for p in players], "page": page, "has_next": has_next, "direction": direction})
+            print_json(
+                {
+                    "players": [p.to_dict() for p in players],
+                    "page": page,
+                    "has_next": has_next,
+                    "direction": direction,
+                }
+            )
         else:
             if not players:
                 click.echo(f"No {direction} found.")
@@ -198,12 +241,14 @@ def movers(fallers, rating_min, min_price, max_price, platform, page, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def analyze(player_id, year, use_json):
     """Price analysis with buy/sell signal for a player."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
             player = client.get_player(player_id, year=yr)
             if not player:
                 from ..core.exceptions import NotFoundError
+
                 raise NotFoundError(f"Player {player_id} not found")
             history = client.get_price_history(player_id, year=yr)
 
@@ -236,19 +281,25 @@ def analyze(player_id, year, use_json):
 @click.option("--rating-max", type=int, default=90, help="Maximum rating (default: 90).")
 @click.option("--platform", type=click.Choice(["ps", "pc"]), default=None, help="Platform.")
 @click.option("--limit", type=int, default=20, help="Number of players to analyze (default: 20).")
-@click.option("--threshold", type=float, default=10, help="Min % below 30d avg to flag (default: 10).")
+@click.option(
+    "--threshold", type=float, default=10, help="Min % below 30d avg to flag (default: 10)."
+)
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def scan(rating_min, rating_max, platform, limit, threshold, use_json):
     """Bulk undervalue/overvalue detection — scan cheapest players for deals."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         plat = require_platform(platform)
         sort_field = f"{plat}_price" if plat == "ps" else "pc_price"
 
         with FutbinClient() as client:
             players, _ = client.list_players(
-                sort=sort_field, order="asc",
-                rating_min=rating_min, rating_max=rating_max,
-                min_price=200, platform=plat,
+                sort=sort_field,
+                order="asc",
+                rating_min=rating_min,
+                rating_max=rating_max,
+                min_price=200,
+                platform=plat,
             )
             candidates = players[:limit]
 
@@ -260,6 +311,7 @@ def scan(rating_min, rating_max, platform, limit, threshold, use_json):
                 return
 
             from rich.progress import Progress
+
             results = []
             with Progress() as progress:
                 task = progress.add_task("Analyzing players...", total=len(candidates))
@@ -281,18 +333,20 @@ def scan(rating_min, rating_max, platform, limit, threshold, use_json):
                         progress.advance(task)
                         continue
 
-                    results.append({
-                        "id": p.id,
-                        "name": p.name,
-                        "position": p.position,
-                        "rating": p.rating,
-                        "version": p.version,
-                        "current_price": current,
-                        "avg_30d": analysis["avg_30d"],
-                        "vs_avg_30d_pct": analysis["vs_avg_30d_pct"],
-                        "trend_7d": analysis["trend_7d"],
-                        "signal": analysis["signal"],
-                    })
+                    results.append(
+                        {
+                            "id": p.id,
+                            "name": p.name,
+                            "position": p.position,
+                            "rating": p.rating,
+                            "version": p.version,
+                            "current_price": current,
+                            "avg_30d": analysis["avg_30d"],
+                            "vs_avg_30d_pct": analysis["vs_avg_30d_pct"],
+                            "trend_7d": analysis["trend_7d"],
+                            "signal": analysis["signal"],
+                        }
+                    )
                     progress.advance(task)
 
         if use_json:
@@ -309,12 +363,17 @@ def scan(rating_min, rating_max, platform, limit, threshold, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def arbitrage(rating_min, rating_max, min_gap, page, use_json):
     """Cross-platform price gaps — find arbitrage opportunities between PS and PC."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             players, has_next = client.list_players(
-                sort="ps_price", order="asc",
-                rating_min=rating_min, rating_max=rating_max,
-                min_price=200, platform="ps", page=page,
+                sort="ps_price",
+                order="asc",
+                rating_min=rating_min,
+                rating_max=rating_max,
+                min_price=200,
+                platform="ps",
+                page=page,
             )
 
         results = []
@@ -322,18 +381,20 @@ def arbitrage(rating_min, rating_max, min_gap, page, use_json):
             gap = compute_platform_gap(p.ps_price, p.xbox_price)
             if gap["gap_pct"] < min_gap:
                 continue
-            results.append({
-                "id": p.id,
-                "name": p.name,
-                "position": p.position,
-                "rating": p.rating,
-                "version": p.version,
-                "ps_price": p.ps_price,
-                "pc_price": p.xbox_price,
-                "gap_pct": gap["gap_pct"],
-                "gap_coins": gap["gap_coins"],
-                "cheaper_on": gap["cheaper_on"],
-            })
+            results.append(
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "position": p.position,
+                    "rating": p.rating,
+                    "version": p.version,
+                    "ps_price": p.ps_price,
+                    "pc_price": p.xbox_price,
+                    "gap_pct": gap["gap_pct"],
+                    "gap_coins": gap["gap_coins"],
+                    "cheaper_on": gap["cheaper_on"],
+                }
+            )
 
         # Sort by gap descending
         results.sort(key=lambda x: x["gap_pct"], reverse=True)

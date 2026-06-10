@@ -1,4 +1,5 @@
 """cli-web-capitoltrades — CLI entry point."""
+
 from __future__ import annotations
 
 import sys
@@ -68,7 +69,9 @@ def _print_repl_help() -> None:
     print("  trades by-ticker <SYM>            Find trades for a ticker (e.g. NVDA, AMGN)")
     print("  trades stats                      Overview stats (total trades, volume, etc.)")
     print()
-    print("  politicians list [--page N] [--party republican|democrat|independent] [--chamber house|senate] [--state ST]")
+    print(
+        "  politicians list [--page N] [--party republican|democrat|independent] [--chamber house|senate] [--state ST]"
+    )
     print("  politicians top [--by trades|volume] [--page-size N] [--party ...] [--chamber ...]")
     print("  politicians get <bioguide_id>     Show a single politician (e.g. Y000067)")
     print()
@@ -139,6 +142,16 @@ def _run_repl(ctx: click.Context) -> None:
 
 def main():
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.capitoltrades import __version__ as _pkg_version  # noqa: E402
+from cli_web.capitoltrades.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.capitoltrades.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="capitoltrades", version=_pkg_version)
+register_doctor_command(cli, app_name="capitoltrades", pkg="capitoltrades")
 
 
 if __name__ == "__main__":

@@ -9,10 +9,12 @@ Pattern: client.notebooks.list(), client.sources.add_url(), client.artifacts.gen
 This example shows a generic pattern with REST-style endpoints.
 Adapt for batchexecute (add rpc/ encoder/decoder) or GraphQL (query templates).
 """
-import httpx
+
 import json
 import time
 from pathlib import Path
+
+import httpx
 
 # These would be imported from the generated package
 # from .exceptions import AuthError, RateLimitError, ServerError, raise_for_status
@@ -27,7 +29,7 @@ class ClientCore:
     - HTTP connection management (httpx.Client)
     - Auth header/cookie injection
     - Status code → exception mapping
-    - Auth retry (refresh tokens on 401/403, retry once)
+    - Auth retry (3-attempt auto-refresh on 401/403; see CONVENTIONS.md §Auth Rules)
     """
 
     def __init__(self, base_url: str, cookies: dict | None = None):
@@ -41,7 +43,9 @@ class ClientCore:
             headers={"User-Agent": "cli-web-app/0.1.0"},
         )
 
-    def request(self, method: str, url: str, retry_on_auth: bool = True, **kwargs) -> httpx.Response:
+    def request(
+        self, method: str, url: str, retry_on_auth: bool = True, **kwargs
+    ) -> httpx.Response:
         """Make HTTP request with auth injection and error mapping."""
         # Inject auth
         kwargs.setdefault("cookies", self._cookies)
@@ -70,10 +74,13 @@ class ClientCore:
         re-extract tokens from the HTML.
         """
         import re
+
         resp = self._client.get("/", cookies=self._cookies, follow_redirects=True)
         if resp.status_code != 200:
-            raise AuthError("Token refresh failed — session may have expired. "
-                            "Run: cli-web-<app> auth login", recoverable=False)
+            raise AuthError(
+                "Token refresh failed — session may have expired. Run: cli-web-<app> auth login",
+                recoverable=False,
+            )
         html = resp.text
         # Example: Google batchexecute token extraction
         # Adapt these regex patterns for your target app
@@ -115,8 +122,9 @@ class SourcesAPI:
         self._core = core
 
     def add_url(self, notebook_id: str, url: str) -> dict:
-        resp = self._core.request("POST", f"/api/notebooks/{notebook_id}/sources",
-                                  json={"url": url})
+        resp = self._core.request(
+            "POST", f"/api/notebooks/{notebook_id}/sources", json={"url": url}
+        )
         return resp.json()
 
     def list(self, notebook_id: str) -> list:
@@ -131,12 +139,12 @@ class ArtifactsAPI:
         self._core = core
 
     def generate(self, notebook_id: str, artifact_type: str) -> dict:
-        resp = self._core.request("POST", f"/api/notebooks/{notebook_id}/artifacts",
-                                  json={"type": artifact_type})
+        resp = self._core.request(
+            "POST", f"/api/notebooks/{notebook_id}/artifacts", json={"type": artifact_type}
+        )
         return resp.json()
 
-    def wait_for_completion(self, notebook_id: str, task_id: str,
-                            timeout: float = 300.0) -> dict:
+    def wait_for_completion(self, notebook_id: str, task_id: str, timeout: float = 300.0) -> dict:
         """Poll until artifact is ready. Uses exponential backoff."""
         from .polling import poll_until_complete  # see polling-backoff-example.py
 

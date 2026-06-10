@@ -3,6 +3,7 @@
 /buzz contains third-party news snippets (Twitter, external articles)
 curated by Capitol Trades about companies and politicians.
 """
+
 from __future__ import annotations
 
 import click
@@ -30,7 +31,9 @@ def list_buzz(ctx, page, page_size):
             soup = client.get_html("/buzz", params={"page": page, "pageSize": page_size})
             rows = parse_buzz_list(soup)
         if json_mode:
-            print_json({"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}})
+            print_json(
+                {"success": True, "data": rows, "meta": {"page": page, "page_size": page_size}}
+            )
         else:
             if not rows:
                 click.echo("No buzz items found.")

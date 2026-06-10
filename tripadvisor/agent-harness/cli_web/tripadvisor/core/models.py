@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -14,9 +13,9 @@ class Location:
     name: str
     url: str
     type: str = "GEO"  # GEO, HOTEL, EATERY, ATTRACTION, etc.
-    coords: Optional[str] = None  # "lat,lon"
-    parent_name: Optional[str] = None
-    geo_name: Optional[str] = None
+    coords: str | None = None  # "lat,lon"
+    parent_name: str | None = None
+    geo_name: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -34,19 +33,19 @@ class Location:
 class Hotel:
     """A TripAdvisor hotel from listing or detail page."""
 
-    id: str              # numeric d-number (e.g. "229968")
+    id: str  # numeric d-number (e.g. "229968")
     name: str
-    url: str             # full TripAdvisor URL
-    rating: Optional[str] = None
-    review_count: Optional[int] = None
-    price_range: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    country: Optional[str] = None
-    telephone: Optional[str] = None
-    latitude: Optional[str] = None
-    longitude: Optional[str] = None
-    image: Optional[str] = None
+    url: str  # full TripAdvisor URL
+    rating: str | None = None
+    review_count: int | None = None
+    price_range: str | None = None
+    address: str | None = None
+    city: str | None = None
+    country: str | None = None
+    telephone: str | None = None
+    latitude: str | None = None
+    longitude: str | None = None
+    image: str | None = None
     amenities: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -75,16 +74,16 @@ class Restaurant:
     id: str
     name: str
     url: str
-    rating: Optional[str] = None
-    review_count: Optional[int] = None
-    price_range: Optional[str] = None
+    rating: str | None = None
+    review_count: int | None = None
+    price_range: str | None = None
     cuisines: list = field(default_factory=list)
-    address: Optional[str] = None
-    city: Optional[str] = None
-    telephone: Optional[str] = None
-    latitude: Optional[str] = None
-    longitude: Optional[str] = None
-    image: Optional[str] = None
+    address: str | None = None
+    city: str | None = None
+    telephone: str | None = None
+    latitude: str | None = None
+    longitude: str | None = None
+    image: str | None = None
     opening_hours: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -113,16 +112,16 @@ class Attraction:
     id: str
     name: str
     url: str
-    rating: Optional[str] = None
-    review_count: Optional[int] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    telephone: Optional[str] = None
-    latitude: Optional[str] = None
-    longitude: Optional[str] = None
-    image: Optional[str] = None
+    rating: str | None = None
+    review_count: int | None = None
+    address: str | None = None
+    city: str | None = None
+    telephone: str | None = None
+    latitude: str | None = None
+    longitude: str | None = None
+    image: str | None = None
     opening_hours: list = field(default_factory=list)
-    description: Optional[str] = None
+    description: str | None = None
 
     def to_dict(self) -> dict:
         return {

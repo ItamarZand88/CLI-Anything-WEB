@@ -1,6 +1,6 @@
 """Setup for cli-web-pexels."""
 
-from setuptools import setup, find_namespace_packages
+from setuptools import find_namespace_packages, setup
 
 setup(
     name="cli-web-pexels",

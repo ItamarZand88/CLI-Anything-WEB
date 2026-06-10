@@ -9,23 +9,44 @@ Consumers:
     - analyze-traffic.py (noise filtering + header normalization)
     - mitmproxy-capture.py (real-time noise filtering)
 """
+
 from __future__ import annotations
 
 import re
 
 # Web-static assets (fonts, images, JS, CSS, source maps) — never useful
 # as API endpoints. Safe to filter aggressively.
-STATIC_EXTENSIONS: frozenset[str] = frozenset((
-    ".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico",
-    ".woff", ".woff2", ".ttf", ".eot", ".map", ".webp", ".avif",
-))
+STATIC_EXTENSIONS: frozenset[str] = frozenset(
+    (
+        ".js",
+        ".css",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".svg",
+        ".ico",
+        ".woff",
+        ".woff2",
+        ".ttf",
+        ".eot",
+        ".map",
+        ".webp",
+        ".avif",
+    )
+)
 
 # Media extensions — kept SEPARATE because some APIs legitimately serve
 # these as endpoint paths (e.g., a music streaming API returning /songs/123.mp3
 # with `application/json` metadata). Callers opt in to filtering these.
-MEDIA_EXTENSIONS: frozenset[str] = frozenset((
-    ".mp4", ".webm", ".mp3", ".ogg",
-))
+MEDIA_EXTENSIONS: frozenset[str] = frozenset(
+    (
+        ".mp4",
+        ".webm",
+        ".mp3",
+        ".ogg",
+    )
+)
 
 # Noise URL patterns — analytics, tracking, ad networks, CDN endpoints.
 # Compiled once at import; cheap to call many times per entry.
@@ -52,14 +73,12 @@ NOISE_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"accounts\.google\.com/gsi/", re.I),
     re.compile(r"apis\.google\.com", re.I),
     re.compile(r"adtrafficquality\.google", re.I),
-
     # --- Cloudflare ---
     re.compile(r"cdn-cgi/", re.I),
     re.compile(r"cloudflareinsights", re.I),
     re.compile(r"static\.cloudflareinsights", re.I),
     re.compile(r"cdn-cgi/rum", re.I),
     re.compile(r"cdn-cgi/challenge-platform", re.I),
-
     # --- Social / trackers ---
     re.compile(r"facebook\.net", re.I),
     re.compile(r"facebook\.com/tr", re.I),
@@ -67,7 +86,6 @@ NOISE_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"analytics\.twitter\.com", re.I),
     re.compile(r"ads-twitter\.com", re.I),
     re.compile(r"twitter\.com", re.I),
-
     # --- Ad networks / programmatic advertising ---
     re.compile(r"taboola\.com", re.I),
     re.compile(r"outbrain\.com", re.I),
@@ -97,7 +115,6 @@ NOISE_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"openx\.net", re.I),
     re.compile(r"indexww\.com", re.I),
     re.compile(r"hadron\.ad\.gt", re.I),
-
     # --- Monitoring / analytics SDKs ---
     re.compile(r"segment\.io", re.I),
     re.compile(r"segment\.com/v1", re.I),
@@ -113,7 +130,6 @@ NOISE_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"newrelic\.com", re.I),
     re.compile(r"nr-data\.net", re.I),
     re.compile(r"fullstory\.com", re.I),
-
     # --- CRM / marketing automation ---
     re.compile(r"hubspot\.com", re.I),
     re.compile(r"hscollectedforms\.net", re.I),
@@ -126,22 +142,18 @@ NOISE_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"zendesk\.com", re.I),
     re.compile(r"/ht/event", re.I),
     re.compile(r"/hubspot", re.I),
-
     # --- Fonts / CDN ---
     re.compile(r"fontawesome\.com", re.I),
-
     # --- GitHub internal ---
     re.compile(r"avatars\.githubusercontent\.com", re.I),
     re.compile(r"collector\.github\.com", re.I),
     re.compile(r"api\.github\.com/_private", re.I),
-
     # --- Generic beacon / pixel / rum ---
     re.compile(r"/beacon", re.I),
     re.compile(r"/pixel", re.I),
     re.compile(r"/collect\b", re.I),
     re.compile(r"/rum", re.I),
     re.compile(r"/manifest\.json", re.I),
-
     # --- Site-specific tracking (non-API endpoints) ---
     re.compile(r"slinksuggestion\.com", re.I),
     re.compile(r"drainpaste\.com", re.I),
@@ -188,9 +200,5 @@ def normalize_headers(headers) -> dict:
     if isinstance(headers, dict):
         return headers
     if isinstance(headers, list):
-        return {
-            h.get("name", ""): h.get("value", "")
-            for h in headers
-            if isinstance(h, dict)
-        }
+        return {h.get("name", ""): h.get("value", "") for h in headers if isinstance(h, dict)}
     return {}

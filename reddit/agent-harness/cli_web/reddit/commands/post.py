@@ -40,7 +40,9 @@ def _parse_post_url(url_or_id: str) -> tuple[str, str, str]:
 @post.command("get")
 @click.argument("url_or_id")
 @click.option("--sub", default=None, help="Subreddit name (required if passing just a post ID).")
-@click.option("--comments", "comment_limit", type=int, default=50, help="Number of comments to fetch.")
+@click.option(
+    "--comments", "comment_limit", type=int, default=50, help="Number of comments to fetch."
+)
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
 def get(url_or_id, sub, comment_limit, use_json):
     """Get post details and comments.
@@ -58,8 +60,9 @@ def get(url_or_id, sub, comment_limit, use_json):
             subreddit = sub
 
         client = RedditClient()
-        data = client.post_detail(subreddit, post_id, slug=slug,
-                                  comment_limit=comment_limit, depth=50)
+        data = client.post_detail(
+            subreddit, post_id, slug=slug, comment_limit=comment_limit, depth=50
+        )
 
         # Reddit returns [post_listing, comments_listing]
         post_listing = data[0] if len(data) > 0 else {}
@@ -72,7 +75,8 @@ def get(url_or_id, sub, comment_limit, use_json):
         link_id = post_data.get("data", {}).get("name", "") or f"t3_{post_id}"
 
         result = format_post_detail(
-            post_data, comments_listing,
+            post_data,
+            comments_listing,
             more_children_fn=client.more_children,
             link_id=link_id,
             thread_fn=client.comment_thread,

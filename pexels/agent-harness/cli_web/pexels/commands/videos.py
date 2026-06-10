@@ -9,8 +9,7 @@ import click
 from ..core.client import PexelsClient
 from ..core.exceptions import NotFoundError
 from ..utils.helpers import handle_errors, sanitize_filename
-from ..utils.output import print_json, print_videos_table, print_video_detail, print_pagination
-
+from ..utils.output import print_json, print_pagination, print_video_detail, print_videos_table
 
 QUALITY_ORDER = {"sd": 0, "hd": 1, "uhd": 2}
 
@@ -40,13 +39,15 @@ def search(ctx, query, orientation, page, json_mode):
         pagination = result.get("pagination", {})
 
         if json_mode:
-            print_json({
-                "query": query,
-                "page": page,
-                "total_results": pagination.get("total_results", 0),
-                "total_pages": pagination.get("total_pages", 0),
-                "results": videos_list,
-            })
+            print_json(
+                {
+                    "query": query,
+                    "page": page,
+                    "total_results": pagination.get("total_results", 0),
+                    "total_pages": pagination.get("total_pages", 0),
+                    "results": videos_list,
+                }
+            )
         else:
             total = pagination.get("total_results", 0)
             click.echo(f"\n  Found {total:,} videos for '{query}'")
@@ -95,15 +96,11 @@ def download(ctx, slug, quality, output):
         # Find best matching file by quality
         best = _select_video_file(video_files, quality)
         if not best:
-            raise NotFoundError(
-                f"No downloadable video file found for '{slug}'"
-            )
+            raise NotFoundError(f"No downloadable video file found for '{slug}'")
 
         download_url = best.get("link")
         if not download_url:
-            raise NotFoundError(
-                f"No download link for selected quality ({best.get('quality')})"
-            )
+            raise NotFoundError(f"No download link for selected quality ({best.get('quality')})")
 
         # Determine output filename
         if not output:
@@ -116,14 +113,16 @@ def download(ctx, slug, quality, output):
 
         file_size = out_path.stat().st_size
         if json_mode:
-            print_json({
-                "video_id": video.get("id"),
-                "slug": slug,
-                "quality": best.get("quality"),
-                "resolution": f"{best.get('width')}x{best.get('height')}",
-                "file": str(out_path),
-                "bytes": file_size,
-            })
+            print_json(
+                {
+                    "video_id": video.get("id"),
+                    "slug": slug,
+                    "quality": best.get("quality"),
+                    "resolution": f"{best.get('width')}x{best.get('height')}",
+                    "file": str(out_path),
+                    "bytes": file_size,
+                }
+            )
         else:
             click.echo(f"  Downloaded: {out_path} ({file_size:,} bytes)")
             click.echo(
@@ -145,7 +144,7 @@ def _select_video_file(video_files: list[dict], target_quality: str) -> dict | N
     # Filter exact matches and pick highest resolution
     exact = [f for f in video_files if f.get("quality") == target_quality]
     if exact:
-        return max(exact, key=lambda f: (f.get("width", 0) * f.get("height", 0)))
+        return max(exact, key=lambda f: f.get("width", 0) * f.get("height", 0))
 
     # No exact match — find closest quality
     # Sort candidates by distance to target rank, then by resolution descending

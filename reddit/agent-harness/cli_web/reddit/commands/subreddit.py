@@ -61,7 +61,9 @@ def new(name, limit, after, use_json):
 
 @sub.command("top")
 @click.argument("name")
-@click.option("--time", "time_filter", type=click.Choice(TIME_CHOICES), default="day", help="Time period.")
+@click.option(
+    "--time", "time_filter", type=click.Choice(TIME_CHOICES), default="day", help="Time period."
+)
 @click.option("--limit", type=int, default=25, help="Number of posts (max 100).")
 @click.option("--after", default=None, help="Pagination cursor.")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
@@ -130,7 +132,9 @@ def rules(name, use_json):
 @sub.command("search")
 @click.argument("name")
 @click.argument("query")
-@click.option("--sort", type=click.Choice(SEARCH_SORT_CHOICES), default="relevance", help="Sort order.")
+@click.option(
+    "--sort", type=click.Choice(SEARCH_SORT_CHOICES), default="relevance", help="Sort order."
+)
 @click.option("--limit", type=int, default=25, help="Number of results (max 100).")
 @click.option("--after", default=None, help="Pagination cursor.")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
@@ -147,7 +151,7 @@ def search(name, query, sort, limit, after, use_json):
             click.echo(f"  Search r/{name} for '{query}':")
             post_table(posts, title=f"r/{name} Search: {query}")
             if next_after:
-                click.echo(f"  Next page: sub search {name} \"{query}\" --after {next_after}")
+                click.echo(f'  Next page: sub search {name} "{query}" --after {next_after}')
 
 
 @sub.command("join")

@@ -1,11 +1,15 @@
 """Notebook commands: list, create, get, rename, delete."""
+
 import click
+
 from ..core.client import NotebookLMClient
-from ..utils.output import (
-    print_notebooks_table, print_notebook, print_json,
-    notebook_to_dict,
-)
 from ..utils.helpers import handle_errors, resolve_partial_id
+from ..utils.output import (
+    notebook_to_dict,
+    print_json,
+    print_notebook,
+    print_notebooks_table,
+)
 
 
 @click.group()

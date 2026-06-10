@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import click
-
 from cli_web.hackernews.core import auth
 from cli_web.hackernews.core.client import HackerNewsClient
 from cli_web.hackernews.utils.helpers import handle_errors, print_json, resolve_json_mode

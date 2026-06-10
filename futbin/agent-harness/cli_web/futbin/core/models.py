@@ -1,7 +1,7 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 
 class Position(Enum):
@@ -40,17 +40,17 @@ class Player:
     nation: str
     year: int
     url: str
-    ps_price: Optional[int] = None
-    xbox_price: Optional[int] = None
+    ps_price: int | None = None
+    xbox_price: int | None = None
     stats: dict = field(default_factory=dict)
     # Extended fields (populated from detail page only)
-    skill_moves: Optional[int] = None
-    weak_foot: Optional[int] = None
+    skill_moves: int | None = None
+    weak_foot: int | None = None
     height: str = ""
     foot: str = ""
     trend: str = ""
-    price_range_min: Optional[int] = None
-    price_range_max: Optional[int] = None
+    price_range_min: int | None = None
+    price_range_max: int | None = None
     ps_bin_listings: list = field(default_factory=list)
     pc_bin_listings: list = field(default_factory=list)
 
@@ -97,8 +97,8 @@ class SBC:
     reward: str
     expires: str
     year: int
-    cost_ps: Optional[int] = None
-    cost_xbox: Optional[int] = None
+    cost_ps: int | None = None
+    cost_xbox: int | None = None
     repeatable: bool = False
 
     def to_dict(self) -> dict:
@@ -144,6 +144,7 @@ class Evolution:
 @dataclass
 class SBCDetail:
     """Full SBC with structured requirements and rewards."""
+
     id: int
     name: str
     category: str = ""
@@ -159,17 +160,25 @@ class SBCDetail:
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id, "name": self.name, "category": self.category,
-            "reward": self.reward, "expires": self.expires, "year": self.year,
-            "cost_ps": self.cost_ps, "cost_xbox": self.cost_xbox,
-            "repeatable": self.repeatable, "requirements": self.requirements,
-            "description": self.description, "url": self.url,
+            "id": self.id,
+            "name": self.name,
+            "category": self.category,
+            "reward": self.reward,
+            "expires": self.expires,
+            "year": self.year,
+            "cost_ps": self.cost_ps,
+            "cost_xbox": self.cost_xbox,
+            "repeatable": self.repeatable,
+            "requirements": self.requirements,
+            "description": self.description,
+            "url": self.url,
         }
 
 
 @dataclass
 class EvolutionDetail:
     """Full evolution with structured requirements and upgrades."""
+
     id: int
     name: str
     category: str = ""
@@ -182,18 +191,24 @@ class EvolutionDetail:
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id, "name": self.name, "category": self.category,
-            "expires": self.expires, "year": self.year,
-            "requirements": self.requirements, "upgrades": self.upgrades,
-            "description": self.description, "url": self.url,
+            "id": self.id,
+            "name": self.name,
+            "category": self.category,
+            "expires": self.expires,
+            "year": self.year,
+            "requirements": self.requirements,
+            "upgrades": self.upgrades,
+            "description": self.description,
+            "url": self.url,
         }
 
 
 @dataclass
 class PlayerComparison:
     """Side-by-side comparison of two players."""
-    player1: "Player"
-    player2: "Player"
+
+    player1: Player
+    player2: Player
     stat_diffs: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -221,6 +236,7 @@ class MarketItem:
 @dataclass
 class MarketDetail:
     """Detailed market index for a specific rating tier (from /market/{rating})."""
+
     name: str
     rating: str
     current: str
@@ -244,6 +260,7 @@ class MarketDetail:
 @dataclass
 class FodderPlayer:
     """A player entry from the SBC cheapest page."""
+
     id: int
     name: str
     position: str
@@ -256,6 +273,7 @@ class FodderPlayer:
 @dataclass
 class FodderTier:
     """Cheapest players at a specific rating tier for SBC fodder."""
+
     rating: int
     players: list = field(default_factory=list)
 
@@ -270,6 +288,7 @@ class FodderTier:
 @dataclass
 class PriceHistory:
     """Price history for a player — lists of [timestamp_ms, price] pairs."""
+
     player_id: int
     player_name: str
     year: int

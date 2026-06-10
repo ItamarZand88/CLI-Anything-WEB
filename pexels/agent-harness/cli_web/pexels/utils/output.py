@@ -14,11 +14,7 @@ def print_error_json(exc):
     """Print an error as JSON."""
     from ..core.exceptions import error_code_for
 
-    click.echo(
-        json.dumps(
-            {"error": True, "code": error_code_for(exc), "message": str(exc)}
-        )
-    )
+    click.echo(json.dumps({"error": True, "code": error_code_for(exc), "message": str(exc)}))
 
 
 def print_photos_table(photos: list[dict]):
@@ -81,12 +77,9 @@ def print_video_detail(video: dict):
     if video.get("description"):
         click.echo(f"  Description:  {video['description'][:80]}")
     if video.get("video_files"):
-        click.echo(f"  Quality options:")
+        click.echo("  Quality options:")
         for f in video["video_files"]:
-            click.echo(
-                f"    {f['quality']:>3} {f['width']}x{f['height']} "
-                f"{f.get('fps', '?')}fps"
-            )
+            click.echo(f"    {f['quality']:>3} {f['width']}x{f['height']} {f.get('fps', '?')}fps")
     click.echo()
 
 
@@ -101,7 +94,7 @@ def print_user_detail(user: dict):
     click.echo(f"  Total media:  {user.get('media_count', 0)}")
     click.echo(f"  Followers:    {user.get('followers_count', 0)}")
     if user.get("hero"):
-        click.echo(f"  Hero:         Yes")
+        click.echo("  Hero:         Yes")
     click.echo(f"  URL:          {user.get('url')}")
     click.echo()
 

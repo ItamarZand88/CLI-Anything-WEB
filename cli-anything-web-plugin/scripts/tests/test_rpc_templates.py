@@ -4,6 +4,7 @@ Renders a scaffolded CLI, imports the generated rpc/ modules, and verifies
 their behavior against realistic batchexecute inputs. This catches drift
 between the templates and production notebooklm/stitch implementations.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -23,14 +24,22 @@ def rpc_modules(tmp_path_factory):
     out_dir = tmp_path_factory.mktemp("rpc_scaffold") / "gen"
     result = subprocess.run(
         [
-            sys.executable, str(SCAFFOLD), str(out_dir),
-            "--app-name", "rpctest",
-            "--protocol", "batchexecute",
-            "--http-client", "httpx",
-            "--auth-type", "google-sso",
-            "--resources", "items",
+            sys.executable,
+            str(SCAFFOLD),
+            str(out_dir),
+            "--app-name",
+            "rpctest",
+            "--protocol",
+            "batchexecute",
+            "--http-client",
+            "httpx",
+            "--auth-type",
+            "google-sso",
+            "--resources",
+            "items",
         ],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert result.returncode == 0, result.stderr
 
@@ -60,6 +69,7 @@ def rpc_modules(tmp_path_factory):
 
 
 # --- Encoder ---
+
 
 def test_encode_request_returns_url_encoded_string(rpc_modules):
     _, encoder, _ = rpc_modules
@@ -93,6 +103,7 @@ def test_build_url_omits_build_label_when_empty(rpc_modules):
 
 # --- Decoder ---
 
+
 def test_strip_prefix_removes_anti_xssi(rpc_modules):
     _, _, decoder = rpc_modules
     assert decoder.strip_prefix(")]}'\n[[1,2]]") == "[[1,2]]"
@@ -116,7 +127,7 @@ def test_parse_chunks_multi_chunk_response(rpc_modules):
 
 def test_parse_chunks_ignores_length_hint_lines(rpc_modules):
     _, _, decoder = rpc_modules
-    body = '5\n[]\n10\n[[1]]'
+    body = "5\n[]\n10\n[[1]]"
     assert len(decoder.parse_chunks(body)) == 2
 
 
@@ -129,6 +140,7 @@ def test_extract_result_finds_rpc_payload(rpc_modules):
 def test_extract_result_raises_auth_error_on_code_7(rpc_modules):
     types, _, decoder = rpc_modules
     from cli_web.rpctest.core.exceptions import AuthError
+
     chunks = ['[["er",7,null,null,null]]']
     with pytest.raises(AuthError):
         decoder.extract_result(chunks, "xyz")
@@ -137,6 +149,7 @@ def test_extract_result_raises_auth_error_on_code_7(rpc_modules):
 def test_extract_result_raises_rpc_error_on_unknown_code(rpc_modules):
     types, _, decoder = rpc_modules
     from cli_web.rpctest.core.exceptions import RPCError
+
     chunks = ['[["er",99,null]]']
     with pytest.raises(RPCError):
         decoder.extract_result(chunks, "xyz")
@@ -145,6 +158,7 @@ def test_extract_result_raises_rpc_error_on_unknown_code(rpc_modules):
 def test_extract_result_raises_rpc_error_when_missing(rpc_modules):
     _, _, decoder = rpc_modules
     from cli_web.rpctest.core.exceptions import RPCError
+
     chunks = ['[["wrb.fr","other","[]"]]']
     with pytest.raises(RPCError):
         decoder.extract_result(chunks, "wanted")

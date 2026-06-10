@@ -1,4 +1,5 @@
 """Output formatting utilities — JSON and human-readable tables."""
+
 from __future__ import annotations
 
 import json
@@ -11,8 +12,13 @@ def print_json(data: Any) -> None:
     print(json.dumps(data, indent=2, ensure_ascii=False, default=str))
 
 
-def print_table(rows, columns: list[str] | None = None, *,
-                headers: list[str] | None = None, keys: list[str] | None = None) -> None:
+def print_table(
+    rows,
+    columns: list[str] | None = None,
+    *,
+    headers: list[str] | None = None,
+    keys: list[str] | None = None,
+) -> None:
     """Print a list of dicts (or objects) as a formatted table.
 
     Supports two calling conventions:
@@ -47,7 +53,7 @@ def print_table(rows, columns: list[str] | None = None, *,
     # Compute column widths
     widths = {h: len(h) for h in display_headers}
     for row in rows:
-        for h, k in zip(display_headers, access_keys):
+        for h, k in zip(display_headers, access_keys, strict=False):
             widths[h] = max(widths[h], len(_get(row, k)))
 
     header_line = "  ".join(h.upper().ljust(widths[h]) for h in display_headers)
@@ -55,7 +61,10 @@ def print_table(rows, columns: list[str] | None = None, *,
     print(header_line)
     print(sep)
     for row in rows:
-        line = "  ".join(_get(row, k).ljust(widths[h]) for h, k in zip(display_headers, access_keys))
+        line = "  ".join(
+            _get(row, k).ljust(widths[h])
+            for h, k in zip(display_headers, access_keys, strict=False)
+        )
         print(line)
 
 
@@ -91,6 +100,7 @@ def print_players_rich(players, title="Players"):
     """Print players as a Rich table."""
     from rich.console import Console
     from rich.table import Table
+
     console = Console()
     table = Table(title=title)
     table.add_column("ID", style="dim")
@@ -101,8 +111,12 @@ def print_players_rich(players, title="Players"):
     table.add_column("PS Price", justify="right", style="green")
     for p in players:
         table.add_row(
-            str(p.id), p.name, p.position, str(p.rating),
-            p.version or "", coins_display(p.ps_price) if p.ps_price else "—",
+            str(p.id),
+            p.name,
+            p.position,
+            str(p.rating),
+            p.version or "",
+            coins_display(p.ps_price) if p.ps_price else "—",
         )
     console.print(table)
 
@@ -117,6 +131,7 @@ def print_comparison(comp, json_mode=False, value_data=None):
         return
     from rich.console import Console
     from rich.table import Table
+
     console = Console()
     table = Table(title=f"{comp.player1.name} vs {comp.player2.name}")
     table.add_column("Stat")
@@ -127,8 +142,12 @@ def print_comparison(comp, json_mode=False, value_data=None):
         diff = vals["diff"]
         diff_str = f"+{diff}" if diff > 0 else str(diff)
         style = "green" if diff > 0 else ("red" if diff < 0 else "dim")
-        table.add_row(stat.upper(), str(vals["player1"]), str(vals["player2"]),
-                      f"[{style}]{diff_str}[/{style}]")
+        table.add_row(
+            stat.upper(),
+            str(vals["player1"]),
+            str(vals["player2"]),
+            f"[{style}]{diff_str}[/{style}]",
+        )
     # Value metrics row
     if value_data:
         table.add_section()
@@ -138,8 +157,12 @@ def print_comparison(comp, json_mode=False, value_data=None):
         p2_str = f"{p2_cps:.0f}" if p2_cps is not None else "N/A"
         winner = value_data.get("value_winner", "")
         winner_str = f"[green]{winner}[/green]" if winner else "—"
-        table.add_row("TOTAL STATS", str(value_data["player1_total_stats"]),
-                      str(value_data["player2_total_stats"]), "")
+        table.add_row(
+            "TOTAL STATS",
+            str(value_data["player1_total_stats"]),
+            str(value_data["player2_total_stats"]),
+            "",
+        )
         table.add_row("COINS/STAT", p1_str, p2_str, winner_str)
     console.print(table)
 
@@ -173,6 +196,7 @@ def print_price_history(history, json_mode=False):
         print_json(history.to_dict())
         return
     from datetime import datetime
+
     print(f"Price History: {history.player_name} (ID: {history.player_id})")
     print()
     for platform, prices in [("PS/Xbox", history.ps_prices), ("PC", history.pc_prices)]:
@@ -195,7 +219,9 @@ def print_price_history(history, json_mode=False):
         print(f"    Current:  {coins_display(current)}")
         print(f"    Lowest:   {coins_display(lowest)}")
         print(f"    Highest:  {coins_display(highest)}")
-        print(f"    Change:   {coins_display(abs(change))} ({'+'if change >= 0 else '-'}{abs(change_pct):.1f}%)")
+        print(
+            f"    Change:   {coins_display(abs(change))} ({'+' if change >= 0 else '-'}{abs(change_pct):.1f}%)"
+        )
         print(f"    Trend:    {trend} (last {len(recent)} days)")
         print(f"    Period:   {first_date} to {last_date} ({len(prices)} data points)")
         print()
@@ -235,10 +261,12 @@ def print_analysis(player, ps_analysis, pc_analysis, gap):
     """Print price analysis for a player using Rich."""
     from rich.console import Console
     from rich.table import Table
-    from rich.panel import Panel
+
     console = Console()
 
-    console.print(f"\n[bold]{player.name}[/bold]  (ID: {player.id})  {player.position}  {player.rating} OVR")
+    console.print(
+        f"\n[bold]{player.name}[/bold]  (ID: {player.id})  {player.position}  {player.rating} OVR"
+    )
 
     for label, analysis in [("PS/Xbox", ps_analysis), ("PC", pc_analysis)]:
         if not analysis:
@@ -266,7 +294,9 @@ def print_analysis(player, ps_analysis, pc_analysis, gap):
         console.print(table)
 
     if gap.get("gap_pct", 0) > 0:
-        console.print(f"\n  Platform gap: {gap['gap_pct']}% ({coins_display(gap['gap_coins'])} coins) — cheaper on {gap['cheaper_on'].upper()}")
+        console.print(
+            f"\n  Platform gap: {gap['gap_pct']}% ({coins_display(gap['gap_coins'])} coins) — cheaper on {gap['cheaper_on'].upper()}"
+        )
     console.print()
 
 
@@ -274,6 +304,7 @@ def print_scan_results(results, threshold, platform):
     """Print bulk scan results using Rich."""
     from rich.console import Console
     from rich.table import Table
+
     console = Console()
 
     # Filter by threshold
@@ -281,12 +312,18 @@ def print_scan_results(results, threshold, platform):
     flagged.sort(key=lambda x: x["vs_avg_30d_pct"])
 
     if not flagged:
-        console.print(f"\nNo players found below -{threshold}% of 30d average on {platform.upper()}.")
+        console.print(
+            f"\nNo players found below -{threshold}% of 30d average on {platform.upper()}."
+        )
         if results:
-            console.print(f"  (Analyzed {len(results)} players. Closest: {results[0]['vs_avg_30d_pct']:+.1f}%)")
+            console.print(
+                f"  (Analyzed {len(results)} players. Closest: {results[0]['vs_avg_30d_pct']:+.1f}%)"
+            )
         return
 
-    table = Table(title=f"Undervalued Players on {platform.upper()} (below -{threshold}% of 30d avg)")
+    table = Table(
+        title=f"Undervalued Players on {platform.upper()} (below -{threshold}% of 30d avg)"
+    )
     table.add_column("ID", style="dim")
     table.add_column("Name", style="bold")
     table.add_column("Pos", style="cyan")
@@ -320,6 +357,7 @@ def print_arbitrage(results, page, has_next):
     """Print cross-platform arbitrage results using Rich."""
     from rich.console import Console
     from rich.table import Table
+
     console = Console()
 
     if not results:
@@ -360,6 +398,7 @@ def print_versions(players, version_data, title=None):
     """Print all versions of a player compared using Rich."""
     from rich.console import Console
     from rich.table import Table
+
     console = Console()
 
     if not players:
@@ -381,7 +420,7 @@ def print_versions(players, version_data, title=None):
     table.add_column("PS Price", justify="right", style="green")
     table.add_column("Value", justify="right", style="yellow")
 
-    for p, vd in zip(players, version_data):
+    for p, vd in zip(players, version_data, strict=False):
         stats = p.stats or {}
         vs = vd.get("value_score")
         vs_str = f"{vs}" if vs is not None else "N/A"

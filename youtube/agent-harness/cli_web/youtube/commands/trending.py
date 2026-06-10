@@ -15,9 +15,13 @@ def trending_group():
 
 
 @trending_group.command("list")
-@click.option("--category", "-c", default="now",
-              type=click.Choice(["now", "music", "gaming", "movies"], case_sensitive=False),
-              help="Category filter (default: now).")
+@click.option(
+    "--category",
+    "-c",
+    default="now",
+    type=click.Choice(["now", "music", "gaming", "movies"], case_sensitive=False),
+    help="Category filter (default: now).",
+)
 @click.option("--limit", "-l", default=20, type=int, help="Max results (default 20).")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
 def trending_list(category, limit, use_json):

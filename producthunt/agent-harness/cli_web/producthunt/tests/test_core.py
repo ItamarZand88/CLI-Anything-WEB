@@ -10,7 +10,6 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from bs4 import BeautifulSoup
-
 from cli_web.producthunt.core.client import ProductHuntClient
 from cli_web.producthunt.core.exceptions import (
     AppError,
@@ -21,7 +20,6 @@ from cli_web.producthunt.core.exceptions import (
     ServerError,
 )
 from cli_web.producthunt.core.models import Post, User
-
 
 # ---------------------------------------------------------------------------
 # HTML Fixtures
@@ -108,6 +106,7 @@ def _mock_response(status_code: int, text: str = "", headers: dict | None = None
 # TestParsePostCards
 # ---------------------------------------------------------------------------
 
+
 class TestParsePostCards(unittest.TestCase):
     """Test _parse_post_cards with realistic HTML fixtures."""
 
@@ -167,6 +166,7 @@ class TestParsePostCards(unittest.TestCase):
 # TestParseProductDetail
 # ---------------------------------------------------------------------------
 
+
 class TestParseProductDetail(unittest.TestCase):
     """Test get_post() parsing of product detail HTML."""
 
@@ -215,6 +215,7 @@ class TestParseProductDetail(unittest.TestCase):
 # TestParseUserProfile
 # ---------------------------------------------------------------------------
 
+
 class TestParseUserProfile(unittest.TestCase):
     """Test get_user() parsing of user profile HTML."""
 
@@ -250,6 +251,7 @@ class TestParseUserProfile(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # TestClientHTTPErrors
 # ---------------------------------------------------------------------------
+
 
 class TestClientHTTPErrors(unittest.TestCase):
     """Test HTTP status code to domain exception mapping."""
@@ -293,9 +295,7 @@ class TestClientHTTPErrors(unittest.TestCase):
 
     def test_network_exception_raises_network_error(self):
         client = ProductHuntClient()
-        with patch.object(
-            client._session, "get", side_effect=ConnectionError("DNS failure")
-        ):
+        with patch.object(client._session, "get", side_effect=ConnectionError("DNS failure")):
             with self.assertRaises(NetworkError):
                 client._get("https://www.producthunt.com/test")
 
@@ -303,6 +303,7 @@ class TestClientHTTPErrors(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # TestExceptions
 # ---------------------------------------------------------------------------
+
 
 class TestExceptions(unittest.TestCase):
     """Test exception to_dict() methods produce correct error codes."""
@@ -337,6 +338,7 @@ class TestExceptions(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # TestModels
 # ---------------------------------------------------------------------------
+
 
 class TestModels(unittest.TestCase):
     """Test Post and User model serialization."""

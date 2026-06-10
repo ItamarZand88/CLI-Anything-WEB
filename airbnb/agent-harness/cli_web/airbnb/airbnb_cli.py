@@ -8,7 +8,11 @@ import sys
 
 # Windows UTF-8 fix — reconfigure both stdout and stderr
 for _stream in (sys.stdout, sys.stderr):
-    if _stream and getattr(_stream, "encoding", None) and _stream.encoding.lower() not in ("utf-8", "utf8"):
+    if (
+        _stream
+        and getattr(_stream, "encoding", None)
+        and _stream.encoding.lower() not in ("utf-8", "utf8")
+    ):
         try:
             _stream.reconfigure(encoding="utf-8", errors="replace")
         except AttributeError:
@@ -70,7 +74,9 @@ def _print_repl_help() -> None:
     print("    --min-price N             Minimum nightly price")
     print("    --max-price N             Maximum nightly price")
     print("    --room-type TYPE          Filter: entire_home|private_room|shared_room|hotel_room")
-    print("    --amenity ID              Filter by amenity ID (repeatable: 4=WiFi, 8=Kitchen, 40=AC, 33=Pool)")
+    print(
+        "    --amenity ID              Filter by amenity ID (repeatable: 4=WiFi, 8=Kitchen, 40=AC, 33=Pool)"
+    )
     print("    --cursor TOKEN            Pagination cursor for next page")
     print("    --page N                  Page number (note: Airbnb uses cursors, not pages)")
     print("    --locale TEXT             Language locale (default: en)")
@@ -98,7 +104,7 @@ def _print_repl_help() -> None:
     print()
     print("  Global flags:")
     print("    --json                    Output results as JSON (place before OR after subcommand)")
-    print("    Examples: --json search stays \"London\" OR: search stays \"London\" --json")
+    print('    Examples: --json search stays "London" OR: search stays "London" --json')
     print()
     print("  help                        Show this help")
     print("  quit / exit                 Exit REPL")
@@ -138,7 +144,11 @@ def _repl(ctx: click.Context) -> None:
             pass
         except Exception as exc:
             if ctx.obj.get("json"):
-                payload = exc.to_dict() if isinstance(exc, AirbnbError) else {"error": True, "code": "ERROR", "message": str(exc)}
+                payload = (
+                    exc.to_dict()
+                    if isinstance(exc, AirbnbError)
+                    else {"error": True, "code": "ERROR", "message": str(exc)}
+                )
                 click.echo(_json.dumps(payload))
             else:
                 click.echo(f"Error: {exc}", err=True)
@@ -147,3 +157,13 @@ def _repl(ctx: click.Context) -> None:
 def main() -> None:
     """Entry point for cli-web-airbnb."""
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.airbnb import __version__ as _pkg_version  # noqa: E402
+from cli_web.airbnb.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.airbnb.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="airbnb", version=_pkg_version)
+register_doctor_command(cli, app_name="airbnb", pkg="airbnb")

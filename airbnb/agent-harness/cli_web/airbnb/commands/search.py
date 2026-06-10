@@ -7,7 +7,6 @@ from rich.console import Console
 from rich.table import Table
 
 from ..core.client import AirbnbClient
-from ..core.exceptions import AirbnbError, NetworkError, NotFoundError, ParseError, RateLimitError, ServerError
 from ..utils.helpers import handle_errors, print_json, resolve_json_mode
 
 console = Console()
@@ -51,7 +50,13 @@ def search(ctx):
     help="Filter by amenity ID (repeatable). Common: 4=WiFi, 8=Kitchen, 40=AC, 33=Pool.",
 )
 @click.option("--cursor", default=None, metavar="TOKEN", help="Pagination cursor for next page.")
-@click.option("--page", default=None, type=int, metavar="N", help="Page indicator (informational; Airbnb uses cursor-based pagination).")
+@click.option(
+    "--page",
+    default=None,
+    type=int,
+    metavar="N",
+    help="Page indicator (informational; Airbnb uses cursor-based pagination).",
+)
 @click.option("--locale", default="en", show_default=True, help="Language locale code.")
 @click.option("--currency", default="USD", show_default=True, help="Currency code.")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
@@ -95,7 +100,10 @@ def search_stays(
     json_mode = resolve_json_mode(json_mode, ctx)
 
     if page is not None and not json_mode:
-        click.echo("Note: --page is informational only. Airbnb uses cursor-based pagination. Use --cursor to navigate pages.", err=True)
+        click.echo(
+            "Note: --page is informational only. Airbnb uses cursor-based pagination. Use --cursor to navigate pages.",
+            err=True,
+        )
 
     # Map CLI room type values to Airbnb API display values
     room_type_map = {
@@ -129,14 +137,16 @@ def search_stays(
         location_slug = result.get("location_slug")
 
         if json_mode:
-            print_json({
-                "success": True,
-                "count": len(listings),
-                "next_cursor": next_cursor,
-                "total_count": total_count,
-                "location_slug": location_slug,
-                "listings": [listing.to_dict() for listing in listings],
-            })
+            print_json(
+                {
+                    "success": True,
+                    "count": len(listings),
+                    "next_cursor": next_cursor,
+                    "total_count": total_count,
+                    "location_slug": location_slug,
+                    "listings": [listing.to_dict() for listing in listings],
+                }
+            )
             return
 
         if not listings:

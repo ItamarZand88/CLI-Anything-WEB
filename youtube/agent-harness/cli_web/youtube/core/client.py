@@ -14,7 +14,6 @@ from .exceptions import (
 )
 from .models import (
     format_channel,
-    format_trending_videos,
     format_video_detail,
     format_video_from_renderer,
 )
@@ -150,10 +149,13 @@ class YouTubeClient:
         query = queries.get(category, category)
 
         # Use search with empty/broad query — returns popular videos
-        resp = self._post("search", {
-            "query": query if query else "trending",
-            "params": "CAMSAhAB",  # sort by upload date, filter videos only
-        })
+        resp = self._post(
+            "search",
+            {
+                "query": query if query else "trending",
+                "params": "CAMSAhAB",  # sort by upload date, filter videos only
+            },
+        )
 
         contents = (
             resp.get("contents", {})
@@ -222,16 +224,13 @@ class YouTubeClient:
             result["url"] = metadata.get("channelUrl", channel_url)
 
         # Extract recent videos from tabs
-        tabs = (
-            resp.get("contents", {})
-            .get("twoColumnBrowseResultsRenderer", {})
-            .get("tabs", [])
-        )
+        tabs = resp.get("contents", {}).get("twoColumnBrowseResultsRenderer", {}).get("tabs", [])
         recent_videos = []
         for tab in tabs:
             tab_content = tab.get("tabRenderer", {}).get("content", {})
-            sections = (tab_content.get("sectionListRenderer", {}).get("contents", []) or
-                        tab_content.get("richGridRenderer", {}).get("contents", []))
+            sections = tab_content.get("sectionListRenderer", {}).get(
+                "contents", []
+            ) or tab_content.get("richGridRenderer", {}).get("contents", [])
             for section in sections[:10]:
                 # richItemRenderer wraps videoRenderer in newer layouts
                 rich = section.get("richItemRenderer", {}).get("content", {})

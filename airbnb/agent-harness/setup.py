@@ -1,4 +1,5 @@
 """Setup for cli-web-airbnb."""
+
 from setuptools import find_namespace_packages, setup
 
 setup(

@@ -67,8 +67,7 @@ def handle_errors(json_mode: bool = False):
         sys.exit(1)
     except RateLimitError as e:
         if json_mode:
-            click.echo(json_error("RATE_LIMITED", str(e),
-                                  retry_after=e.retry_after))
+            click.echo(json_error("RATE_LIMITED", str(e), retry_after=e.retry_after))
         else:
             click.echo(f"Rate limited: {e}", err=True)
         sys.exit(2)

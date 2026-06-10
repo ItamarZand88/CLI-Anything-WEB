@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import click
-
 from cli_web.hackernews.core.client import HackerNewsClient
 from cli_web.hackernews.utils.helpers import handle_errors, resolve_json_mode
 from cli_web.hackernews.utils.output import (
@@ -149,7 +148,9 @@ def stories_view(ctx, story_id, comments, limit, json_mode):
             click.echo(f"\n  {story.title}")
             if story.url:
                 click.echo(f"  {story.url}")
-            click.echo(f"  {story.score} points by {story.by} | {story.age} | {story.descendants} comments")
+            click.echo(
+                f"  {story.score} points by {story.by} | {story.age} | {story.descendants} comments"
+            )
             click.echo()
 
             if comments:

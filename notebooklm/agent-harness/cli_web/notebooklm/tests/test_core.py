@@ -7,39 +7,39 @@ Covers:
 - cli_web.notebooklm.core.models       (parse_notebook, parse_source, parse_user)
 - cli_web.notebooklm.core.client       (NotebookLMClient – HTTP mocked)
 """
+
 import json
 import unittest
 import urllib.parse
 from unittest.mock import MagicMock, patch
 
-from cli_web.notebooklm.core.rpc.encoder import build_url, encode_request
+from cli_web.notebooklm.core.exceptions import (
+    AuthError,
+    NetworkError,
+    NotebookLMError,
+    RateLimitError,
+    RPCError,
+    ServerError,
+)
+from cli_web.notebooklm.core.models import (
+    Notebook,
+    Source,
+    parse_notebook,
+    parse_source,
+    parse_user,
+)
 from cli_web.notebooklm.core.rpc.decoder import (
     decode_response,
     extract_result,
     parse_chunks,
     strip_prefix,
 )
-from cli_web.notebooklm.core.exceptions import (
-    AuthError,
-    RPCError,
-    RateLimitError,
-    ServerError,
-    NetworkError,
-    NotebookLMError,
-)
-from cli_web.notebooklm.core.models import (
-    Notebook,
-    Source,
-    User,
-    parse_notebook,
-    parse_source,
-    parse_user,
-)
-
+from cli_web.notebooklm.core.rpc.encoder import build_url, encode_request
 
 # ---------------------------------------------------------------------------
 # Helpers shared across client tests
 # ---------------------------------------------------------------------------
+
 
 def _make_batchexecute_response(rpc_id: str, result: object) -> bytes:
     """Build a minimal valid batchexecute response body for *rpc_id*.
@@ -70,8 +70,8 @@ def _make_mock_response(status_code: int, body: bytes) -> MagicMock:
 # 1.  RPC Encoder tests
 # ===========================================================================
 
-class TestEncodeRequest(unittest.TestCase):
 
+class TestEncodeRequest(unittest.TestCase):
     def _decode_body(self, body: str) -> dict:
         """URL-decode the encoded body into a plain dict."""
         return dict(urllib.parse.parse_qsl(body))
@@ -148,33 +148,32 @@ class TestEncodeRequest(unittest.TestCase):
 # 2.  RPC Decoder tests
 # ===========================================================================
 
-class TestStripPrefix(unittest.TestCase):
 
+class TestStripPrefix(unittest.TestCase):
     def test_strip_prefix_removes_xssi(self):
         """)]}' + newline must be stripped, leaving the JSON body."""
-        data = ")]}'\n[[\"foo\"]]"
+        data = ')]}\'\n[["foo"]]'
         result = strip_prefix(data)
-        self.assertEqual(result, "[[\"foo\"]]")
+        self.assertEqual(result, '[["foo"]]')
 
     def test_strip_prefix_bytes_input(self):
         """bytes input is decoded to str and the XSSI prefix is stripped."""
-        data = b")]}'\n[[\"bar\"]]"
+        data = b')]}\'\n[["bar"]]'
         result = strip_prefix(data)
         self.assertIsInstance(result, str)
-        self.assertEqual(result, "[[\"bar\"]]")
+        self.assertEqual(result, '[["bar"]]')
 
     def test_strip_prefix_no_prefix(self):
         """When the prefix is absent the string is returned unchanged."""
-        data = "[[\"no-prefix\"]]"
+        data = '[["no-prefix"]]'
         result = strip_prefix(data)
         self.assertEqual(result, data)
 
 
 class TestParseChunks(unittest.TestCase):
-
     def test_parse_chunks_extracts_arrays(self):
         """JSON arrays are extracted; length-hint digit lines are skipped."""
-        text = "42\n[[\"wrb.fr\",\"RPC1\",\"result\"]]\n"
+        text = '42\n[["wrb.fr","RPC1","result"]]\n'
         chunks = parse_chunks(text)
         self.assertEqual(len(chunks), 1)
         parsed = json.loads(chunks[0])
@@ -190,7 +189,7 @@ class TestParseChunks(unittest.TestCase):
 
     def test_parse_chunks_skips_digit_only_lines(self):
         """Lines containing only digits (length hints) are not included as chunks."""
-        text = "12345\n[[\"data\"]]\n"
+        text = '12345\n[["data"]]\n'
         chunks = parse_chunks(text)
         # Should only find the JSON array, not try to parse "12345"
         self.assertEqual(len(chunks), 1)
@@ -198,7 +197,6 @@ class TestParseChunks(unittest.TestCase):
 
 
 class TestExtractResult(unittest.TestCase):
-
     def _make_chunks(self, rpc_id: str, result: object) -> list[str]:
         """Build a minimal chunk list as produced by parse_chunks.
 
@@ -250,7 +248,6 @@ class TestExtractResult(unittest.TestCase):
 
 
 class TestDecodeResponse(unittest.TestCase):
-
     def test_decode_response_full_pipeline(self):
         """Full pipeline: bytes with XSSI prefix → correct decoded object."""
         rpc_id = "TestRPC"
@@ -279,16 +276,23 @@ class TestDecodeResponse(unittest.TestCase):
 # 3.  Model parsing tests
 # ===========================================================================
 
-class TestParseNotebook(unittest.TestCase):
 
+class TestParseNotebook(unittest.TestCase):
     # --- rLM1Ne / flat style ---
 
     def test_parse_notebook_flat_rlm1ne(self):
         """Flat rLM1Ne format: [title, sources, nb_id, emoji, null, flags]."""
-        flags = [True, None, None, None, None,
-                 [1700000000, 0],  # created_at
-                 None, None,
-                 [1700001000, 0]]  # updated_at
+        flags = [
+            True,
+            None,
+            None,
+            None,
+            None,
+            [1700000000, 0],  # created_at
+            None,
+            None,
+            [1700001000, 0],
+        ]  # updated_at
         raw = ["My Notebook", [], "nb-flat-id-001", "📔", None, flags]
         nb = parse_notebook(raw)
 
@@ -311,10 +315,7 @@ class TestParseNotebook(unittest.TestCase):
 
     def test_parse_notebook_nested_wXbhsf(self):
         """Nested wXbhsf format: [[header_arr], [title, sources], ...]."""
-        flags = [False, None, None, None, None,
-                 [1700000000, 0],
-                 None, None,
-                 [1700001000, 0]]
+        flags = [False, None, None, None, None, [1700000000, 0], None, None, [1700001000, 0]]
         header = ["", None, "nb-nested-id-002", "🗒️", None, flags]
         title_block = ["Nested Notebook", [["src1"]]]
         raw = [header, title_block]
@@ -349,7 +350,6 @@ class TestParseNotebook(unittest.TestCase):
 
 
 class TestParseSource(unittest.TestCase):
-
     def _make_raw_source(
         self,
         src_id: str = "src-uuid-001",
@@ -430,7 +430,6 @@ class TestParseSource(unittest.TestCase):
 
 
 class TestParseUser(unittest.TestCase):
-
     def _make_raw_user(
         self,
         email: str = "user@example.com",
@@ -493,6 +492,7 @@ _FETCH_TOKENS = "cli_web.notebooklm.core.client.fetch_tokens"
 def _make_client_with_mock_auth():
     """Return a NotebookLMClient whose auth loading is fully stubbed out."""
     from cli_web.notebooklm.core.client import NotebookLMClient
+
     client = NotebookLMClient()
     # Inject pre-loaded auth state so _ensure_auth() is a no-op
     client._cookies = {"SID": "test-sid"}
@@ -503,11 +503,9 @@ def _make_client_with_mock_auth():
 
 
 class TestClientListNotebooks(unittest.TestCase):
-
     def test_list_notebooks_parses_response(self):
         """list_notebooks() returns Notebook objects parsed from the API response."""
-        flags = [False, None, None, None, None,
-                 [1700000000, 0], None, None, [1700001000, 0]]
+        flags = [False, None, None, None, None, [1700000000, 0], None, None, [1700001000, 0]]
         nb_raw = ["Test Notebook", [], "test-nb-id-1234", "📓", None, flags]
         # wXbhsf result shape expected by list_notebooks: [[nb_raw, ...]]
         api_result = [[nb_raw]]
@@ -538,7 +536,6 @@ class TestClientListNotebooks(unittest.TestCase):
 
 
 class TestClientCreateNotebook(unittest.TestCase):
-
     def test_create_notebook_returns_notebook(self):
         """create_notebook() returns a Notebook with the correct id and title."""
         # CCqFvf response: ["", null, uuid, null, null, [flags...], ...]
@@ -577,12 +574,10 @@ class TestClientCreateNotebook(unittest.TestCase):
 
 
 class TestClientGetNotebook(unittest.TestCase):
-
     def test_client_get_notebook_fixed_params(self):
         """get_notebook() calls the API with [notebook_id] (flat rLM1Ne format)."""
         nb_id = "get-nb-target-id"
-        flags = [False, None, None, None, None,
-                 [1700000000, 0], None, None, [1700001000, 0]]
+        flags = [False, None, None, None, None, [1700000000, 0], None, None, [1700001000, 0]]
         # rLM1Ne result: [[title, sources, nb_id, emoji, null, flags]]
         api_result = [["My NB", [], nb_id, "📓", None, flags]]
         body = _make_batchexecute_response("rLM1Ne", api_result)
@@ -603,7 +598,6 @@ class TestClientGetNotebook(unittest.TestCase):
 
 
 class TestClientAddUrlSource(unittest.TestCase):
-
     def test_client_add_url_source_fixed_params(self):
         """add_url_source() calls izAoDd (ADD_SOURCE) with correct params."""
         nb_id = "nb-add-src-id"
@@ -648,13 +642,11 @@ class TestClientAddUrlSource(unittest.TestCase):
 
 
 class TestClient401Retry(unittest.TestCase):
-
     def test_client_401_triggers_token_refresh_and_retry(self):
         """On HTTP 401, _refresh_tokens is called and the request is retried once."""
         from cli_web.notebooklm.core.client import NotebookLMClient
 
-        flags = [False, None, None, None, None,
-                 [1700000000, 0], None, None, [1700001000, 0]]
+        flags = [False, None, None, None, None, [1700000000, 0], None, None, [1700001000, 0]]
         success_result = [["Retried NB", [], "retry-nb-id", "📓", None, flags]]
         success_body = _make_batchexecute_response("rLM1Ne", success_result)
 
@@ -668,8 +660,12 @@ class TestClient401Retry(unittest.TestCase):
         client._session_id = "old-session"
         client._build_label = "old-build"
 
-        with patch(_HTTPX_POST, side_effect=[first_resp, second_resp]) as mock_post, \
-             patch(_FETCH_TOKENS, return_value=("new-csrf", "new-sess", "new-build")) as mock_refresh:
+        with (
+            patch(_HTTPX_POST, side_effect=[first_resp, second_resp]) as mock_post,
+            patch(
+                _FETCH_TOKENS, return_value=("new-csrf", "new-sess", "new-build")
+            ) as mock_refresh,
+        ):
             nb = client.get_notebook("retry-nb-id")
 
         # httpx.post must have been called exactly twice (initial + retry)
@@ -707,13 +703,15 @@ class TestClient401Retry(unittest.TestCase):
 # 5.  Exception hierarchy tests
 # ===========================================================================
 
-class TestExceptionHierarchy(unittest.TestCase):
 
+class TestExceptionHierarchy(unittest.TestCase):
     def test_all_exceptions_inherit_from_base(self):
         """All typed exceptions are subclasses of NotebookLMError."""
         for exc_cls in (AuthError, RateLimitError, NetworkError, ServerError, RPCError):
-            self.assertTrue(issubclass(exc_cls, NotebookLMError),
-                            f"{exc_cls.__name__} does not inherit from NotebookLMError")
+            self.assertTrue(
+                issubclass(exc_cls, NotebookLMError),
+                f"{exc_cls.__name__} does not inherit from NotebookLMError",
+            )
 
     def test_auth_error_has_recoverable(self):
         """AuthError stores the recoverable flag."""
@@ -747,10 +745,10 @@ class TestExceptionHierarchy(unittest.TestCase):
 
 
 class TestJsonErrorOutput(unittest.TestCase):
-
     def test_json_error_format(self):
         """json_error produces valid JSON with error/code/message keys."""
         import json as json_mod
+
         from cli_web.notebooklm.utils.output import json_error
 
         result = json_mod.loads(json_error("AUTH_EXPIRED", "Session expired"))
@@ -761,6 +759,7 @@ class TestJsonErrorOutput(unittest.TestCase):
     def test_json_success_format(self):
         """json_success produces valid JSON with success/data keys."""
         import json as json_mod
+
         from cli_web.notebooklm.utils.output import json_success
 
         result = json_mod.loads(json_success({"id": "test"}))
@@ -769,10 +768,10 @@ class TestJsonErrorOutput(unittest.TestCase):
 
 
 class TestEnvVarAuth(unittest.TestCase):
-
     def test_env_var_auth_loads_cookies(self):
         """CLI_WEB_NOTEBOOKLM_AUTH_JSON env var provides cookies without file."""
         import os
+
         from cli_web.notebooklm.core.auth import load_cookies
 
         env_data = '{"cookies": {"SID": "test-sid", "HSID": "test-hsid"}}'
@@ -786,15 +785,16 @@ class TestEnvVarAuth(unittest.TestCase):
 # 6.  Helpers tests (partial ID, sanitize, persistent context, handle_errors)
 # ===========================================================================
 
+
 class _FakeItem:
     """Tiny object with id and title for resolve_partial_id tests."""
+
     def __init__(self, id: str, title: str = ""):
         self.id = id
         self.title = title
 
 
 class TestResolvePartialId(unittest.TestCase):
-
     def _items(self):
         return [
             _FakeItem("abc123-long-uuid-0001", "First"),
@@ -805,6 +805,7 @@ class TestResolvePartialId(unittest.TestCase):
     def test_exact_full_id_match(self):
         """Full ID (>=20 chars) matches exactly without prefix search."""
         from cli_web.notebooklm.utils.helpers import resolve_partial_id
+
         items = self._items()
         result = resolve_partial_id("abc123-long-uuid-0001", items)
         self.assertEqual(result.title, "First")
@@ -812,6 +813,7 @@ class TestResolvePartialId(unittest.TestCase):
     def test_unique_prefix_resolves(self):
         """Short unique prefix resolves to single match."""
         from cli_web.notebooklm.utils.helpers import resolve_partial_id
+
         items = self._items()
         result = resolve_partial_id("xyz", items)
         self.assertEqual(result.title, "Third")
@@ -820,6 +822,7 @@ class TestResolvePartialId(unittest.TestCase):
         """Ambiguous prefix raises BadParameter."""
         import click
         from cli_web.notebooklm.utils.helpers import resolve_partial_id
+
         items = self._items()
         with self.assertRaises(click.BadParameter) as ctx:
             resolve_partial_id("abc", items)
@@ -829,44 +832,50 @@ class TestResolvePartialId(unittest.TestCase):
         """No matching prefix raises BadParameter."""
         import click
         from cli_web.notebooklm.utils.helpers import resolve_partial_id
+
         items = self._items()
         with self.assertRaises(click.BadParameter):
             resolve_partial_id("zzz", items)
 
 
 class TestSanitizeFilename(unittest.TestCase):
-
     def test_removes_invalid_chars(self):
         from cli_web.notebooklm.utils.helpers import sanitize_filename
-        self.assertEqual(sanitize_filename('test/file:name*'), "test_file_name_")
+
+        self.assertEqual(sanitize_filename("test/file:name*"), "test_file_name_")
 
     def test_empty_returns_untitled(self):
         from cli_web.notebooklm.utils.helpers import sanitize_filename
+
         self.assertEqual(sanitize_filename(""), "untitled")
         self.assertEqual(sanitize_filename("   "), "untitled")
 
     def test_truncates_long_names(self):
         from cli_web.notebooklm.utils.helpers import sanitize_filename
+
         long = "a" * 300
         result = sanitize_filename(long)
         self.assertEqual(len(result), 240)
 
 
 class TestPersistentContext(unittest.TestCase):
-
     def test_set_and_get_context(self):
         """set_context_value persists and get_context_value retrieves."""
-        from cli_web.notebooklm.utils.helpers import (
-            get_context_value, set_context_value, clear_context, CONTEXT_FILE,
-        )
         import tempfile
-        import os
+
+        from cli_web.notebooklm.utils.helpers import (
+            clear_context,
+            get_context_value,
+            set_context_value,
+        )
 
         # Use a temp dir for the test
         with tempfile.TemporaryDirectory() as tmp:
             tmp_file = Path(tmp) / "context.json"
-            with patch("cli_web.notebooklm.utils.helpers.CONTEXT_FILE", tmp_file), \
-                 patch("cli_web.notebooklm.utils.helpers.AUTH_DIR", Path(tmp)):
+            with (
+                patch("cli_web.notebooklm.utils.helpers.CONTEXT_FILE", tmp_file),
+                patch("cli_web.notebooklm.utils.helpers.AUTH_DIR", Path(tmp)),
+            ):
                 set_context_value("notebook_id", "test-nb-123")
                 set_context_value("notebook_title", "My Test Notebook")
 
@@ -879,7 +888,6 @@ class TestPersistentContext(unittest.TestCase):
 
 
 class TestHandleErrors(unittest.TestCase):
-
     def test_auth_error_exits_1(self):
         """handle_errors catches AuthError and exits with code 1."""
         from cli_web.notebooklm.utils.helpers import handle_errors
@@ -900,12 +908,12 @@ class TestHandleErrors(unittest.TestCase):
 
     def test_json_mode_outputs_json(self):
         """handle_errors in json_mode outputs structured JSON error."""
-        from cli_web.notebooklm.utils.helpers import handle_errors
         import io
+
+        from cli_web.notebooklm.utils.helpers import handle_errors
 
         captured = io.StringIO()
         with self.assertRaises(SystemExit):
-            import click
             with patch("click.echo", side_effect=lambda msg, **kw: captured.write(msg)):
                 with handle_errors(json_mode=True):
                     raise AuthError("expired")

@@ -2,7 +2,9 @@
 name: cross-cli-consistency-checker
 version: 0.1.0
 description: >
-  Audit all cli-web-* CLIs for convention drift against current HARNESS.md.
+  Audit all cli-web-* CLIs for convention drift against
+  skills/shared/CONVENTIONS.md, including repl_skin drift via
+  `cli-web-devkit drift` and .manifest.json presence.
   Reports PASS/FAIL per check per CLI in a matrix format. Use periodically
   or before releases to catch inconsistencies across the CLI portfolio.
 tools: [Read, Grep, Glob, Bash]
@@ -10,7 +12,8 @@ tools: [Read, Grep, Glob, Bash]
 
 # Cross-CLI Consistency Checker
 
-Audit all generated cli-web-* CLIs against current HARNESS.md conventions.
+Audit all generated cli-web-* CLIs against the conventions defined in
+`skills/shared/CONVENTIONS.md`.
 This is a read-only audit — it reports findings but does not auto-fix.
 
 ---
@@ -23,12 +26,14 @@ For each entry, note the `directory`, `namespace`, and `auth` fields.
 **Fallback:** If `registry.json` doesn't exist, glob for
 `*/agent-harness/cli_web/*/__init__.py` to find CLI packages.
 
-## Step 2: Locate Plugin Reference Files
+## Step 2: Locate Reference Files
 
-Find the plugin's canonical `repl_skin.py` for version comparison using Glob:
-```
-Glob pattern: **/cli-anything-web-plugin/scripts/repl_skin.py
-```
+The canonical `repl_skin.py` lives in the shared runtime package:
+`cli-web-core/cli_web_core/repl_skin.py` (the copy at
+`cli-anything-web-plugin/scripts/repl_skin.py` is a vendored mirror synced by
+`cli-web-devkit resync`). Drift detection against it is automated — see
+Check 11. Also read `skills/shared/CONVENTIONS.md` for the rule definitions
+behind the checks below.
 
 ## Step 3: Run Check Matrix
 
@@ -120,13 +125,20 @@ Grep for "chmod" or "0o600" in auth.py
 N/A for no-auth CLIs.
 ```
 
-### Check 11: repl_skin.py Version (Minor)
+### Check 11: repl_skin.py Drift (Minor)
 
-Compare `utils/repl_skin.py` against the plugin's canonical version:
+Use the devkit drift command — do NOT hand-diff or hash-compare files:
 ```bash
-diff {cli_dir}/utils/repl_skin.py {plugin_dir}/scripts/repl_skin.py
+cli-web-devkit drift
 ```
-Any differences = FAIL (stale copy).
+Read the report: any CLI whose `utils/repl_skin.py` is flagged as diverged
+from the canonical `cli-web-core/cli_web_core/repl_skin.py` = FAIL (stale
+copy — remediation: `cli-web-devkit resync <app>`).
+
+Fallback only if `cli-web-devkit` is not installed:
+```bash
+diff {cli_dir}/utils/repl_skin.py cli-web-core/cli_web_core/repl_skin.py
+```
 
 ### Check 12: Google Cookie Domain Priority (Important, google-sso CLIs only)
 
@@ -147,6 +159,18 @@ Grep for 'find_namespace_packages' in setup.py
 Grep for 'include=\["cli_web\.\*"\]' in setup.py
 ```
 
+### Check 14: Manifest Presence (Important)
+
+Every harness must carry generation provenance for fleet drift tooling:
+```
+Check: {dir}/.manifest.json exists
+Parse it as JSON; it must include the template/generator version and the
+profile fields (protocol, http_client, auth).
+Missing or unparseable = FAIL — the CLI is invisible to cli-web-devkit drift.
+Remediation: re-scaffold metadata via scaffold-cli.py (v2) or
+cli-web-devkit resync <app>.
+```
+
 ## Step 4: Output Report
 
 Format as a matrix table:
@@ -154,15 +178,15 @@ Format as a matrix table:
 ```
 Cross-CLI Consistency Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                  ExcH  UTF8  REPL  Disp  NS    HErr  NoClk JSON  Auth  Chmd  Cook  Skin  Setup
-futbin            PASS  FAIL  PASS  PASS  PASS  PASS  PASS  PASS  N/A   N/A   N/A   FAIL  PASS
-reddit            PASS  PASS  PASS  PASS  PASS  FAIL  FAIL  PASS  PASS  PASS  N/A   PASS  PASS
+                  ExcH  UTF8  REPL  Disp  NS    HErr  NoClk JSON  Auth  Chmd  Cook  Skin  Setup Mnfst
+futbin            PASS  FAIL  PASS  PASS  PASS  PASS  PASS  PASS  N/A   N/A   N/A   FAIL  PASS  PASS
+reddit            PASS  PASS  PASS  PASS  PASS  FAIL  FAIL  PASS  PASS  PASS  N/A   PASS  PASS  FAIL
 ...
 
 Legend: ExcH=Exception Hierarchy, UTF8=UTF-8 Fix, REPL=shlex.split, Disp=REPL Dispatch,
         NS=Namespace Package, HErr=handle_errors, NoClk=No click.ClickException,
         JSON=JSON Error Format, Auth=Auth Env Var, Chmd=Auth chmod, Cook=Cookie Domain Priority,
-        Skin=repl_skin version, Setup=setup.py namespaces
+        Skin=repl_skin drift (devkit), Setup=setup.py namespaces, Mnfst=.manifest.json presence
 
 Summary: X Critical, Y Important, Z Minor findings across N CLIs
 

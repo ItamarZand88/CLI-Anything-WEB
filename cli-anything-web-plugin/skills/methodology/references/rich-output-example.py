@@ -8,12 +8,13 @@ Patterns for CLI output formatting:
 3. Structured JSON error responses
 4. Dual-mode output (human vs --json)
 """
+
 import json
 import sys
 from typing import Any
 
-
 # --- JSON Output Helpers (utils/output.py) ---
+
 
 def json_success(data: Any, **extra) -> str:
     """Format a success response for --json mode."""
@@ -40,6 +41,7 @@ def json_error(code: str, message: str, **extra) -> str:
 
 # --- Error Handler (for commands) ---
 
+
 def handle_command_error(exc, json_mode: bool = False) -> None:
     """Convert exception to CLI output. Call in command except blocks.
 
@@ -53,16 +55,18 @@ def handle_command_error(exc, json_mode: bool = False) -> None:
     # Import from generated exceptions
     # from .exceptions import error_code_for
 
-    code = error_code_for(exc) if hasattr(exc, '__class__') else "UNKNOWN_ERROR"
+    code = error_code_for(exc) if hasattr(exc, "__class__") else "UNKNOWN_ERROR"
 
     if json_mode:
         print(json_error(code, str(exc)), file=sys.stdout)
     else:
         import click
+
         click.echo(f"Error: {exc}", err=True)
 
 
 # --- Rich Progress (for long operations) ---
+
 
 def with_progress(message: str, fn, json_mode: bool = False):
     """Run function with Rich spinner, suppress in --json mode.
@@ -78,6 +82,7 @@ def with_progress(message: str, fn, json_mode: bool = False):
         return fn()
 
     from rich.console import Console
+
     console = Console()
     with console.status(message):
         return fn()
@@ -85,8 +90,10 @@ def with_progress(message: str, fn, json_mode: bool = False):
 
 # --- Rich Tables (for list commands) ---
 
-def print_table(items: list[dict], columns: list[tuple[str, str]],
-                title: str = "", json_mode: bool = False) -> None:
+
+def print_table(
+    items: list[dict], columns: list[tuple[str, str]], title: str = "", json_mode: bool = False
+) -> None:
     """Print items as Rich table or JSON.
 
     Args:

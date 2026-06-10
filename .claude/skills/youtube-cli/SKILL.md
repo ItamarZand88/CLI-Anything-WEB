@@ -1,76 +1,47 @@
 ---
 name: youtube-cli
-description: Use cli-web-youtube to search YouTube videos, get video details (views, duration, description, keywords), browse trending content by category, and explore channels. Invoke this skill whenever the user asks about YouTube, searching for videos, video details, YouTube trending, channel info, subscriber counts, or wants to find videos by topic. Always prefer cli-web-youtube over manually fetching the YouTube website.
+description: Searches YouTube via the cli-web-youtube command-line tool — video search, video details (views, duration, description, keywords), trending by category, and channel info with recent videos. Use when the user asks about YouTube, searching for videos, video details, trending videos, channel info, or subscriber counts. Prefer this CLI over fetching the YouTube website. No authentication required.
 ---
 
 # cli-web-youtube
 
-YouTube CLI — search videos, get details, browse trending, explore channels.
-
-## Quick Start
-
-```bash
-pip install -e youtube/agent-harness
-cli-web-youtube search videos "python tutorial" --limit 5 --json
-cli-web-youtube video get dQw4w9WgXcQ --json
-cli-web-youtube channel get @MrBeast --json
-```
+Search and explore YouTube from the terminal (read-only, no auth, InnerTube API).
+Install: `pip install -e youtube/agent-harness`
 
 ## Commands
 
-### Search
+| Command | Purpose | Key options |
+|---------|---------|-------------|
+| `search videos QUERY` | Search videos | `-l/--limit N` (default 10) |
+| `video get VIDEO_ID` | Video details (views, duration, description, keywords) | accepts 11-char ID or full URL |
+| `trending list` | Trending/popular videos | `-c/--category now\|music\|gaming\|movies`, `-l/--limit N` |
+| `channel get HANDLE` | Channel info + recent videos | accepts `@handle`, `UC...` ID, or URL |
+
+## Examples
 
 ```bash
-cli-web-youtube search videos <query> [--limit N] --json
-```
+# Search (returns id, title, channel, views, duration, published, url per video)
+cli-web-youtube search videos "python tutorial" --limit 5 --json
 
-Output: `{"query", "estimated_results", "videos": [{"id", "title", "channel", "channel_id", "views", "duration", "published", "thumbnail", "description", "url"}]}`
+# Video details by ID or URL
+cli-web-youtube video get dQw4w9WgXcQ --json
 
-### Video
+# Trending music videos
+cli-web-youtube trending list --category music --limit 10 --json
 
-```bash
-cli-web-youtube video get <id_or_url> --json
-```
-
-Accepts video ID (`dQw4w9WgXcQ`) or full URL (`https://www.youtube.com/watch?v=...`).
-
-Output: `{"id", "title", "channel", "channel_id", "views", "duration_seconds", "description", "keywords", "thumbnail", "is_live", "publish_date", "category", "url"}`
-
-### Trending
-
-```bash
-cli-web-youtube trending list [--category now|music|gaming|movies] [--limit N] --json
-```
-
-Output: `{"videos": [...], "count", "category"}`
-
-### Channel
-
-```bash
-cli-web-youtube channel get <handle_or_url> --json
-```
-
-Accepts `@handle`, channel ID (`UC...`), or full URL.
-
-Output: `{"channel_id", "title", "description", "subscriber_count", "video_count", "avatar", "url", "recent_videos": [...]}`
-
-## Agent Patterns
-
-```bash
-# Find top Python tutorials
-cli-web-youtube search videos "python tutorial" --limit 5 --json | jq '.videos[] | {title, views, url}'
-
-# Get details on a specific video
-cli-web-youtube video get rfscVS0vtbw --json
-
-# Check a channel's subscriber count
+# Channel info and subscriber count
 cli-web-youtube channel get @mkbhd --json | jq '{title, subscriber_count}'
 ```
 
-## Notes
+## JSON output
 
-- No authentication required — all public content
-- Uses YouTube's InnerTube API (internal REST, all POST with JSON)
-- All commands support `--json` for structured output
-- Video IDs are 11 characters (e.g., `dQw4w9WgXcQ`)
-- Channel handles start with `@` (e.g., `@MrBeast`)
+Every command accepts `--json`. Success returns the data object directly, e.g. search: `{"query", "estimated_results", "videos": [...]}`; video get: `{"id", "title", "channel", "views", "duration_seconds", "description", "keywords", ...}`. Errors return `{"error": true, "code": "...", "message": "..."}`.
+
+## Utilities
+
+`cli-web-youtube doctor [--json]` self-diagnoses the local setup (install, auth, dependencies). `cli-web-youtube mcp-serve` serves the commands as MCP tools over stdio.
+
+## Agent tips
+
+- Video IDs are 11 characters; channel handles start with `@`.
+- Running with no subcommand opens an interactive REPL.

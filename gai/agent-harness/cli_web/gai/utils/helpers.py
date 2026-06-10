@@ -7,15 +7,14 @@ from contextlib import contextmanager
 import click
 
 from ..core.exceptions import (
-    GAIError,
     BrowserError,
     CaptchaError,
+    GAIError,
     NetworkError,
     ParseError,
     RateLimitError,
     TimeoutError,
 )
-
 
 _ERROR_CODES = {
     BrowserError: "BROWSER_ERROR",

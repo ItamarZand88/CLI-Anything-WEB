@@ -52,6 +52,7 @@ cli.add_command(auth_group)
 
 # ── REPL ────────────────────────────────────────────────────────────
 
+
 def _run_repl(ctx: click.Context | None = None):
     """Interactive REPL mode."""
     from .utils.repl_skin import ReplSkin
@@ -124,6 +125,16 @@ def _print_repl_help(skin):
     print("  help                       Show this help")
     print("  quit                       Exit REPL")
     print()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.booking import __version__ as _pkg_version  # noqa: E402
+from cli_web.booking.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.booking.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="booking", version=_pkg_version)
+register_doctor_command(cli, app_name="booking", pkg="booking")
 
 
 if __name__ == "__main__":

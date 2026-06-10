@@ -3,6 +3,7 @@
 The scripts aren't a proper package (they use hyphenated filenames and are
 invoked as CLI tools), so tests load them by absolute path via importlib.
 """
+
 from __future__ import annotations
 
 import importlib.util

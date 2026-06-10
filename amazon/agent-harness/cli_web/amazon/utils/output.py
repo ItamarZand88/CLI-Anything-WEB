@@ -1,13 +1,15 @@
 """Output formatting for cli-web-amazon."""
+
 import json
 from typing import Any
 
 import click
 
 try:
+    from rich import box
     from rich.console import Console
     from rich.table import Table
-    from rich import box
+
     _RICH_AVAILABLE = True
 except ImportError:
     _RICH_AVAILABLE = False
@@ -126,5 +128,3 @@ def print_suggestions(suggestions) -> None:
 
     for s in suggestions:
         click.echo(f"  {s.value}")
-
-

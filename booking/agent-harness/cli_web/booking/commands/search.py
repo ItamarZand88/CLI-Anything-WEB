@@ -33,12 +33,15 @@ def search_group():
 @click.option("--adults", type=int, default=2, help="Number of adults.")
 @click.option("--rooms", type=int, default=1, help="Number of rooms.")
 @click.option("--children", type=int, default=0, help="Number of children.")
-@click.option("--sort", type=click.Choice(["popularity", "price", "review_score", "distance"]),
-              default=None, help="Sort order.")
+@click.option(
+    "--sort",
+    type=click.Choice(["popularity", "price", "review_score", "distance"]),
+    default=None,
+    help="Sort order.",
+)
 @click.option("--page", type=int, default=1, help="Results page number.")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
-def search_find(destination, checkin, checkout, adults, rooms, children,
-                sort, page, use_json):
+def search_find(destination, checkin, checkout, adults, rooms, children, sort, page, use_json):
     """Search properties by destination and dates."""
     with handle_errors(json_mode=use_json):
         checkin = checkin or _default_checkin()
@@ -58,14 +61,16 @@ def search_find(destination, checkin, checkout, adults, rooms, children,
         )
 
         if use_json:
-            print_json({
-                "success": True,
-                "destination": destination,
-                "checkin": checkin,
-                "checkout": checkout,
-                "count": len(results),
-                "properties": [p.to_dict() for p in results],
-            })
+            print_json(
+                {
+                    "success": True,
+                    "destination": destination,
+                    "checkin": checkin,
+                    "checkout": checkout,
+                    "count": len(results),
+                    "properties": [p.to_dict() for p in results],
+                }
+            )
         else:
             if not results:
                 click.echo("No properties found.")
@@ -75,6 +80,7 @@ def search_find(destination, checkin, checkout, adults, rooms, children,
             click.echo(f"  {checkin} → {checkout} | {adults} adults, {rooms} room(s)\n")
 
             from ..utils.repl_skin import ReplSkin
+
             skin = ReplSkin("booking")
             headers = ["Name", "Score", "Rating", "Reviews", "Price", "Location"]
             rows = [format_property_row(p) for p in results]
@@ -93,17 +99,20 @@ def autocomplete(query, limit, use_json):
         results = client.autocomplete(query, limit=limit)
 
         if use_json:
-            print_json({
-                "success": True,
-                "query": query,
-                "results": [d.to_dict() for d in results],
-            })
+            print_json(
+                {
+                    "success": True,
+                    "query": query,
+                    "results": [d.to_dict() for d in results],
+                }
+            )
         else:
             if not results:
                 click.echo("No destinations found.")
                 return
 
             from ..utils.repl_skin import ReplSkin
+
             skin = ReplSkin("booking")
             headers = ["Name", "Type", "ID", "Full Label"]
             rows = [format_destination_row(d) for d in results]

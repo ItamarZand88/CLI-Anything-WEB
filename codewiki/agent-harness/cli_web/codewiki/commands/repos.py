@@ -1,4 +1,5 @@
 """Repository commands: featured, search."""
+
 from __future__ import annotations
 
 import click
@@ -30,9 +31,7 @@ def _print_repo_table(repos) -> None:
     header_stars = "Stars"
     header_desc = "Description"
 
-    click.echo(
-        f"{header_slug:<{_SLUG_W}}  {header_stars:<{_STARS_W}} {header_desc}"
-    )
+    click.echo(f"{header_slug:<{_SLUG_W}}  {header_stars:<{_STARS_W}} {header_desc}")
     click.echo(_SEP * (_SLUG_W + 2 + _STARS_W + 1 + _DESC_W))
 
     for repo in repos:

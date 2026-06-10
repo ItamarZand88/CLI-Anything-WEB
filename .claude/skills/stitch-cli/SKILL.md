@@ -1,198 +1,64 @@
 ---
 name: stitch-cli
-description: Use cli-web-stitch to interact with Google Stitch AI design tool — create UI designs from text prompts, list and manage design projects (rename, duplicate, download), view and download generated screens, choose AI models (flash/pro/redesign), browse design themes, and iterate on designs with AI. Invoke this skill whenever the user asks about Google Stitch, AI UI design, vibe design, generating app mockups, creating UI from prompts, Stitch design projects, screen layouts, design themes, model selection, or wants to generate mobile or web app designs programmatically. Also trigger for Stitch project management (create, list, rename, duplicate, delete, download). Always prefer cli-web-stitch over manually browsing stitch.withgoogle.com.
+description: Drives Google Stitch (stitch.withgoogle.com), the AI UI design tool, via the cli-web-stitch command-line tool — create design projects from text prompts, iterate on designs with AI (flash/pro/redesign models), manage projects (rename, duplicate, delete, download), and view or download generated screen HTML. Use when the user asks about Google Stitch, AI UI design, generating app mockups or screens from prompts, or managing Stitch projects. Prefer this CLI over browsing stitch.withgoogle.com. Requires Google login.
 ---
 
 # cli-web-stitch
 
-CLI for Google Stitch (stitch.withgoogle.com) — an AI-native UI design canvas by Google Labs. Installed at: `cli-web-stitch`.
-
-## Quick Start
-
-```bash
-# List all design projects
-cli-web-stitch projects list --json
-
-# List screens in a project
-cli-web-stitch screens list --project <project-id> --json
-
-# Modify an existing design
-cli-web-stitch design generate "Add a dark header" --project <id> --wait --json
-```
-
-Always use `--json` when parsing output programmatically.
-
----
+Generate and manage Google Stitch AI UI designs. Requires Google SSO auth (`auth login`).
+Install: `pip install -e stitch/agent-harness`
 
 ## Commands
 
-### `projects list`
-List all design projects.
+| Command | Purpose | Key options |
+|---------|---------|-------------|
+| `projects create PROMPT` | New project + first design generation | `--platform app\|web`, `--wait/--no-wait` |
+| `projects list\|get\|rename\|duplicate\|delete` | Manage projects | `rename` takes NEW_NAME; `delete` takes `-y/--yes` |
+| `projects download PROJECT_ID` | Download all screen HTML files | `-o/--output DIR` |
+| `design generate PROMPT` | Generate/modify design with an AI prompt | `--project ID`, `--model flash\|pro\|redesign`, `--device mobile\|web\|tablet\|agnostic`, `--wait/--no-wait`, `--retry N` |
+| `design theme` | Design system (colors, typography) for a project | `--project ID` |
+| `design history` | Generation sessions (prompt history) | `--project ID` |
+| `screens list\|get\|download SCREEN_ID` | View/save generated screens | `--project ID`, `-o/--output` |
+| `use PROJECT_ID` / `status` | Set/show active project context | once set, `--project` is optional |
+
+## Examples
 
 ```bash
-cli-web-stitch projects list --json
+# Create a mobile app design and wait for generation
+cli-web-stitch projects create "A fitness tracking app" --platform app --wait --json
+
+# Set context, then iterate on the design
+cli-web-stitch use <project-id>
+cli-web-stitch design generate "Add a dark header with a search bar" --model pro --wait --json
+
+# List screens and download all HTML exports
+cli-web-stitch screens list --json
+cli-web-stitch projects download <project-id> -o ./stitch-export --json
+
+# Inspect the project's design system
+cli-web-stitch design theme --json
 ```
 
-**Output fields:** `id`, `resource_name`, `title`, `created_at`, `modified_at`, `status`
+## JSON output
 
-### `projects get <project-id>`
-Get project details.
+Every command accepts `--json`. Success responses are `{"success": true, "data": ...}`; errors are `{"error": true, "code": "...", "message": "..."}`.
 
-```bash
-cli-web-stitch projects get <project-id> --json
-```
-
-### `projects create <prompt>`
-Create a new project from a text prompt.
+## Auth
 
 ```bash
-cli-web-stitch projects create "A fitness tracking app" --device mobile --wait --json
-```
-
-**Key options:** `--device mobile|web|tablet|agnostic`, `--wait` (poll until complete), `--no-wait`
-
-### `projects rename <project-id> <new-name>`
-Rename a project.
-
-```bash
-cli-web-stitch projects rename <project-id> "My New Name" --json
-```
-
-### `projects duplicate <project-id>`
-Duplicate a project.
-
-```bash
-cli-web-stitch projects duplicate <project-id> --json
-```
-
-### `projects download <project-id>`
-Download all screen HTML files from a project.
-
-```bash
-cli-web-stitch projects download <project-id> --output ./export --json
-```
-
-**Key options:** `--output DIR` (save directory)
-
-### `projects delete <project-id>`
-Delete a project.
-
-```bash
-cli-web-stitch projects delete <project-id> -y --json
-```
-
-**Key options:** `-y` (skip confirmation)
-
-### `screens list`
-List all screens in the active project.
-
-```bash
-cli-web-stitch screens list --project <project-id> --json
-```
-
-**Output fields:** `id`, `name`, `description`, `width`, `height`, `html_url`, `agent_name`
-
-### `screens get <screen-id>`
-Get screen details and optionally download HTML.
-
-```bash
-cli-web-stitch screens get <screen-id> --project <id> --output screen.html --json
-```
-
-### `screens download <screen-id>`
-Download a screen's HTML file.
-
-```bash
-cli-web-stitch screens download <screen-id> --project <id> --output ./export --json
-```
-
-**Key options:** `--project ID`, `--output DIR`
-
-### `design generate <prompt>`
-Send an AI prompt to modify/generate design in a project.
-
-```bash
-cli-web-stitch design generate "Add dark mode" --project <id> --wait --json
-```
-
-**Key options:** `--device mobile|web|tablet|agnostic`, `--model flash|pro|redesign`, `--wait` (poll until complete), `--no-wait`, `--retry N`
-
-### `design theme`
-List available design themes for a project.
-
-```bash
-cli-web-stitch design theme --project <project-id> --json
-```
-
-### `design history`
-List generation sessions (prompt history) for a project.
-
-```bash
-cli-web-stitch design history --project <project-id> --json
-```
-
-**Output fields:** `id`, `resource_name`, `prompt`, `status`
-
-### `use <project-id>`
-Set active project context (avoids passing `--project` every time).
-
-```bash
-cli-web-stitch use <project-id> --json
-cli-web-stitch screens list --json  # uses active project
-```
-
-### `status`
-Show current active project context.
-
-```bash
-cli-web-stitch status --json
-```
-
-### `auth login`
-Login via Google SSO (opens browser).
-
-```bash
-cli-web-stitch auth login --headed --json
-```
-
-**Key options:** `--headed` (visible browser, default), `--headless`
-
-### `auth status`
-Check current authentication status.
-
-```bash
+cli-web-stitch auth login            # browser-based Google SSO (--headed default, --headless available)
 cli-web-stitch auth status --json
+cli-web-stitch auth import FILE      # import cookies from a JSON file
 ```
 
-### `auth import <file>`
-Import auth cookies from a file.
+Run `doctor` to diagnose auth setup. For CI, set `CLI_WEB_STITCH_AUTH_JSON` with the cookies JSON.
 
-```bash
-cli-web-stitch auth import cookies.json --json
-```
+## Utilities
 
----
+`cli-web-stitch doctor [--json]` self-diagnoses the local setup (install, auth, dependencies). `cli-web-stitch mcp-serve` serves the commands as MCP tools over stdio.
 
-## Agent Patterns
+## Agent tips
 
-```bash
-# List all projects and get the first one's screens
-PROJECT_ID=$(cli-web-stitch projects list --json | python -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])")
-cli-web-stitch screens list --project $PROJECT_ID --json
-
-# Download all HTML exports from a project
-cli-web-stitch projects download $PROJECT_ID --output ./stitch-export
-
-# Modify a design and wait for completion
-cli-web-stitch design generate "Make the header blue" --project $PROJECT_ID --wait --json
-```
-
----
-
-## Notes
-
-- Auth: Required (Google SSO). Run `cli-web-stitch auth login` first.
-- Protocol: Google batchexecute RPC (service: Nemo)
-- Projects can be created from the CLI via `projects create <prompt>`.
-- The `design generate` command works for both new and existing projects.
-- Rate limiting: Exponential backoff on 429 responses.
+- Use `--wait` on `projects create` and `design generate` — generation is async and the CLI polls with backoff (`--retry N` for rate limits).
+- `projects create` controls platform (`--platform app|web`); `design generate` controls model and device type.
+- Grab IDs from `projects list` / `screens list` JSON (`.data[].id`), then `use <project-id>` to avoid repeating `--project`.

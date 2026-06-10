@@ -1,8 +1,10 @@
 """SBC commands: list, get."""
+
 import click
+
 from ..core.client import FutbinClient
-from ..utils.output import print_json, print_table, print_sbc_detail
-from ..utils.helpers import handle_errors, require_year
+from ..utils.helpers import handle_errors, require_year, resolve_json_mode
+from ..utils.output import print_json, print_sbc_detail, print_table
 
 
 @click.group()
@@ -17,6 +19,7 @@ def sbc():
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def list_sbcs(category, year, use_json):
     """List available SBCs."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
@@ -40,6 +43,7 @@ def list_sbcs(category, year, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def get_sbc(sbc_id, year, use_json):
     """Get structured SBC details (requirements, rewards)."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:

@@ -1,4 +1,5 @@
 """Shared helpers for cli-web-linkedin."""
+
 from __future__ import annotations
 
 import io
@@ -18,15 +19,11 @@ def ensure_utf8() -> None:
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         else:
-            sys.stdout = io.TextIOWrapper(
-                sys.stdout.buffer, encoding="utf-8", errors="replace"
-            )
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
         if hasattr(sys.stderr, "reconfigure"):
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
         else:
-            sys.stderr = io.TextIOWrapper(
-                sys.stderr.buffer, encoding="utf-8", errors="replace"
-            )
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 
 # --- Structured error handler ---
@@ -40,8 +37,8 @@ def handle_errors(json_mode: bool = False):
     """
     try:
         yield
-    except KeyboardInterrupt:
-        raise SystemExit(130)
+    except KeyboardInterrupt as exc:
+        raise SystemExit(130) from exc
     except (click.exceptions.Exit, click.UsageError):
         raise
     except LinkedinError as exc:
@@ -49,13 +46,13 @@ def handle_errors(json_mode: bool = False):
             print_json(exc.to_dict())
         else:
             click.secho(f"Error: {exc}", fg="red", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from exc
     except Exception as exc:
         if json_mode:
             print_json({"error": True, "code": "INTERNAL_ERROR", "message": str(exc)})
         else:
             click.secho(f"Error: {exc}", fg="red", err=True)
-        raise SystemExit(2)
+        raise SystemExit(2) from exc
 
 
 def resolve_json_mode(json_mode: bool, ctx: click.Context | None = None) -> bool:

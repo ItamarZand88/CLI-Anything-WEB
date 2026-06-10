@@ -9,12 +9,10 @@ import subprocess
 import sys
 
 import pytest
-
-from cli_web.hackernews.core.client import HackerNewsClient
 from cli_web.hackernews.core import auth
-from cli_web.hackernews.core.exceptions import AuthError, NotFoundError
+from cli_web.hackernews.core.client import HackerNewsClient
+from cli_web.hackernews.core.exceptions import NotFoundError
 from cli_web.hackernews.core.models import Comment, SearchResult, Story, User
-
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
 

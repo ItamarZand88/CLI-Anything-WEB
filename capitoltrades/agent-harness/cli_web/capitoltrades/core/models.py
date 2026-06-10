@@ -3,14 +3,13 @@
 capitoltrades.com renders all data server-side as HTML. These functions
 extract typed dicts from BeautifulSoup documents.
 """
+
 from __future__ import annotations
 
 import re
 from typing import Any
 
 from bs4 import BeautifulSoup, Tag
-
-from .exceptions import NotFoundError
 
 _ID_TRADE = re.compile(r"/trades/(\d+)")
 _ID_POLITICIAN = re.compile(r"/politicians/([A-Z]\d+)")
@@ -57,6 +56,7 @@ def _parse_int_loose(text: str) -> int | None:
 
 
 # ─── Trades ─────────────────────────────────────────────────────────────────
+
 
 def parse_trades_list(soup: BeautifulSoup) -> list[dict]:
     """Parse the trades list table on /trades.
@@ -123,7 +123,9 @@ def parse_trades_list(soup: BeautifulSoup) -> list[dict]:
         politician_id = _extract_href_id(pol_link, _ID_POLITICIAN)
 
         pol_name_el = pol_cell.find("h2") or pol_cell.find("h3") if pol_cell else None
-        politician_name = _txt(pol_name_el) if pol_name_el else (_txt(pol_link) if pol_link else None)
+        politician_name = (
+            _txt(pol_name_el) if pol_name_el else (_txt(pol_link) if pol_link else None)
+        )
 
         party_el = pol_cell.find("span", class_=re.compile(r"party--")) if pol_cell else None
         chamber_el = pol_cell.find("span", class_=re.compile(r"chamber--")) if pol_cell else None
@@ -133,7 +135,9 @@ def parse_trades_list(soup: BeautifulSoup) -> list[dict]:
         issuer_link = issuer_cell.find("a", href=_ID_ISSUER) if issuer_cell else None
         issuer_id = _extract_href_id(issuer_link, _ID_ISSUER)
         issuer_name_el = issuer_cell.find("h3") if issuer_cell else None
-        issuer_name = _txt(issuer_name_el) if issuer_name_el else (_txt(issuer_link) if issuer_link else None)
+        issuer_name = (
+            _txt(issuer_name_el) if issuer_name_el else (_txt(issuer_link) if issuer_link else None)
+        )
         ticker_label = None
         if issuer_cell:
             # Main list uses <span class="q-field issuer-ticker">, detail cards use q-label
@@ -149,24 +153,26 @@ def parse_trades_list(soup: BeautifulSoup) -> list[dict]:
         size = (_txt(cell_at(cells, idx_size)) or "").replace("\xa0", " ").strip()
         price = _txt(cell_at(cells, idx_price))
 
-        out.append({
-            "trade_id": trade_id,
-            "politician_id": politician_id,
-            "politician_name": politician_name,
-            "politician_party": _txt(party_el) or None,
-            "politician_chamber": _txt(chamber_el) or None,
-            "politician_state": _txt(state_el) or None,
-            "issuer_id": issuer_id,
-            "issuer_name": issuer_name,
-            "ticker": ticker_label,
-            "published": published or None,
-            "traded": traded or None,
-            "filed_after_days": filed_after or None,
-            "owner": owner or None,
-            "tx_type": tx_type or None,
-            "size": size or None,
-            "price": price or None,
-        })
+        out.append(
+            {
+                "trade_id": trade_id,
+                "politician_id": politician_id,
+                "politician_name": politician_name,
+                "politician_party": _txt(party_el) or None,
+                "politician_chamber": _txt(chamber_el) or None,
+                "politician_state": _txt(state_el) or None,
+                "issuer_id": issuer_id,
+                "issuer_name": issuer_name,
+                "ticker": ticker_label,
+                "published": published or None,
+                "traded": traded or None,
+                "filed_after_days": filed_after or None,
+                "owner": owner or None,
+                "tx_type": tx_type or None,
+                "size": size or None,
+                "price": price or None,
+            }
+        )
     return out
 
 
@@ -267,6 +273,7 @@ def parse_trade_detail(soup: BeautifulSoup, trade_id: str) -> dict:
 
 # ─── Politicians ────────────────────────────────────────────────────────────
 
+
 def parse_politicians_list(soup: BeautifulSoup) -> list[dict]:
     """Parse /politicians list of cards."""
     links = soup.select('a[href^="/politicians/"]')
@@ -293,7 +300,12 @@ def parse_politicians_list(soup: BeautifulSoup) -> list[dict]:
         try:
             name_parts = []
             i = 0
-            while i < len(tokens) and tokens[i] not in ("Democrat", "Republican", "Independent", "Other"):
+            while i < len(tokens) and tokens[i] not in (
+                "Democrat",
+                "Republican",
+                "Independent",
+                "Other",
+            ):
                 name_parts.append(tokens[i])
                 i += 1
             name = " ".join(name_parts) if name_parts else None
@@ -319,17 +331,19 @@ def parse_politicians_list(soup: BeautifulSoup) -> list[dict]:
         except Exception:
             pass
 
-        out.append({
-            "politician_id": pid,
-            "name": name,
-            "party": party,
-            "state": state,
-            "trades_count": trades_count,
-            "issuers_count": issuers_count,
-            "volume": volume,
-            "last_traded": last_traded,
-            "raw_text": text,
-        })
+        out.append(
+            {
+                "politician_id": pid,
+                "name": name,
+                "party": party,
+                "state": state,
+                "trades_count": trades_count,
+                "issuers_count": issuers_count,
+                "volume": volume,
+                "last_traded": last_traded,
+                "raw_text": text,
+            }
+        )
     return out
 
 
@@ -368,6 +382,7 @@ def parse_politician_detail(soup: BeautifulSoup, politician_id: str) -> dict:
 
 # ─── Issuers ────────────────────────────────────────────────────────────────
 
+
 def parse_issuers_list(soup: BeautifulSoup) -> list[dict]:
     """Parse /issuers list of cards."""
     links = soup.select('a[href^="/issuers/"]')
@@ -383,12 +398,14 @@ def parse_issuers_list(soup: BeautifulSoup) -> list[dict]:
         card_text = _txt(parent) if parent else _txt(link)
         ticker_el = (parent or link).find("span", class_=re.compile("ticker"))
         name_el = link.find("h3") or link
-        out.append({
-            "issuer_id": iid,
-            "name": _txt(name_el),
-            "ticker": _txt(ticker_el) if ticker_el else None,
-            "card_text": card_text[:300],
-        })
+        out.append(
+            {
+                "issuer_id": iid,
+                "name": _txt(name_el),
+                "ticker": _txt(ticker_el) if ticker_el else None,
+                "card_text": card_text[:300],
+            }
+        )
     return out
 
 
@@ -449,12 +466,14 @@ def _parse_content_list(soup: BeautifulSoup, kind: str) -> list[dict]:
                     date_text = t
                     break
 
-        out.append({
-            "slug": slug,
-            "title": title,
-            "published": date_text or None,
-            "url": f"https://www.capitoltrades.com{prefix}{slug}",
-        })
+        out.append(
+            {
+                "slug": slug,
+                "title": title,
+                "published": date_text or None,
+                "url": f"https://www.capitoltrades.com{prefix}{slug}",
+            }
+        )
     return out
 
 
@@ -509,6 +528,7 @@ def parse_press_detail(soup: BeautifulSoup, slug: str) -> dict:
 
 
 # ─── Stats ──────────────────────────────────────────────────────────────────
+
 
 def parse_trades_stats(soup: BeautifulSoup) -> dict:
     """Parse the top stats cards on /trades (total trades, volume, politicians, issuers)."""

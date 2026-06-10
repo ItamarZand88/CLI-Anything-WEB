@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
-"""Validate a cli-web-* CLI against the 75-point quality checklist.
+"""Validate a cli-web-* CLI against the tiered quality checklist.
 
-Runs ~65 mechanical checks from quality-checklist.md and reports results
+Runs the mechanical checks from quality-checklist.md and reports results
 as a colored terminal summary + optional JSON output.
+
+Checks are tiered (see quality-checklist.md "Tiers"):
+- critical (Tier 1)      — any failure blocks publish (non-zero exit)
+- comprehensive (Tier 2) — failures are warnings (exit 0), unless --strict
 
 Usage:
     python validate-checklist.py <harness-dir> --app-name hackernews
     python validate-checklist.py <harness-dir> --app-name hackernews --auth-type none
     python validate-checklist.py <harness-dir> --app-name hackernews --json
+    python validate-checklist.py <harness-dir> --app-name hackernews --tier1-only
+    python validate-checklist.py <harness-dir> --app-name hackernews --strict
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,16 +25,82 @@ import re
 import sys
 from pathlib import Path
 
+# ---------------------------------------------------------------------------
+# Tier registry — keep in sync with quality-checklist.md [T1]/[T2] markers
+# ---------------------------------------------------------------------------
+
+TIER1_CHECKS: frozenset[str] = frozenset(
+    {
+        # 1. Directory Structure — all critical
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5",
+        "1.6",
+        # 2. Required Files — all critical
+        "2.1",
+        "2.2",
+        "2.3",
+        "2.4",
+        "2.5",
+        "2.6",
+        "2.7",
+        "2.8",
+        "2.9",
+        "2.10",
+        "2.11",
+        "2.12",
+        "2.13",
+        # 3. CLI Implementation — Click group, --json envelope, REPL basics
+        "3.1",
+        "3.2",
+        "3.3",
+        "3.8",
+        "3.9",
+        # 4. Core Modules — exception hierarchy + status mapping + rpc structure,
+        # plus auth security (retry contract, headless refresh, chmod 600):
+        # CLAUDE.md mandates these, so they must block publish.
+        "4.1",
+        "4.2",
+        "4.3",
+        "4.4",
+        "4.4b",
+        "4.6",
+        "4.7",
+        # 7. Packaging — namespace packages, name, entry point
+        "7.1",
+        "7.2",
+        "7.3",
+        # 8. Code Quality — syntax errors, hardcoded secrets
+        "8.1",
+        "8.2",
+        # 9. REPL Quality — shlex + dispatch
+        "9.1",
+        "9.2",
+        # 10. Error Handling — typed hierarchy, status mapping, --json errors
+        "10.1",
+        "10.2",
+        "10.4",
+    }
+)
+
+
+def severity_for(check_id: str) -> str:
+    return "critical" if check_id in TIER1_CHECKS else "comprehensive"
+
 
 # ---------------------------------------------------------------------------
 # Result tracking
 # ---------------------------------------------------------------------------
+
 
 class CheckResult:
     def __init__(self, category: str, check_id: str, description: str):
         self.category = category
         self.check_id = check_id
         self.description = description
+        self.severity = severity_for(check_id)
         self.status: str = "pending"  # pass, fail, skip, na
         self.detail: str = ""
 
@@ -56,6 +129,7 @@ class CheckResult:
             "category": self.category,
             "id": self.check_id,
             "description": self.description,
+            "severity": self.severity,
             "status": self.status,
             "detail": self.detail,
         }
@@ -264,15 +338,31 @@ class Validator:
         client_content = self._read_file(self.pkg_dir / "core" / "client.py") or ""
 
         r = self.check(cat, "4.3", "Client maps HTTP status to exceptions")
-        status_patterns = ["401", "403", "404", "429"]
-        mapped = [s for s in status_patterns if s in client_content]
-        if len(mapped) >= 3:
-            r.pass_(f"Mapped codes: {mapped}")
+        http_clients = ("httpx", "curl_cffi", "requests")
+        is_browser_client = any(
+            b in client_content for b in ("playwright", "camoufox")
+        ) and not any(h in client_content for h in http_clients)
+        if is_browser_client:
+            r.na("Browser-rendered client — no HTTP status layer")
         else:
-            r.fail(f"Only mapped: {mapped}")
+            # Mapping may live in client.py or in exceptions.py
+            # (raise_for_status pattern); count across both.
+            mapping_content = client_content + exc_content
+            status_patterns = ["401", "403", "404", "429"]
+            mapped = [s for s in status_patterns if s in mapping_content]
+            # No-auth CLIs have no 401/403 semantics to map.
+            needed = 3 if self.has_auth else 2
+            if len(mapped) >= needed:
+                r.pass_(f"Mapped codes: {mapped}")
+            else:
+                r.fail(f"Only mapped: {mapped}")
 
         r = self.check(cat, "4.4", "Auth retry on 401/403")
-        if "retry_on_auth" in client_content or ("401" in client_content and "retry" in client_content.lower()) or "_attempt" in client_content:
+        if (
+            "retry_on_auth" in client_content
+            or ("401" in client_content and "retry" in client_content.lower())
+            or "_attempt" in client_content
+        ):
             r.pass_()
         elif not self.has_auth:
             r.na("No auth")
@@ -285,9 +375,16 @@ class Validator:
         else:
             auth_path = self.pkg_dir / "core" / "auth.py"
             auth_content = auth_path.read_text(encoding="utf-8") if auth_path.exists() else ""
-            has_refresh_fn = "refresh_auth" in auth_content or "refresh_token" in auth_content
-            has_headless = "headless" in auth_content
-            has_client_call = "refresh_auth" in client_content or "refresh_token" in client_content or "_refresh_via_browser" in client_content
+            # Accept the documented name (refresh_auth) plus the refresh
+            # spellings used across the fleet (_refresh_tokens, refresh_token,
+            # a headless-capable login_browser the client can re-invoke).
+            refresh_names = ("refresh_auth", "refresh_token", "_refresh_tokens")
+            has_refresh_fn = any(n in auth_content for n in refresh_names) or (
+                "login_browser" in auth_content and "headed" in auth_content
+            )
+            has_client_call = any(
+                n in client_content for n in (*refresh_names, "_refresh_via_browser")
+            )
             if has_refresh_fn and has_client_call:
                 r.pass_("auth.py has refresh + client calls it on 401/403")
             else:
@@ -402,11 +499,11 @@ class Validator:
             r.fail()
 
         r = self.check(cat, "7.3", "Entry point format correct")
-        expected = f"cli-web-{self.app_name}=cli_web.{self.app_underscore}.{self.app_underscore}_cli:main"
-        if expected in setup_content:
+        prefix = f"cli-web-{self.app_name}=cli_web.{self.app_underscore}.{self.app_underscore}_cli:"
+        if any(f"{prefix}{fn}" in setup_content for fn in ("main", "cli")):
             r.pass_()
         else:
-            r.fail(f"Expected: {expected}")
+            r.fail(f"Expected: {prefix}main")
 
         r = self.check(cat, "7.4", "Imports use cli_web.<app>.* prefix")
         # Check a sample of files for correct imports
@@ -537,7 +634,11 @@ class Validator:
 
         r = self.check(cat, "10.2", "Client maps HTTP status to domain exceptions")
         client_content = self._read_file(self.pkg_dir / "core" / "client.py") or ""
-        if "raise_for_status" in client_content or "status_code" in client_content:
+        if any(b in client_content for b in ("playwright", "camoufox")) and not any(
+            h in client_content for h in ("httpx", "curl_cffi", "requests")
+        ):
+            r.na("Browser-rendered client — no HTTP status layer")
+        elif "raise_for_status" in client_content or "status_code" in client_content:
             r.pass_()
         else:
             r.fail()
@@ -572,8 +673,18 @@ class Validator:
         self.check_repl_quality()
         self.check_error_handling()
 
+    def tier_counts(self) -> dict:
+        """Per-tier status counts: {"critical": {...}, "comprehensive": {...}}."""
+        tiers = {
+            "critical": {"pass": 0, "fail": 0, "skip": 0, "na": 0},
+            "comprehensive": {"pass": 0, "fail": 0, "skip": 0, "na": 0},
+        }
+        for r in self.results:
+            tiers[r.severity][r.status] += 1
+        return tiers
+
     def print_summary(self):
-        """Print colored terminal summary."""
+        """Print colored terminal summary. Returns (tier1_failures, tier2_failures)."""
         counts = {"pass": 0, "fail": 0, "skip": 0, "na": 0}
         current_cat = ""
 
@@ -592,50 +703,113 @@ class Validator:
             else:
                 icon = "\033[33m SKIP\033[0m"
 
+            tier = "T1" if r.severity == "critical" else "T2"
             detail = f" — {r.detail}" if r.detail else ""
-            print(f"  [{icon}] {r.check_id}: {r.description}{detail}")
+            print(f"  [{icon}] [{tier}] {r.check_id}: {r.description}{detail}")
 
         total = len(self.results)
         applicable = total - counts["na"] - counts["skip"]
+        tiers = self.tier_counts()
+        t1, t2 = tiers["critical"], tiers["comprehensive"]
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"  Total checks:  {total}")
         print(f"  \033[32mPassed:      {counts['pass']}\033[0m")
         print(f"  \033[31mFailed:      {counts['fail']}\033[0m")
         print(f"  \033[33mSkipped:     {counts['skip']}\033[0m")
         print(f"  \033[90mN/A:         {counts['na']}\033[0m")
+        print(f"  Tier 1 (critical):      {t1['pass']} passed, {t1['fail']} failed")
+        print(f"  Tier 2 (comprehensive): {t2['pass']} passed, {t2['fail']} failed")
         if applicable > 0:
             rate = counts["pass"] / applicable * 100
             print(f"  Pass rate:     {rate:.0f}% ({counts['pass']}/{applicable})")
-        print(f"{'='*60}")
+        if t1["fail"] > 0:
+            print("  \033[31mRESULT: BLOCKED — Tier 1 failures must be fixed before publish\033[0m")
+        elif t2["fail"] > 0:
+            print("  \033[33mRESULT: PASS WITH WARNINGS — Tier 2 failures reported above\033[0m")
+        else:
+            print("  \033[32mRESULT: PASS\033[0m")
+        print(f"{'=' * 60}")
 
-        return counts["fail"]
+        return t1["fail"], t2["fail"]
 
     def to_json(self) -> str:
         counts = {"pass": 0, "fail": 0, "skip": 0, "na": 0}
         for r in self.results:
             counts[r.status] += 1
-        return json.dumps({
-            "app_name": self.app_name,
-            "auth_type": self.auth_type,
-            "summary": counts,
-            "checks": [r.to_dict() for r in self.results],
-        }, indent=2)
+        return json.dumps(
+            {
+                "app_name": self.app_name,
+                "auth_type": self.auth_type,
+                "summary": counts,
+                "tiers": self.tier_counts(),
+                "checks": [r.to_dict() for r in self.results],
+            },
+            indent=2,
+        )
 
 
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
+
+def resolve_auth_type(harness: Path, app_name: str) -> str:
+    """Resolve --auth-type auto: registry.json is the intent source.
+
+    Falls back to core/auth.py presence for CLIs not yet registered
+    (e.g. validation right after scaffolding).
+    """
+    for parent in harness.parents:
+        registry_path = parent / "registry.json"
+        if not registry_path.is_file():
+            continue
+        try:
+            entries = json.loads(registry_path.read_text(encoding="utf-8")).get("clis", [])
+        except (OSError, json.JSONDecodeError):
+            break
+        for entry in entries:
+            if entry.get("name") == f"cli-web-{app_name}":
+                raw = str(entry.get("auth", "")).lower()
+                if raw == "none":
+                    return "none"
+                if "google" in raw:
+                    return "google-sso"
+                if "api" in raw and "key" in raw:
+                    return "api-key"
+                return "cookie"
+        break
+    auth_py = harness / "cli_web" / app_name.replace("-", "_") / "core" / "auth.py"
+    return "cookie" if auth_py.is_file() else "none"
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Validate cli-web-* CLI against quality checklist.")
+    parser = argparse.ArgumentParser(
+        description="Validate cli-web-* CLI against quality checklist."
+    )
     parser.add_argument("harness_dir", type=Path, help="Path to agent-harness directory")
     parser.add_argument("--app-name", required=True, help="CLI app name (e.g., hackernews)")
-    parser.add_argument("--auth-type", default="cookie",
-                        choices=["none", "cookie", "api-key", "google-sso"],
-                        help="Auth type (default: cookie)")
-    parser.add_argument("--json", dest="json_mode", action="store_true",
-                        help="Output results as JSON")
+    parser.add_argument(
+        "--auth-type",
+        default="auto",
+        choices=["auto", "none", "cookie", "api-key", "google-sso"],
+        help="Auth type (default: auto — resolved from registry.json, "
+        "falling back to core/auth.py presence)",
+    )
+    parser.add_argument(
+        "--json", dest="json_mode", action="store_true", help="Output results as JSON"
+    )
+    parser.add_argument(
+        "--tier1-only",
+        dest="tier1_only",
+        action="store_true",
+        help="Run/report only Tier 1 (critical) checks — fail-fast mode",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit non-zero on Tier 2 (comprehensive) failures too",
+    )
 
     args = parser.parse_args()
 
@@ -644,14 +818,31 @@ def main():
         print(f"Error: {harness} is not a directory", file=sys.stderr)
         sys.exit(1)
 
-    v = Validator(harness, args.app_name, args.auth_type)
+    auth_type = args.auth_type
+    if auth_type == "auto":
+        auth_type = resolve_auth_type(harness, args.app_name)
+
+    v = Validator(harness, args.app_name, auth_type)
     v.run_all()
+
+    if args.tier1_only:
+        v.results = [r for r in v.results if r.severity == "critical"]
 
     if args.json_mode:
         print(v.to_json())
+        tiers = v.tier_counts()
+        tier1_failures = tiers["critical"]["fail"]
+        tier2_failures = tiers["comprehensive"]["fail"]
     else:
-        failures = v.print_summary()
-        sys.exit(1 if failures > 0 else 0)
+        tier1_failures, tier2_failures = v.print_summary()
+
+    # Exit policy: Tier 1 failures always block; Tier 2 failures block only
+    # with --strict (otherwise they are warnings).
+    if tier1_failures > 0:
+        sys.exit(1)
+    if args.strict and tier2_failures > 0:
+        sys.exit(1)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

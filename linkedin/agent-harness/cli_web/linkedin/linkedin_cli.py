@@ -1,4 +1,5 @@
 """cli-web-linkedin — CLI entry point."""
+
 from __future__ import annotations
 
 import sys
@@ -48,15 +49,15 @@ def cli(ctx, json_mode):
 
 
 # ── Register commands here ─────────────────────────────────────────────────────
-from .commands.feed import feed
-from .commands.post import post
-from .commands.search import search
-from .commands.profile import profile
 from .commands.company import company
+from .commands.feed import feed
 from .commands.jobs import jobs
-from .commands.notifications import notifications
-from .commands.network import network
 from .commands.messaging import messaging
+from .commands.network import network
+from .commands.notifications import notifications
+from .commands.post import post
+from .commands.profile import profile
+from .commands.search import search
 
 cli.add_command(feed)
 cli.add_command(post)
@@ -69,13 +70,15 @@ cli.add_command(network)
 cli.add_command(messaging)
 
 # Auth commands
-from .core.auth import login_browser, clear_auth, is_logged_in, load_auth
+from .core.auth import clear_auth, is_logged_in, load_auth, login_browser
 from .core.exceptions import LinkedinError
 from .utils.helpers import handle_errors, print_json, resolve_json_mode
+
 
 @cli.group("auth")
 def auth_group():
     """Login, logout, and check authentication status."""
+
 
 @auth_group.command("login")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
@@ -88,6 +91,7 @@ def auth_login(json_mode):
             print_json({"success": True, "message": "Logged in successfully"})
         else:
             click.echo("  Logged in successfully. Cookies saved.")
+
 
 @auth_group.command("status")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
@@ -107,6 +111,7 @@ def auth_status(json_mode):
                 print_json({"authenticated": False, "message": "Not logged in"})
             else:
                 click.echo("  Not logged in. Run: cli-web-linkedin auth login")
+
 
 @auth_group.command("logout")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
@@ -235,6 +240,7 @@ def _run_repl(ctx: click.Context) -> None:
         except Exception as exc:
             if ctx.obj.get("json") and isinstance(exc, LinkedinError):
                 import json as _json
+
                 click.echo(_json.dumps(exc.to_dict()))
             else:
                 _skin.error(str(exc))
@@ -244,6 +250,16 @@ def _run_repl(ctx: click.Context) -> None:
 
 def main():
     cli()
+
+
+# MCP server mode — exposes every command as an MCP tool over stdio.
+# Canonical adapter: cli-web-core/cli_web_core/mcp_server.py (vendored copy).
+from cli_web.linkedin import __version__ as _pkg_version  # noqa: E402
+from cli_web.linkedin.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.linkedin.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="linkedin", version=_pkg_version)
+register_doctor_command(cli, app_name="linkedin", pkg="linkedin")
 
 
 if __name__ == "__main__":

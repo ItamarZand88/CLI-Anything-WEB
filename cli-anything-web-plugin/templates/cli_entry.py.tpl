@@ -40,7 +40,9 @@ def cli(ctx, json_mode):
 
 
 # ── Register commands here ─────────────────────────────────────────────────────
-# cli.add_command(some_group)
+# FILL_IN: cli.add_command(...) for each command group, e.g.:
+#   from .commands.items import items
+#   cli.add_command(items)
 
 
 # ── REPL ───────────────────────────────────────────────────────────────────────
@@ -94,6 +96,18 @@ def _run_repl(ctx: click.Context) -> None:
             pass
         except Exception as exc:
             _skin.error(str(exc))
+
+
+# Fleet-standard utility commands (vendored adapters in utils/):
+# `mcp-serve` exposes every command as MCP tools over stdio; `doctor`
+# diagnoses install/auth setup. Both derive from the Click tree — no
+# per-command wiring needed.
+from cli_web.${app_name_underscore} import __version__ as _pkg_version  # noqa: E402
+from cli_web.${app_name_underscore}.utils.doctor import register_doctor_command  # noqa: E402
+from cli_web.${app_name_underscore}.utils.mcp_server import register_mcp_command  # noqa: E402
+
+register_mcp_command(cli, app_name="${app_name}", version=_pkg_version)
+register_doctor_command(cli, app_name="${app_name}", pkg="${app_name_underscore}")
 
 
 def main():

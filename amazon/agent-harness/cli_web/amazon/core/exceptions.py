@@ -17,6 +17,7 @@ class NetworkError(AmazonError):
 
 class RateLimitError(AmazonError):
     """HTTP 429 — too many requests."""
+
     def __init__(self, message: str, retry_after: float | None = None):
         self.retry_after = retry_after
         super().__init__(message)
@@ -44,13 +45,18 @@ class NotFoundError(AmazonError):
 
 class ServerError(AmazonError):
     """Amazon returned 5xx."""
+
     def __init__(self, message: str, status_code: int = 500):
         self.status_code = status_code
         super().__init__(message)
 
     def to_dict(self) -> dict:
-        return {"error": True, "code": "SERVER_ERROR", "message": str(self),
-                "status_code": self.status_code}
+        return {
+            "error": True,
+            "code": "SERVER_ERROR",
+            "message": str(self),
+            "status_code": self.status_code,
+        }
 
 
 EXCEPTION_CODE_MAP = {

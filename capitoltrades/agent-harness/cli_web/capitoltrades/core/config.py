@@ -1,4 +1,5 @@
 """Configuration constants for cli-web-capitoltrades."""
+
 from pathlib import Path
 
 APP_NAME = "cli-web-capitoltrades"

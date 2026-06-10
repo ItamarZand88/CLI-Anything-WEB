@@ -5,13 +5,9 @@ No network required — fast and deterministic.
 """
 
 import json
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import click
 import pytest
-
 from cli_web.booking.core.exceptions import (
     AuthError,
     BookingError,
@@ -22,8 +18,7 @@ from cli_web.booking.core.exceptions import (
     WAFChallengeError,
 )
 from cli_web.booking.core.models import Destination, Property, PropertyDetail
-from cli_web.booking.utils.helpers import handle_errors, json_error, print_json
-
+from cli_web.booking.utils.helpers import handle_errors, json_error
 
 # ── Exception Tests ────────────────────────────────────────────────
 
@@ -69,7 +64,10 @@ class TestDestination:
 
     def test_from_graphql_city(self):
         data = {
-            "metaData": {"autocompleteResultId": "city/-1456928", "autocompleteResultSource": "BRICK"},
+            "metaData": {
+                "autocompleteResultId": "city/-1456928",
+                "autocompleteResultSource": "BRICK",
+            },
             "displayInfo": {"title": "Paris", "label": "Paris, Ile de France, France"},
         }
         d = Destination.from_graphql(data)
@@ -99,17 +97,13 @@ class TestProperty:
     """Test Property model and HTML parsing helpers."""
 
     def test_parse_score_text_full(self):
-        score, label, count = Property.parse_score_text(
-            "Scored 8.6  8.6 Excellent   677 reviews"
-        )
+        score, label, count = Property.parse_score_text("Scored 8.6  8.6 Excellent   677 reviews")
         assert score == 8.6
         assert label == "Excellent"
         assert count == 677
 
     def test_parse_score_text_wonderful(self):
-        score, label, count = Property.parse_score_text(
-            "Scored 9.1  9.1 Wonderful   993 reviews"
-        )
+        score, label, count = Property.parse_score_text("Scored 9.1  9.1 Wonderful   993 reviews")
         assert score == 9.1
         assert label == "Wonderful"
         assert count == 993
@@ -134,9 +128,16 @@ class TestProperty:
         assert amount is None
 
     def test_to_dict(self):
-        p = Property(title="Hotel Test", slug="fr/test.html", score=8.5,
-                     score_label="Very Good", review_count=100, price="$200",
-                     price_amount=200.0, address="Paris")
+        p = Property(
+            title="Hotel Test",
+            slug="fr/test.html",
+            score=8.5,
+            score_label="Very Good",
+            review_count=100,
+            price="$200",
+            price_amount=200.0,
+            address="Paris",
+        )
         d = p.to_dict()
         assert d["title"] == "Hotel Test"
         assert d["slug"] == "fr/test.html"
@@ -191,8 +192,11 @@ class TestAuth:
     """Test auth module with mocked filesystem."""
 
     def test_load_cookies_from_env(self):
-        with patch.dict("os.environ", {"CLI_WEB_BOOKING_AUTH_JSON": '{"cookies": {"bkng": "val"}}'}):
+        with patch.dict(
+            "os.environ", {"CLI_WEB_BOOKING_AUTH_JSON": '{"cookies": {"bkng": "val"}}'}
+        ):
             from cli_web.booking.core.auth import load_cookies
+
             cookies = load_cookies()
             assert cookies["bkng"] == "val"
 
@@ -201,11 +205,13 @@ class TestAuth:
             with patch("cli_web.booking.core.auth.AUTH_FILE") as mock_file:
                 mock_file.exists.return_value = False
                 from cli_web.booking.core.auth import load_cookies
+
                 with pytest.raises(AuthError):
                     load_cookies()
 
     def test_extract_cookies_list_format(self):
         from cli_web.booking.core.auth import _extract_cookies
+
         cookies = [
             {"name": "bkng", "value": "abc", "domain": ".booking.com"},
             {"name": "test", "value": "xyz", "domain": "other.com"},
@@ -216,6 +222,7 @@ class TestAuth:
 
     def test_extract_cookies_domain_priority(self):
         from cli_web.booking.core.auth import _extract_cookies
+
         cookies = [
             {"name": "sid", "value": "regional", "domain": ".booking.co.uk"},
             {"name": "sid", "value": "primary", "domain": ".booking.com"},
@@ -225,10 +232,13 @@ class TestAuth:
 
     def test_save_and_load(self, tmp_path):
         auth_file = tmp_path / "auth.json"
-        with patch("cli_web.booking.core.auth.AUTH_FILE", auth_file), \
-             patch("cli_web.booking.core.auth.CONFIG_DIR", tmp_path), \
-             patch.dict("os.environ", {}, clear=True):
-            from cli_web.booking.core.auth import save_cookies, load_cookies
+        with (
+            patch("cli_web.booking.core.auth.AUTH_FILE", auth_file),
+            patch("cli_web.booking.core.auth.CONFIG_DIR", tmp_path),
+            patch.dict("os.environ", {}, clear=True),
+        ):
+            from cli_web.booking.core.auth import load_cookies, save_cookies
+
             save_cookies({"bkng": "test123"})
             cookies = load_cookies()
             assert cookies["bkng"] == "test123"
@@ -250,19 +260,22 @@ class TestClient:
 
     @patch("cli_web.booking.core.client.curl_requests.post")
     def test_autocomplete_success(self, mock_post):
-        mock_post.return_value = self._mock_response(json_data={
-            "data": {
-                "autoCompleteSuggestions": {
-                    "results": [
-                        {
-                            "metaData": {"autocompleteResultId": "city/-1456928"},
-                            "displayInfo": {"title": "Paris", "label": "Paris, France"},
-                        }
-                    ]
+        mock_post.return_value = self._mock_response(
+            json_data={
+                "data": {
+                    "autoCompleteSuggestions": {
+                        "results": [
+                            {
+                                "metaData": {"autocompleteResultId": "city/-1456928"},
+                                "displayInfo": {"title": "Paris", "label": "Paris, France"},
+                            }
+                        ]
+                    }
                 }
             }
-        })
+        )
         from cli_web.booking.core.client import BookingClient
+
         client = BookingClient()
         results = client.autocomplete("Paris")
         assert len(results) == 1
@@ -275,6 +288,7 @@ class TestClient:
             json_data={"errors": [{"message": "Internal error"}]}
         )
         from cli_web.booking.core.client import BookingClient
+
         client = BookingClient()
         with pytest.raises(ServerError):
             client.autocomplete("test")
@@ -283,33 +297,38 @@ class TestClient:
     def test_graphql_network_error(self, mock_post):
         mock_post.side_effect = Exception("Connection refused")
         from cli_web.booking.core.client import BookingClient
+
         client = BookingClient()
         with pytest.raises(NetworkError):
             client.autocomplete("test")
 
+    @patch("cli_web.booking.core.client.refresh_auth")
     @patch("cli_web.booking.core.client.curl_requests.get")
     @patch("cli_web.booking.core.client.load_cookies")
     @patch("cli_web.booking.core.client.curl_requests.post")
-    def test_search_waf_challenge(self, mock_post, mock_load, mock_get):
+    def test_search_waf_challenge(self, mock_post, mock_load, mock_get, mock_refresh):
         mock_load.return_value = {"bkng": "old"}
-        mock_post.return_value = self._mock_response(json_data={
-            "data": {
-                "autoCompleteSuggestions": {
-                    "results": [
-                        {
-                            "metaData": {"autocompleteResultId": "city/-123"},
-                            "displayInfo": {"title": "Test", "label": "Test"},
-                        }
-                    ]
+        mock_refresh.return_value = {"bkng": "refreshed"}
+        mock_post.return_value = self._mock_response(
+            json_data={
+                "data": {
+                    "autoCompleteSuggestions": {
+                        "results": [
+                            {
+                                "metaData": {"autocompleteResultId": "city/-123"},
+                                "displayInfo": {"title": "Test", "label": "Test"},
+                            }
+                        ]
+                    }
                 }
             }
-        })
+        )
         # WAF challenge response
         mock_get.return_value = self._mock_response(
-            status_code=202,
-            text='<script src="challenge.js"></script>'
+            status_code=202, text='<script src="challenge.js"></script>'
         )
         from cli_web.booking.core.client import BookingClient
+
         client = BookingClient()
         with pytest.raises(WAFChallengeError):
             client.search("Test", "2026-04-01", "2026-04-04")
@@ -320,6 +339,7 @@ class TestClient:
         mock_load.return_value = {"bkng": "test"}
         mock_get.return_value = self._mock_response(status_code=404)
         from cli_web.booking.core.client import BookingClient
+
         client = BookingClient()
         with pytest.raises(NotFoundError):
             client.get_property("fr/nonexistent.html")
@@ -332,6 +352,7 @@ class TestClient:
         resp.headers = {"Retry-After": "30"}
         mock_get.return_value = resp
         from cli_web.booking.core.client import BookingClient
+
         client = BookingClient()
         with pytest.raises(RateLimitError) as exc_info:
             client.get_property("fr/test.html")
@@ -445,3 +466,86 @@ class TestSearchParsing:
         assert len(results) == 2
         assert results[0].title == "Le Senat"
         assert results[1].title == "Other Hotel"
+
+
+# ── Auth Retry Tests (3-attempt contract, CONVENTIONS.md §Auth Rules) ──
+
+
+class TestAuthRetry:
+    """WAF challenge/403 → reload auth.json → headless refresh_auth(). Never >3."""
+
+    def _waf_response(self):
+        resp = MagicMock()
+        resp.status_code = 202
+        resp.text = "<html>challenge.js aws-waf</html>"
+        resp.headers = {}
+        return resp
+
+    def _ok_response(self):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.text = "<html><body>ok</body></html>"
+        resp.headers = {}
+        return resp
+
+    def test_three_attempts_then_waf_error(self):
+        from cli_web.booking.core.client import BookingClient
+
+        client = BookingClient()
+        client._cookies = {"aws-waf-token": "stale"}
+
+        with (
+            patch(
+                "cli_web.booking.core.client.curl_requests.get",
+                return_value=self._waf_response(),
+            ) as mock_get,
+            patch(
+                "cli_web.booking.core.client.load_cookies",
+                return_value={"aws-waf-token": "disk"},
+            ) as mock_load,
+            patch(
+                "cli_web.booking.core.client.refresh_auth",
+                return_value={"aws-waf-token": "fresh"},
+            ) as mock_refresh,
+        ):
+            with pytest.raises(WAFChallengeError):
+                client._fetch_html("https://www.booking.com/searchresults.html")
+
+        assert mock_get.call_count == 3
+        assert mock_load.call_count == 1
+        assert mock_refresh.call_count == 1
+
+    def test_success_after_disk_reload_stops_retrying(self):
+        from cli_web.booking.core.client import BookingClient
+
+        client = BookingClient()
+        client._cookies = {"aws-waf-token": "stale"}
+
+        with (
+            patch(
+                "cli_web.booking.core.client.curl_requests.get",
+                side_effect=[self._waf_response(), self._ok_response()],
+            ) as mock_get,
+            patch(
+                "cli_web.booking.core.client.load_cookies",
+                return_value={"aws-waf-token": "disk"},
+            ),
+            patch("cli_web.booking.core.client.refresh_auth") as mock_refresh,
+        ):
+            soup = client._fetch_html("https://www.booking.com/searchresults.html")
+
+        assert soup.body is not None
+        assert mock_get.call_count == 2
+        mock_refresh.assert_not_called()
+        assert client._cookies == {"aws-waf-token": "disk"}
+
+
+# ── Context Manager Tests ──────────────────────────────────────────
+
+
+class TestContextManager:
+    def test_client_context_manager(self):
+        from cli_web.booking.core.client import BookingClient
+
+        with BookingClient() as client:
+            assert isinstance(client, BookingClient)

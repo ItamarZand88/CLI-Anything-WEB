@@ -9,6 +9,7 @@ Note: Deliberately does NOT unify the two scripts' schemas or CLIs. Skills
 invoke them by subcommand, and changing either public surface would break
 downstream callers.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,7 +31,7 @@ def load_json_state(path: Path, default: dict[str, Any] | None = None) -> dict[s
     """
     if not path.exists():
         return default
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 

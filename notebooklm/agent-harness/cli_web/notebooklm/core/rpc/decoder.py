@@ -1,7 +1,7 @@
 """Response decoder for Google batchexecute RPC protocol."""
+
 import json
 from typing import Any
-
 
 from ..exceptions import AuthError, RPCError
 
@@ -91,7 +91,9 @@ def extract_result(chunks: list[str], rpc_id: str) -> Any:
                 # Error entry — check for auth-related codes
                 err_code = entry[1] if len(entry) > 1 else None
                 if err_code in (7, 9):
-                    raise AuthError(f"Auth error (code {err_code}) — run: cli-web-notebooklm auth login")
+                    raise AuthError(
+                        f"Auth error (code {err_code}) — run: cli-web-notebooklm auth login"
+                    )
                 raise RPCError(f"RPC error code {err_code}")
             if entry[0] == "wrb.fr" and entry[1] == rpc_id:
                 # entry[2] is a JSON string that needs another json.loads()

@@ -20,11 +20,13 @@ def auth_login(use_json):
     with handle_errors(json_mode=use_json):
         cookies = login_browser()
         if use_json:
-            print_json({
-                "success": True,
-                "message": "WAF cookies saved",
-                "cookie_count": len(cookies),
-            })
+            print_json(
+                {
+                    "success": True,
+                    "message": "WAF cookies saved",
+                    "cookie_count": len(cookies),
+                }
+            )
         else:
             click.echo(f"  Saved {len(cookies)} cookies. Auth ready.")
 
@@ -36,10 +38,12 @@ def auth_status(use_json):
     with handle_errors(json_mode=use_json):
         authed = is_authenticated()
         if use_json:
-            print_json({
-                "success": True,
-                "authenticated": authed,
-            })
+            print_json(
+                {
+                    "success": True,
+                    "authenticated": authed,
+                }
+            )
         else:
             if authed:
                 click.echo("  WAF cookies: available")

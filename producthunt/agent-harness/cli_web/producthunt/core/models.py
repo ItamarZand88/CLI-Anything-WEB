@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -14,12 +13,12 @@ class Post:
     tagline: str
     slug: str
     url: str
-    description: Optional[str] = None
+    description: str | None = None
     votes_count: int = 0
     comments_count: int = 0
     topics: list[str] = field(default_factory=list)
-    thumbnail_url: Optional[str] = None
-    rank: Optional[int] = None
+    thumbnail_url: str | None = None
+    rank: int | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -49,7 +48,7 @@ class Post:
         rank_match = re.match(r"^(\d+)\.\s+", name)
         if rank_match:
             rank = int(rank_match.group(1))
-            name = name[rank_match.end():]
+            name = name[rank_match.end() :]
 
         slug = card_data.get("slug", "")
         return cls(
@@ -72,9 +71,9 @@ class User:
     id: str
     name: str
     username: str
-    headline: Optional[str] = None
-    profile_image: Optional[str] = None
-    website_url: Optional[str] = None
+    headline: str | None = None
+    profile_image: str | None = None
+    website_url: str | None = None
     followers_count: int = 0
 
     def to_dict(self) -> dict:

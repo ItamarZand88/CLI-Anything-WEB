@@ -30,7 +30,7 @@ def cli(ctx):
 @click.pass_context
 def use_resource(ctx, resource_id):
     """Set the current resource context (persists across sessions)."""
-    from .utils.helpers import handle_errors, set_context_value, resolve_partial_id
+    from .utils.helpers import handle_errors, resolve_partial_id, set_context_value
 
     with handle_errors():
         client = AppClient()
@@ -47,7 +47,7 @@ def use_resource(ctx, resource_id):
 @click.pass_context
 def show_status(ctx, use_json):
     """Show current context and auth status."""
-    from .utils.helpers import handle_errors, get_context_value, print_json
+    from .utils.helpers import get_context_value, handle_errors, print_json
 
     with handle_errors(json_mode=use_json):
         status = {
@@ -57,6 +57,7 @@ def show_status(ctx, use_json):
         # Add auth status if the app requires auth
         try:
             from .core.auth import get_auth_status
+
             status["auth"] = get_auth_status()
         except ImportError:
             status["auth"] = {"configured": False, "message": "No auth required"}
@@ -68,6 +69,7 @@ def show_status(ctx, use_json):
 
 
 # --- In command files: --<resource> becomes optional ---
+
 
 @cli.group()
 def items():
@@ -85,11 +87,12 @@ def list_items(resource, use_json):
     with handle_errors(json_mode=use_json):
         res_id = require_resource(resource)  # Checks arg first, then context.json
         client = AppClient()
-        items = client.list_items(res_id)
+        client.list_items(res_id)
         # ... output items
 
 
 # --- In command files: partial ID for get/rename/delete ---
+
 
 @items.command("get")
 @click.argument("item_id")  # Positional — supports partial IDs
@@ -102,7 +105,7 @@ def get_item(item_id, use_json):
         client = AppClient()
         all_items = client.list_items()
         matched = resolve_partial_id(item_id, all_items, kind="item")
-        item = client.get_item(matched.id)
+        client.get_item(matched.id)
         # ... output item
 
 

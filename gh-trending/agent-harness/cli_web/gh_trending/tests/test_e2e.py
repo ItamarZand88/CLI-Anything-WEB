@@ -8,12 +8,10 @@ import shutil
 import subprocess
 import sys
 
-import pytest
-
 from cli_web.gh_trending.core.client import GitHubClient
 
-
 # ─── subprocess resolver ──────────────────────────────────────────────────────
+
 
 def _resolve_cli(name: str) -> list[str]:
     """Resolve installed CLI command; falls back to python -m for dev."""
@@ -31,6 +29,7 @@ def _resolve_cli(name: str) -> list[str]:
 
 # ─── Live E2E tests ───────────────────────────────────────────────────────────
 # GitHub Trending is public — no auth required.
+
 
 class TestTrendingReposLive:
     def test_repos_today(self):
@@ -115,6 +114,7 @@ class TestTrendingDevelopersLive:
 
 # ─── Subprocess / installed CLI tests ────────────────────────────────────────
 
+
 class TestCLISubprocess:
     CLI_BASE = _resolve_cli("cli-web-gh-trending")
 
@@ -135,7 +135,9 @@ class TestCLISubprocess:
     def test_repos_list_json(self):
         result = self._run(["repos", "list", "--json"])
         assert result.returncode == 0
-        data = json.loads(result.stdout)
+        payload = json.loads(result.stdout)
+        assert payload["success"] is True
+        data = payload["data"]
         assert isinstance(data, list)
         assert len(data) >= 1
         first = data[0]
@@ -149,21 +151,27 @@ class TestCLISubprocess:
     def test_repos_list_language_filter_json(self):
         result = self._run(["repos", "list", "--language", "python", "--json"])
         assert result.returncode == 0
-        data = json.loads(result.stdout)
+        payload = json.loads(result.stdout)
+        assert payload["success"] is True
+        data = payload["data"]
         assert isinstance(data, list)
         assert len(data) >= 1
 
     def test_repos_list_since_weekly_json(self):
         result = self._run(["repos", "list", "--since", "weekly", "--json"])
         assert result.returncode == 0
-        data = json.loads(result.stdout)
+        payload = json.loads(result.stdout)
+        assert payload["success"] is True
+        data = payload["data"]
         assert isinstance(data, list)
         assert len(data) >= 1
 
     def test_developers_list_json(self):
         result = self._run(["developers", "list", "--json"])
         assert result.returncode == 0
-        data = json.loads(result.stdout)
+        payload = json.loads(result.stdout)
+        assert payload["success"] is True
+        data = payload["data"]
         assert isinstance(data, list)
         assert len(data) >= 1
         first = data[0]
@@ -175,4 +183,4 @@ class TestCLISubprocess:
     def test_version(self):
         result = self._run(["--version"])
         assert result.returncode == 0
-        assert "1.0.0" in result.stdout
+        assert "0.1.0" in result.stdout

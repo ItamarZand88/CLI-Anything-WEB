@@ -20,7 +20,7 @@ def login(use_json):
     """Login to Reddit via browser (opens Playwright)."""
     use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
-        result = login_browser()
+        login_browser()
         if use_json:
             print_json({"success": True, "message": "Logged in successfully"})
         else:
@@ -61,11 +61,13 @@ def status(use_json):
         karma = me.get("total_karma", 0)
 
         if use_json:
-            print_json({
-                "authenticated": True,
-                "username": username,
-                "total_karma": karma,
-            })
+            print_json(
+                {
+                    "authenticated": True,
+                    "username": username,
+                    "total_karma": karma,
+                }
+            )
         else:
             click.echo(f"  Logged in as: u/{username}")
             click.echo(f"  Total karma: {karma:,}")

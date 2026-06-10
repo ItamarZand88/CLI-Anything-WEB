@@ -20,10 +20,12 @@ _SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
 
-from traffic_utils import STATIC_EXTENSIONS, is_static_asset  # noqa: E402
+from traffic_utils import is_static_asset  # noqa: E402
 
 
-def parse_network_file(network_path: Path, resources_dir: Path, filter_static: bool = True) -> list[dict]:
+def parse_network_file(
+    network_path: Path, resources_dir: Path, filter_static: bool = True
+) -> list[dict]:
     """Parse a single .network trace file into request/response entries."""
     entries = []
     text = network_path.read_text(encoding="utf-8").strip()
@@ -64,28 +66,28 @@ def parse_network_file(network_path: Path, resources_dir: Path, filter_static: b
                     except Exception:
                         body = "[binary content]"
 
-        entries.append({
-            "url": url,
-            "method": req.get("method", "GET"),
-            "request_headers": {
-                h["name"]: h["value"]
-                for h in req.get("headers", [])
-            },
-            "post_data": req.get("postData", {}).get("text") if isinstance(req.get("postData"), dict) else req.get("postData"),
-            "status": resp.get("status", 0),
-            "response_headers": {
-                h["name"]: h["value"]
-                for h in resp.get("headers", [])
-            },
-            "response_body": body,
-            "mime_type": resp.get("content", {}).get("mimeType", ""),
-            "time_ms": round(snap.get("time", 0), 1),
-        })
+        entries.append(
+            {
+                "url": url,
+                "method": req.get("method", "GET"),
+                "request_headers": {h["name"]: h["value"] for h in req.get("headers", [])},
+                "post_data": req.get("postData", {}).get("text")
+                if isinstance(req.get("postData"), dict)
+                else req.get("postData"),
+                "status": resp.get("status", 0),
+                "response_headers": {h["name"]: h["value"] for h in resp.get("headers", [])},
+                "response_body": body,
+                "mime_type": resp.get("content", {}).get("mimeType", ""),
+                "time_ms": round(snap.get("time", 0), 1),
+            }
+        )
 
     return entries
 
 
-def parse_traces(traces_dir: Path, filter_static: bool = True, latest_only: bool = False) -> list[dict]:
+def parse_traces(
+    traces_dir: Path, filter_static: bool = True, latest_only: bool = False
+) -> list[dict]:
     """Parse .network files in a traces directory."""
     traces_dir = Path(traces_dir)
     resources_dir = traces_dir / "resources"
@@ -115,7 +117,8 @@ def main():
         help="Path to .playwright-cli/traces/ directory",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default="raw-traffic.json",
         help="Output file path (default: raw-traffic.json)",
     )
@@ -136,7 +139,9 @@ def main():
         print(f"Error: traces directory not found: {traces_dir}", file=sys.stderr)
         sys.exit(1)
 
-    entries = parse_traces(traces_dir, filter_static=not args.include_static, latest_only=args.latest)
+    entries = parse_traces(
+        traces_dir, filter_static=not args.include_static, latest_only=args.latest
+    )
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -151,6 +156,7 @@ def main():
         try:
             # Import and run inline (same process, no subprocess overhead)
             import importlib.util
+
             spec = importlib.util.spec_from_file_location("analyze_traffic", analyze_script)
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
@@ -159,9 +165,11 @@ def main():
             p = report["protocol"]
             a = report["auth"]
             s = report["stats"]
-            print(f"Analysis: protocol={p['protocol']} ({p['confidence']}%), "
-                  f"auth={a['primary']}, "
-                  f"requests={s['total_requests']} ({s['read_operations']}R/{s['write_operations']}W)")
+            print(
+                f"Analysis: protocol={p['protocol']} ({p['confidence']}%), "
+                f"auth={a['primary']}, "
+                f"requests={s['total_requests']} ({s['read_operations']}R/{s['write_operations']}W)"
+            )
             if p.get("graphql_operations"):
                 ops = [op["name"] for op in p["graphql_operations"]]
                 print(f"  GraphQL ops: {', '.join(ops)}")

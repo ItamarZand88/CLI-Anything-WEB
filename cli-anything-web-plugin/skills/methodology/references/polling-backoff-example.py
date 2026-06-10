@@ -9,8 +9,10 @@ Two patterns every content-generation CLI needs:
 Never use fixed time.sleep(). Always use exponential backoff with configurable
 timeouts and intervals.
 """
+
 import time
-from typing import Callable, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -58,10 +60,7 @@ def poll_until_complete(
 
         elapsed = time.perf_counter() - start
         if elapsed + interval > timeout:
-            raise TimeoutError(
-                f"Operation timed out after {elapsed:.0f}s "
-                f"(limit: {timeout:.0f}s)"
-            )
+            raise TimeoutError(f"Operation timed out after {elapsed:.0f}s (limit: {timeout:.0f}s)")
 
         time.sleep(min(interval, max_interval))
         interval *= backoff_factor
@@ -104,7 +103,7 @@ def retry_on_rate_limit(
             return fn()
         except Exception as e:
             # Check if it's a RateLimitError (duck-type for portability)
-            if not hasattr(e, 'retry_after') and 'rate limit' not in str(e).lower():
+            if not hasattr(e, "retry_after") and "rate limit" not in str(e).lower():
                 raise  # Not a rate limit error — don't retry
 
             last_error = e
@@ -112,9 +111,9 @@ def retry_on_rate_limit(
                 raise
 
             # Use server's retry_after if available, otherwise backoff
-            delay = getattr(e, 'retry_after', None)
+            delay = getattr(e, "retry_after", None)
             if delay is None:
-                delay = min(initial_delay * (backoff_factor ** attempt), max_delay)
+                delay = min(initial_delay * (backoff_factor**attempt), max_delay)
 
             time.sleep(delay)
 
@@ -131,4 +130,4 @@ def calculate_backoff_delay(
 
     delay = min(initial * (multiplier ^ attempt), max_delay)
     """
-    return min(initial_delay * (multiplier ** attempt), max_delay)
+    return min(initial_delay * (multiplier**attempt), max_delay)

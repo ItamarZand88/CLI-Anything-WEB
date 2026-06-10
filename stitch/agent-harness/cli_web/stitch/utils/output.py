@@ -1,10 +1,11 @@
 """Output formatting for cli-web-stitch."""
+
 import json
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
-from rich.table import Table
 from rich.console import Console
+from rich.table import Table
 
 from ..core.models import Project, Screen
 
@@ -12,6 +13,7 @@ _console = Console()
 
 
 # ── JSON helpers ──────────────────────────────────────────────────────
+
 
 def json_success(data: Any) -> dict:
     """Wrap data in a success envelope."""
@@ -32,7 +34,8 @@ def print_json(obj: Any):
 
 # ── Timestamp formatting ─────────────────────────────────────────────
 
-def _fmt_ts(epoch: Optional[float]) -> str:
+
+def _fmt_ts(epoch: float | None) -> str:
     if epoch is None:
         return ""
     try:
@@ -43,6 +46,7 @@ def _fmt_ts(epoch: Optional[float]) -> str:
 
 
 # ── Project formatting ───────────────────────────────────────────────
+
 
 def _project_to_dict(project: Project) -> dict:
     return {
@@ -79,6 +83,7 @@ def format_project(project: Project, json_mode: bool = False):
 
 
 # ── Screen formatting ────────────────────────────────────────────────
+
 
 def _screen_to_dict(screen: Screen) -> dict:
     return {
@@ -117,6 +122,7 @@ STATUS_LABELS = {0: "Unknown", 1: "Creating", 2: "Processing", 3: "Generating", 
 
 
 # ── Tables ────────────────────────────────────────────────────────────
+
 
 def format_projects_table(projects: list[Project]):
     """Print a rich table of projects."""

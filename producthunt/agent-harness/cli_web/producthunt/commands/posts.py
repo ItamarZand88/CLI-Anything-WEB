@@ -29,13 +29,15 @@ def list_posts(use_json):
             rows = []
             for p in results:
                 d = p.to_dict()
-                rows.append([
-                    d.get("slug", ""),
-                    d.get("name", ""),
-                    str(d.get("votes_count", "")),
-                    str(d.get("comments_count", "")),
-                    d.get("tagline", "")[:60],
-                ])
+                rows.append(
+                    [
+                        d.get("slug", ""),
+                        d.get("name", ""),
+                        str(d.get("votes_count", "")),
+                        str(d.get("comments_count", "")),
+                        d.get("tagline", "")[:60],
+                    ]
+                )
             print_table(rows, ["Slug", "Name", "Votes", "Comments", "Tagline"])
 
 
@@ -87,9 +89,7 @@ def leaderboard(period, date_str, use_json):
 
     with handle_errors(json_mode=use_json):
         client = ProductHuntClient()
-        results = client.list_leaderboard(
-            period=period.lower(), year=year, month=month, day=day
-        )
+        results = client.list_leaderboard(period=period.lower(), year=year, month=month, day=day)
 
         if use_json:
             print_json(results)
@@ -101,11 +101,13 @@ def leaderboard(period, date_str, use_json):
             for i, p in enumerate(results, 1):
                 d = p.to_dict()
                 rank = d.get("rank") or i
-                rows.append([
-                    str(rank),
-                    d.get("name", ""),
-                    str(d.get("votes_count", "")),
-                    str(d.get("comments_count", "")),
-                    d.get("tagline", "")[:50],
-                ])
+                rows.append(
+                    [
+                        str(rank),
+                        d.get("name", ""),
+                        str(d.get("votes_count", "")),
+                        str(d.get("comments_count", "")),
+                        d.get("tagline", "")[:50],
+                    ]
+                )
             print_table(rows, ["#", "Name", "Votes", "Comments", "Tagline"])

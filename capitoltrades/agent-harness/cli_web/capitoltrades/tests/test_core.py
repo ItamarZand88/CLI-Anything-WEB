@@ -5,6 +5,7 @@ Covers:
 - HTML parsers (trades list, trade detail, politician list, issuer list, articles)
 - Helpers (handle_errors, print_json, ensure_utf8)
 """
+
 from __future__ import annotations
 
 import json
@@ -12,10 +13,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from bs4 import BeautifulSoup
-
 from cli_web.capitoltrades.core.exceptions import (
     AuthError,
-    CapitoltradesError,
     NetworkError,
     NotFoundError,
     RateLimitError,
@@ -23,13 +22,10 @@ from cli_web.capitoltrades.core.exceptions import (
     raise_for_status,
 )
 from cli_web.capitoltrades.core.models import (
-    parse_article_detail,
     parse_articles_list,
     parse_buzz_detail,
     parse_buzz_list,
-    parse_issuer_detail,
     parse_issuers_list,
-    parse_politician_detail,
     parse_politicians_list,
     parse_press_detail,
     parse_press_list,
@@ -38,8 +34,8 @@ from cli_web.capitoltrades.core.models import (
     parse_trades_stats,
 )
 
-
 # ─── Exception hierarchy ────────────────────────────────────────────────────
+
 
 class TestExceptions:
     def test_auth_error_on_401(self):
@@ -288,6 +284,7 @@ class TestTradeDetailParser:
 
 # ─── Politicians / issuers / articles lists ──────────────────────────────────
 
+
 class TestListParsers:
     def test_politicians_list_extracts_cards(self):
         html = """
@@ -438,6 +435,7 @@ class TestListParsers:
 
 # ─── Stats ──────────────────────────────────────────────────────────────────
 
+
 class TestStatsParser:
     def test_extracts_overview_numbers(self):
         html = """
@@ -460,9 +458,11 @@ class TestStatsParser:
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
+
 class TestHelpers:
     def test_handle_errors_auth_exits_1(self):
         from cli_web.capitoltrades.utils.helpers import handle_errors
+
         with pytest.raises(SystemExit) as exc:
             with handle_errors(json_mode=False):
                 raise AuthError("expired")
@@ -470,6 +470,7 @@ class TestHelpers:
 
     def test_handle_errors_not_found_exits_1(self):
         from cli_web.capitoltrades.utils.helpers import handle_errors
+
         with pytest.raises(SystemExit) as exc:
             with handle_errors(json_mode=False):
                 raise NotFoundError("missing")
@@ -477,6 +478,7 @@ class TestHelpers:
 
     def test_handle_errors_unknown_exits_2(self):
         from cli_web.capitoltrades.utils.helpers import handle_errors
+
         with pytest.raises(SystemExit) as exc:
             with handle_errors(json_mode=False):
                 raise ValueError("bug")
@@ -484,6 +486,7 @@ class TestHelpers:
 
     def test_handle_errors_json_mode_outputs_json(self, capsys):
         from cli_web.capitoltrades.utils.helpers import handle_errors
+
         with pytest.raises(SystemExit):
             with handle_errors(json_mode=True):
                 raise NotFoundError("missing trade 99")
@@ -496,9 +499,11 @@ class TestHelpers:
 
 # ─── Client mocking ─────────────────────────────────────────────────────────
 
+
 class TestClientMocked:
     def test_get_html_wraps_network_error(self):
         from cli_web.capitoltrades.core.client import CapitoltradesClient
+
         with patch("cli_web.capitoltrades.core.client.curl_requests.Session") as session_cls:
             session = MagicMock()
             session.request.side_effect = RuntimeError("connection refused")
@@ -508,6 +513,7 @@ class TestClientMocked:
 
     def test_get_bff_json_parses_response(self):
         from cli_web.capitoltrades.core.client import CapitoltradesClient
+
         with patch("cli_web.capitoltrades.core.client.curl_requests.Session") as session_cls:
             session = MagicMock()
             resp = MagicMock(status_code=200, text='{"data":[]}')

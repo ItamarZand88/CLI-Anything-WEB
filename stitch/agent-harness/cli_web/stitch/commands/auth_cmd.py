@@ -1,7 +1,8 @@
 """Auth commands for cli-web-stitch."""
+
 import click
 
-from ..core.auth import login_browser, login_from_cookies_json, get_auth_status
+from ..core.auth import get_auth_status, login_browser, login_from_cookies_json
 from ..utils.helpers import handle_errors
 from ..utils.output import json_success, print_json
 

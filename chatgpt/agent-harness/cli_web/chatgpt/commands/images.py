@@ -7,7 +7,8 @@ from pathlib import Path
 import click
 
 from ..core.client import ChatGPTClient
-from ..utils.helpers import handle_errors, print_json, resolve_json_mode, truncate
+from ..utils.helpers import handle_errors, resolve_json_mode
+from ..utils.output import print_json, truncate
 
 
 @click.group("images")
@@ -53,7 +54,9 @@ def list_images(ctx, limit: int, json_mode: bool) -> None:
 @click.option("--output", "-o", default=None, type=click.Path(), help="Output file path.")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def download_image(ctx, file_id: str, conversation: str, output: str | None, json_mode: bool) -> None:
+def download_image(
+    ctx, file_id: str, conversation: str, output: str | None, json_mode: bool
+) -> None:
     """Download a generated image by file ID."""
     json_mode = resolve_json_mode(json_mode)
 
@@ -77,14 +80,16 @@ def download_image(ctx, file_id: str, conversation: str, output: str | None, jso
                 f.write(img_bytes)
 
             if json_mode:
-                print_json({
-                    "success": True,
-                    "data": {
-                        "file_id": file_id,
-                        "saved_to": output,
-                        "size_bytes": len(img_bytes),
-                    },
-                })
+                print_json(
+                    {
+                        "success": True,
+                        "data": {
+                            "file_id": file_id,
+                            "saved_to": output,
+                            "size_bytes": len(img_bytes),
+                        },
+                    }
+                )
             else:
                 click.echo(f"Image saved to {output} ({len(img_bytes)} bytes)")
 
