@@ -51,6 +51,37 @@ def test_match_odds_line_from_espn():
     assert "DraftKings" in m.odds or m.odds == ""
 
 
+def test_match_venue_prefers_competition_full_name():
+    # Event-level venue has only displayName; competition-level has fullName.
+    ev = {
+        "id": "1",
+        "venue": {"displayName": "Short Name"},
+        "competitions": [
+            {
+                "competitors": [],
+                "venue": {"fullName": "Estadio Banorte"},
+            }
+        ],
+    }
+    assert Match.from_event(ev).venue == "Estadio Banorte"
+
+
+def test_match_venue_falls_back_to_event_display_name():
+    ev = {"id": "1", "venue": {"displayName": "Estadio Akron"}, "competitions": [{}]}
+    assert Match.from_event(ev).venue == "Estadio Akron"
+
+
+def test_odds_line_omits_empty_provider_colon():
+    from cli_web.worldcup.core.models import _odds_line
+
+    # Provider missing → no leading ": " (the bug fixed here).
+    line = _odds_line([{"details": "KOR +170", "overUnder": 2.5}])
+    assert line == "KOR +170 O/U 2.5"
+    # Provider present → "Provider: ...".
+    line = _odds_line([{"provider": {"displayName": "DraftKings"}, "details": "MEX -250"}])
+    assert line == "DraftKings: MEX -250"
+
+
 def test_team_from_team():
     teams = _fix("teams.json")["sports"][0]["leagues"][0]["teams"]
     t = Team.from_team(teams[0]["team"])

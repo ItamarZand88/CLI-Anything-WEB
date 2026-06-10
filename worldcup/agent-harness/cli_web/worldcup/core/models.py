@@ -43,7 +43,14 @@ class Match:
                 away, away_score = name, score
         notes = comp.get("notes") or []
         stage = notes[0].get("headline", "") if notes else ""
-        venue = (ev.get("venue") or comp.get("venue") or {}).get("fullName", "")
+        # The competition-level venue carries `fullName`; the event-level one
+        # only has `displayName` — so prefer the competition venue and fall
+        # back to the event's display name.
+        venue = (
+            (comp.get("venue") or {}).get("fullName")
+            or (ev.get("venue") or {}).get("displayName")
+            or ""
+        )
         return cls(
             id=str(ev.get("id", "")),
             date=ev.get("date", ""),
@@ -75,7 +82,10 @@ def _odds_line(odds: list) -> str:
         bits.append(str(o["details"]))
     if o.get("overUnder") is not None:
         bits.append(f"O/U {o['overUnder']}")
-    return f"{provider}: {' '.join(bits)}".strip().rstrip(":") if bits else provider
+    detail = " ".join(bits)
+    if provider and detail:
+        return f"{provider}: {detail}"
+    return provider or detail
 
 
 @dataclass
