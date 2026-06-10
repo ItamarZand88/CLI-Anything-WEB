@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 
+from .auth import load_auth, refresh_auth
 from .exceptions import AuthError, NetworkError, NotFoundError, RateLimitError, ServerError
 from .models import Comment, SearchResult, Story, User
 
@@ -199,8 +200,16 @@ class HackerNewsClient:
             raise AuthError()
         return self._user_cookie
 
-    def _web_request(self, method: str, url: str, **kwargs) -> httpx.Response:
-        """Execute an authenticated web request with standard error handling."""
+    def _web_request(
+        self, method: str, url: str, *, _attempt: int = 0, **kwargs
+    ) -> httpx.Response:
+        """Execute an authenticated web request with standard error handling.
+
+        Auth retry flow (CONVENTIONS.md §Auth Rules — never more than 3 attempts):
+          attempt 0 → 401/403 → reload auth.json from disk
+          attempt 1 → 401/403 → headless browser refresh via refresh_auth()
+          attempt 2 → 401/403 → raise AuthError
+        """
         cookie = self._require_auth()
         kwargs.setdefault("cookies", {"user": cookie})
         try:
@@ -211,12 +220,27 @@ class HackerNewsClient:
             raise NetworkError(f"Network error: {exc}") from exc
 
         if response.status_code in (401, 403):
-            raise AuthError(
-                "Auth cookie expired. Run: cli-web-hackernews auth login", recoverable=False
-            )
+            if _attempt >= 2:
+                raise AuthError(
+                    "Auth cookie expired. Run: cli-web-hackernews auth login",
+                    recoverable=False,
+                )
+            if _attempt == 0:
+                self._reload_cookie_from_disk()
+            else:
+                self._user_cookie = refresh_auth()["user_cookie"]
+            kwargs.pop("cookies", None)
+            return self._web_request(method, url, _attempt=_attempt + 1, **kwargs)
         if response.status_code >= 500:
             raise ServerError(response.status_code)
         return response
+
+    def _reload_cookie_from_disk(self) -> None:
+        """Reload the user cookie from auth.json (another process may have refreshed it)."""
+        try:
+            self._user_cookie = load_auth()["user_cookie"]
+        except AuthError:
+            pass  # fall through to headless refresh on the next attempt
 
     def _get_html(
         self,

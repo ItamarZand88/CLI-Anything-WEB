@@ -4,7 +4,7 @@ import click
 
 from ..core.analysis import compute_coins_per_stat, compute_total_stats, compute_value_score
 from ..core.client import FutbinClient
-from ..utils.helpers import handle_errors, require_year
+from ..utils.helpers import handle_errors, require_year, resolve_json_mode
 from ..utils.output import (
     coins_display,
     print_comparison,
@@ -28,6 +28,7 @@ def players():
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def search(name, year, evolutions, use_json):
     """Search players by name."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
@@ -47,6 +48,7 @@ def search(name, year, evolutions, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def get_player(player_id, year, use_json):
     """Get detailed player info by ID."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
@@ -109,6 +111,7 @@ def list_players(
     use_json,
 ):
     """List players with filters and pagination."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         plat = platform or "ps"
@@ -154,6 +157,7 @@ def list_players(
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def compare(player1_id, player2_id, year, use_json):
     """Compare two players side-by-side with value metrics."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
@@ -186,6 +190,7 @@ def compare(player1_id, player2_id, year, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def price_history(player_id, year, use_json):
     """Show price history and trends for a player."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
@@ -203,6 +208,7 @@ def price_history(player_id, year, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def versions(name, year, use_json):
     """All versions of a player compared with value scores."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:

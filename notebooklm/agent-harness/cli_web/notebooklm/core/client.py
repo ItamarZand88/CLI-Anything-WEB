@@ -47,6 +47,12 @@ class NotebookLMClient:
         self._build_label: str | None = None
         self._session = get_session()
 
+    def __enter__(self) -> "NotebookLMClient":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass  # No persistent connection — httpx calls are scoped per request.
+
     def _ensure_auth(self):
         """Load cookies and fetch tokens if not already done."""
         if self._cookies is None:

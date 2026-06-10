@@ -13,7 +13,7 @@ from typing import Any
 from bs4 import BeautifulSoup
 from curl_cffi import requests as curl_requests
 
-from .auth import load_cookies
+from .auth import load_cookies, refresh_auth
 from .exceptions import (
     AuthError,
     NetworkError,
@@ -47,6 +47,12 @@ class BookingClient:
         self.lang = lang
         self.currency = currency
         self._cookies: dict[str, str] | None = None
+
+    def __enter__(self) -> BookingClient:
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass  # No persistent session — requests are per-call (curl_cffi)
 
     def _get_cookies(self) -> dict[str, str]:
         """Load WAF cookies, caching for the session."""
@@ -112,11 +118,19 @@ class BookingClient:
 
         return data.get("data", {})
 
-    def _fetch_html(self, url: str, params: dict | None = None) -> BeautifulSoup:
+    def _fetch_html(
+        self, url: str, params: dict | None = None, _attempt: int = 0
+    ) -> BeautifulSoup:
         """Fetch an SSR HTML page with WAF cookies.
 
         Uses only the aws-waf-token cookie — the bkng cookie contains
         affiliate data that triggers redirects on hotel detail pages.
+
+        On a WAF challenge or 401/403, runs the 3-attempt auth refresh
+        (CONVENTIONS.md §Auth Rules — never more than 3 attempts):
+          attempt 0 → current cookies
+          attempt 1 → reload auth.json from disk
+          attempt 2 → headless refresh via refresh_auth()
         """
         all_cookies = self._get_cookies()
         # Only use WAF-essential cookies to avoid affiliate redirects
@@ -144,8 +158,20 @@ class BookingClient:
         except Exception as e:
             raise NetworkError(f"HTTP request failed: {e}") from e
 
-        self._check_waf(resp)
-        self._check_status(resp, url)
+        try:
+            self._check_waf(resp)
+            self._check_status(resp, url)
+        except AuthError:  # includes WAFChallengeError
+            if _attempt >= 2:
+                raise
+            if _attempt == 0:
+                try:
+                    self._cookies = load_cookies()  # reload auth.json from disk
+                except AuthError:
+                    self._cookies = all_cookies  # keep in-memory; refresh next
+            else:
+                self._cookies = refresh_auth()
+            return self._fetch_html(url, params, _attempt=_attempt + 1)
 
         return BeautifulSoup(resp.text, "html.parser")
 

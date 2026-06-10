@@ -116,6 +116,21 @@ def handle_errors(json_mode: bool = False):
 
 
 # ---------------------------------------------------------------------------
+# JSON mode resolution
+# ---------------------------------------------------------------------------
+
+
+def resolve_json_mode(use_json: bool) -> bool:
+    """Resolve --json flag, checking parent context too."""
+    if use_json:
+        return True
+    ctx = click.get_current_context(silent=True)
+    if ctx and ctx.obj:
+        return ctx.obj.get("json", False)
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Persistent config
 # ---------------------------------------------------------------------------
 

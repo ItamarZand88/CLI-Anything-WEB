@@ -5,7 +5,8 @@ from __future__ import annotations
 import click
 
 from ..core.auth import clear_auth, is_logged_in, load_auth, login_browser
-from ..utils.helpers import handle_errors, print_json
+from ..utils.helpers import handle_errors
+from ..utils.output import print_json
 
 
 @click.group("auth")

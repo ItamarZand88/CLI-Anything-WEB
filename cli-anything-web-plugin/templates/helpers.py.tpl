@@ -8,14 +8,12 @@ from contextlib import contextmanager
 
 import click
 
+{% set _exc = ([AppName ~ "Error", "AuthError", "NetworkError",
+    "NotFoundError", "RateLimitError", "ServerError"]) | sort -%}
 from ..core.exceptions import (
-    ${AppName}Error,
-    AuthError,
-    NetworkError,
-    NotFoundError,
-    RateLimitError,
-    ServerError,
-    _error_code_for,
+{%- for _name in _exc %}
+    ${ _name },
+{%- endfor %}
 )
 
 # Numeric exit-code contract (CONVENTIONS.md §Exit Codes):
@@ -69,7 +67,7 @@ def handle_errors(json_mode: bool = False):
     try:
         yield
     except KeyboardInterrupt:
-        raise SystemExit(130)
+        raise SystemExit(130) from None
     except (click.exceptions.Exit, click.UsageError):
         raise
     except ${AppName}Error as exc:
@@ -77,13 +75,13 @@ def handle_errors(json_mode: bool = False):
             print_json(exc.to_dict())
         else:
             click.secho(f"Error: {exc}", fg="red", err=True)
-        raise SystemExit(_exit_code_for(exc))
+        raise SystemExit(_exit_code_for(exc)) from None
     except Exception as exc:
         if json_mode:
             print_json({"error": True, "code": "INTERNAL_ERROR", "message": str(exc)})
         else:
             click.secho(f"Error: {exc}", fg="red", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
 
 def print_json(data) -> None:

@@ -39,20 +39,24 @@ _skin = ReplSkin(APP_NAME, version=VERSION)
 
 
 @click.group(invoke_without_command=True)
+@click.option("--json", "json_mode", is_flag=True, default=False, help="Output as JSON.")
 @click.version_option(VERSION, prog_name="cli-web-futbin")
 @click.pass_context
-def cli(ctx: click.Context):
+def cli(ctx: click.Context, json_mode: bool):
     """
     cli-web-futbin — EA FC Ultimate Team database CLI.
 
     Search players, check prices, browse SBCs and Evolutions.
     Run without a subcommand to enter interactive REPL mode.
     """
+    ctx.ensure_object(dict)
+    ctx.obj["json"] = json_mode
+
     if ctx.invoked_subcommand is None:
-        _run_repl()
+        _run_repl(ctx)
 
 
-def _run_repl():
+def _run_repl(ctx: click.Context):
     """Interactive REPL mode."""
     _skin.print_banner()
     _skin.info("Type 'help' for available commands, 'quit' to exit.")
@@ -77,6 +81,8 @@ def _run_repl():
         import shlex
 
         args = shlex.split(line)
+        if ctx.obj.get("json"):
+            args = ["--json"] + args
         try:
             cli.main(args, standalone_mode=False, prog_name="cli-web-futbin")
         except SystemExit:

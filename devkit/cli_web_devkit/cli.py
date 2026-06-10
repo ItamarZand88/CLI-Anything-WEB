@@ -96,6 +96,11 @@ def _cmd_spec_validate(args: argparse.Namespace) -> int:
 
 def _cmd_resync(args: argparse.Namespace) -> int:
     changed = resync(args.root, apps=args.app or None)
+    if args.app:
+        print(
+            "note: --app skips the plugin-internal copies "
+            "(cli-anything-web-plugin/scripts/) — run a full resync to update them"
+        )
     if changed:
         print(f"resynced {len(changed)} file(s):")
         for path in changed:

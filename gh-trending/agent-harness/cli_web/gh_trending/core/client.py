@@ -31,6 +31,12 @@ class GitHubClient:
         self._cookies = cookies or {}
         self._timeout = timeout
 
+    def __enter__(self) -> GitHubClient:
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass  # No persistent connection — httpx.Client is scoped per request.
+
     def _get(self, url: str, params: dict[str, str] | None = None) -> str:
         """Fetch a URL and return the HTML body."""
         params = {k: v for k, v in (params or {}).items() if v}

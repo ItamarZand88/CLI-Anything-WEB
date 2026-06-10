@@ -34,6 +34,12 @@ class CodeWikiClient:
     def close(self) -> None:
         self._http.close()
 
+    def __enter__(self) -> CodeWikiClient:
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
     def _call(self, rpc_id: str, params: list) -> Any:
         """Make a batchexecute RPC call."""
         url = build_url(rpc_id)

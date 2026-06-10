@@ -4,6 +4,9 @@
 class FutbinError(Exception):
     """Base exception for all futbin CLI errors."""
 
+    def to_dict(self) -> dict:
+        return {"error": True, "code": error_code_for(self), "message": str(self)}
+
 
 class AuthError(FutbinError):
     """Authentication issue (cookies expired, login required)."""
@@ -23,6 +26,12 @@ class RateLimitError(FutbinError):
     def __init__(self, message: str, retry_after: float | None = None):
         self.retry_after = retry_after
         super().__init__(message)
+
+    def to_dict(self) -> dict:
+        d = super().to_dict()
+        if self.retry_after is not None:
+            d["retry_after"] = self.retry_after
+        return d
 
 
 class ParsingError(FutbinError):

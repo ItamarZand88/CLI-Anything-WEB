@@ -13,7 +13,7 @@ from typing import Any
 
 from curl_cffi import requests as curl_requests
 
-from .auth import load_auth
+from .auth import load_auth, refresh_auth
 from .exceptions import (
     AuthError,
     ChatGPTError,
@@ -88,7 +88,21 @@ class ChatGPTClient:
         if resp.status_code >= 400:
             raise ChatGPTError(f"HTTP {resp.status_code}: {resp.text[:300]}")
 
-    def _get(self, path: str, params: dict | None = None) -> Any:
+    def _refresh_auth_for_retry(self, attempt: int) -> None:
+        """Auth refresh between retries (CONVENTIONS.md §Auth Rules).
+
+        attempt 0 → reload auth.json from disk (another process may have
+        refreshed it); attempt 1 → headless browser refresh via refresh_auth().
+        """
+        if attempt == 0:
+            try:
+                self._auth = load_auth()
+            except AuthError:
+                pass  # fall through to headless refresh on the next attempt
+        else:
+            self._auth = refresh_auth()
+
+    def _get(self, path: str, params: dict | None = None, _attempt: int = 0) -> Any:
         url = f"{BASE_URL}{path}"
         try:
             resp = self._session.get(
@@ -100,10 +114,21 @@ class ChatGPTClient:
         except Exception as exc:
             raise NetworkError(f"Request failed: {exc}") from exc
 
+        # 3-attempt auth retry — never more (see CONVENTIONS.md §Auth Rules)
+        if resp.status_code in (401, 403) and _attempt < 2:
+            self._refresh_auth_for_retry(_attempt)
+            return self._get(path, params, _attempt=_attempt + 1)
+
         self._check_response(resp, path)
         return resp.json()
 
-    def _post(self, path: str, data: dict | None = None, extra_headers: dict | None = None) -> Any:
+    def _post(
+        self,
+        path: str,
+        data: dict | None = None,
+        extra_headers: dict | None = None,
+        _attempt: int = 0,
+    ) -> Any:
         url = f"{BASE_URL}{path}"
         headers = self._headers()
         if extra_headers:
@@ -117,6 +142,11 @@ class ChatGPTClient:
             )
         except Exception as exc:
             raise NetworkError(f"Request failed: {exc}") from exc
+
+        # 3-attempt auth retry — never more (see CONVENTIONS.md §Auth Rules)
+        if resp.status_code in (401, 403) and _attempt < 2:
+            self._refresh_auth_for_retry(_attempt)
+            return self._post(path, data, extra_headers, _attempt=_attempt + 1)
 
         self._check_response(resp, path)
         return resp.json()

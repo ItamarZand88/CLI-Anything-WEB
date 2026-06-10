@@ -7,7 +7,8 @@ from pathlib import Path
 import click
 
 from ..core.client import ChatGPTClient
-from ..utils.helpers import handle_errors, print_json, resolve_json_mode, truncate
+from ..utils.helpers import handle_errors, resolve_json_mode
+from ..utils.output import print_json, truncate
 
 
 @click.group("images")

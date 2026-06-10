@@ -294,5 +294,72 @@ class TestAuthModule:
         resp.status_code = 403
         client._web_client = MagicMock()
         client._web_client.request.return_value = resp
-        with pytest.raises(AuthError):
-            client._get_html("https://news.ycombinator.com/item?id=1")
+        with (
+            patch(
+                "cli_web.hackernews.core.client.load_auth",
+                side_effect=AuthError("not logged in"),
+            ),
+            patch(
+                "cli_web.hackernews.core.client.refresh_auth",
+                side_effect=AuthError("session expired"),
+            ),
+        ):
+            with pytest.raises(AuthError):
+                client._get_html("https://news.ycombinator.com/item?id=1")
+
+
+# ─── Auth retry tests (3-attempt contract, CONVENTIONS.md §Auth Rules) ───────
+
+
+class TestAuthRetry:
+    """401/403 → reload auth.json → headless refresh_auth() → AuthError. Never >3."""
+
+    def _response(self, status_code: int) -> MagicMock:
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.text = "<html></html>"
+        return resp
+
+    def test_three_attempts_then_auth_error(self):
+        client = HackerNewsClient(user_cookie="alice&stale")
+        client._web_client = MagicMock()
+        client._web_client.request.return_value = self._response(403)
+
+        with (
+            patch(
+                "cli_web.hackernews.core.client.load_auth",
+                return_value={"user_cookie": "alice&disk", "username": "alice"},
+            ) as mock_load,
+            patch(
+                "cli_web.hackernews.core.client.refresh_auth",
+                return_value={"user_cookie": "alice&fresh", "username": "alice"},
+            ) as mock_refresh,
+        ):
+            with pytest.raises(AuthError):
+                client._web_request("GET", "https://news.ycombinator.com/submit")
+
+        assert client._web_client.request.call_count == 3
+        assert mock_load.call_count == 1
+        assert mock_refresh.call_count == 1
+
+    def test_success_after_disk_reload_stops_retrying(self):
+        client = HackerNewsClient(user_cookie="alice&stale")
+        client._web_client = MagicMock()
+        client._web_client.request.side_effect = [
+            self._response(403),
+            self._response(200),
+        ]
+
+        with (
+            patch(
+                "cli_web.hackernews.core.client.load_auth",
+                return_value={"user_cookie": "alice&disk", "username": "alice"},
+            ),
+            patch("cli_web.hackernews.core.client.refresh_auth") as mock_refresh,
+        ):
+            response = client._web_request("GET", "https://news.ycombinator.com/submit")
+
+        assert response.status_code == 200
+        assert client._web_client.request.call_count == 2
+        mock_refresh.assert_not_called()
+        assert client._user_cookie == "alice&disk"

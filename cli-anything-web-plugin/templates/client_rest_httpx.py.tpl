@@ -3,11 +3,16 @@ from __future__ import annotations
 
 import httpx
 
+{% if auth_type != "none" -%}
 from .auth import load_auth, refresh_auth
+{% endif -%}
+{%- set _exc = (["NetworkError"]
+    + ([AppName ~ "Error"] if protocol == "graphql" else [])
+    + (["AuthError"] if auth_type != "none" else [])) | sort -%}
 from .exceptions import (
-    ${AppName}Error,
-    AuthError,
-    NetworkError,
+{%- for _name in _exc %}
+    ${ _name },
+{%- endfor %}
     raise_for_status,
 )
 
@@ -18,6 +23,7 @@ class ${AppName}Client:
     BASE_URL = "https://FILL_IN_BASE_URL"
 
     def __init__(self, cookies: dict | None = None, api_key: str | None = None):
+{%- if auth_type != "none" %}
         if cookies is None:
             try:
                 auth_data = load_auth()
@@ -25,6 +31,9 @@ class ${AppName}Client:
             except AuthError:
                 cookies = {}
         self._cookies = cookies
+{%- else %}
+        self._cookies = cookies or {}
+{%- endif %}
         self._api_key = api_key
         headers = {"User-Agent": "cli-web-${app_name}/0.1.0"}
         if self._api_key:
@@ -53,10 +62,11 @@ class ${AppName}Client:
         try:
             resp = self._client.request(method, path, **kwargs)
         except httpx.ConnectError as exc:
-            raise NetworkError(f"Connection failed: {exc}")
+            raise NetworkError(f"Connection failed: {exc}") from exc
         except httpx.TimeoutException as exc:
-            raise NetworkError(f"Request timed out: {exc}")
+            raise NetworkError(f"Request timed out: {exc}") from exc
 
+{%- if auth_type != "none" %}
         if resp.status_code in (401, 403) and _attempt < 2:
             if _attempt == 0:
                 self._reload_cookies_from_disk()
@@ -65,10 +75,12 @@ class ${AppName}Client:
             kwargs.pop("cookies", None)
             kwargs["cookies"] = self._cookies
             return self._request(method, path, _attempt=_attempt + 1, **kwargs)
+{%- endif %}
 
         raise_for_status(resp)
         return resp
 
+{%- if auth_type != "none" %}
     def _reload_cookies_from_disk(self) -> None:
         """Reload cookies from auth.json (user may have re-logged in)."""
         try:
@@ -88,6 +100,7 @@ class ${AppName}Client:
                 "Run: cli-web-${app_name} auth login",
                 recoverable=False,
             )
+{%- endif %}
 
     # --- Add endpoint methods here ---
 {%- if protocol == "graphql" %}

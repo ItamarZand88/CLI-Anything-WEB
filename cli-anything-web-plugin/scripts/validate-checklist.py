@@ -338,12 +338,25 @@ class Validator:
         client_content = self._read_file(self.pkg_dir / "core" / "client.py") or ""
 
         r = self.check(cat, "4.3", "Client maps HTTP status to exceptions")
-        status_patterns = ["401", "403", "404", "429"]
-        mapped = [s for s in status_patterns if s in client_content]
-        if len(mapped) >= 3:
-            r.pass_(f"Mapped codes: {mapped}")
+        http_clients = ("httpx", "curl_cffi", "requests")
+        is_browser_client = (
+            any(b in client_content for b in ("playwright", "camoufox"))
+            and not any(h in client_content for h in http_clients)
+        )
+        if is_browser_client:
+            r.na("Browser-rendered client — no HTTP status layer")
         else:
-            r.fail(f"Only mapped: {mapped}")
+            # Mapping may live in client.py or in exceptions.py
+            # (raise_for_status pattern); count across both.
+            mapping_content = client_content + exc_content
+            status_patterns = ["401", "403", "404", "429"]
+            mapped = [s for s in status_patterns if s in mapping_content]
+            # No-auth CLIs have no 401/403 semantics to map.
+            needed = 3 if self.has_auth else 2
+            if len(mapped) >= needed:
+                r.pass_(f"Mapped codes: {mapped}")
+            else:
+                r.fail(f"Only mapped: {mapped}")
 
         r = self.check(cat, "4.4", "Auth retry on 401/403")
         if (
@@ -487,13 +500,11 @@ class Validator:
             r.fail()
 
         r = self.check(cat, "7.3", "Entry point format correct")
-        expected = (
-            f"cli-web-{self.app_name}=cli_web.{self.app_underscore}.{self.app_underscore}_cli:main"
-        )
-        if expected in setup_content:
+        prefix = f"cli-web-{self.app_name}=cli_web.{self.app_underscore}.{self.app_underscore}_cli:"
+        if any(f"{prefix}{fn}" in setup_content for fn in ("main", "cli")):
             r.pass_()
         else:
-            r.fail(f"Expected: {expected}")
+            r.fail(f"Expected: {prefix}main")
 
         r = self.check(cat, "7.4", "Imports use cli_web.<app>.* prefix")
         # Check a sample of files for correct imports
@@ -624,7 +635,11 @@ class Validator:
 
         r = self.check(cat, "10.2", "Client maps HTTP status to domain exceptions")
         client_content = self._read_file(self.pkg_dir / "core" / "client.py") or ""
-        if "raise_for_status" in client_content or "status_code" in client_content:
+        if any(b in client_content for b in ("playwright", "camoufox")) and not any(
+            h in client_content for h in ("httpx", "curl_cffi", "requests")
+        ):
+            r.na("Browser-rendered client — no HTTP status layer")
+        elif "raise_for_status" in client_content or "status_code" in client_content:
             r.pass_()
         else:
             r.fail()
@@ -740,6 +755,35 @@ class Validator:
 # ---------------------------------------------------------------------------
 
 
+def resolve_auth_type(harness: Path, app_name: str) -> str:
+    """Resolve --auth-type auto: registry.json is the intent source.
+
+    Falls back to core/auth.py presence for CLIs not yet registered
+    (e.g. validation right after scaffolding).
+    """
+    for parent in harness.parents:
+        registry_path = parent / "registry.json"
+        if not registry_path.is_file():
+            continue
+        try:
+            entries = json.loads(registry_path.read_text(encoding="utf-8")).get("clis", [])
+        except (OSError, json.JSONDecodeError):
+            break
+        for entry in entries:
+            if entry.get("name") == f"cli-web-{app_name}":
+                raw = str(entry.get("auth", "")).lower()
+                if raw == "none":
+                    return "none"
+                if "google" in raw:
+                    return "google-sso"
+                if "api" in raw and "key" in raw:
+                    return "api-key"
+                return "cookie"
+        break
+    auth_py = harness / "cli_web" / app_name.replace("-", "_") / "core" / "auth.py"
+    return "cookie" if auth_py.is_file() else "none"
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Validate cli-web-* CLI against quality checklist."
@@ -748,9 +792,10 @@ def main():
     parser.add_argument("--app-name", required=True, help="CLI app name (e.g., hackernews)")
     parser.add_argument(
         "--auth-type",
-        default="cookie",
-        choices=["none", "cookie", "api-key", "google-sso"],
-        help="Auth type (default: cookie)",
+        default="auto",
+        choices=["auto", "none", "cookie", "api-key", "google-sso"],
+        help="Auth type (default: auto — resolved from registry.json, "
+        "falling back to core/auth.py presence)",
     )
     parser.add_argument(
         "--json", dest="json_mode", action="store_true", help="Output results as JSON"
@@ -774,7 +819,11 @@ def main():
         print(f"Error: {harness} is not a directory", file=sys.stderr)
         sys.exit(1)
 
-    v = Validator(harness, args.app_name, args.auth_type)
+    auth_type = args.auth_type
+    if auth_type == "auto":
+        auth_type = resolve_auth_type(harness, args.app_name)
+
+    v = Validator(harness, args.app_name, auth_type)
     v.run_all()
 
     if args.tier1_only:

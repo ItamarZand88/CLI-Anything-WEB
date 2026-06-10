@@ -1,12 +1,18 @@
 """Unit tests for cli-web-tripadvisor core modules.
 
 Tests cover: exception hierarchy, client helpers (slug/JSON-LD parsing,
-model builders), models, and helpers. No live HTTP calls.
+model builders), models, helpers, and the HTTP client with the curl_cffi
+session mocked out. No live HTTP calls.
 """
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, patch
+
+import pytest
 from cli_web.tripadvisor.core.client import (
+    BASE_URL,
+    TripAdvisorClient,
     _build_attraction,
     _build_hotel,
     _build_restaurant,
@@ -475,3 +481,333 @@ class TestHelpers:
 
     def test_resolve_json_mode_false(self):
         assert resolve_json_mode(False) is False
+
+
+# ---------------------------------------------------------------------------
+# Client with mocked HTTP layer (curl_cffi session)
+# ---------------------------------------------------------------------------
+
+
+def _fake_resp(status: int = 200, text: str = "", json_data=None, headers: dict | None = None):
+    """Build a fake curl_cffi response object."""
+    resp = MagicMock()
+    resp.status_code = status
+    resp.text = text
+    resp.headers = headers or {}
+    if json_data is not None:
+        resp.json.return_value = json_data
+    else:
+        resp.json.side_effect = ValueError("not valid json")
+    return resp
+
+
+def _mocked_client(*responses):
+    """Return (client, session) backed by a fully mocked curl_cffi Session.
+
+    Each entry in `responses` is returned by session.get() in order;
+    a single entry is returned for every call.
+    """
+    patcher = patch("cli_web.tripadvisor.core.client.curl_requests.Session")
+    session_cls = patcher.start()
+    session = MagicMock()
+    if len(responses) == 1:
+        session.get.return_value = responses[0]
+    else:
+        session.get.side_effect = list(responses)
+    session_cls.return_value = session
+    client = TripAdvisorClient()
+    # Stop the patch immediately — the client holds the mocked session.
+    patcher.stop()
+    return client, session
+
+
+# Realistic TypeAheadJson payload (shape from captured traffic).
+TYPEAHEAD_PARIS = {
+    "results": [
+        {
+            "value": 187147,
+            "name": "Paris, France",
+            "url": "/Tourism-g187147-Paris_Ile_de_France-Vacations.html",
+            "type": "GEO",
+            "coords": "48.85693,2.3412",
+            "details": {
+                "parent_name": "Ile-de-France",
+                "geo_name": "Paris, Ile-de-France",
+            },
+        }
+    ]
+}
+
+# Hotel listing page: ItemList with ListItem > item nesting (TripAdvisor pattern).
+HOTEL_LISTING_HTML = """
+<html><body>
+<script type="application/ld+json">
+{
+  "@type": "ItemList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@type": "Hotel",
+        "name": "Grand Hotel Paris",
+        "url": "https://www.tripadvisor.com/Hotel_Review-g187147-d229968-Reviews-Grand.html",
+        "aggregateRating": {"ratingValue": "4.5", "reviewCount": 1234},
+        "priceRange": "$$$"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Hotel",
+        "name": "Petit Hotel",
+        "url": "https://www.tripadvisor.com/Hotel_Review-g187147-d555-Reviews-Petit.html",
+        "aggregateRating": {"ratingValue": "4.0", "reviewCount": 200},
+        "priceRange": "$$"
+      }
+    }
+  ]
+}
+</script>
+</body></html>
+"""
+
+HOTEL_DETAIL_HTML = """
+<html><body>
+<script type="application/ld+json">
+{
+  "@type": "Hotel",
+  "name": "Grand Hotel Paris",
+  "url": "https://www.tripadvisor.com/Hotel_Review-g187147-d229968-Reviews-Grand.html",
+  "aggregateRating": {"ratingValue": "4.5", "reviewCount": 1234},
+  "priceRange": "$$$",
+  "address": {"streetAddress": "1 Rue Test", "addressLocality": "Paris", "addressCountry": "FR"},
+  "geo": {"latitude": "48.8648", "longitude": "2.3337"},
+  "telephone": "+33 1 00 00 00 00"
+}
+</script>
+</body></html>
+"""
+
+RESTAURANT_LISTING_HTML = """
+<html><body>
+<script type="application/ld+json">
+{
+  "@type": "ItemList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@type": "Restaurant",
+        "name": "Cafe de Flore",
+        "url": "https://www.tripadvisor.com/Restaurant_Review-g187147-d1035679-Reviews-Cafe.html",
+        "aggregateRating": {"ratingValue": "4.2", "reviewCount": 2000},
+        "priceRange": "$$",
+        "servesCuisine": "French"
+      }
+    }
+  ]
+}
+</script>
+</body></html>
+"""
+
+# Attraction listing: JSON-LD has only name + geo (no url) → triggers the HTML
+# fallback parser, which reads cards from the QueryAppListWebResponse container.
+ATTRACTION_LISTING_HTML = """
+<html><body>
+<script type="application/ld+json">
+{"@type": "TouristAttraction", "name": "Eiffel Tower", "geo": {"latitude": "48.8584"}}
+</script>
+<div data-automation="QueryAppListWebResponse">
+  <div class="attraction-card">
+    <a href="/Attraction_Review-g187147-d188151-Reviews-Eiffel_Tower-Paris_Ile_de_France.html">1. Eiffel Tower</a>
+    <span>4.7 of 5 bubbles</span>
+    <span>( 69,598 )</span>
+  </div>
+  <div class="attraction-card">
+    <a href="/Attraction_Review-g187147-d188757-Reviews-Musee_du_Louvre-Paris_Ile_de_France.html">2. Louvre Museum</a>
+    <span>4.5 of 5 bubbles</span>
+    <span>( 102,123 )</span>
+  </div>
+</div>
+</body></html>
+"""
+
+
+class TestClientStatusMapping:
+    """HTTP status → typed exception mapping, with the session mocked."""
+
+    def test_401_raises_auth_error(self):
+        client, _ = _mocked_client(_fake_resp(401))
+        with pytest.raises(AuthError):
+            client._get_html(f"{BASE_URL}/Hotels-g187147-Paris-Hotels.html")
+
+    def test_403_raises_auth_error(self):
+        client, _ = _mocked_client(_fake_resp(403))
+        with pytest.raises(AuthError):
+            client._get_html(f"{BASE_URL}/Hotels-g187147-Paris-Hotels.html")
+
+    def test_404_raises_not_found(self):
+        client, _ = _mocked_client(_fake_resp(404))
+        with pytest.raises(NotFoundError):
+            client._get_html(f"{BASE_URL}/Hotels-g999999-Nowhere-Hotels.html")
+
+    def test_429_raises_rate_limit_with_retry_after(self):
+        client, _ = _mocked_client(_fake_resp(429, headers={"retry-after": "30"}))
+        with pytest.raises(RateLimitError) as exc_info:
+            client._get_html(f"{BASE_URL}/TypeAheadJson")
+        assert exc_info.value.retry_after == 30.0
+
+    def test_429_defaults_retry_after(self):
+        client, _ = _mocked_client(_fake_resp(429))
+        with pytest.raises(RateLimitError) as exc_info:
+            client._get_html(f"{BASE_URL}/TypeAheadJson")
+        assert exc_info.value.retry_after == 60.0
+
+    def test_503_raises_server_error(self):
+        client, _ = _mocked_client(_fake_resp(503))
+        with pytest.raises(ServerError) as exc_info:
+            client._get_html(f"{BASE_URL}/Hotels.html")
+        assert exc_info.value.status_code == 503
+
+    def test_unexpected_status_raises_base_error(self):
+        client, _ = _mocked_client(_fake_resp(302))
+        with pytest.raises(TripAdvisorError):
+            client._get_html(f"{BASE_URL}/Hotels.html")
+
+    def test_network_failure_raises_network_error(self):
+        client, session = _mocked_client(_fake_resp(200))
+        session.get.side_effect = RuntimeError("connection refused")
+        with pytest.raises(NetworkError):
+            client._get_html(f"{BASE_URL}/Hotels.html")
+
+    def test_invalid_json_raises_parse_error(self):
+        client, _ = _mocked_client(_fake_resp(200, text="<html>not json</html>"))
+        with pytest.raises(ParseError):
+            client._get_json(f"{BASE_URL}/TypeAheadJson")
+
+
+class TestSearchLocationsMocked:
+    def test_parses_typeahead_results(self):
+        client, session = _mocked_client(_fake_resp(200, json_data=TYPEAHEAD_PARIS))
+        results = client.search_locations("Paris")
+        assert len(results) == 1
+        loc = results[0]
+        assert loc.geo_id == "187147"
+        assert loc.name == "Paris, France"
+        assert loc.url == "/Tourism-g187147-Paris_Ile_de_France-Vacations.html"
+        assert loc.parent_name == "Ile-de-France"
+        # Verify the TypeAheadJson endpoint was hit with the query
+        url = session.get.call_args[0][0]
+        assert url == f"{BASE_URL}/TypeAheadJson"
+        assert session.get.call_args[1]["params"]["query"] == "Paris"
+
+    def test_empty_results(self):
+        client, _ = _mocked_client(_fake_resp(200, json_data={"results": []}))
+        assert client.search_locations("Xyzzy Nowhere") == []
+
+
+class TestSearchHotelsMocked:
+    def test_with_geo_id_skips_lookup(self):
+        client, session = _mocked_client(_fake_resp(200, text=HOTEL_LISTING_HTML))
+        result = client.search_hotels("Paris", geo_id="187147")
+        assert session.get.call_count == 1  # no TypeAheadJson lookup
+        url = session.get.call_args[0][0]
+        assert url == f"{BASE_URL}/Hotels-g187147-Paris-Hotels.html"
+        hotels = result["hotels"]
+        assert len(hotels) == 2
+        assert hotels[0].name == "Grand Hotel Paris"
+        assert hotels[0].id == "229968"
+        assert hotels[0].rating == "4.5"
+        assert result["geo_id"] == "187147"
+        assert result["page"] == 1
+
+    def test_without_geo_id_resolves_location_first(self):
+        client, session = _mocked_client(
+            _fake_resp(200, json_data=TYPEAHEAD_PARIS),
+            _fake_resp(200, text=HOTEL_LISTING_HTML),
+        )
+        result = client.search_hotels("Paris")
+        assert session.get.call_count == 2
+        listing_url = session.get.call_args_list[1][0][0]
+        assert listing_url == f"{BASE_URL}/Hotels-g187147-Paris_Ile_de_France-Hotels.html"
+        assert result["geo_id"] == "187147"
+        assert len(result["hotels"]) == 2
+
+    def test_pagination_offset_in_url(self):
+        client, session = _mocked_client(_fake_resp(200, text=HOTEL_LISTING_HTML))
+        client.search_hotels("Paris", geo_id="187147", page=2)
+        url = session.get.call_args[0][0]
+        assert "-oa30-" in url
+
+    def test_unresolvable_location_raises_parse_error(self):
+        client, _ = _mocked_client(_fake_resp(200, json_data={"results": []}))
+        with pytest.raises(ParseError):
+            client.search_hotels("Xyzzy Nowhere")
+
+
+class TestGetHotelMocked:
+    def test_parses_detail_page(self):
+        client, _ = _mocked_client(_fake_resp(200, text=HOTEL_DETAIL_HTML))
+        hotel = client.get_hotel(
+            "https://www.tripadvisor.com/Hotel_Review-g187147-d229968-Reviews-Grand.html"
+        )
+        assert hotel.id == "229968"
+        assert hotel.name == "Grand Hotel Paris"
+        assert hotel.city == "Paris"
+        assert hotel.review_count == 1234
+
+    def test_relative_url_gets_base_prefix(self):
+        client, session = _mocked_client(_fake_resp(200, text=HOTEL_DETAIL_HTML))
+        client.get_hotel("/Hotel_Review-g187147-d229968-Reviews-Grand.html")
+        url = session.get.call_args[0][0]
+        assert url.startswith(BASE_URL)
+
+    def test_missing_jsonld_raises_parse_error(self):
+        client, _ = _mocked_client(_fake_resp(200, text="<html><body></body></html>"))
+        with pytest.raises(ParseError):
+            client.get_hotel(
+                "https://www.tripadvisor.com/Hotel_Review-g187147-d229968-Reviews-X.html"
+            )
+
+
+class TestSearchRestaurantsMocked:
+    def test_with_geo_id(self):
+        client, session = _mocked_client(_fake_resp(200, text=RESTAURANT_LISTING_HTML))
+        result = client.search_restaurants("Paris", geo_id="187147")
+        url = session.get.call_args[0][0]
+        assert url == f"{BASE_URL}/Restaurants-g187147-Paris.html"
+        rests = result["restaurants"]
+        assert len(rests) == 1
+        assert rests[0].name == "Cafe de Flore"
+        assert rests[0].id == "1035679"
+        assert rests[0].cuisines == ["French"]
+
+
+class TestSearchAttractionsMocked:
+    def test_html_fallback_when_jsonld_has_no_urls(self):
+        client, session = _mocked_client(_fake_resp(200, text=ATTRACTION_LISTING_HTML))
+        result = client.search_attractions("Paris", geo_id="187147")
+        url = session.get.call_args[0][0]
+        assert url == f"{BASE_URL}/Attractions-g187147-Activities-Paris.html"
+        attrs = result["attractions"]
+        assert len(attrs) == 2
+        eiffel = attrs[0]
+        assert eiffel.id == "188151"
+        assert eiffel.name == "Eiffel Tower"  # leading "1. " rank stripped
+        assert eiffel.rating == "4.7"
+        assert eiffel.review_count == 69598
+        assert eiffel.url.startswith(BASE_URL)
+        assert attrs[1].name == "Louvre Museum"
+
+
+class TestGetRestaurantMocked:
+    def test_missing_jsonld_raises_parse_error(self):
+        client, _ = _mocked_client(_fake_resp(200, text="<html><body></body></html>"))
+        with pytest.raises(ParseError):
+            client.get_restaurant(
+                "https://www.tripadvisor.com/Restaurant_Review-g1-d1-Reviews-X.html"
+            )

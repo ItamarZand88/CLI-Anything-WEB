@@ -119,6 +119,20 @@ class TestCLISubprocess:
         result = _run(cli_cmd, stdin="exit\n", timeout=30.0)
         assert result.returncode == 0
 
+    def test_usage_error_exits_2(self, cli_cmd):
+        """Exit-code contract (CONVENTIONS.md §Exit Codes): usage errors -> 2."""
+        result = _run(cli_cmd, "definitely-not-a-command")
+        assert result.returncode == 2
+
+    # FILL_IN: exit-code contract for domain errors — pick a deterministic
+    # failing call and assert the contracted code + JSON error envelope, e.g.:
+    #
+    # def test_not_found_exits_4(self, cli_cmd):
+    #     result = _run(cli_cmd, "--json", "items", "get", "no-such-id-zzz")
+    #     assert result.returncode == 4  # NotFoundError -> 4
+    #     data = _parse_json(result)
+    #     assert data["error"] is True and data["code"] == "NOT_FOUND"
+
     # FILL_IN: subprocess tests for real commands with --json, e.g.:
     #
     # def test_items_list_json(self, cli_cmd):

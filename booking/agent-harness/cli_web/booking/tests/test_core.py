@@ -302,11 +302,13 @@ class TestClient:
         with pytest.raises(NetworkError):
             client.autocomplete("test")
 
+    @patch("cli_web.booking.core.client.refresh_auth")
     @patch("cli_web.booking.core.client.curl_requests.get")
     @patch("cli_web.booking.core.client.load_cookies")
     @patch("cli_web.booking.core.client.curl_requests.post")
-    def test_search_waf_challenge(self, mock_post, mock_load, mock_get):
+    def test_search_waf_challenge(self, mock_post, mock_load, mock_get, mock_refresh):
         mock_load.return_value = {"bkng": "old"}
+        mock_refresh.return_value = {"bkng": "refreshed"}
         mock_post.return_value = self._mock_response(
             json_data={
                 "data": {
@@ -464,3 +466,86 @@ class TestSearchParsing:
         assert len(results) == 2
         assert results[0].title == "Le Senat"
         assert results[1].title == "Other Hotel"
+
+
+# ── Auth Retry Tests (3-attempt contract, CONVENTIONS.md §Auth Rules) ──
+
+
+class TestAuthRetry:
+    """WAF challenge/403 → reload auth.json → headless refresh_auth(). Never >3."""
+
+    def _waf_response(self):
+        resp = MagicMock()
+        resp.status_code = 202
+        resp.text = "<html>challenge.js aws-waf</html>"
+        resp.headers = {}
+        return resp
+
+    def _ok_response(self):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.text = "<html><body>ok</body></html>"
+        resp.headers = {}
+        return resp
+
+    def test_three_attempts_then_waf_error(self):
+        from cli_web.booking.core.client import BookingClient
+
+        client = BookingClient()
+        client._cookies = {"aws-waf-token": "stale"}
+
+        with (
+            patch(
+                "cli_web.booking.core.client.curl_requests.get",
+                return_value=self._waf_response(),
+            ) as mock_get,
+            patch(
+                "cli_web.booking.core.client.load_cookies",
+                return_value={"aws-waf-token": "disk"},
+            ) as mock_load,
+            patch(
+                "cli_web.booking.core.client.refresh_auth",
+                return_value={"aws-waf-token": "fresh"},
+            ) as mock_refresh,
+        ):
+            with pytest.raises(WAFChallengeError):
+                client._fetch_html("https://www.booking.com/searchresults.html")
+
+        assert mock_get.call_count == 3
+        assert mock_load.call_count == 1
+        assert mock_refresh.call_count == 1
+
+    def test_success_after_disk_reload_stops_retrying(self):
+        from cli_web.booking.core.client import BookingClient
+
+        client = BookingClient()
+        client._cookies = {"aws-waf-token": "stale"}
+
+        with (
+            patch(
+                "cli_web.booking.core.client.curl_requests.get",
+                side_effect=[self._waf_response(), self._ok_response()],
+            ) as mock_get,
+            patch(
+                "cli_web.booking.core.client.load_cookies",
+                return_value={"aws-waf-token": "disk"},
+            ),
+            patch("cli_web.booking.core.client.refresh_auth") as mock_refresh,
+        ):
+            soup = client._fetch_html("https://www.booking.com/searchresults.html")
+
+        assert soup.body is not None
+        assert mock_get.call_count == 2
+        mock_refresh.assert_not_called()
+        assert client._cookies == {"aws-waf-token": "disk"}
+
+
+# ── Context Manager Tests ──────────────────────────────────────────
+
+
+class TestContextManager:
+    def test_client_context_manager(self):
+        from cli_web.booking.core.client import BookingClient
+
+        with BookingClient() as client:
+            assert isinstance(client, BookingClient)

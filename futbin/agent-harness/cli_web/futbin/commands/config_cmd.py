@@ -7,6 +7,7 @@ from ..utils.helpers import (
     get_all_config,
     get_config_value,
     handle_errors,
+    resolve_json_mode,
     set_config_value,
 )
 from ..utils.output import print_json
@@ -42,6 +43,7 @@ def config_set(key, value):
 @click.option("--json", "use_json", is_flag=True, default=False)
 def config_get(key, use_json):
     """Get a config value."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         val = get_config_value(key)
         if use_json:
@@ -57,6 +59,7 @@ def config_get(key, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False)
 def config_show(use_json):
     """Show all config values."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         cfg = get_all_config()
         # Add defaults for display

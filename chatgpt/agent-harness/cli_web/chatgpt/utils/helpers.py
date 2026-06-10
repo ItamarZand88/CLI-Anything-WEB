@@ -16,6 +16,7 @@ from ..core.exceptions import (
     RateLimitError,
     ServerError,
 )
+from .output import print_json, truncate  # noqa: F401  (re-exported)
 
 
 def json_error(code: str, message: str, **extra) -> str:
@@ -71,13 +72,3 @@ def handle_errors(json_mode: bool = False):
         sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(130)
-
-
-def print_json(data) -> None:
-    click.echo(json.dumps(data, indent=2, ensure_ascii=False))
-
-
-def truncate(text: str | None, length: int = 60) -> str:
-    if not text:
-        return ""
-    return text[:length] + "..." if len(text) > length else text

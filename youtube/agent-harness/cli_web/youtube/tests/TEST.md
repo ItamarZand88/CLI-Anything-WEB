@@ -4,6 +4,7 @@
 
 ### Test Files
 - `test_core.py` — 28 unit tests (mocked HTTP, no network)
+- `test_e2e.py` — 27 E2E tests (live InnerTube API + CLI subprocess, marked `e2e`)
 
 ### Unit Test Coverage
 
@@ -43,11 +44,28 @@
 - `video get` returns JSON with video details
 - `video get` extracts ID from full YouTube URL
 
+### E2E Test Coverage (`test_e2e.py`, live network — no auth required)
+
+#### Live API — Python layer (11 tests)
+- Search: returns videos + estimated_results, respects `--limit`, field shapes (11-char id, watch URL), no protocol leakage
+- Video detail: known video (dQw4w9WgXcQ) fields, numeric view count, unknown ID raises `NotFoundError`
+- Trending: `now` and `music` categories return videos with titles
+- Channel: `@YouTube` returns title + `UC...` channel_id, recent_videos list
+
+#### CLI Subprocess — `TestCLISubprocess` (16 tests)
+- Resolves binary via `_resolve_cli("cli-web-youtube")` (`CLI_WEB_FORCE_INSTALLED=1` forces installed binary; falls back to `python -m cli_web.youtube`); `_run` sets no `cwd`
+- `--help` exits 0 and lists all command groups; `--version` shows 0.1.0
+- REPL (default mode) exits cleanly on `exit`; invalid command exits non-zero
+- `search videos --json`, `video get --json` (ID + full URL), `trending list --json`, `channel get --json` return parseable JSON with expected fields
+- Unknown video ID with `--json` exits non-zero with `{"error": true, "code": "NOT_FOUND"}` envelope
+- Global `--json` flag propagates to subcommands; no `wrb.fr`/`af.httprm` protocol leaks
+- `--help` works for every command group (search/video/trending/channel)
+
 ---
 
 ## Part 2: Test Results
 
-### Run Date: 2026-03-26
+### Unit — Run Date: 2026-03-26
 ### Pass Rate: 100% (28/28)
 
 ```
@@ -82,3 +100,16 @@ test_core.py::TestCLIClick::test_video_get_extracts_id_from_url PASSED
 
 28 passed in 0.24s
 ```
+
+### E2E — Run Date: 2026-06-10
+### Pass Rate: 100% (27/27)
+
+```
+python -m pytest cli_web/youtube/tests/test_e2e.py -q
+...........................                                              [100%]
+27 passed in 18.42s
+```
+
+Live network tests hit the real InnerTube API and youtube.com channel pages
+(no auth required). Subprocess tests ran via the `python -m cli_web.youtube`
+fallback; set `CLI_WEB_FORCE_INSTALLED=1` to require the installed binary.

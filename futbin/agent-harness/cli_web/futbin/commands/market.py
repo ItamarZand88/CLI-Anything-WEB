@@ -4,7 +4,7 @@ import click
 
 from ..core.analysis import compute_platform_gap, compute_price_analysis
 from ..core.client import FutbinClient
-from ..utils.helpers import handle_errors, require_platform, require_year
+from ..utils.helpers import handle_errors, require_platform, require_year, resolve_json_mode
 from ..utils.output import (
     print_analysis,
     print_arbitrage,
@@ -30,6 +30,7 @@ def market():
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def index(rating, use_json):
     """Show market index. Use --rating for detailed view of a specific tier."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             if rating:
@@ -65,6 +66,7 @@ def index(rating, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def popular(limit, use_json):
     """Show trending/most-viewed players."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             players = client.get_popular_players(limit=min(limit, 250))
@@ -82,6 +84,7 @@ def popular(limit, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def latest(page, use_json):
     """Show newly released player cards."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             players, has_next = client.get_latest_players(page=page)
@@ -113,6 +116,7 @@ def latest(page, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def cheapest(rating_min, rating_max, min_price, max_price, page, platform, use_json):
     """Find cheapest players by rating — best value for SBCs and trading."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         plat = require_platform(platform)
         sort_field = f"{plat}_price" if plat == "ps" else "pc_price"
@@ -148,6 +152,7 @@ def cheapest(rating_min, rating_max, min_price, max_price, page, platform, use_j
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def fodder(rating_min, rating_max, use_json):
     """SBC fodder prices — cheapest players at each rating tier (81-99)."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             tiers = client.get_sbc_fodder()
@@ -198,6 +203,7 @@ def fodder(rating_min, rating_max, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def movers(fallers, rating_min, min_price, max_price, platform, page, use_json):
     """Show biggest price movers — risers (default) or fallers."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         plat = require_platform(platform)
         direction = "fallers" if fallers else "risers"
@@ -235,6 +241,7 @@ def movers(fallers, rating_min, min_price, max_price, platform, page, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def analyze(player_id, year, use_json):
     """Price analysis with buy/sell signal for a player."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         yr = require_year(year)
         with FutbinClient() as client:
@@ -280,6 +287,7 @@ def analyze(player_id, year, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def scan(rating_min, rating_max, platform, limit, threshold, use_json):
     """Bulk undervalue/overvalue detection — scan cheapest players for deals."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         plat = require_platform(platform)
         sort_field = f"{plat}_price" if plat == "ps" else "pc_price"
@@ -355,6 +363,7 @@ def scan(rating_min, rating_max, platform, limit, threshold, use_json):
 @click.option("--json", "use_json", is_flag=True, default=False, help="Output as JSON.")
 def arbitrage(rating_min, rating_max, min_gap, page, use_json):
     """Cross-platform price gaps — find arbitrage opportunities between PS and PC."""
+    use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         with FutbinClient() as client:
             players, has_next = client.list_players(

@@ -51,6 +51,12 @@ class PexelsClient:
     def __init__(self, timeout: float = 30.0):
         self.timeout = timeout
 
+    def __enter__(self) -> "PexelsClient":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass  # No persistent connection — curl_cffi calls are scoped per request.
+
     def _request(self, url: str, params: dict | None = None) -> curl_requests.Response:
         """Make an HTTP GET request with Cloudflare bypass."""
         try:
