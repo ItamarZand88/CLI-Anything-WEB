@@ -33,6 +33,14 @@ jobs:
         run: python devkit/cli_web_devkit/registry_check.py
       - name: README fleet sections freshness
         run: PYTHONPATH=devkit python -m cli_web_devkit docs --check
+      - name: About description CLI count freshness
+        # Read-only: compares the GitHub "About" count to registry.json. The
+        # default token can read repo metadata but not write it, so a stale
+        # count is reported here and fixed with `cli-web-devkit about --apply`
+        # (a maintainer step). No-ops if gh metadata is unavailable.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: PYTHONPATH=devkit python -m cli_web_devkit about --check
 
   plugin:
     name: plugin & devkit tests

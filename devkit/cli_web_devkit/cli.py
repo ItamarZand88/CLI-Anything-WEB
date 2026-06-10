@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from .about import apply_description, desired_description, fleet_count, live_description
 from .canary import run_canaries
 from .docs import generate as generate_docs
 from .gaps import analyze as analyze_gaps
@@ -44,6 +45,35 @@ def _cmd_docs(args: argparse.Namespace) -> int:
         )
         return 1
     print("README.md regenerated" if not fresh else "README.md already up to date")
+    return 0
+
+
+def _cmd_about(args: argparse.Namespace) -> int:
+    count = fleet_count(args.root)
+    try:
+        live = live_description()
+    except RuntimeError as exc:
+        # No gh / not authenticated. Don't fail CI for a metadata nicety;
+        # report and move on (the count is enforced when gh is available).
+        print(f"about: skipped — {exc}", file=sys.stderr)
+        return 0
+    desired = desired_description(live, count)
+    if live == desired:
+        print(f"About description in sync ({count} CLIs)")
+        return 0
+    if args.apply:
+        apply_description(desired)
+        print(f"About description updated -> {count} CLIs")
+        return 0
+    if args.check:
+        print(
+            f"About description STALE (fleet has {count} CLIs) — run: cli-web-devkit about --apply",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"current: {live}")
+    print(f"desired: {desired}")
+    print("run: cli-web-devkit about --apply")
     return 0
 
 
@@ -149,6 +179,15 @@ def main(argv: list[str] | None = None) -> int:
     p_docs = sub.add_parser("docs", help="Regenerate README fleet sections from registry.json")
     p_docs.add_argument("--check", action="store_true", help="Fail if README is stale")
     p_docs.set_defaults(func=_cmd_docs)
+
+    p_about = sub.add_parser(
+        "about", help="Sync the GitHub repo description's CLI count with registry.json"
+    )
+    p_about.add_argument("--check", action="store_true", help="Fail if the count is stale (CI)")
+    p_about.add_argument(
+        "--apply", action="store_true", help="Update the live description (needs gh admin)"
+    )
+    p_about.set_defaults(func=_cmd_about)
 
     p_gaps = sub.add_parser("gaps", help="Captured-vs-implemented-vs-exposed gap report")
     p_gaps.add_argument("app", help="App directory name (e.g. hackernews)")

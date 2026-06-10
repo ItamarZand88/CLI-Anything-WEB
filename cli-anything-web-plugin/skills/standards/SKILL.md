@@ -263,6 +263,7 @@ entry, then run the generators — never edit those outputs by hand:
 # 1. Add the entry to registry.json (schema below), then:
 cli-web-devkit registry validate     # entry <-> fleet cross-check
 cli-web-devkit docs                  # regenerates README table + install block
+cli-web-devkit about --apply         # syncs the GitHub "About" CLI count (needs gh admin)
 cli-web-devkit resync --app <app>    # vendored files in sync + manifest updated
 cli-web-devkit drift                 # must report 0 drifted/missing
 
