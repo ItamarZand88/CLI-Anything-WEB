@@ -1,11 +1,18 @@
 {
   "name": "cli-anything-web",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "CLI-Anything for the Web: Generate agent-native CLIs for closed-source web apps via network traffic analysis",
   "author": {
     "name": "Itamar",
     "url": "https://github.com/itamar-earlyai"
   },
   "license": "MIT",
-  "keywords": ["cli-generation", "web-automation", "agent-native", "reverse-engineering", "playwright-cli", "traffic-capture"]
+  "keywords": [
+    "cli-generation",
+    "web-automation",
+    "agent-native",
+    "reverse-engineering",
+    "playwright-cli",
+    "traffic-capture"
+  ]
 }

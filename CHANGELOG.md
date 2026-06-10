@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.11.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.10.0...v0.11.0) (2026-06-10)
+
+
+### Features
+
+* fleet-wide doctor command (self-diagnosis) via vendored core module ([5c2f403](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/5c2f4032b1da6d4d12f8aeb04899c373e953c363))
+* numeric exit-code contract and --jsonl output for generated CLIs ([3663bda](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/3663bda4be0115c9fac7db61c5ea114d78d12254))
+* Phase 1+2 — quality gates, cli-web-devkit, cli-web-core, fleet sync ([bbb6a88](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/bbb6a88276cdd1095665b56e900cb061bb529b35))
+* Phases 3-5 — generation v2, fleet ops, api-spec IR, MCP serve fleet-wide ([61caad1](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/61caad16cb7915c440967cfee367f9ca99b64557))
+* refactor all 26 skills to Anthropic skill-authoring best practices ([7294199](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/729419967e8fd6e180b9d3e17a665da5340e782b))
+* refactor pipeline skill content to authoring/prompting best practices ([6170131](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/6170131dca335753d286d37761f2776467ece43f))
+* shared runtime (cli-web-core), fleet devkit, and repo-wide quality gates ([2932dc2](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/2932dc23bbb58cc1f36982c1abb9f8fc1de147be))
+
+
+### Bug Fixes
+
+* address code-review findings in shared runtime, pipeline, and quality gate ([06988a0](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/06988a0266db671c58077379834febdccf65205d))
+* **ci:** install jinja2/click for plugin job, run core tests, decouple doctor tests ([3bb1177](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/3bb1177c348a1b8fbb8771dee01e624ab0738c04))
+* eliminate all remaining fleet and tooling bugs from the review ([b70aa65](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b70aa65007292655ac65b4797145302029c09181))
+
+
+### Documentation
+
+* add deep-research refactoring plan for plugin, fleet, and infrastructure ([be2f198](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/be2f1984a9be1b91fda243b0d7d20253ae6a127d))
+* mark roadmap Phase 5 complete (doctor shipped) ([5fd0a69](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/5fd0a69de10e60a45deb6eacc06a1e58d176deca))
+
 ## [0.10.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.9.0...v0.10.0) (2026-04-24)
 
 

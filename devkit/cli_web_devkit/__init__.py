@@ -9,4 +9,4 @@ Subcommands (see ``cli_web_devkit.cli``):
 - ``resync``            — re-render canonical shared files into CLIs
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

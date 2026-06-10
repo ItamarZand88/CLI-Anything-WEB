@@ -37,7 +37,7 @@ from .exceptions import (
 from .output import json_error, json_lines, json_success
 from .polling import poll_until_complete
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 __all__ = [
     "AppError",
