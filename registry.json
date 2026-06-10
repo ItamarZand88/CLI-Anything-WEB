@@ -42,7 +42,7 @@
       ],
       "display_website": "FUTBIN",
       "skill": ".claude/skills/futbin-cli/SKILL.md",
-      "description": "EA FC player database — search, compare, prices, market analysis, arbitrage, trading signals"
+      "description": "EA FC player database \u2014 search, compare, prices, market analysis, arbitrage, trading signals"
     },
     {
       "name": "cli-web-notebooklm",
@@ -179,7 +179,7 @@
       "install": "pip install -e stitch/agent-harness",
       "display_website": "Google Stitch",
       "skill": ".claude/skills/stitch-cli/SKILL.md",
-      "description": "AI UI design — generate mobile/web app mockups from text prompts"
+      "description": "AI UI design \u2014 generate mobile/web app mockups from text prompts"
     },
     {
       "name": "cli-web-pexels",
@@ -211,7 +211,7 @@
       ],
       "display_website": "Pexels",
       "skill": ".claude/skills/pexels-cli/SKILL.md",
-      "description": "Free stock photos & videos — search, download, collections, profiles"
+      "description": "Free stock photos & videos \u2014 search, download, collections, profiles"
     },
     {
       "name": "cli-web-reddit",
@@ -311,8 +311,8 @@
     {
       "name": "cli-web-hackernews",
       "website": "news.ycombinator.com",
-      "protocol": "REST API — Firebase + Algolia (httpx)",
-      "auth": "cookie (optional — required for write ops)",
+      "protocol": "REST API \u2014 Firebase + Algolia (httpx)",
+      "auth": "cookie (optional \u2014 required for write ops)",
       "directory": "hackernews/agent-harness",
       "namespace": "cli_web.hackernews",
       "commands": [
@@ -568,7 +568,35 @@
       ],
       "display_website": "Capitol Trades",
       "skill": ".claude/skills/capitoltrades-cli/SKILL.md",
-      "description": "US congressional stock trades (STOCK Act) — trades, politicians, issuers, price history"
+      "description": "US congressional stock trades (STOCK Act) \u2014 trades, politicians, issuers, price history"
+    },
+    {
+      "name": "cli-web-worldcup",
+      "website": "https://www.espn.com/soccer/",
+      "protocol": "REST JSON (ESPN + The Odds API)",
+      "auth": "none",
+      "directory": "worldcup/agent-harness",
+      "namespace": "cli_web.worldcup",
+      "commands": [
+        "fixtures list",
+        "fixtures get",
+        "teams list",
+        "teams get",
+        "players roster",
+        "standings list",
+        "odds list"
+      ],
+      "install": "pip install -e worldcup/agent-harness",
+      "canary": [
+        [
+          "teams",
+          "list",
+          "--json"
+        ]
+      ],
+      "display_website": "ESPN / FIFA World Cup 2026",
+      "skill": ".claude/skills/worldcup-cli/SKILL.md",
+      "description": "FIFA World Cup 2026 \u2014 fixtures, nations, squads, group standings, and bookmaker odds (read-only)"
     }
   ]
 }

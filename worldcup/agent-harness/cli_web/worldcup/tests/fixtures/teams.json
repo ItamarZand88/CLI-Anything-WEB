@@ -1,0 +1,258 @@
+{
+ "sports": [
+  {
+   "leagues": [
+    {
+     "teams": [
+      {
+       "team": {
+        "abbreviation": "ALG",
+        "alternateColor": "000000",
+        "color": "5bbd19",
+        "displayName": "Algeria",
+        "id": "624",
+        "isActive": true,
+        "isAllStar": false,
+        "links": [
+         {
+          "href": "https://www.espn.com/soccer/team/_/id/624/algeria",
+          "isExternal": false,
+          "isHidden": false,
+          "isPremium": false,
+          "language": "en-US",
+          "rel": [
+           "clubhouse",
+           "desktop",
+           "team"
+          ],
+          "shortText": "Clubhouse",
+          "text": "Clubhouse"
+         },
+         {
+          "href": "https://www.espn.com/soccer/team/stats/_/id/624/algeria",
+          "isExternal": false,
+          "isHidden": false,
+          "isPremium": false,
+          "language": "en-US",
+          "rel": [
+           "stats",
+           "desktop",
+           "team"
+          ],
+          "shortText": "Stats",
+          "text": "Stats"
+         },
+         {
+          "href": "https://www.espn.com/soccer/team/fixtures/_/id/624/algeria",
+          "isExternal": false,
+          "isHidden": false,
+          "isPremium": false,
+          "language": "en-US",
+          "rel": [
+           "schedule",
+           "desktop",
+           "team"
+          ],
+          "shortText": "Fixtures",
+          "text": "Fixtures"
+         }
+        ],
+        "location": "Algeria",
+        "logos": [
+         {
+          "alt": "",
+          "height": 500,
+          "href": "https://a.espncdn.com/i/teamlogos/countries/500/alg.png",
+          "rel": [
+           "full",
+           "default"
+          ],
+          "width": 500
+         },
+         {
+          "alt": "",
+          "height": 500,
+          "href": "https://a.espncdn.com/i/teamlogos/countries/500-dark/alg.png",
+          "rel": [
+           "full",
+           "dark"
+          ],
+          "width": 500
+         }
+        ],
+        "name": "Algeria",
+        "shortDisplayName": "Algeria",
+        "slug": "alg",
+        "uid": "s:600~t:624"
+       }
+      },
+      {
+       "team": {
+        "abbreviation": "ARG",
+        "alternateColor": "173e69",
+        "color": "74acdf",
+        "displayName": "Argentina",
+        "id": "202",
+        "isActive": true,
+        "isAllStar": false,
+        "links": [
+         {
+          "href": "https://www.espn.com/soccer/team/_/id/202/argentina",
+          "isExternal": false,
+          "isHidden": false,
+          "isPremium": false,
+          "language": "en-US",
+          "rel": [
+           "clubhouse",
+           "desktop",
+           "team"
+          ],
+          "shortText": "Clubhouse",
+          "text": "Clubhouse"
+         },
+         {
+          "href": "https://www.espn.com/soccer/team/stats/_/id/202/argentina",
+          "isExternal": false,
+          "isHidden": false,
+          "isPremium": false,
+          "language": "en-US",
+          "rel": [
+           "stats",
+           "desktop",
+           "team"
+          ],
+          "shortText": "Stats",
+          "text": "Stats"
+         },
+         {
+          "href": "https://www.espn.com/soccer/team/fixtures/_/id/202/argentina",
+          "isExternal": false,
+          "isHidden": false,
+          "isPremium": false,
+          "language": "en-US",
+          "rel": [
+           "schedule",
+           "desktop",
+           "team"
+          ],
+          "shortText": "Fixtures",
+          "text": "Fixtures"
+         }
+        ],
+        "location": "Argentina",
+        "logos": [
+         {
+          "alt": "",
+          "height": 500,
+          "href": "https://a.espncdn.com/i/teamlogos/countries/500/arg.png",
+          "rel": [
+           "full",
+           "default"
+          ],
+          "width": 500
+         },
+         {
+          "alt": "",
+          "height": 500,
+          "href": "https://a.espncdn.com/i/teamlogos/countries/500-dark/arg.png",
+          "rel": [
+           "full",
+           "dark"
+          ],
+          "width": 500
+         }
+        ],
+        "name": "Argentina",
+        "shortDisplayName": "Argentina",
+        "slug": "arg",
+        "uid": "s:600~t:202"
+       }
+      },
+      {
+       "team": {
+        "abbreviation": "AUS",
+        "alternateColor": "ed2f31",
+        "color": "2a2d7c",
+        "displayName": "Australia",
+        "id": "628",
+        "isActive": true,
+        "isAllStar": false,
+        "links": [
+         {
+          "href": "https://www.espn.com/soccer/team/_/id/628/australia",
+          "isExternal": false,
+          "isHidden": false,
+          "isPremium": false,
+          "language": "en-US",
+          "rel": [
+           "clubhouse",
+           "desktop",
+           "team"
+          ],
+          "shortText": "Clubhouse",
+          "text": "Clubhouse"
+         },
+         {
+          "href": "https://www.espn.com/soccer/team/stats/_/id/628/australia",
+          "isExternal": false,
+          "isHidden": false,
+          "isPremium": false,
+          "language": "en-US",
+          "rel": [
+           "stats",
+           "desktop",
+           "team"
+          ],
+          "shortText": "Stats",
+          "text": "Stats"
+         },
+         {
+          "href": "https://www.espn.com/soccer/team/fixtures/_/id/628/australia",
+          "isExternal": false,
+          "isHidden": false,
+          "isPremium": false,
+          "language": "en-US",
+          "rel": [
+           "schedule",
+           "desktop",
+           "team"
+          ],
+          "shortText": "Fixtures",
+          "text": "Fixtures"
+         }
+        ],
+        "location": "Australia",
+        "logos": [
+         {
+          "alt": "",
+          "height": 500,
+          "href": "https://a.espncdn.com/i/teamlogos/countries/500/aus.png",
+          "rel": [
+           "full",
+           "default"
+          ],
+          "width": 500
+         },
+         {
+          "alt": "",
+          "height": 500,
+          "href": "https://a.espncdn.com/i/teamlogos/countries/500-dark/aus.png",
+          "rel": [
+           "full",
+           "dark"
+          ],
+          "width": 500
+         }
+        ],
+        "name": "Australia",
+        "shortDisplayName": "Australia",
+        "slug": "aus",
+        "uid": "s:600~t:628"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

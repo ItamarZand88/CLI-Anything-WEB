@@ -160,6 +160,7 @@ Sites protected by AWS WAF return a 202 JavaScript challenge page to raw HTTP cl
 | `cli-web-tripadvisor` | `tripadvisor/` | SSR HTML + JSON-LD (curl_cffi) | No auth, DataDome bypass, locations/hotels/restaurants/attractions |
 | `cli-web-linkedin` | `linkedin/` | GraphQL + Voyager REST (curl_cffi) | Cookie auth (li_at), PerimeterX bypass, feed/profile/search/jobs/post/edit/delete/react/unreact/comment/edit-comment/delete-comment/notifications/network/messaging (26 cmds) |
 | `cli-web-capitoltrades` | `capitoltrades/` | SSR HTML + BFF JSON (curl_cffi) | No auth, CloudFront bypass, trades/politicians/issuers/articles/buzz/press (16 cmds) |
+| `cli-web-worldcup` | `worldcup/` | REST JSON (ESPN + The Odds API) | No auth (ESPN); optional API key for odds — fixtures/teams/players/standings/odds, read-only (7 cmds) |
 
 ## Reference Examples
 

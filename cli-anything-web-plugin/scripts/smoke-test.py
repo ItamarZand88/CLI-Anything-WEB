@@ -167,14 +167,29 @@ class SmokeTest:
         subcmds = self._parse_commands_from_help(help_out)
 
         if subcmds:
-            # Test first subcommand
-            subcmd = subcmds[0]
+            # Prefer a no-argument "listy" subcommand: get/show/roster-style
+            # leaves take a required positional and would fail with a usage
+            # error (empty stdout) under this generic probe.
+            preferred = next((s for s in ("list", "search", "feed", "top") if s in subcmds), None)
+            subcmd = preferred or subcmds[0]
             code, out, err = run_cli(self.cli_cmd, [cmd, subcmd, "--json"], timeout=15)
         else:
             code, out, err = run_cli(self.cli_cmd, [cmd, "--json"], timeout=15)
 
         if code == -1:
             self._record(f"{cmd} --json", False, "Timeout (15s)")
+            return
+
+        # Exit 2 = Click usage error (the chosen subcommand needs a required
+        # argument the generic probe can't supply). Not a CLI defect — skip.
+        if code == 2 and not out.strip():
+            self.results.append(
+                {
+                    "name": f"{cmd} --json",
+                    "status": "skip",
+                    "detail": "needs a required argument (not probeable generically)",
+                }
+            )
             return
 
         if not out.strip():
@@ -203,10 +218,11 @@ class SmokeTest:
         self.check_version()
         self.check_auth_status()
 
-        # Discover and test commands
-        commands = self.discover_commands()
-        # Skip 'auth' (tested separately) and limit to first 5
-        test_cmds = [c for c in commands if c != "auth"][:5]
+        # Discover and test commands. Skip 'auth' (tested separately) and
+        # 'mcp-serve' (a stdio JSON-RPC server, not a --json command — it
+        # reads stdin and emits nothing for `--json`). Limit to first 5.
+        skip = {"auth", "mcp-serve"}
+        test_cmds = [c for c in self.discover_commands() if c not in skip][:5]
         for cmd in test_cmds:
             self.check_command_json(cmd)
 

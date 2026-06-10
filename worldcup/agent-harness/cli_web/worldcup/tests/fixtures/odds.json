@@ -1,0 +1,34 @@
+[
+ {
+  "id": "abc123",
+  "sport_key": "soccer_fifa_world_cup",
+  "commence_time": "2026-06-11T19:00:00Z",
+  "home_team": "Mexico",
+  "away_team": "South Africa",
+  "bookmakers": [
+   {
+    "key": "draftkings",
+    "title": "DraftKings",
+    "markets": [
+     {
+      "key": "h2h",
+      "outcomes": [
+       {
+        "name": "Mexico",
+        "price": 1.8
+       },
+       {
+        "name": "South Africa",
+        "price": 4.5
+       },
+       {
+        "name": "Draw",
+        "price": 3.6
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+]

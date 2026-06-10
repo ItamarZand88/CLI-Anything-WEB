@@ -1,0 +1,16 @@
+{
+  "manifest_version": 1,
+  "cli": "cli-web-worldcup",
+  "generator": {
+    "plugin_version": "0.11.0",
+    "template_version": "2.1.0",
+    "generated_at": "2026-06-10T13:18:33Z"
+  },
+  "profile": {
+    "protocol": "rest",
+    "http_client": "httpx",
+    "auth_type": "none"
+  },
+  "shared_files": {},
+  "overrides": []
+}

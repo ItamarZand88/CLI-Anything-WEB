@@ -1,0 +1,566 @@
+{
+ "athletes": [
+  {
+   "id": "137038",
+   "uid": "s:600~a:137038",
+   "guid": "eec0468f-8e44-dbcd-9365-b02b0ad59e72",
+   "firstName": "Guillermo",
+   "middleName": "",
+   "lastName": "Ochoa",
+   "fullName": "Guillermo Ochoa",
+   "displayName": "Guillermo Ochoa",
+   "shortName": "G. Ochoa",
+   "weight": 185.0,
+   "displayWeight": "185 lbs",
+   "height": 75.0,
+   "displayHeight": "6' 3\"",
+   "age": 40,
+   "dateOfBirth": "1985-07-13T07:00Z",
+   "gender": "MALE",
+   "links": [
+    {
+     "language": "en-US",
+     "rel": [
+      "playercard",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/_/id/137038/guillermo-ochoa",
+     "text": "Player Card",
+     "shortText": "Player Card",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "stats",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/stats/_/id/137038/guillermo-ochoa",
+     "text": "Stats",
+     "shortText": "Stats",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "splits",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/splits/_/id/137038/guillermo-ochoa",
+     "text": "Splits",
+     "shortText": "Splits",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "gamelog",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/matches/_/id/137038/guillermo-ochoa",
+     "text": "Matches",
+     "shortText": "Matches",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "news",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/news/_/id/137038/guillermo-ochoa",
+     "text": "News",
+     "shortText": "News",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "bio",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/bio/_/id/137038/guillermo-ochoa",
+     "text": "Bio",
+     "shortText": "Bio",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "overview",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/_/id/137038/guillermo-ochoa",
+     "text": "Overview",
+     "shortText": "Overview",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "transfers",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/transfers/_/id/137038/guillermo-ochoa",
+     "text": "Transfers",
+     "shortText": "Transfers",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "transfers",
+      "mobile",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/transfers/_/id/137038/guillermo-ochoa",
+     "text": "Transfers",
+     "shortText": "Transfers",
+     "isExternal": false,
+     "isPremium": false
+    }
+   ],
+   "birthPlace": {},
+   "citizenship": "Mexico",
+   "citizenshipCountry": {
+    "alternateId": "18",
+    "abbreviation": "MEX"
+   },
+   "slug": "guillermo-ochoa",
+   "jersey": "13",
+   "flag": {
+    "href": "https://a.espncdn.com/i/teamlogos/countries/500/mex.png",
+    "alt": "Mexico",
+    "rel": [
+     "country-flag"
+    ]
+   },
+   "position": {
+    "id": "1",
+    "name": "Goalkeeper",
+    "displayName": "Goalkeeper",
+    "abbreviation": "G",
+    "leaf": false
+   },
+   "injuries": [],
+   "status": {
+    "id": "1",
+    "name": "Active",
+    "type": "active",
+    "abbreviation": "Active"
+   },
+   "seasons": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/fifa.world/athletes/137038/seasons?lang=en&region=us"
+   },
+   "leagues": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/athletes/137038/leagues?lang=en&region=us"
+   },
+   "transactions": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/athletes/137038/transactions?lang=en&region=us"
+   },
+   "events": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/athletes/137038/events?lang=en&region=us"
+   },
+   "defaultLeague": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/fifa.world?lang=en&region=us"
+   },
+   "profiled": true,
+   "defaultTeam": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/teams/203?lang=en&region=us"
+   }
+  },
+  {
+   "id": "236368",
+   "uid": "s:600~a:236368",
+   "guid": "3e38d191-04da-7125-fdce-f3a0f4541bbc",
+   "firstName": "Carlos",
+   "middleName": "",
+   "lastName": "Acevedo",
+   "fullName": "Carlos Acevedo",
+   "displayName": "Carlos Acevedo",
+   "shortName": "C. Acevedo",
+   "weight": 161.0,
+   "displayWeight": "161 lbs",
+   "height": 72.0,
+   "displayHeight": "6' 0\"",
+   "age": 30,
+   "dateOfBirth": "1996-04-19T07:00Z",
+   "gender": "MALE",
+   "links": [
+    {
+     "language": "en-US",
+     "rel": [
+      "playercard",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/_/id/236368/carlos-acevedo",
+     "text": "Player Card",
+     "shortText": "Player Card",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "stats",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/stats/_/id/236368/carlos-acevedo",
+     "text": "Stats",
+     "shortText": "Stats",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "splits",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/splits/_/id/236368/carlos-acevedo",
+     "text": "Splits",
+     "shortText": "Splits",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "gamelog",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/matches/_/id/236368/carlos-acevedo",
+     "text": "Matches",
+     "shortText": "Matches",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "news",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/news/_/id/236368/carlos-acevedo",
+     "text": "News",
+     "shortText": "News",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "bio",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/bio/_/id/236368/carlos-acevedo",
+     "text": "Bio",
+     "shortText": "Bio",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "overview",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/_/id/236368/carlos-acevedo",
+     "text": "Overview",
+     "shortText": "Overview",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "transfers",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/transfers/_/id/236368/carlos-acevedo",
+     "text": "Transfers",
+     "shortText": "Transfers",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "transfers",
+      "mobile",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/transfers/_/id/236368/carlos-acevedo",
+     "text": "Transfers",
+     "shortText": "Transfers",
+     "isExternal": false,
+     "isPremium": false
+    }
+   ],
+   "birthPlace": {},
+   "citizenship": "Mexico",
+   "citizenshipCountry": {
+    "alternateId": "18",
+    "abbreviation": "MEX"
+   },
+   "slug": "carlos-acevedo",
+   "jersey": "12",
+   "flag": {
+    "href": "https://a.espncdn.com/i/teamlogos/countries/500/mex.png",
+    "alt": "Mexico",
+    "rel": [
+     "country-flag"
+    ]
+   },
+   "position": {
+    "id": "1",
+    "name": "Goalkeeper",
+    "displayName": "Goalkeeper",
+    "abbreviation": "G",
+    "leaf": false
+   },
+   "injuries": [],
+   "status": {
+    "id": "1",
+    "name": "Active",
+    "type": "active",
+    "abbreviation": "Active"
+   },
+   "seasons": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/fifa.world/athletes/236368/seasons?lang=en&region=us"
+   },
+   "leagues": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/athletes/236368/leagues?lang=en&region=us"
+   },
+   "events": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/athletes/236368/events?lang=en&region=us"
+   },
+   "defaultLeague": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/mex.1?lang=en&region=us"
+   },
+   "profiled": false,
+   "defaultTeam": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/teams/225?lang=en&region=us"
+   }
+  },
+  {
+   "id": "290899",
+   "uid": "s:600~a:290899",
+   "guid": "59aff0f1-fdd2-051c-67ea-74b8835e344d",
+   "firstName": "Ra\u00fal",
+   "lastName": "Rangel",
+   "fullName": "Ra\u00fal Rangel",
+   "displayName": "Ra\u00fal Rangel",
+   "shortName": "R. Rangel",
+   "weight": 192.0,
+   "displayWeight": "192 lbs",
+   "height": 75.0,
+   "displayHeight": "6' 3\"",
+   "age": 26,
+   "dateOfBirth": "2000-02-25T08:00Z",
+   "gender": "MALE",
+   "links": [
+    {
+     "language": "en-US",
+     "rel": [
+      "playercard",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/_/id/290899/raul-rangel",
+     "text": "Player Card",
+     "shortText": "Player Card",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "stats",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/stats/_/id/290899/raul-rangel",
+     "text": "Stats",
+     "shortText": "Stats",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "splits",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/splits/_/id/290899/raul-rangel",
+     "text": "Splits",
+     "shortText": "Splits",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "gamelog",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/matches/_/id/290899/raul-rangel",
+     "text": "Matches",
+     "shortText": "Matches",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "news",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/news/_/id/290899/raul-rangel",
+     "text": "News",
+     "shortText": "News",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "bio",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/bio/_/id/290899/raul-rangel",
+     "text": "Bio",
+     "shortText": "Bio",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "overview",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/_/id/290899/raul-rangel",
+     "text": "Overview",
+     "shortText": "Overview",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "transfers",
+      "desktop",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/transfers/_/id/290899/raul-rangel",
+     "text": "Transfers",
+     "shortText": "Transfers",
+     "isExternal": false,
+     "isPremium": false
+    },
+    {
+     "language": "en-US",
+     "rel": [
+      "transfers",
+      "mobile",
+      "athlete"
+     ],
+     "href": "https://www.espn.com/soccer/player/transfers/_/id/290899/raul-rangel",
+     "text": "Transfers",
+     "shortText": "Transfers",
+     "isExternal": false,
+     "isPremium": false
+    }
+   ],
+   "birthPlace": {},
+   "citizenship": "Mexico",
+   "citizenshipCountry": {
+    "alternateId": "18",
+    "abbreviation": "MEX"
+   },
+   "slug": "raul-rangel",
+   "jersey": "1",
+   "flag": {
+    "href": "https://a.espncdn.com/i/teamlogos/countries/500/mex.png",
+    "alt": "Mexico",
+    "rel": [
+     "country-flag"
+    ]
+   },
+   "position": {
+    "id": "1",
+    "name": "Goalkeeper",
+    "displayName": "Goalkeeper",
+    "abbreviation": "G",
+    "leaf": false
+   },
+   "injuries": [],
+   "status": {
+    "id": "1",
+    "name": "Active",
+    "type": "active",
+    "abbreviation": "Active"
+   },
+   "seasons": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/fifa.world/athletes/290899/seasons?lang=en&region=us"
+   },
+   "leagues": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/athletes/290899/leagues?lang=en&region=us"
+   },
+   "events": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/athletes/290899/events?lang=en&region=us"
+   },
+   "defaultLeague": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/mex.1?lang=en&region=us"
+   },
+   "profiled": false,
+   "defaultTeam": {
+    "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/teams/219?lang=en&region=us"
+   }
+  }
+ ],
+ "team": {
+  "id": "203",
+  "abbreviation": "MEX",
+  "location": "Mexico",
+  "name": "Mexico",
+  "displayName": "Mexico",
+  "clubhouse": "https://www.espn.com/soccer/team/_/id/203/mexico",
+  "color": "006847",
+  "logo": "https://a.espncdn.com/i/teamlogos/countries/500/mex.png",
+  "recordSummary": "0-0-0",
+  "seasonSummary": "2026",
+  "standingSummary": "1st in FIFA World Cup",
+  "isNational": true
+ }
+}
