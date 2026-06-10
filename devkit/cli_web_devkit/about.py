@@ -43,7 +43,7 @@ def desired_description(description: str, count: int) -> str:
     return f"{description.rstrip().rstrip('.')}. {count} CLIs and counting."
 
 
-def _gh(*args: str) -> subprocess.CompletedProcess:
+def _gh(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["gh", *args], capture_output=True, text=True, check=False)
 
 
