@@ -1,0 +1,38 @@
+name: Sync About count
+
+# Auto-update the GitHub "About" description's CLI count whenever the fleet
+# changes. Editing repo metadata needs Administration:write, which the default
+# GITHUB_TOKEN lacks — so this uses a maintainer-provided fine-grained PAT
+# stored as the REPO_ADMIN_TOKEN secret. Until that secret exists this job
+# no-ops; the `about --check` step in tests.yml still flags drift in the
+# meantime.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - registry.json
+
+permissions:
+  contents: read
+
+jobs:
+  about-sync:
+    name: sync About CLI count
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Apply About description from registry.json
+        env:
+          GH_TOKEN: ${{ secrets.REPO_ADMIN_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "REPO_ADMIN_TOKEN not set — skipping auto-apply."
+            echo "Create a fine-grained PAT (Administration: write) and add it"
+            echo "as the REPO_ADMIN_TOKEN secret to enable hands-off updates."
+            exit 0
+          fi
+          PYTHONPATH=devkit python -m cli_web_devkit about --apply
