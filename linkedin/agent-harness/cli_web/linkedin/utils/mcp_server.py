@@ -6,9 +6,13 @@ Vendored into every generated CLI at cli_web/<app>/utils/mcp_server.py by
 
 Every cli-web-* command already speaks ``--json``, so the Click command
 tree maps 1:1 onto MCP tools: tool names are ``group_subcommand``, input
-schemas are derived from Click parameters, and calls run the command
-in-process with ``--json`` forced, returning the JSON envelope as the tool
-result. Transport: MCP stdio (newline-delimited JSON-RPC 2.0).
+schemas are derived from Click parameters, and each ``tools/call`` spawns
+the CLI as a fresh subprocess with ``--json`` forced, returning the JSON
+envelope as the tool result. Spawning per call (rather than running
+in-process) gives every tool the same clean-process isolation as a normal
+CLI invocation — no auth/session/global state leaks between calls, and a
+wedged command cannot hang the server. Transport: MCP stdio
+(newline-delimited JSON-RPC 2.0).
 
 Usage (wired automatically into generated CLIs)::
 
@@ -21,6 +25,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Callable
 from typing import Any
 
 PROTOCOL_VERSION = "2024-11-05"
@@ -129,10 +134,27 @@ def _cmd_supports_json(cmd: Any) -> bool:
 
 
 class McpServer:
-    def __init__(self, cli: Any, app_name: str, version: str = "0.1.0"):
+    def __init__(
+        self,
+        cli: Any,
+        app_name: str,
+        version: str = "0.1.0",
+        pkg: str | None = None,
+        *,
+        timeout: float = 300.0,
+        executor: Callable[[list[str]], tuple[str, bool]] | None = None,
+    ):
         self.cli = cli
         self.app_name = app_name
         self.version = version
+        #: Namespace sub-package, for the ``python -m`` subprocess fallback.
+        self.pkg = pkg or app_name.replace("-", "_")
+        #: Per-call subprocess timeout (seconds).
+        self.timeout = timeout
+        #: Optional ``(argv) -> (text, is_error)`` override. Defaults to a
+        #: fresh subprocess per call; injected in tests to run an in-memory
+        #: Click group without an installed binary.
+        self._executor = executor
         self._leaves: dict[str, tuple[tuple[str, ...], Any]] = {}
         for path, cmd in _iter_leaf_commands(cli):
             tool_name = "_".join(path).replace("-", "_")
@@ -174,18 +196,57 @@ class McpServer:
         arguments = params.get("arguments") or {}
         argv = _build_argv(path, cmd, arguments, json_flag=_cmd_supports_json(cmd))
 
-        from click.testing import CliRunner
-
-        runner = CliRunner()
-        result = runner.invoke(self.cli, argv, catch_exceptions=True)
-        text = result.output.strip() or (str(result.exception) if result.exception else "")
+        executor = self._executor or self._subprocess_execute
+        text, is_error = executor(argv)
         return self._result(
             msg_id,
             {
                 "content": [{"type": "text", "text": text}],
-                "isError": result.exit_code != 0,
+                "isError": is_error,
             },
         )
+
+    # ── command execution ────────────────────────────────────────────
+
+    def _base_command(self) -> list[str]:
+        """Resolve how to invoke this CLI as a subprocess.
+
+        Prefer the installed console script; fall back to ``python -m`` so the
+        server still works from a source checkout without ``pip install``.
+        """
+        import shutil
+
+        binary = shutil.which(f"cli-web-{self.app_name}")
+        if binary:
+            return [binary]
+        return [sys.executable, "-m", f"cli_web.{self.pkg}"]
+
+    def _subprocess_execute(self, argv: list[str]) -> tuple[str, bool]:
+        """Run one tool call as a fresh subprocess — full process isolation.
+
+        Each call is a clean process, identical to how a user (and the test
+        suite) invokes the CLI, so no auth/session/global state leaks between
+        calls and a stuck command cannot wedge the server.
+        """
+        import subprocess
+
+        command = [*self._base_command(), *argv]
+        try:
+            proc = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return (f"command timed out after {self.timeout}s", True)
+        except (FileNotFoundError, OSError) as exc:
+            return (f"failed to run cli-web-{self.app_name}: {exc}", True)
+        # The --json success and error envelopes both go to stdout; fall back
+        # to stderr for hard failures (e.g. a Click usage error, exit 2).
+        text = proc.stdout.strip() or proc.stderr.strip()
+        return (text, proc.returncode != 0)
 
     @staticmethod
     def _result(msg_id: Any, result: dict[str, Any]) -> dict[str, Any]:
@@ -215,13 +276,15 @@ class McpServer:
                 print(json.dumps(response), flush=True)
 
 
-def register_mcp_command(cli: Any, app_name: str, version: str = "0.1.0") -> None:
+def register_mcp_command(
+    cli: Any, app_name: str, version: str = "0.1.0", pkg: str | None = None
+) -> None:
     """Attach an ``mcp-serve`` command to a cli-web-* Click group."""
     import click
 
     @cli.command("mcp-serve", hidden=False)
     def mcp_serve() -> None:
         """Serve this CLI as an MCP server over stdio (newline JSON-RPC)."""
-        McpServer(cli, app_name=app_name, version=version).serve_stdio()
+        McpServer(cli, app_name=app_name, version=version, pkg=pkg).serve_stdio()
 
     _ = click  # imported for parity with vendored runtime deps

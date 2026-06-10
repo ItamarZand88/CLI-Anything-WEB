@@ -1,4 +1,5 @@
 import json
+import sys
 
 import click
 import pytest
@@ -49,7 +50,20 @@ def demo_cli():
 
 @pytest.fixture()
 def server(demo_cli):
-    return McpServer(demo_cli, app_name="demo", version="9.9.9")
+    """Server whose tool calls run the in-memory demo CLI via CliRunner.
+
+    Production uses a fresh subprocess per call (see the subprocess tests
+    below); the in-memory executor lets these protocol/argv/shaping tests
+    exercise the demo group without an installed binary.
+    """
+    from click.testing import CliRunner
+
+    def executor(argv):
+        result = CliRunner().invoke(demo_cli, argv, catch_exceptions=True)
+        text = result.output.strip() or (str(result.exception) if result.exception else "")
+        return (text, result.exit_code != 0)
+
+    return McpServer(demo_cli, app_name="demo", version="9.9.9", executor=executor)
 
 
 def test_initialize_handshake(server):
@@ -165,3 +179,100 @@ def test_multi_value_params_call(server):
     payload = json.loads(resp["result"]["content"][0]["text"])
     assert payload["data"]["query"] == ["python", "tutorial"]
     assert payload["data"]["tags"] == ["a", "b"]
+
+
+# ── subprocess-per-call execution (the production default) ───────────────────
+
+
+def _call(server, name, arguments=None):
+    return server.handle(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": name, "arguments": arguments or {}},
+        }
+    )
+
+
+def test_default_execution_spawns_a_subprocess(demo_cli, monkeypatch):
+    """With no executor injected, each tool call shells out to a fresh process."""
+    import subprocess
+
+    seen = {}
+
+    class _Proc:
+        stdout = '{"success": true, "data": []}'
+        stderr = ""
+        returncode = 0
+
+    def fake_run(command, **kwargs):
+        seen["command"] = command
+        seen["kwargs"] = kwargs
+        return _Proc()
+
+    monkeypatch.setattr("shutil.which", lambda _name: None)  # force python -m
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    server = McpServer(demo_cli, app_name="demo", pkg="demo_pkg")
+    resp = _call(server, "things_list", {"limit": 2})
+
+    # The whole command line is: python -m cli_web.demo_pkg things list --limit 2 --json
+    assert seen["command"][:3] == [sys.executable, "-m", "cli_web.demo_pkg"]
+    assert seen["command"][3:5] == ["things", "list"]
+    assert "--json" in seen["command"]
+    assert seen["kwargs"]["timeout"] == server.timeout
+    assert resp["result"]["isError"] is False
+    assert json.loads(resp["result"]["content"][0]["text"]) == {"success": True, "data": []}
+
+
+def test_subprocess_prefers_installed_binary(demo_cli, monkeypatch):
+    import subprocess
+
+    seen = {}
+
+    class _Proc:
+        stdout = "{}"
+        stderr = ""
+        returncode = 0
+
+    monkeypatch.setattr("shutil.which", lambda name: f"/usr/local/bin/{name}")
+    monkeypatch.setattr(
+        subprocess, "run", lambda command, **kw: seen.update(command=command) or _Proc()
+    )
+
+    McpServer(demo_cli, app_name="demo").handle(
+        {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "boom"}}
+    )
+    assert seen["command"][0] == "/usr/local/bin/cli-web-demo"
+    assert "-m" not in seen["command"]
+
+
+def test_subprocess_nonzero_exit_is_error_and_prefers_stderr(demo_cli, monkeypatch):
+    import subprocess
+
+    class _Proc:
+        stdout = ""
+        stderr = "Usage: ... \nError: no such option"
+        returncode = 2
+
+    monkeypatch.setattr("shutil.which", lambda _name: "/bin/cli-web-demo")
+    monkeypatch.setattr(subprocess, "run", lambda command, **kw: _Proc())
+
+    resp = _call(McpServer(demo_cli, app_name="demo"), "things_list")
+    assert resp["result"]["isError"] is True
+    assert "no such option" in resp["result"]["content"][0]["text"]
+
+
+def test_subprocess_timeout_returns_error(demo_cli, monkeypatch):
+    import subprocess
+
+    def boom(command, **kwargs):
+        raise subprocess.TimeoutExpired(cmd=command, timeout=kwargs.get("timeout"))
+
+    monkeypatch.setattr("shutil.which", lambda _name: "/bin/cli-web-demo")
+    monkeypatch.setattr(subprocess, "run", boom)
+
+    resp = _call(McpServer(demo_cli, app_name="demo", timeout=7.0), "things_list")
+    assert resp["result"]["isError"] is True
+    assert "timed out after 7.0s" in resp["result"]["content"][0]["text"]
