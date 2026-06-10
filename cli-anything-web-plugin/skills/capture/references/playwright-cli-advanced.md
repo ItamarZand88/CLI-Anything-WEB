@@ -228,4 +228,3 @@ playwright-cli -s=<app> run-code "async page => {
 ```
 
 This pattern is important during Phase 1 traffic capture -- triggering a download reveals the download URL endpoint that the generated CLI will call directly via httpx.
-

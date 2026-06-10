@@ -15,6 +15,14 @@ single source of truth either way.
 """
 
 from .exceptions import (
+    EXIT_AUTH,
+    EXIT_NETWORK,
+    EXIT_NOT_FOUND,
+    EXIT_OK,
+    EXIT_RATE_LIMIT,
+    EXIT_SERVER,
+    EXIT_UNKNOWN,
+    EXIT_USAGE,
     AppError,
     AuthError,
     NetworkError,
@@ -24,8 +32,9 @@ from .exceptions import (
     ServerError,
     ValidationError,
     error_code_for,
+    exit_code_for,
 )
-from .output import json_error, json_success
+from .output import json_error, json_lines, json_success
 from .polling import poll_until_complete
 
 __version__ = "1.0.0"
@@ -39,8 +48,18 @@ __all__ = [
     "RateLimitError",
     "ServerError",
     "ValidationError",
+    "EXIT_AUTH",
+    "EXIT_NETWORK",
+    "EXIT_NOT_FOUND",
+    "EXIT_OK",
+    "EXIT_RATE_LIMIT",
+    "EXIT_SERVER",
+    "EXIT_UNKNOWN",
+    "EXIT_USAGE",
     "error_code_for",
+    "exit_code_for",
     "json_error",
+    "json_lines",
     "json_success",
     "poll_until_complete",
     "__version__",

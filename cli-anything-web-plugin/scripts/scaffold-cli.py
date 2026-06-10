@@ -54,7 +54,7 @@ TEMPLATES_DIR = get_templates_dir()
 #: Bumped whenever templates change shape. Recorded in every generated
 #: .manifest.json so fleet tooling (drift/resync) can tell which CLIs
 #: predate a template fix.
-TEMPLATE_VERSION = "2.0.0"
+TEMPLATE_VERSION = "2.1.0"
 MANIFEST_NAME = ".manifest.json"
 MANIFEST_VERSION = 1
 

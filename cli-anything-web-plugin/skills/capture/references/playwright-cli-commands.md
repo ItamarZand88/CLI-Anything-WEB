@@ -231,4 +231,3 @@ playwright-cli -s=<app> state-load <path>
 ```
 
 Restores cookies and storage from a previously saved state file.
-

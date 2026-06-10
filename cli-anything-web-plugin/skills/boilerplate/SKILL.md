@@ -18,7 +18,7 @@ user-invocable: false
 >   --resource <name> [--resource <name> ...] \
 >   [--has-polling] [--has-context] [--has-partial-ids]
 > ```
-> Requires `pip install jinja2` (TEMPLATE_VERSION 2.0.0). Each repeatable
+> Requires `pip install jinja2` (TEMPLATE_VERSION 2.1.0). Each repeatable
 > `--resource` flag scaffolds a `commands/<resource>.py` module.
 >
 > **If the script is unavailable**, do NOT render templates by hand from
@@ -92,7 +92,7 @@ tooling (`cli-web-devkit drift`) depends on it.
 
 ## Step 4: Post-Scaffold Checklist
 
-- [ ] `.manifest.json` exists at the harness root with `template_version: 2.0.0`
+- [ ] `.manifest.json` exists at the harness root with `template_version: 2.1.0`
 - [ ] `cli_web/` has NO `__init__.py`; `cli_web/<app>/` HAS one
 - [ ] No unresolved Jinja2 markers (`{{`, `{%`) remain in any output file
 - [ ] `FILL_IN_BASE_URL` markers noted — replace during implementation

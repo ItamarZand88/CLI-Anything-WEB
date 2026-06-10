@@ -106,6 +106,39 @@ def error_code_for(exc: BaseException) -> str:
     return "UNKNOWN_ERROR"
 
 
+# ── Numeric exit-code contract ───────────────────────────────────────────────
+# 0 = ok, 1 = unknown/internal, 2 = usage (Click's own convention), then one
+# code per recoverable failure class so scripts/agents can branch on $?.
+# New CLIs adopt this via the helpers template; the existing fleet keeps its
+# historical 0/1 exits until a coordinated major release (documented in
+# CONVENTIONS.md §Exit Codes).
+
+EXIT_OK = 0
+EXIT_UNKNOWN = 1
+EXIT_USAGE = 2
+EXIT_AUTH = 3
+EXIT_NOT_FOUND = 4
+EXIT_RATE_LIMIT = 5
+EXIT_SERVER = 6
+EXIT_NETWORK = 7
+
+_EXIT_CODES: dict[type[AppError], int] = {
+    AuthError: EXIT_AUTH,
+    NotFoundError: EXIT_NOT_FOUND,
+    RateLimitError: EXIT_RATE_LIMIT,
+    ServerError: EXIT_SERVER,
+    NetworkError: EXIT_NETWORK,
+}
+
+
+def exit_code_for(exc: BaseException) -> int:
+    """Numeric exit code for an exception (``EXIT_UNKNOWN`` fallback)."""
+    for exc_type, code in _EXIT_CODES.items():
+        if isinstance(exc, exc_type):
+            return code
+    return EXIT_UNKNOWN
+
+
 class _ResponseLike(Protocol):
     """Anything with status_code/text/headers (httpx, curl_cffi, requests)."""
 

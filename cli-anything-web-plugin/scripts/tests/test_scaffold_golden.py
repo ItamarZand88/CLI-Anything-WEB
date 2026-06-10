@@ -154,7 +154,7 @@ def test_manifest_is_valid_and_versioned(scaffolded, profile):
     assert manifest["manifest_version"] == 1
     assert manifest["cli"] == "cli-web-golden"
     generator = manifest["generator"]
-    assert generator["template_version"] == "2.0.0"
+    assert generator["template_version"] == "2.1.0"
     assert generator["plugin_version"]
     assert generator["generated_at"]
     assert manifest["profile"] == {

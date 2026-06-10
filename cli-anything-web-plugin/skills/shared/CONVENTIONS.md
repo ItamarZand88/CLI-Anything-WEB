@@ -91,11 +91,40 @@ Rules:
 - `code` values come from the §Exception Hierarchy mapping table.
 - Error messages include actionable guidance (what command to run next).
 - All commands wrap their body in the `handle_errors(json_mode)` context
-  manager (in `utils/helpers.py`) — no per-command try/except. Exit codes:
-  1 = domain error, 2 = unexpected error, 130 = interrupt.
+  manager (in `utils/helpers.py`) — no per-command try/except.
 - Rich spinners/progress are suppressed in `--json` mode.
 - Implemented via `utils/output.py` `json_success()` / `json_error()`
   (rendered by `templates/output.py.tpl`).
+- **List commands also offer `--jsonl`** — one compact JSON object per
+  line (no envelope) for `jq`/`grep`/agent-loop piping. Implemented via
+  `utils/output.py` `json_lines()`; scaffolded by `command_group.py.tpl`.
+
+---
+
+## §Exit Codes
+
+Numeric exit-code contract so scripts and agents can branch on `$?`
+without parsing output (canonical map: `cli_web_core.exceptions`):
+
+| Code | Meaning | Source |
+|------|---------|--------|
+| 0 | success | — |
+| 1 | unknown / internal error | any unmapped exception |
+| 2 | usage error | Click's own convention (bad flags/args) |
+| 3 | auth failure | `AuthError` (after the 3-attempt refresh) |
+| 4 | not found | `NotFoundError` |
+| 5 | rate limited | `RateLimitError` |
+| 6 | server error (5xx) | `ServerError` |
+| 7 | network failure | `NetworkError` |
+| 130 | interrupted | Ctrl-C |
+
+`handle_errors()` (rendered by `templates/helpers.py.tpl`) applies the
+mapping automatically — newly generated CLIs get this for free.
+
+> **Fleet note:** CLIs generated before template v2.1 exit 1 for domain
+> errors and 2 for unexpected errors. Changing their observable exit codes
+> is a breaking change — they adopt this contract at their next
+> coordinated major release, not via resync.
 
 ---
 

@@ -136,3 +136,45 @@ def test_poll_caps_delay():
 
     poll_until_complete(check, timeout=1000, initial_delay=4, max_delay=10, sleep=sleeps.append)
     assert max(sleeps) == 10
+
+
+# ── exit-code contract ──────────────────────────────────────────────────────
+
+
+def test_exit_codes_per_contract():
+    from cli_web_core import (
+        EXIT_AUTH,
+        EXIT_NETWORK,
+        EXIT_NOT_FOUND,
+        EXIT_RATE_LIMIT,
+        EXIT_SERVER,
+        EXIT_UNKNOWN,
+        exit_code_for,
+    )
+
+    assert exit_code_for(AuthError("x")) == EXIT_AUTH == 3
+    assert exit_code_for(NotFoundError("x")) == EXIT_NOT_FOUND == 4
+    assert exit_code_for(RateLimitError("x")) == EXIT_RATE_LIMIT == 5
+    assert exit_code_for(ServerError("x")) == EXIT_SERVER == 6
+    assert exit_code_for(NetworkError("x")) == EXIT_NETWORK == 7
+    assert exit_code_for(AppError("x")) == EXIT_UNKNOWN == 1
+    assert exit_code_for(ValueError("x")) == EXIT_UNKNOWN == 1
+
+
+# ── jsonl ───────────────────────────────────────────────────────────────────
+
+
+def test_json_lines_one_compact_object_per_line():
+    from cli_web_core import json_lines
+
+    out = json_lines([{"id": 1, "name": "a"}, {"id": 2}])
+    lines = out.splitlines()
+    assert len(lines) == 2
+    assert json.loads(lines[0]) == {"id": 1, "name": "a"}
+    assert ": " not in lines[0]  # compact separators
+
+
+def test_json_lines_empty():
+    from cli_web_core import json_lines
+
+    assert json_lines([]) == ""
