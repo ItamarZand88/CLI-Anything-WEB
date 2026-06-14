@@ -63,11 +63,13 @@ def search_restaurants(ctx, location, geo_id, page, json_mode):
             print_json(
                 {
                     "success": True,
-                    "location": location,
-                    "geo_id": result.get("geo_id"),
-                    "page": page,
-                    "count": len(restlist),
-                    "restaurants": [r.to_dict() for r in restlist],
+                    "data": {
+                        "location": location,
+                        "geo_id": result.get("geo_id"),
+                        "page": page,
+                        "count": len(restlist),
+                        "restaurants": [r.to_dict() for r in restlist],
+                    },
                 }
             )
             return
@@ -132,7 +134,7 @@ def get_restaurant(ctx, url, json_mode):
             rest = client.get_restaurant(url)
 
         if json_mode:
-            print_json({"success": True, "restaurant": rest.to_dict()})
+            print_json({"success": True, "data": {"restaurant": rest.to_dict()}})
             return
 
         click.echo(f"\n{'=' * 60}")

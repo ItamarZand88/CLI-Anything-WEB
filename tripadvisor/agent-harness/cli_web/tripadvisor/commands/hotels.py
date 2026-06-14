@@ -63,11 +63,13 @@ def search_hotels(ctx, location, geo_id, page, json_mode):
             print_json(
                 {
                     "success": True,
-                    "location": location,
-                    "geo_id": result.get("geo_id"),
-                    "page": page,
-                    "count": len(hotellist),
-                    "hotels": [h.to_dict() for h in hotellist],
+                    "data": {
+                        "location": location,
+                        "geo_id": result.get("geo_id"),
+                        "page": page,
+                        "count": len(hotellist),
+                        "hotels": [h.to_dict() for h in hotellist],
+                    },
                 }
             )
             return
@@ -131,7 +133,7 @@ def get_hotel(ctx, url, json_mode):
             hotel = client.get_hotel(url)
 
         if json_mode:
-            print_json({"success": True, "hotel": hotel.to_dict()})
+            print_json({"success": True, "data": {"hotel": hotel.to_dict()}})
             return
 
         click.echo(f"\n{'=' * 60}")

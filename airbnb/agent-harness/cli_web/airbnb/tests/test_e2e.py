@@ -56,9 +56,9 @@ class TestSearchStays:
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
         assert data["success"] is True
-        assert data["count"] > 0
-        assert len(data["listings"]) > 0
-        listing = data["listings"][0]
+        assert data["data"]["count"] > 0
+        assert len(data["data"]["listings"]) > 0
+        listing = data["data"]["listings"][0]
         assert listing["id"]
         assert listing["name"]
         assert listing["url"].startswith("https://www.airbnb.com/rooms/")
@@ -142,7 +142,7 @@ class TestSearchStays:
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
-        listing = data["listings"][0]
+        listing = data["data"]["listings"][0]
         # All required fields present
         for field in ["id", "id_b64", "name", "url"]:
             assert field in listing, f"Missing field: {field}"
@@ -159,7 +159,7 @@ class TestSearchStays:
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
-        listing = data["listings"][0]
+        listing = data["data"]["listings"][0]
         # id must be a non-trivial integer string
         assert listing["id"].isdigit(), f"id should be numeric, got: {listing['id']}"
         # name must be non-empty
@@ -254,9 +254,9 @@ class TestListingsGet:
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
-        assert data["id"] == "1603496841117193305"
-        assert data["name"]
-        assert data["url"].startswith("https://www.airbnb.com/rooms/")
+        assert data["data"]["id"] == "1603496841117193305"
+        assert data["data"]["name"]
+        assert data["data"]["url"].startswith("https://www.airbnb.com/rooms/")
 
     def test_get_listing_not_found(self):
         result = subprocess.run(
@@ -285,10 +285,10 @@ class TestListingsGet:
         )
         assert search_result.returncode == 0
         search_data = json.loads(search_result.stdout)
-        assert search_data["count"] > 0
+        assert search_data["data"]["count"] > 0
 
         # Step 2: get first listing by ID
-        first_id = search_data["listings"][0]["id"]
+        first_id = search_data["data"]["listings"][0]["id"]
         get_result = subprocess.run(
             CLI + ["listings", "get", first_id, "--json"],
             capture_output=True,
@@ -477,9 +477,9 @@ class TestCLISubprocess:
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
         assert data["success"] is True
-        assert data["count"] > 0
-        assert len(data["reviews"]) > 0
-        review = data["reviews"][0]
+        assert data["data"]["count"] > 0
+        assert len(data["data"]["reviews"]) > 0
+        review = data["data"]["reviews"][0]
         assert review["id"]
         assert review["rating"] is not None
 
@@ -496,8 +496,8 @@ class TestCLISubprocess:
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
         assert data["success"] is True
-        assert len(data["months"]) > 0
-        month = data["months"][0]
+        assert len(data["data"]["months"]) > 0
+        month = data["data"]["months"][0]
         assert "month" in month
         assert "year" in month
         assert len(month["days"]) > 0

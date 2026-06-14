@@ -156,7 +156,7 @@ def listings_get(ctx, listing_id, adults, checkin, checkout, locale, currency, j
                 checkout=checkout,
             )
         if json_mode:
-            print_json({"success": True, **listing.to_dict()})
+            print_json({"success": True, "data": listing.to_dict()})
         else:
             _render_listing_table(listing)
 
@@ -202,11 +202,13 @@ def listings_reviews(ctx, listing_id, limit, offset, sort, locale, currency, jso
             print_json(
                 {
                     "success": True,
-                    "listing_id": listing_id,
-                    "total_count": total,
-                    "offset": offset,
-                    "count": len(reviews),
-                    "reviews": [r.to_dict() for r in reviews],
+                    "data": {
+                        "listing_id": listing_id,
+                        "total_count": total,
+                        "offset": offset,
+                        "count": len(reviews),
+                        "reviews": [r.to_dict() for r in reviews],
+                    },
                 }
             )
         else:
@@ -262,8 +264,10 @@ def listings_availability(
             print_json(
                 {
                     "success": True,
-                    "listing_id": listing_id,
-                    "months": [m.to_dict() for m in months],
+                    "data": {
+                        "listing_id": listing_id,
+                        "months": [m.to_dict() for m in months],
+                    },
                 }
             )
         else:

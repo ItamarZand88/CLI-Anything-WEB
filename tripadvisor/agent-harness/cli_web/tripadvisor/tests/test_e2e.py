@@ -157,8 +157,8 @@ class TestHotelsLive:
         assert rc == 0
         data = json.loads(out)
         assert data["success"] is True
-        assert data["count"] > 0
-        hotels = data["hotels"]
+        assert data["data"]["count"] > 0
+        hotels = data["data"]["hotels"]
         assert len(hotels) > 0
 
     def test_hotel_fields_present(self):
@@ -172,7 +172,7 @@ class TestHotelsLive:
         )
         assert rc == 0
         data = json.loads(out)
-        hotel = data["hotels"][0]
+        hotel = data["data"]["hotels"][0]
         # Must have all required fields (not missing/null for critical ones)
         assert "id" in hotel
         assert "name" in hotel
@@ -195,7 +195,7 @@ class TestHotelsLive:
         )
         assert rc == 0
         data = json.loads(out)
-        for hotel in data["hotels"]:
+        for hotel in data["data"]["hotels"]:
             if hotel.get("url"):
                 assert "tripadvisor.com" in hotel["url"]
                 assert "Hotel_Review" in hotel["url"]
@@ -217,7 +217,7 @@ class TestRestaurantsLive:
         assert rc == 0
         data = json.loads(out)
         assert data["success"] is True
-        assert data["count"] > 0
+        assert data["data"]["count"] > 0
 
     def test_restaurant_fields_present(self):
         rc, out, err = _run(
@@ -230,7 +230,7 @@ class TestRestaurantsLive:
         )
         assert rc == 0
         data = json.loads(out)
-        rest = data["restaurants"][0]
+        rest = data["data"]["restaurants"][0]
         assert "id" in rest
         assert "name" in rest
         assert rest["name"]
@@ -256,7 +256,7 @@ class TestAttractionsLive:
         assert rc == 0
         data = json.loads(out)
         assert data["success"] is True
-        assert data["count"] > 0
+        assert data["data"]["count"] > 0
 
     def test_attraction_fields_present(self):
         rc, out, err = _run(
@@ -269,7 +269,7 @@ class TestAttractionsLive:
         )
         assert rc == 0
         data = json.loads(out)
-        attr = data["attractions"][0]
+        attr = data["data"]["attractions"][0]
         assert "id" in attr
         assert "name" in attr
         assert attr["name"]
@@ -288,5 +288,5 @@ class TestAttractionsLive:
         )
         assert rc == 0
         data = json.loads(out)
-        names = [a["name"].lower() for a in data["attractions"]]
+        names = [a["name"].lower() for a in data["data"]["attractions"]]
         assert any("eiffel" in n for n in names), f"Eiffel Tower not found. Got: {names[:5]}"

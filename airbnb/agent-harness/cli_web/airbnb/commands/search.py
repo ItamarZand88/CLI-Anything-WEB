@@ -140,11 +140,13 @@ def search_stays(
             print_json(
                 {
                     "success": True,
-                    "count": len(listings),
-                    "next_cursor": next_cursor,
-                    "total_count": total_count,
-                    "location_slug": location_slug,
-                    "listings": [listing.to_dict() for listing in listings],
+                    "data": {
+                        "count": len(listings),
+                        "next_cursor": next_cursor,
+                        "total_count": total_count,
+                        "location_slug": location_slug,
+                        "listings": [listing.to_dict() for listing in listings],
+                    },
                 }
             )
             return

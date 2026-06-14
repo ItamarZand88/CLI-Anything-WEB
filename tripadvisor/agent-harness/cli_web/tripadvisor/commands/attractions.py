@@ -63,11 +63,13 @@ def search_attractions(ctx, location, geo_id, page, json_mode):
             print_json(
                 {
                     "success": True,
-                    "location": location,
-                    "geo_id": result.get("geo_id"),
-                    "page": page,
-                    "count": len(attrlist),
-                    "attractions": [a.to_dict() for a in attrlist],
+                    "data": {
+                        "location": location,
+                        "geo_id": result.get("geo_id"),
+                        "page": page,
+                        "count": len(attrlist),
+                        "attractions": [a.to_dict() for a in attrlist],
+                    },
                 }
             )
             return
@@ -129,7 +131,7 @@ def get_attraction(ctx, url, json_mode):
             attr = client.get_attraction(url)
 
         if json_mode:
-            print_json({"success": True, "attraction": attr.to_dict()})
+            print_json({"success": True, "data": {"attraction": attr.to_dict()}})
             return
 
         click.echo(f"\n{'=' * 60}")
