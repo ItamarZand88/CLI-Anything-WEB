@@ -11,6 +11,7 @@ setup(
     install_requires=[
         "click>=8.0",
         "httpx>=0.25",
+        "curl_cffi>=0.7",
         "beautifulsoup4>=4.12",
         "rich>=13.0",
         "prompt_toolkit>=3.0",

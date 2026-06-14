@@ -1,14 +1,15 @@
 """HTTP client for cli-web-amazon.
 
 Protocol: SSR HTML + REST JSON hybrid.
-Library: httpx (no Cloudflare/WAF protection detected).
+Library: curl_cffi — Amazon returns 503 to plain httpx; browser TLS
+impersonation (curl_cffi) is required to reach the public endpoints.
 """
 
 import re
 from typing import Any
 
-import httpx
 from bs4 import BeautifulSoup
+from curl_cffi import requests as curl_requests
 
 from .exceptions import (
     NetworkError,
@@ -52,13 +53,13 @@ class AmazonClient:
 
     def __init__(self):
         """Initialize the client."""
-        self._client: httpx.Client | None = None
+        self._client: Any = None
 
     def __enter__(self):
-        self._client = httpx.Client(
+        self._client = curl_requests.Session(
+            impersonate="chrome124",
             headers=_DEFAULT_HEADERS,
-            follow_redirects=True,
-            timeout=30.0,
+            timeout=30,
         )
         return self
 
@@ -71,31 +72,23 @@ class AmazonClient:
 
     def _get(
         self, url: str, params: dict | None = None, headers: dict | None = None
-    ) -> httpx.Response:
+    ) -> Any:
         """Make a GET request with error mapping."""
         try:
             resp = self._client.get(url, params=params, headers=headers)
-        except httpx.TimeoutException as exc:
-            raise NetworkError(f"Request timed out: {url}") from exc
-        except httpx.ConnectError as exc:
-            raise NetworkError(f"Connection failed: {url}") from exc
-        except httpx.RequestError as exc:
-            raise NetworkError(f"Request error: {exc}") from exc
+        except Exception as exc:
+            raise NetworkError(f"Request failed: {url}: {exc}") from exc
         return self._check_status(resp, url)
 
-    def _post(self, url: str, data: dict | None = None, json: dict | None = None) -> httpx.Response:
+    def _post(self, url: str, data: dict | None = None, json: dict | None = None) -> Any:
         """Make a POST request with error mapping."""
         try:
             resp = self._client.post(url, data=data, json=json)
-        except httpx.TimeoutException as exc:
-            raise NetworkError(f"Request timed out: {url}") from exc
-        except httpx.ConnectError as exc:
-            raise NetworkError(f"Connection failed: {url}") from exc
-        except httpx.RequestError as exc:
-            raise NetworkError(f"Request error: {exc}") from exc
+        except Exception as exc:
+            raise NetworkError(f"Request failed: {url}: {exc}") from exc
         return self._check_status(resp, url)
 
-    def _check_status(self, resp: httpx.Response, url: str) -> httpx.Response:
+    def _check_status(self, resp: Any, url: str) -> Any:
         """Map HTTP status codes to typed exceptions."""
         if resp.status_code == 200:
             return resp
@@ -120,7 +113,7 @@ class AmazonClient:
             )
         return resp
 
-    def _soup(self, resp: httpx.Response) -> BeautifulSoup:
+    def _soup(self, resp: Any) -> BeautifulSoup:
         """Parse HTML response as BeautifulSoup."""
         return BeautifulSoup(resp.text, "html.parser")
 
