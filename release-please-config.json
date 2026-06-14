@@ -66,147 +66,168 @@
       "component": "cli-web-futbin",
       "package-name": "cli-web-futbin",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "notebooklm/agent-harness": {
       "release-type": "python",
       "component": "cli-web-notebooklm",
       "package-name": "cli-web-notebooklm",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "gh-trending/agent-harness": {
       "release-type": "python",
       "component": "cli-web-gh-trending",
       "package-name": "cli-web-gh-trending",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "producthunt/agent-harness": {
       "release-type": "python",
       "component": "cli-web-producthunt",
       "package-name": "cli-web-producthunt",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "unsplash/agent-harness": {
       "release-type": "python",
       "component": "cli-web-unsplash",
       "package-name": "cli-web-unsplash",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "booking/agent-harness": {
       "release-type": "python",
       "component": "cli-web-booking",
       "package-name": "cli-web-booking",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "stitch/agent-harness": {
       "release-type": "python",
       "component": "cli-web-stitch",
       "package-name": "cli-web-stitch",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "pexels/agent-harness": {
       "release-type": "python",
       "component": "cli-web-pexels",
       "package-name": "cli-web-pexels",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "reddit/agent-harness": {
       "release-type": "python",
       "component": "cli-web-reddit",
       "package-name": "cli-web-reddit",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "gai/agent-harness": {
       "release-type": "python",
       "component": "cli-web-gai",
       "package-name": "cli-web-gai",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "youtube/agent-harness": {
       "release-type": "python",
       "component": "cli-web-youtube",
       "package-name": "cli-web-youtube",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "hackernews/agent-harness": {
       "release-type": "python",
       "component": "cli-web-hackernews",
       "package-name": "cli-web-hackernews",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "codewiki/agent-harness": {
       "release-type": "python",
       "component": "cli-web-codewiki",
       "package-name": "cli-web-codewiki",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "chatgpt/agent-harness": {
       "release-type": "python",
       "component": "cli-web-chatgpt",
       "package-name": "cli-web-chatgpt",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "airbnb/agent-harness": {
       "release-type": "python",
       "component": "cli-web-airbnb",
       "package-name": "cli-web-airbnb",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "amazon/agent-harness": {
       "release-type": "python",
       "component": "cli-web-amazon",
       "package-name": "cli-web-amazon",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "tripadvisor/agent-harness": {
       "release-type": "python",
       "component": "cli-web-tripadvisor",
       "package-name": "cli-web-tripadvisor",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "linkedin/agent-harness": {
       "release-type": "python",
       "component": "cli-web-linkedin",
       "package-name": "cli-web-linkedin",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "capitoltrades/agent-harness": {
       "release-type": "python",
       "component": "cli-web-capitoltrades",
       "package-name": "cli-web-capitoltrades",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "worldcup/agent-harness": {
       "release-type": "python",
       "component": "cli-web-worldcup",
       "package-name": "cli-web-worldcup",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     },
     "meta": {
       "release-type": "python",
       "component": "cli-anything-web-meta",
       "package-name": "cli-anything-web",
       "bump-minor-pre-major": true,
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "release-as": "0.1.0"
     }
   }
 }
