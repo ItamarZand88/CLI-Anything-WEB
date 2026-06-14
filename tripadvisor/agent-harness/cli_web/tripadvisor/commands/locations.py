@@ -55,9 +55,11 @@ def search_locations(ctx, query, max_results, json_mode):
             print_json(
                 {
                     "success": True,
-                    "query": query,
-                    "count": len(results),
-                    "locations": [loc.to_dict() for loc in results],
+                    "data": {
+                        "query": query,
+                        "count": len(results),
+                        "locations": [loc.to_dict() for loc in results],
+                    },
                 }
             )
             return

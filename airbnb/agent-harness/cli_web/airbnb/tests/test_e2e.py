@@ -324,7 +324,7 @@ class TestAutocomplete:
         assert result.returncode == 0, f"stderr: {result.stderr}"
         data = json.loads(result.stdout)
         assert data["success"] is True
-        assert "suggestions" in data
+        assert "suggestions" in data["data"]
 
     def test_locations_num_results(self):
         result = subprocess.run(
@@ -337,7 +337,7 @@ class TestAutocomplete:
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
-        assert len(data["suggestions"]) <= 3
+        assert len(data["data"]["suggestions"]) <= 3
 
     def test_locations_suggestion_fields(self):
         """Each suggestion must have query and display fields."""
@@ -351,8 +351,8 @@ class TestAutocomplete:
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
-        if data["suggestions"]:
-            s = data["suggestions"][0]
+        if data["data"]["suggestions"]:
+            s = data["data"]["suggestions"][0]
             assert "query" in s
             assert "display" in s
 

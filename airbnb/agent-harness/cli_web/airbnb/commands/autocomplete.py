@@ -78,7 +78,7 @@ def locations(
 
         if not suggestions:
             if json_mode:
-                print_json({"success": True, "query": query, "suggestions": []})
+                print_json({"success": True, "data": {"query": query, "suggestions": []}})
             else:
                 click.echo(f"No location suggestions found for '{query}'.")
             return
@@ -87,8 +87,10 @@ def locations(
             print_json(
                 {
                     "success": True,
-                    "query": query,
-                    "suggestions": [s.to_dict() for s in suggestions],
+                    "data": {
+                        "query": query,
+                        "suggestions": [s.to_dict() for s in suggestions],
+                    },
                 }
             )
         else:

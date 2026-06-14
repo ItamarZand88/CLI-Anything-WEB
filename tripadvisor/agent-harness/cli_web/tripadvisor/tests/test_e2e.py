@@ -115,8 +115,8 @@ class TestLocationsSearchLive:
         assert rc == 0
         data = json.loads(out)
         assert data["success"] is True
-        assert data["count"] > 0
-        locs = data["locations"]
+        assert data["data"]["count"] > 0
+        locs = data["data"]["locations"]
         assert len(locs) > 0
         paris = next((loc for loc in locs if "187147" in loc.get("geo_id", "")), None)
         assert paris is not None, "Expected Paris geo_id 187147 in results"
@@ -127,14 +127,14 @@ class TestLocationsSearchLive:
         data = json.loads(out)
         assert data["success"] is True
         # Should find NYC (60763) or New York state (28953)
-        geo_ids = [loc["geo_id"] for loc in data["locations"]]
+        geo_ids = [loc["geo_id"] for loc in data["data"]["locations"]]
         assert "60763" in geo_ids or "28953" in geo_ids
 
     def test_search_returns_fields(self):
         rc, out, err = _run("locations", "search", "London", "--json")
         assert rc == 0
         data = json.loads(out)
-        loc = data["locations"][0]
+        loc = data["data"]["locations"][0]
         assert "geo_id" in loc
         assert "name" in loc
         assert "url" in loc
