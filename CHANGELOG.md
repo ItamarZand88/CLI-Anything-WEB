@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.12.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.11.0...v0.12.0) (2026-06-14)
+
+
+### Features
+
+* add cli-web-worldcup — FIFA World Cup 2026 CLI (ESPN + Odds API) ([fe488b2](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/fe488b29b3bad0c6201ec15efd02564be663eae5))
+* add cli-web-worldcup — FIFA World Cup 2026 CLI (ESPN + Odds API) ([cf3b38d](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/cf3b38da0bd8a75bcfb84f3e4579c0d9c22aa0ea))
+* **devkit:** keep the GitHub About CLI count in sync with the fleet ([ded200a](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/ded200af9dcba23dbd4dc9cce1e22a608bf52fc9))
+* **devkit:** keep the GitHub About CLI count in sync with the fleet ([b9d8352](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b9d8352fdd97026526fe08c536fd862017152141))
+* publish the CLI fleet to PyPI (per-CLI + umbrella) ([59ca9f6](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/59ca9f67ac99829370a6f679385fd1cf2186740c))
+
+
+### Bug Fixes
+
+* **devkit:** parametrize CompletedProcess[str] in about.py for mypy ([80a0c83](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/80a0c835195008063932d40de67dd3ae07e3e68b))
+* **worldcup:** populate match venue and drop empty-provider odds colon ([b7df51f](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b7df51fc563b9a2882f98da9cd5954b184c20b39))
+* **worldcup:** populate match venue and drop empty-provider odds colon ([64344cd](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/64344cdeb69c8fc3534aa2b47756f06e96791036))
+
 ## [0.11.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.10.0...v0.11.0) (2026-06-10)
 
 

@@ -1,24 +1,12 @@
 # Changelog
 
-## [0.3.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-devkit-v0.2.0...cli-web-devkit-v0.3.0) (2026-06-14)
+## 0.1.0 (2026-06-14)
 
 
 ### Features
 
-* **devkit:** keep the GitHub About CLI count in sync with the fleet ([ded200a](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/ded200af9dcba23dbd4dc9cce1e22a608bf52fc9))
-* **devkit:** keep the GitHub About CLI count in sync with the fleet ([b9d8352](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b9d8352fdd97026526fe08c536fd862017152141))
-* publish the CLI fleet to PyPI (per-CLI + umbrella) ([59ca9f6](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/59ca9f67ac99829370a6f679385fd1cf2186740c))
-
-
-### Bug Fixes
-
-* **devkit:** parametrize CompletedProcess[str] in about.py for mypy ([80a0c83](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/80a0c835195008063932d40de67dd3ae07e3e68b))
-
-## [0.2.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-devkit-v0.1.0...cli-web-devkit-v0.2.0) (2026-06-10)
-
-
-### Features
-
+* **codewiki:** add CLI for Google Code Wiki with Gemini chat ([bab05a9](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/bab05a9935e886f6d482d491522cd7149d04a55b))
+* **codewiki:** add CLI for Google Code Wiki with Gemini chat ([66a291a](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/66a291add8024b046b48b85cb98c15afe6f1da7f))
 * fleet-wide doctor command (self-diagnosis) via vendored core module ([5c2f403](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/5c2f4032b1da6d4d12f8aeb04899c373e953c363))
 * Phase 1+2 — quality gates, cli-web-devkit, cli-web-core, fleet sync ([bbb6a88](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/bbb6a88276cdd1095665b56e900cb061bb529b35))
 * Phases 3-5 — generation v2, fleet ops, api-spec IR, MCP serve fleet-wide ([61caad1](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/61caad16cb7915c440967cfee367f9ca99b64557))
