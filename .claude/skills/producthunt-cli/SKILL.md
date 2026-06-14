@@ -5,7 +5,7 @@ description: Browses Product Hunt via the cli-web-producthunt command-line tool 
 
 # cli-web-producthunt
 
-Browse Product Hunt launches, leaderboards, and users (read-only, no auth, Cloudflare bypass built in).
+Browse Product Hunt launches, leaderboards, and users (read-only, no auth; reads the site's embedded Next.js RSC data).
 Install: `pip install cli-web-producthunt`
 
 ## Commands

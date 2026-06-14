@@ -76,9 +76,9 @@ heaviest. Stop at the first tier that reaches HTTP 200 on a real endpoint.
 | Tier | Tool | Works for | Proof in this repo |
 |---|---|---|---|
 | 1 | plain `httpx` | unprotected / permissive sites | hackernews, youtube, gh-trending |
-| 2 | `curl_cffi` with `impersonate='chrome'` | Cloudflare basic, most WAFs | reddit, pexels, producthunt, unsplash |
+| 2 | `curl_cffi` with `impersonate='chrome'` | Cloudflare basic, most WAFs | reddit, pexels, producthunt, amazon |
 | 3 | `curl_cffi` + browser-captured token cookie | AWS WAF, Akamai / DataDome | booking (aws-waf-token), airbnb (curl_cffi + delays) |
-| 4 | `camoufox` (stealth Firefox, headless) | Cloudflare **managed challenge** | chatgpt |
+| 4 | `camoufox` (stealth Firefox, headless) | Cloudflare **managed challenge**, Anubis JS proof-of-work | chatgpt, unsplash |
 | 5 | Hybrid (`camoufox` for auth + `curl_cffi` for read) | sites that challenge auth but allow read | chatgpt (auth via camoufox, chat via curl_cffi) |
 
 Ladder rule: **never skip a tier**. Start with tier 2 when any protection is

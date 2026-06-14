@@ -71,7 +71,8 @@ gate to a targeted remediation.
 | Tool | When to use |
 |------|-------------|
 | Python `sync_playwright()` | `auth login` command — opens browser for Google/SSO login |
-| `curl_cffi` with `impersonate` | Runtime HTTP for anti-bot protected sites (Unsplash, ProductHunt) |
+| `curl_cffi` with `impersonate` | Runtime HTTP for anti-bot protected sites (ProductHunt, Reddit, Pexels, Amazon) |
+| `camoufox` (stealth headless Firefox) | Runtime HTTP for sites behind a JS challenge / proof-of-work (Unsplash, ChatGPT) |
 | `httpx` | Runtime HTTP for unprotected sites and JSON APIs |
 
 > **CRITICAL**: Generated CLIs use Python `sync_playwright()` for auth login,

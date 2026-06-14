@@ -5,7 +5,7 @@
 - **URL**: https://www.amazon.com
 - **Protocol**: SSR HTML + REST JSON (hybrid)
 - **Auth**: None — all implemented commands use public Amazon endpoints.
-- **HTTP Library**: `httpx` — no Cloudflare/WAF protection detected.
+- **HTTP Library**: `curl_cffi` (Chrome impersonation) — Amazon returns 503 to plain `httpx`; browser TLS impersonation is required.
 - **Site Profile**: No-auth + Read-only.
 - **Service Worker**: Active on the site, but irrelevant for CLI (direct HTTP requests).
 

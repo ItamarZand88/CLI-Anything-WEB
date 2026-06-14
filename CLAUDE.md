@@ -147,8 +147,8 @@ Sites protected by AWS WAF return a 202 JavaScript challenge page to raw HTTP cl
 | `cli-web-gai` | `gai/` | Browser-rendered (Playwright) | Headless rendering, AI search, no auth |
 | `cli-web-notebooklm` | `notebooklm/` | batchexecute RPC | Google SSO + RPC codec |
 | `cli-web-pexels` | `pexels/` | SSR + __NEXT_DATA__ (curl_cffi) | Cloudflare bypass, photo/video download |
-| `cli-web-unsplash` | `unsplash/` | REST API (curl_cffi) | Public JSON API, anti-bot bypass |
-| `cli-web-producthunt` | `producthunt/` | HTML scraping (curl_cffi) | Cloudflare bypass |
+| `cli-web-unsplash` | `unsplash/` | REST JSON via camoufox browser | `/napi/` behind Anubis JS proof-of-work — headless Firefox solves it; curl_cffi for CDN downloads |
+| `cli-web-producthunt` | `producthunt/` | Next.js RSC flight (curl_cffi) | Parses embedded `__next_f` JSON (App Router), not DOM scraping |
 | `cli-web-futbin` | `futbin/` | HTML + JSON API | HTML scraping with httpx, market analysis/scan/arbitrage, trading signals |
 | `cli-web-gh-trending` | `gh-trending/` | HTML scraping | Simple SSR, no auth |
 | `cli-web-youtube` | `youtube/` | InnerTube REST API (httpx) | Internal POST API, no auth, search/video/channel |
@@ -156,7 +156,7 @@ Sites protected by AWS WAF return a 202 JavaScript challenge page to raw HTTP cl
 | `cli-web-codewiki` | `codewiki/` | batchexecute RPC (httpx) | No auth, Gemini-powered wiki/chat, repos/wiki/chat |
 | `cli-web-chatgpt` | `chatgpt/` | REST API + Camoufox browser | OpenAI SSO, chat/ask, image generation/download, headless Cloudflare bypass |
 | `cli-web-airbnb` | `airbnb/` | SSR HTML + niobeClientData (curl_cffi) | No auth, Akamai/DataDome bypass, search/listings/reviews/availability/autocomplete |
-| `cli-web-amazon` | `amazon/` | SSR HTML + REST JSON | No auth, public endpoints only — search/product/bestsellers/suggest |
+| `cli-web-amazon` | `amazon/` | SSR HTML + REST JSON (curl_cffi) | No auth — curl_cffi bypasses Amazon's 503 bot block; search/product/bestsellers/suggest |
 | `cli-web-tripadvisor` | `tripadvisor/` | SSR HTML + JSON-LD (curl_cffi) | No auth, DataDome bypass, locations/hotels/restaurants/attractions |
 | `cli-web-linkedin` | `linkedin/` | GraphQL + Voyager REST (curl_cffi) | Cookie auth (li_at), PerimeterX bypass, feed/profile/search/jobs/post/edit/delete/react/unreact/comment/edit-comment/delete-comment/notifications/network/messaging (26 cmds) |
 | `cli-web-capitoltrades` | `capitoltrades/` | SSR HTML + BFF JSON (curl_cffi) | No auth, CloudFront bypass, trades/politicians/issuers/articles/buzz/press (16 cmds) |

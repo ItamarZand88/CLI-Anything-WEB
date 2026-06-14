@@ -49,7 +49,7 @@ cli-web-producthunt users get <username> --json
 
 ### Auth
 
-No authentication required — public HTML scraping.
+No authentication required.
 
 ---
 
@@ -70,11 +70,11 @@ cli-web-producthunt posts get stitch-2-0-by-google-2 --json
 
 ## Notes
 
-- Auth: **Not required** — public HTML scraping via curl_cffi
+- Auth: **Not required** — reads Product Hunt's embedded Next.js data via curl_cffi
 - No API key, no tokens, no cookies needed
-- Uses Chrome TLS impersonation to bypass Cloudflare
+- Posts come from the Next.js RSC flight stream (`self.__next_f`), not DOM scraping; curl_cffi Chrome impersonation handles transport
 - Rate limiting: Be respectful — avoid rapid successive requests
-- `posts list` and `posts leaderboard` are the most reliable commands — they scrape the homepage/leaderboard which has clean structured data
+- `posts list` and `posts leaderboard` are the most reliable commands — they read the homepage/leaderboard RSC payload, which has clean structured data
 - `posts get <slug>` scrapes the detail page — `name` may include tagline, `votes_count`/`comments_count` may be 0 (detail page HTML structure differs from list). Prefer using data from `posts list` when possible
 - `description` is `null` in list view (only available in `posts get` detail view)
 - `rank` is `null` in leaderboard view (use array index for ordering)

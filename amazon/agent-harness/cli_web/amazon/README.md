@@ -80,4 +80,4 @@ python -m pytest cli_web/amazon/tests/ -v -s
 - **Website:** https://www.amazon.com
 - **Protocol:** SSR HTML + REST JSON hybrid
 - **Auth:** None — all commands use public Amazon endpoints
-- **HTTP library:** httpx
+- **HTTP library:** curl_cffi (Chrome impersonation — bypasses Amazon's 503 bot block)

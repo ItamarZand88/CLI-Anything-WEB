@@ -2,9 +2,9 @@
 
 ## API Overview
 
-- **Protocol**: HTML scraping (SSR)
-- **HTTP client**: curl_cffi with Chrome TLS impersonation (Cloudflare bypass)
-- **Auth**: None required — public HTML pages
+- **Protocol**: Next.js App Router — feed data embedded in the RSC flight stream (`self.__next_f`)
+- **HTTP client**: curl_cffi with Chrome TLS impersonation
+- **Auth**: None required — public pages
 - **Site profile**: No-auth, read-only
 
 ## Data Model
@@ -37,7 +37,7 @@ cli-web-producthunt
 
 ## Notes
 
-- No auth needed — all data is publicly accessible HTML
-- curl_cffi impersonates Chrome to bypass Cloudflare
-- Posts are scraped from homepage cards, not a JSON API
+- No auth needed — all data is publicly accessible
+- curl_cffi impersonates Chrome for transport
+- Posts are parsed from the embedded Next.js RSC flight stream (`self.__next_f`), not DOM cards
 - Leaderboard supports daily/weekly/monthly periods

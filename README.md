@@ -98,8 +98,8 @@ The agent opens a browser, asks you to log in if needed, captures traffic, and g
 | [`cli-web-futbin`](futbin/) | FUTBIN | HTML + JSON API | None | [📖 Skill](.claude/skills/futbin-cli/SKILL.md) | EA FC player database — search, compare, prices, market analysis, arbitrage, trading signals |
 | [`cli-web-notebooklm`](notebooklm/) | Google NotebookLM | batchexecute RPC | Google SSO | [📖 Skill](.claude/skills/notebooklm-cli/SKILL.md) | Notebooks, sources, chat, 9 artifact types (audio, video, slides, quiz, mindmap) |
 | [`cli-web-gh-trending`](gh-trending/) | GitHub Trending | HTML scraping | None | [📖 Skill](.claude/skills/gh-trending-cli/SKILL.md) | Trending repos & developers with language/time filters |
-| [`cli-web-producthunt`](producthunt/) | Product Hunt | HTML scraping (curl_cffi) | None | [📖 Skill](.claude/skills/producthunt-cli/SKILL.md) | Today's launches, leaderboards, product details |
-| [`cli-web-unsplash`](unsplash/) | Unsplash | REST API (curl_cffi) | None | [📖 Skill](.claude/skills/unsplash-cli/SKILL.md) | Photo search, download, topics, collections, profiles |
+| [`cli-web-producthunt`](producthunt/) | Product Hunt | Next.js RSC flight (curl_cffi) | None | [📖 Skill](.claude/skills/producthunt-cli/SKILL.md) | Today's launches, leaderboards, product details |
+| [`cli-web-unsplash`](unsplash/) | Unsplash | REST JSON (camoufox browser) | None | [📖 Skill](.claude/skills/unsplash-cli/SKILL.md) | Photo search, download, topics, collections, profiles |
 | [`cli-web-booking`](booking/) | Booking.com | GraphQL + HTML (curl_cffi) | WAF cookies | [📖 Skill](.claude/skills/booking-cli/SKILL.md) | Hotel search, property details, destination resolution |
 | [`cli-web-stitch`](stitch/) | Google Stitch | batchexecute RPC | Google SSO | [📖 Skill](.claude/skills/stitch-cli/SKILL.md) | AI UI design — generate mobile/web app mockups from text prompts |
 | [`cli-web-pexels`](pexels/) | Pexels | SSR + __NEXT_DATA__ (curl_cffi) | None | [📖 Skill](.claude/skills/pexels-cli/SKILL.md) | Free stock photos & videos — search, download, collections, profiles |
@@ -110,7 +110,7 @@ The agent opens a browser, asks you to log in if needed, captures traffic, and g
 | [`cli-web-codewiki`](codewiki/) | Google Code Wiki | batchexecute RPC | None | [📖 Skill](.claude/skills/codewiki-cli/SKILL.md) | AI-generated repo docs, wiki sections, Gemini chat, download as .md |
 | [`cli-web-chatgpt`](chatgpt/) | ChatGPT | REST API + Camoufox browser | Browser (OpenAI SSO) | [📖 Skill](.claude/skills/chatgpt-cli/SKILL.md) | Ask questions, generate/download images, conversations, models |
 | [`cli-web-airbnb`](airbnb/) | Airbnb | SSR HTML + niobeClientData (curl_cffi) | None | [📖 Skill](.claude/skills/airbnb-cli/SKILL.md) | Search stays, listing details, amenities, host info, autocomplete locations |
-| [`cli-web-amazon`](amazon/) | amazon.com | SSR HTML + REST JSON | None | [📖 Skill](.claude/skills/amazon-cli/SKILL.md) | Search products, view details, browse bestsellers |
+| [`cli-web-amazon`](amazon/) | amazon.com | SSR HTML + REST JSON (curl_cffi) | None | [📖 Skill](.claude/skills/amazon-cli/SKILL.md) | Search products, view details, browse bestsellers |
 | [`cli-web-tripadvisor`](tripadvisor/) | TripAdvisor | SSR HTML + JSON-LD (curl_cffi) | None | [📖 Skill](.claude/skills/tripadvisor-cli/SKILL.md) | Search locations, hotels, restaurants, and attractions |
 | [`cli-web-linkedin`](linkedin/) | LinkedIn | GraphQL + Voyager REST (curl_cffi) | Cookie | [📖 Skill](.claude/skills/linkedin-cli/SKILL.md) | Search, feed, profiles, jobs, posts, reactions, comments, network, messaging (26 cmds) |
 | [`cli-web-capitoltrades`](capitoltrades/) | Capitol Trades | SSR HTML + BFF JSON (curl_cffi) | None | [📖 Skill](.claude/skills/capitoltrades-cli/SKILL.md) | US congressional stock trades (STOCK Act) — trades, politicians, issuers, price history |
@@ -375,7 +375,8 @@ The plugin auto-detects and handles multiple web architectures:
 |----------|--------------|-----------------|
 | **REST / JSON API** | Monday.com, Dev.to | `httpx` client, JSON response parsing |
 | **Server-rendered HTML** | GitHub, FUTBIN, Hacker News | `BeautifulSoup4` + CSS selectors |
-| **Cloudflare-protected** | Product Hunt, Unsplash | `curl_cffi` with Chrome TLS impersonation |
+| **Anti-bot (curl_cffi)** | Product Hunt, Reddit, Amazon | `curl_cffi` with Chrome TLS impersonation |
+| **JS proof-of-work challenge** | Unsplash, ChatGPT | `camoufox` (stealth headless Firefox) solves the challenge |
 | **GraphQL** | Shopify, GitHub API v4 | Query abstraction into CLI commands |
 | **GraphQL + AWS WAF** | Booking.com | `curl_cffi` + WAF cookie bypass |
 | **Google batchexecute** | NotebookLM, Google Docs, Keep | Custom RPC encoder/decoder |
@@ -403,8 +404,8 @@ CLI-Anything-WEB/
 ├── gai/                         # 🤖 Google AI Mode (Browser-rendered)
 ├── notebooklm/                  # 📓 NotebookLM (Google batchexecute)
 ├── pexels/                      # 📸 Pexels (SSR + __NEXT_DATA__)
-├── unsplash/                    # 📷 Unsplash (REST API + curl_cffi)
-├── producthunt/                 # 🚀 Product Hunt (curl_cffi)
+├── unsplash/                    # 📷 Unsplash (REST JSON + camoufox)
+├── producthunt/                 # 🚀 Product Hunt (Next.js RSC + curl_cffi)
 ├── futbin/                      # 🎮 FUTBIN (HTML + JSON)
 ├── gh-trending/                 # 📈 GitHub Trending (HTML scraping)
 ├── youtube/                     # 🎬 YouTube (InnerTube REST API)

@@ -32,7 +32,7 @@ cli-web-producthunt users get rrhoover --json
 
 ## Auth
 
-**No authentication required.** The CLI scrapes public HTML using `curl_cffi` with Chrome TLS impersonation to bypass Cloudflare.
+**No authentication required.** The CLI reads Product Hunt's embedded Next.js data (the RSC flight stream) using `curl_cffi` with Chrome TLS impersonation.
 
 ## JSON Output
 

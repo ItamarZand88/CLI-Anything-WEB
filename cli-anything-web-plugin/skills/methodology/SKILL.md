@@ -159,7 +159,7 @@ target. These are battle-tested implementations that solved the same problems yo
 | **Google batchexecute** | `notebooklm/agent-harness/cli_web/notebooklm/` | `core/rpc/encoder.py`, `core/rpc/decoder.py`, `core/client.py`, `core/auth.py` |
 | **GraphQL + WAF** | `booking/agent-harness/cli_web/booking/` | `core/client.py` (curl_cffi + GraphQL), `core/auth.py` (WAF tokens) |
 | **HTML scraping** | `futbin/agent-harness/cli_web/futbin/` | `core/client.py` (httpx + BS4), `commands/players.py` |
-| **HTML + Cloudflare** | `producthunt/agent-harness/cli_web/producthunt/` | `core/client.py` (curl_cffi impersonate) |
+| **Next.js RSC** | `producthunt/agent-harness/cli_web/producthunt/` | `core/client.py` (curl_cffi + `__next_f` flight parsing) |
 | **REST API** | `unsplash/agent-harness/cli_web/unsplash/` | `core/client.py`, `commands/photos.py` |
 | **Simple HTML** | `gh-trending/agent-harness/cli_web/gh_trending/` | Minimal structure example |
 
