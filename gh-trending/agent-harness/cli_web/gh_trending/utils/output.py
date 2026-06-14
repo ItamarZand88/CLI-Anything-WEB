@@ -53,7 +53,8 @@ def print_repos_table(repos: list) -> None:
         f"{'Repository':<{col_repo}} "
         f"{'Language':<{col_lang}} "
         f"{'Stars':>{col_stars}} "
-        f"{'Today':>{col_today}}"
+        f"{'Today':>{col_today}}  "
+        f"Link"
     )
     print(header)
     print("-" * len(header))
@@ -61,12 +62,14 @@ def print_repos_table(repos: list) -> None:
     for repo in repos:
         lang = _safe(repo.language or "", col_lang)
         repo_name = _safe(repo.full_name, col_repo)
+        # URL printed last and in full so terminals keep it clickable.
         print(
             f"{repo.rank:<{col_rank}} "
             f"{repo_name:<{col_repo}} "
             f"{lang:<{col_lang}} "
             f"{repo.stars:>{col_stars},} "
-            f"{repo.stars_today:>{col_today},}"
+            f"{repo.stars_today:>{col_today},}  "
+            f"{repo.url}"
         )
 
 
