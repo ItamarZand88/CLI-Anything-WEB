@@ -52,6 +52,18 @@ tag `vX.Y.Z`) is *not* published to PyPI — only the Python packages are.
    [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC, no
    stored secret) and delete the token.
 
+3. **Add a release token so new releases auto-publish.** release-please runs
+   under the default `GITHUB_TOKEN`, and releases it creates do **not** trigger
+   `publish.yml` — GitHub deliberately blocks the `GITHUB_TOKEN` from triggering
+   other workflows. Create a fine-grained PAT scoped to this repo (*Contents:*
+   read/write, *Pull requests:* read/write) and store it as the
+   `RELEASE_PLEASE_TOKEN` secret. `release-please.yml` runs under it, so each new
+   release fires the publish workflow automatically.
+
+   Without this token, publishing still works — just trigger `publish.yml`
+   manually (Actions → Publish to PyPI → Run workflow → enter the release tag)
+   for each package after a release.
+
 ## First release
 
 The manifest is seeded at each package's current version (`0.1.0` for the CLIs

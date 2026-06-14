@@ -20,7 +20,16 @@ jobs:
         uses: googleapis/release-please-action@v4
         # Manifest mode: packages, changelog sections, and extra-files live
         # in release-please-config.json / .release-please-manifest.json.
+        #
+        # Run under a PAT (not the default GITHUB_TOKEN) so the releases this
+        # action creates DO trigger publish.yml's `release: published` event —
+        # GITHUB_TOKEN-created releases are deliberately blocked from triggering
+        # other workflows. See docs/PUBLISHING.md.
         with:
+          # Falls back to GITHUB_TOKEN if the PAT secret isn't set (release PR
+          # still works, but releases won't auto-trigger publish.yml until the
+          # PAT is added).
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
