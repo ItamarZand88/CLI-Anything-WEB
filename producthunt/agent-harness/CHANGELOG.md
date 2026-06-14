@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-producthunt-v0.1.0...cli-web-producthunt-v0.1.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* **producthunt:** parse posts from the Next.js RSC flight stream ([b5170da](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b5170da1df25af9db847b0d4b08dac4129e82ebd))
+
+
+### Documentation
+
+* sync skills/docs with the new unsplash/producthunt/amazon transports ([3de348a](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/3de348a7f853e0ef6b20264581007a2526a1c09d))
+
 ## 0.1.0 (2026-06-14)
 
 

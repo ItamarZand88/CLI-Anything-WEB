@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.12.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.12.0...v0.12.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* **airbnb,tripadvisor:** apply {success,data} envelope to all commands ([ce4352b](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/ce4352becb946dea421b6a0f66098309b6d95c39))
+* **airbnb,tripadvisor:** wrap --json output in the {success,data} envelope ([b2c157c](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b2c157c81cdc6337acd1263b425b962be5d4b236))
+* **amazon:** use curl_cffi to bypass the 503 bot block ([ba68f29](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/ba68f290099280ccaccde01558850190f4c29caf))
+* **producthunt:** parse posts from the Next.js RSC flight stream ([b5170da](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b5170da1df25af9db847b0d4b08dac4129e82ebd))
+* **unsplash:** bypass Anubis PoW via camoufox browser transport ([7d1d7f4](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/7d1d7f491d827b9b09b3042fbf69fdd2af78e686))
+
+
+### Documentation
+
+* sync skills/docs with the new unsplash/producthunt/amazon transports ([3de348a](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/3de348a7f853e0ef6b20264581007a2526a1c09d))
+
 ## [0.12.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.11.0...v0.12.0) (2026-06-14)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-amazon-v0.1.0...cli-web-amazon-v0.1.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* **amazon:** use curl_cffi to bypass the 503 bot block ([ba68f29](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/ba68f290099280ccaccde01558850190f4c29caf))
+
+
+### Documentation
+
+* sync skills/docs with the new unsplash/producthunt/amazon transports ([3de348a](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/3de348a7f853e0ef6b20264581007a2526a1c09d))
+
 ## 0.1.0 (2026-06-14)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-unsplash-v0.1.0...cli-web-unsplash-v0.1.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* **unsplash:** bypass Anubis PoW via camoufox browser transport ([7d1d7f4](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/7d1d7f491d827b9b09b3042fbf69fdd2af78e686))
+
 ## 0.1.0 (2026-06-14)
 
 

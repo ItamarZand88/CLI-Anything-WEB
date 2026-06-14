@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-airbnb-v0.1.0...cli-web-airbnb-v0.1.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* **airbnb,tripadvisor:** apply {success,data} envelope to all commands ([ce4352b](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/ce4352becb946dea421b6a0f66098309b6d95c39))
+* **airbnb,tripadvisor:** wrap --json output in the {success,data} envelope ([b2c157c](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/b2c157c81cdc6337acd1263b425b962be5d4b236))
+
 ## 0.1.0 (2026-06-14)
 
 

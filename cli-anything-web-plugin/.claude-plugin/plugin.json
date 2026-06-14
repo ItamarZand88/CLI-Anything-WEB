@@ -1,6 +1,6 @@
 {
   "name": "cli-anything-web",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "CLI-Anything for the Web: Generate agent-native CLIs for closed-source web apps via network traffic analysis",
   "author": {
     "name": "Itamar",
