@@ -5,7 +5,7 @@ CLI for Google AI Mode — submit questions and get AI-generated answers with so
 ## Installation
 
 ```bash
-pip install -e gai/agent-harness
+pip install cli-web-gai
 ```
 
 ## Usage

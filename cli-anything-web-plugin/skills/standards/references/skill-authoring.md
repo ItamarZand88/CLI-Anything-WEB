@@ -74,7 +74,7 @@ duplicating the body.
 ```markdown
 # cli-web-<app>
 
-<One-line purpose.> Install: `pip install -e <app>/agent-harness`
+<One-line purpose.> Install: `pip install cli-web-<app>`
 
 ## Commands
 <real surface, grouped — verified against --help>

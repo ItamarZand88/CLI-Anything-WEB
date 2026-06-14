@@ -7,7 +7,7 @@ Search YouTube videos, get video details, browse trending content, and explore c
 ## Installation
 
 ```bash
-pip install -e youtube/agent-harness
+pip install cli-web-youtube
 ```
 
 ## Usage

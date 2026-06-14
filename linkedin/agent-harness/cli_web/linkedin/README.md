@@ -9,7 +9,7 @@ Search LinkedIn for people, jobs, and companies. View profiles, feed, and compan
 ## Installation
 
 ```bash
-pip install -e linkedin/agent-harness
+pip install cli-web-linkedin
 ```
 
 ## Authentication

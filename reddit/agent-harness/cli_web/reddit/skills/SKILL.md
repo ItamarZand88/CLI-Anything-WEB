@@ -10,7 +10,7 @@ Reddit CLI — browse feeds, subreddits, search, user profiles, and full write o
 ## Quick Start
 
 ```bash
-pip install -e reddit/agent-harness
+pip install cli-web-reddit
 cli-web-reddit feed hot --limit 5 --json
 cli-web-reddit search posts "python async" --json
 cli-web-reddit sub info python --json

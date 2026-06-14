@@ -7,7 +7,7 @@ Search Amazon products, view details, browse Best Sellers, and get autocomplete 
 ## Installation
 
 ```bash
-pip install -e amazon/agent-harness
+pip install cli-web-amazon
 ```
 
 ## Usage

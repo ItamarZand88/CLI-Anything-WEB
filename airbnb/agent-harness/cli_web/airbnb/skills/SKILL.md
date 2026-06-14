@@ -129,4 +129,4 @@ cli-web-airbnb autocomplete locations "Barce" --json
 - **Listing IDs:** Long integer strings (e.g. `1603496841117193305`). Use `id_b64` for Airbnb internal API.
 - **Pagination:** Cursor-based. Use `next_cursor` value with `--cursor` for the next page.
 - **Read-only:** Search and view only. Booking is not implemented.
-- **Installation:** `pip install -e airbnb/agent-harness`
+- **Installation:** `pip install cli-web-airbnb`

@@ -6,7 +6,7 @@ description: Queries Google AI Mode via cli-web-gai — submits a question, retu
 # cli-web-gai
 
 Google AI Mode search: AI answers with source references, rendered through headless Playwright (Chromium).
-Install: `pip install -e gai/agent-harness`
+Install: `pip install cli-web-gai`
 
 ## Commands
 

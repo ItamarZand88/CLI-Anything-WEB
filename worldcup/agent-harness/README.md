@@ -7,7 +7,7 @@ ESPN's public soccer API (no auth) and, for odds, The Odds API (free key).
 ## Installation
 
 ```bash
-pip install -e worldcup/agent-harness
+pip install cli-web-worldcup
 ```
 
 ## Usage

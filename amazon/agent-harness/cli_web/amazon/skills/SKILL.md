@@ -102,4 +102,4 @@ cli-web-amazon suggest "wireles" --json | \
 - **ASIN:** 10-character alphanumeric identifier (e.g. `B0GRZ78683`).
 - **Pagination:** Search supports `--page N` (typically 1–7 pages). Best sellers supports `--page N`.
 - **Errors in --json mode:** `{"error": true, "code": "NOT_FOUND|RATE_LIMITED|NETWORK_ERROR|SERVER_ERROR", "message": "..."}`
-- **Installation:** `pip install -e amazon/agent-harness`
+- **Installation:** `pip install cli-web-amazon`

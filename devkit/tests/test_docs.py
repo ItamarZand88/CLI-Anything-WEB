@@ -20,9 +20,12 @@ def test_table_auth_display_is_human():
 
 def test_install_block_covers_whole_fleet():
     block = render_install(REGISTRY)
-    for entry in REGISTRY.clis:
-        assert entry.directory in block, f"{entry.name} missing from install block"
-    assert block.startswith("```bash") and block.endswith("```")
+    # Whole-fleet coverage now comes from the umbrella package, not an
+    # exhaustive per-directory list.
+    assert "pip install cli-anything-web" in block
+    # ...and at least one real CLI is shown as the single-package example.
+    assert any(entry.name in block for entry in REGISTRY.clis), "no CLI name in install block"
+    assert "```bash" in block
 
 
 def test_real_readme_is_fresh():

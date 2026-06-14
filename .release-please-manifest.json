@@ -1,5 +1,26 @@
 {
   ".": "0.11.0",
   "cli-web-core": "1.1.0",
-  "devkit": "0.2.0"
+  "devkit": "0.2.0",
+  "futbin/agent-harness": "0.1.0",
+  "notebooklm/agent-harness": "0.1.0",
+  "gh-trending/agent-harness": "0.1.0",
+  "producthunt/agent-harness": "0.1.0",
+  "unsplash/agent-harness": "0.1.0",
+  "booking/agent-harness": "0.1.0",
+  "stitch/agent-harness": "0.1.0",
+  "pexels/agent-harness": "0.1.0",
+  "reddit/agent-harness": "0.1.0",
+  "gai/agent-harness": "0.1.0",
+  "youtube/agent-harness": "0.1.0",
+  "hackernews/agent-harness": "0.1.0",
+  "codewiki/agent-harness": "0.1.0",
+  "chatgpt/agent-harness": "0.1.0",
+  "airbnb/agent-harness": "0.1.0",
+  "amazon/agent-harness": "0.1.0",
+  "tripadvisor/agent-harness": "0.1.0",
+  "linkedin/agent-harness": "0.1.0",
+  "capitoltrades/agent-harness": "0.1.0",
+  "worldcup/agent-harness": "0.1.0",
+  "meta": "0.1.0"
 }

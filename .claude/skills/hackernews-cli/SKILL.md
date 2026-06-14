@@ -6,7 +6,7 @@ description: Browses and interacts with Hacker News via cli-web-hackernews — t
 # cli-web-hackernews
 
 Hacker News on the command line: browsing and search need no auth; voting, submitting, commenting, favoriting, and hiding need login.
-Install: `pip install -e hackernews/agent-harness`
+Install: `pip install cli-web-hackernews`
 
 ## Commands
 

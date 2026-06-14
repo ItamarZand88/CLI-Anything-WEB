@@ -6,7 +6,7 @@ description: Searches TripAdvisor hotels, restaurants, attractions, and destinat
 # cli-web-tripadvisor
 
 Search TripAdvisor for locations, hotels, restaurants, and attractions (read-only, no auth, DataDome bypass built in).
-Install: `pip install -e tripadvisor/agent-harness`
+Install: `pip install cli-web-tripadvisor`
 
 ## Commands
 

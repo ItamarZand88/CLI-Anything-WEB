@@ -6,7 +6,7 @@ description: Searches and downloads free Unsplash photos via the cli-web-unsplas
 # cli-web-unsplash
 
 Search, explore, and download Unsplash photos (read-only, no auth).
-Install: `pip install -e unsplash/agent-harness`
+Install: `pip install cli-web-unsplash`
 
 ## Commands
 

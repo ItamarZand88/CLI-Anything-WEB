@@ -6,7 +6,7 @@ description: Searches Airbnb from the terminal via cli-web-airbnb — find stays
 # cli-web-airbnb
 
 Read-only Airbnb search: stays, listing details, reviews, availability, location autocomplete. Bot protection (Akamai/DataDome) is bypassed automatically.
-Install: `pip install -e airbnb/agent-harness`
+Install: `pip install cli-web-airbnb`
 
 ## Commands
 

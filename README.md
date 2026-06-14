@@ -121,15 +121,15 @@ The agent opens a browser, asks you to log in if needed, captures traffic, and g
 
 <!-- fleet-install:start -->
 ```bash
-# Install all CLIs at once
-pip install -e futbin/agent-harness -e notebooklm/agent-harness \
-  -e gh-trending/agent-harness -e producthunt/agent-harness -e unsplash/agent-harness \
-  -e booking/agent-harness -e stitch/agent-harness -e pexels/agent-harness \
-  -e reddit/agent-harness -e gai/agent-harness -e youtube/agent-harness \
-  -e hackernews/agent-harness -e codewiki/agent-harness -e chatgpt/agent-harness \
-  -e airbnb/agent-harness -e amazon/agent-harness -e tripadvisor/agent-harness \
-  -e linkedin/agent-harness -e capitoltrades/agent-harness -e worldcup/agent-harness
+# Install the entire fleet (every CLI) in one command:
+pip install cli-anything-web          # or: uv tool install cli-anything-web
+
+# ...or install only the CLIs you want, by name (see the table above):
+pip install cli-web-futbin
+uvx cli-web-futbin --help                   # or run it once, no install, via uvx
 ```
+
+> Working from a clone instead? Install a CLI editable with `pip install -e <app>/agent-harness` (see [QUICKSTART](QUICKSTART.md)).
 <!-- fleet-install:end -->
 
 ```bash
@@ -140,79 +140,79 @@ python -m camoufox fetch           # for CLIs that use stealth browser (anti-bot
 
 **GitHub Trending** — no auth, great first test
 ```bash
-pip install -e gh-trending/agent-harness
+pip install cli-web-gh-trending
 cli-web-gh-trending repos list --language python --since weekly --json
 ```
 
 **FUTBIN** — search EA FC players
 ```bash
-pip install -e futbin/agent-harness
+pip install cli-web-futbin
 cli-web-futbin players search --name "Messi" --json
 ```
 
 **NotebookLM** — requires Google login
 ```bash
-pip install -e notebooklm/agent-harness
+pip install cli-web-notebooklm
 cli-web-notebooklm auth login
 cli-web-notebooklm notebooks list --json
 ```
 
 **Product Hunt** — no auth, bypasses Cloudflare
 ```bash
-pip install -e producthunt/agent-harness
+pip install cli-web-producthunt
 cli-web-producthunt posts list --json
 ```
 
 **Unsplash** — photo search
 ```bash
-pip install -e unsplash/agent-harness
+pip install cli-web-unsplash
 cli-web-unsplash photos search "mountains" --json
 ```
 
 **Booking.com** — hotel search
 ```bash
-pip install -e booking/agent-harness
+pip install cli-web-booking
 cli-web-booking auth login        # required — fetches WAF browser cookies
 cli-web-booking search find "Paris" --json
 ```
 
 **Google Stitch** — requires Google SSO login
 ```bash
-pip install -e stitch/agent-harness
+pip install cli-web-stitch
 cli-web-stitch auth login
 cli-web-stitch projects list --json
 ```
 
 **Pexels** — free stock photos & videos
 ```bash
-pip install -e pexels/agent-harness
+pip install cli-web-pexels
 cli-web-pexels photos search "mountains" --json
 ```
 
 **Reddit** — feeds, search, vote, comment, submit
 ```bash
-pip install -e reddit/agent-harness
+pip install cli-web-reddit
 cli-web-reddit auth login         # optional — required for voting, commenting, submitting
 cli-web-reddit feed hot --limit 5 --json
 ```
 
 **Hacker News** — stories, search, upvote, submit
 ```bash
-pip install -e hackernews/agent-harness
+pip install cli-web-hackernews
 cli-web-hackernews auth login     # optional — required for upvoting, submitting, commenting
 cli-web-hackernews stories top -n 5 --json
 ```
 
 **Google Code Wiki** — AI-generated repo docs + Gemini chat
 ```bash
-pip install -e codewiki/agent-harness
+pip install cli-web-codewiki
 cli-web-codewiki wiki sections excalidraw/excalidraw --json
 cli-web-codewiki chat ask "How does rendering work?" --repo excalidraw/excalidraw --json
 ```
 
 **Airbnb** — search stays, get listing details
 ```bash
-pip install -e airbnb/agent-harness
+pip install cli-web-airbnb
 cli-web-airbnb search stays "London, UK" --checkin 2024-06-01 --checkout 2024-06-05 --adults 2 --json
 cli-web-airbnb listings get 770993223449115417 --json
 cli-web-airbnb autocomplete locations "New Yor" --json
@@ -220,14 +220,14 @@ cli-web-airbnb autocomplete locations "New Yor" --json
 
 **TripAdvisor** — search hotels, restaurants, and attractions (no auth, DataDome bypass)
 ```bash
-pip install -e tripadvisor/agent-harness
+pip install cli-web-tripadvisor
 cli-web-tripadvisor hotels search "Paris" --json
 cli-web-tripadvisor attractions search "London" --json
 ```
 
 **ChatGPT** — ask questions, generate images
 ```bash
-pip install -e chatgpt/agent-harness
+pip install cli-web-chatgpt
 cli-web-chatgpt auth login        # optional — required for image generation & conversations
 cli-web-chatgpt chat ask "Explain quantum computing in one sentence" --json
 cli-web-chatgpt chat image "A sunset over mountains" --output sunset.png --json
@@ -235,14 +235,14 @@ cli-web-chatgpt chat image "A sunset over mountains" --output sunset.png --json
 
 **Google AI Mode** — AI-powered search (requires Playwright browser)
 ```bash
-pip install -e gai/agent-harness
+pip install cli-web-gai
 playwright install chromium
 cli-web-gai search ask "What is quantum computing" --json
 ```
 
 **Amazon** — search products, bestsellers, autocomplete (no auth required)
 ```bash
-pip install -e amazon/agent-harness
+pip install cli-web-amazon
 
 # Search Amazon products
 cli-web-amazon search "laptop" --json
@@ -256,7 +256,7 @@ cli-web-amazon bestsellers electronics --json
 
 **LinkedIn** — search people/jobs/companies, feed, profiles, post, network, messaging (auth required)
 ```bash
-pip install -e linkedin/agent-harness
+pip install cli-web-linkedin
 cli-web-linkedin auth login        # required — browser-based LinkedIn SSO
 
 # Search people and jobs
@@ -271,7 +271,7 @@ cli-web-linkedin network connections --limit 10 --json
 
 **Capitol Trades** — US congressional stock trades (no auth, CloudFront bypass)
 ```bash
-pip install -e capitoltrades/agent-harness
+pip install cli-web-capitoltrades
 
 # Latest trades across Congress
 cli-web-capitoltrades --json trades list --page-size 20

@@ -6,7 +6,7 @@ description: Searches Amazon from the terminal via cli-web-amazon — product se
 # cli-web-amazon
 
 Read-only Amazon browsing: search, product detail, Best Sellers, suggestions. Public endpoints only.
-Install: `pip install -e amazon/agent-harness`
+Install: `pip install cli-web-amazon`
 
 ## Commands
 

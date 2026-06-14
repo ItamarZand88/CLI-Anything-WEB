@@ -6,7 +6,7 @@ description: Queries US congressional stock trades (STOCK Act disclosures) on ca
 # cli-web-capitoltrades
 
 Query Capitol Trades — US congressional stock-trade disclosures (read-only, no auth, CloudFront bypass built in).
-Install: `pip install -e capitoltrades/agent-harness`
+Install: `pip install cli-web-capitoltrades`
 
 ## Commands
 

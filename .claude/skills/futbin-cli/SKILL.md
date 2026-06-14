@@ -7,7 +7,7 @@ when_to_use: FUTBIN, EA FC / FIFA Ultimate Team, card prices, squad building cha
 # cli-web-futbin
 
 EA FC Ultimate Team database and market analytics. Prices are in coins; current game year is 26 (use `--year 25` for last year's cards, or set a default via `config`).
-Install: `pip install -e futbin/agent-harness`
+Install: `pip install cli-web-futbin`
 
 For trading strategy, market timing, and promo-cycle guidance, read [market-playbook.md](market-playbook.md) — weekly buy/sell cycle, EA tax formulas, promo crash calendar, fodder rules, mass bidding, and step-by-step CLI workflows.
 

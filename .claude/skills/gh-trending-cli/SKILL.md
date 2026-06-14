@@ -6,7 +6,7 @@ description: Lists GitHub Trending repositories and developers via cli-web-gh-tr
 # cli-web-gh-trending
 
 GitHub Trending on the command line: repositories and developers, read-only.
-Install: `pip install -e gh-trending/agent-harness`
+Install: `pip install cli-web-gh-trending`
 
 ## Commands
 

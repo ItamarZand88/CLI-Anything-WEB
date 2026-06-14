@@ -6,7 +6,7 @@ description: Browses Google Code Wiki (codewiki.google) via cli-web-codewiki —
 # cli-web-codewiki
 
 Google Code Wiki on the command line: repo search, wiki reading, Gemini Q&A about codebases. Repos are referenced by slug `org/name` (e.g. `facebook/react`).
-Install: `pip install -e codewiki/agent-harness`
+Install: `pip install cli-web-codewiki`
 
 ## Commands
 

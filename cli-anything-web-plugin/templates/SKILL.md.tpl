@@ -12,7 +12,7 @@ when_to_use: >
 
 # cli-web-${app_name}
 
-FILL_IN: one-line purpose. Install: `pip install -e ${app_name}/agent-harness`
+FILL_IN: one-line purpose. Install: `pip install cli-web-${app_name}`
 
 ## Commands
 

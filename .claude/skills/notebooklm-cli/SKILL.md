@@ -6,7 +6,7 @@ description: Drives Google NotebookLM via the cli-web-notebooklm command-line to
 # cli-web-notebooklm
 
 Manage NotebookLM notebooks, sources, chat, and artifact generation. Requires Google auth (`auth login`).
-Install: `pip install -e notebooklm/agent-harness`
+Install: `pip install cli-web-notebooklm`
 
 ## Commands
 

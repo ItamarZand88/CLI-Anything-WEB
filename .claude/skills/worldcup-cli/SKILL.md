@@ -7,7 +7,7 @@ description: FIFA World Cup 2026 data via the cli-web-worldcup command — fixtu
 
 FIFA World Cup 2026 on the command line — read-only. Matches, nations,
 squads, group standings, and bookmaker odds.
-Install: `pip install -e worldcup/agent-harness`
+Install: `pip install cli-web-worldcup`
 
 Data sources: **ESPN** public API (no auth) for everything except odds;
 **The Odds API** (free key) for `odds`. No bets are ever placed.

@@ -1,11 +1,16 @@
 name: Publish to PyPI
 
-# Publishes cli-web-core / cli-web-devkit when release-please creates their
-# release tags (cli-web-core-vX.Y.Z / cli-web-devkit-vX.Y.Z).
+# Publishes any Python package in the monorepo when release-please creates its
+# release tag. Covers cli-web-core, cli-web-devkit, every generated CLI
+# (cli-web-<app>-vX.Y.Z), and the cli-anything-web umbrella
+# (cli-anything-web-meta-vX.Y.Z).
+#
+# The package directory is resolved generically from release-please-config.json
+# (component -> path), so adding a new CLI needs no change here.
 #
 # One-time setup required (see docs/PUBLISHING.md):
-#   1. Create the projects on PyPI
-#   2. Add a "Trusted Publisher" (GitHub OIDC) for this repo + workflow
+#   1. Create each project on PyPI (or use the "pending publisher" flow)
+#   2. Add a "Trusted Publisher" (GitHub OIDC) for this repo + publish.yml
 #      with environment name "pypi"
 #   3. Create the "pypi" environment in the repo settings
 
@@ -18,7 +23,9 @@ permissions:
 
 jobs:
   publish:
-    if: startsWith(github.event.release.tag_name, 'cli-web-core-v') || startsWith(github.event.release.tag_name, 'cli-web-devkit-v')
+    # Only Python packages: every one is tagged with a "cli-web-" prefix, plus
+    # the umbrella. The plugin/workspace release (tag "vX.Y.Z") is excluded.
+    if: startsWith(github.event.release.tag_name, 'cli-web-') || startsWith(github.event.release.tag_name, 'cli-anything-web-meta-')
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -29,18 +36,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Determine package directory
+      - name: Resolve package directory from release-please config
         id: pkg
         run: |
-          case "${{ github.event.release.tag_name }}" in
-            cli-web-core-v*)   echo "dir=cli-web-core" >> "$GITHUB_OUTPUT" ;;
-            cli-web-devkit-v*) echo "dir=devkit" >> "$GITHUB_OUTPUT" ;;
-          esac
+          TAG="${{ github.event.release.tag_name }}"
+          COMPONENT="${TAG%-v*}"   # cli-web-futbin-v0.1.1 -> cli-web-futbin
+          DIR=$(jq -r --arg c "$COMPONENT" \
+            '.packages | to_entries[] | select(.value.component == $c) | .key' \
+            release-please-config.json)
+          if [ -z "$DIR" ]; then
+            echo "::error::No package with component '$COMPONENT' in release-please-config.json"
+            exit 1
+          fi
+          echo "Resolved $TAG -> $DIR"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
 
       - name: Build distribution
         run: |
           pip install build
-          python -m build ${{ steps.pkg.outputs.dir }} --outdir dist/
+          python -m build "${{ steps.pkg.outputs.dir }}" --outdir dist/
 
       - name: Publish to PyPI (trusted publishing)
         uses: pypa/gh-action-pypi-publish@release/v1

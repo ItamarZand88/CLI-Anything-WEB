@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cli-anything-web"
+version = "0.1.0"
+description = "Umbrella package — installs the full CLI-Anything-Web fleet (all 20 agent-native CLIs)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Itamar Zand" }]
+keywords = ["cli", "agent", "web", "scraping", "automation"]
+dependencies = [
+    "cli-web-futbin",
+    "cli-web-notebooklm",
+    "cli-web-gh-trending",
+    "cli-web-producthunt",
+    "cli-web-unsplash",
+    "cli-web-booking",
+    "cli-web-stitch",
+    "cli-web-pexels",
+    "cli-web-reddit",
+    "cli-web-gai",
+    "cli-web-youtube",
+    "cli-web-hackernews",
+    "cli-web-codewiki",
+    "cli-web-chatgpt",
+    "cli-web-airbnb",
+    "cli-web-amazon",
+    "cli-web-tripadvisor",
+    "cli-web-linkedin",
+    "cli-web-capitoltrades",
+    "cli-web-worldcup",
+]
+
+[project.urls]
+Homepage = "https://github.com/ItamarZand88/CLI-Anything-WEB"
+Repository = "https://github.com/ItamarZand88/CLI-Anything-WEB"
+
+# Metapackage: no Python modules of its own, only dependencies.
+[tool.setuptools]
+packages = []

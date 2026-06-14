@@ -6,7 +6,7 @@ description: Searches YouTube via the cli-web-youtube command-line tool — vide
 # cli-web-youtube
 
 Search and explore YouTube from the terminal (read-only, no auth, InnerTube API).
-Install: `pip install -e youtube/agent-harness`
+Install: `pip install cli-web-youtube`
 
 ## Commands
 

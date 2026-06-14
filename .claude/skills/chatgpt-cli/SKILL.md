@@ -6,7 +6,7 @@ description: Drives ChatGPT from the terminal via cli-web-chatgpt — ask questi
 # cli-web-chatgpt
 
 ChatGPT on the command line: chat, image generation, conversation browsing. Chat/image commands run a headless stealth browser (Camoufox) to pass Cloudflare; read-only commands are instant HTTP.
-Install: `pip install -e chatgpt/agent-harness`
+Install: `pip install cli-web-chatgpt`
 
 ## Commands
 

@@ -7,7 +7,7 @@ Search Airbnb stays, get listing details, and look up location suggestions — a
 ## Installation
 
 ```bash
-pip install -e airbnb/agent-harness
+pip install cli-web-airbnb
 ```
 
 ## Usage

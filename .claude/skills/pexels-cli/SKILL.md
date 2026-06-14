@@ -6,7 +6,7 @@ description: Searches and downloads free stock photos and videos from Pexels via
 # cli-web-pexels
 
 Search and download Pexels stock photos and videos (no auth, Cloudflare bypass built in).
-Install: `pip install -e pexels/agent-harness`
+Install: `pip install cli-web-pexels`
 
 ## Commands
 

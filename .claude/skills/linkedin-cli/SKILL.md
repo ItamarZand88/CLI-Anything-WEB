@@ -6,7 +6,7 @@ description: Interacts with LinkedIn via the cli-web-linkedin command-line tool 
 # cli-web-linkedin
 
 Full LinkedIn client: search, profiles, feed, posting, reactions, comments, network, and messaging. All commands require `auth login` first.
-Install: `pip install -e linkedin/agent-harness`
+Install: `pip install cli-web-linkedin`
 
 ## Commands
 

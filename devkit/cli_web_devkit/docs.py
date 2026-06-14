@@ -52,17 +52,24 @@ def render_table(registry: Registry) -> str:
 
 
 def render_install(registry: Registry) -> str:
-    dirs = [e.directory for e in registry.clis]
-    chunks: list[str] = []
-    line = "pip install"
-    for d in dirs:
-        part = f" -e {d}"
-        if len(line) + len(part) > 88:
-            chunks.append(line + " \\")
-            line = " "
-        line += part
-    chunks.append(line)
-    return "```bash\n# Install all CLIs at once\n" + "\n".join(chunks) + "\n```"
+    # A no-auth CLI makes the best copy-paste example (runs with zero setup).
+    sample = next(
+        (e.name for e in registry.clis if e.auth == "none"),
+        registry.clis[0].name if registry.clis else "cli-web-gh-trending",
+    )
+    return (
+        "```bash\n"
+        "# Install the entire fleet (every CLI) in one command:\n"
+        "pip install cli-anything-web          # or: uv tool install cli-anything-web\n"
+        "\n"
+        "# ...or install only the CLIs you want, by name (see the table above):\n"
+        f"pip install {sample}\n"
+        f"uvx {sample} --help                   # or run it once, no install, via uvx\n"
+        "```\n"
+        "\n"
+        "> Working from a clone instead? Install a CLI editable with "
+        "`pip install -e <app>/agent-harness` (see [QUICKSTART](QUICKSTART.md))."
+    )
 
 
 def _replace_region(text: str, start: str, end: str, content: str) -> str:

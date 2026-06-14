@@ -6,7 +6,7 @@ description: Browses Product Hunt via the cli-web-producthunt command-line tool 
 # cli-web-producthunt
 
 Browse Product Hunt launches, leaderboards, and users (read-only, no auth, Cloudflare bypass built in).
-Install: `pip install -e producthunt/agent-harness`
+Install: `pip install cli-web-producthunt`
 
 ## Commands
 

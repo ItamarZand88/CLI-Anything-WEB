@@ -140,4 +140,4 @@ cli-web-tripadvisor attractions search "Rome" --json | \
 - **Pagination:** 30 results per page. Use `--page N` for subsequent pages.
 - **URLs:** Use URLs from search results directly with `hotels get`, `restaurants get`, `attractions get`.
 - **Read-only:** Search and view only. Booking is not implemented.
-- **Installation:** `pip install -e tripadvisor/agent-harness`
+- **Installation:** `pip install cli-web-tripadvisor`
