@@ -48,3 +48,8 @@ class ServerError(AppError):
 class NotFoundError(AppError):
     def to_dict(self):
         return {"error": True, "code": "NOT_FOUND", "message": str(self)}
+
+
+class ParsingError(AppError):
+    def to_dict(self):
+        return {"error": True, "code": "PARSE_ERROR", "message": str(self)}

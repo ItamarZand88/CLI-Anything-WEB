@@ -6,6 +6,7 @@ impersonation bypasses Cloudflare protection automatically.
 
 from __future__ import annotations
 
+import json
 import re
 
 from bs4 import BeautifulSoup
@@ -15,6 +16,7 @@ from .exceptions import (
     AuthError,
     NetworkError,
     NotFoundError,
+    ParsingError,
     RateLimitError,
     ServerError,
 )
@@ -42,11 +44,8 @@ class ProductHuntClient:
     # Low-level transport
     # ------------------------------------------------------------------
 
-    def _get(self, url: str) -> BeautifulSoup:
-        """Fetch *url* and return a parsed BeautifulSoup tree.
-
-        Maps HTTP status codes to domain exceptions.
-        """
+    def _fetch(self, url: str) -> str:
+        """Fetch *url* and return raw HTML, mapping status codes to errors."""
         try:
             resp = self._session.get(url, timeout=30)
         except Exception as exc:
@@ -71,74 +70,68 @@ class ProductHuntClient:
         if status != 200:
             raise ServerError(f"Unexpected HTTP {status}: {url}", status_code=status)
 
-        return BeautifulSoup(resp.text, "html.parser")
+        return resp.text
+
+    def _get(self, url: str) -> BeautifulSoup:
+        """Fetch *url* and return a parsed BeautifulSoup tree."""
+        return BeautifulSoup(self._fetch(url), "html.parser")
 
     # ------------------------------------------------------------------
     # Shared card-parsing helper
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_post_cards(soup: BeautifulSoup) -> list[Post]:
-        """Extract Post objects from a page containing post-name-* cards."""
+    def _extract_posts(html: str) -> list[Post]:
+        """Extract Post objects from a Product Hunt page.
+
+        Product Hunt is a Next.js App Router app: the feed is embedded as JSON
+        in the React Server Components flight stream (``self.__next_f``), not in
+        ``data-test`` DOM attributes. Pull every ``{"__typename":"Post", ...}``
+        object out of the page text and read its inline fields.
+        """
+
+        def _field(frag: str, key: str) -> str | None:
+            m = re.search(r'"' + key + r'":"((?:[^"\\]|\\.)*)"', frag)
+            return json.loads(f'"{m.group(1)}"') if m else None
+
         posts: list[Post] = []
-        post_names = soup.find_all(attrs={"data-test": re.compile(r"^post-name-")})
-
-        for card in post_names:
-            data_test = card.get("data-test", "")
-            post_id = data_test.replace("post-name-", "")
-
-            # Name and slug from the <a> link inside the card
-            link = card.find("a", href=True)
-            if not link:
+        seen: set[str] = set()
+        for match in re.finditer(r'\{"__typename":"Post"', html):
+            start = match.start()
+            depth = 0
+            end = None
+            # Brace-match the embedded JSON object (handles nested objects).
+            for j in range(start, min(len(html), start + 4000)):
+                ch = html[j]
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = j + 1
+                        break
+            if end is None:
                 continue
-            name = link.get_text(strip=True)
-            href = link["href"]
-            # href may be /posts/<slug> or /products/<slug>
-            slug = href.rsplit("/", 1)[-1] if "/" in href else href
-
-            # Tagline from the next sibling element
-            tagline_el = card.find_next_sibling()
-            tagline = tagline_el.get_text(strip=True) if tagline_el else ""
-
-            # Walk up to find the full card container (up to 8 levels)
-            container = card
-            for _ in range(8):
-                if container.parent:
-                    container = container.parent
-                if container.get("data-test", "").startswith("post-item"):
-                    break
-
-            # Votes and comments from <button> elements with numeric text
-            buttons = container.find_all("button")
-            nums = [
-                int(btn.get_text(strip=True))
-                for btn in buttons
-                if btn.get_text(strip=True).isdigit()
-            ]
-            comments_count = nums[0] if len(nums) >= 1 else 0
-            votes_count = nums[1] if len(nums) >= 2 else 0
-
-            # Topics from /topics/ links
-            topic_links = [
-                a.get_text(strip=True)
-                for a in container.find_all("a", href=lambda h: h and "/topics/" in h)
-            ]
-
-            # Thumbnail from <img> in the container
-            img = container.find("img", src=True)
-            thumbnail_url = img["src"] if img else None
-
+            frag = html[start:end]
+            slug = _field(frag, "slug")
+            name = _field(frag, "name")
+            if not slug or not name or slug in seen:
+                continue
+            seen.add(slug)
+            votes = re.search(r'"votesCount":(\d+)', frag)
+            comments = re.search(r'"commentsCount":(\d+)', frag)
+            post_id = re.search(r'"id":"(\d+)"', frag)
             posts.append(
                 Post.from_card(
                     {
-                        "id": post_id,
+                        "id": post_id.group(1) if post_id else "",
                         "name": name,
-                        "tagline": tagline,
+                        "tagline": _field(frag, "tagline") or "",
                         "slug": slug,
-                        "votes_count": votes_count,
-                        "comments_count": comments_count,
-                        "topics": topic_links,
-                        "thumbnail_url": thumbnail_url,
+                        "votes_count": int(votes.group(1)) if votes else 0,
+                        "comments_count": int(comments.group(1)) if comments else 0,
+                        "topics": [],
+                        "thumbnail_url": None,
                     }
                 )
             )
@@ -151,8 +144,13 @@ class ProductHuntClient:
 
     def list_posts(self) -> list[Post]:
         """Scrape the Product Hunt homepage for today's posts."""
-        soup = self._get(BASE_URL)
-        return self._parse_post_cards(soup)
+        posts = self._extract_posts(self._fetch(BASE_URL))
+        if not posts:
+            raise ParsingError(
+                "No posts found on the Product Hunt homepage — "
+                "the page structure may have changed."
+            )
+        return posts
 
     def get_post(self, slug: str) -> Post:
         """Scrape a single product detail page."""
@@ -237,8 +235,7 @@ class ProductHuntClient:
             today = _date.today()
             url = f"{BASE_URL}/leaderboard/daily/{today.year}/{today.month}/{today.day}"
 
-        soup = self._get(url)
-        return self._parse_post_cards(soup)
+        return self._extract_posts(self._fetch(url))
 
     # ------------------------------------------------------------------
     # Users

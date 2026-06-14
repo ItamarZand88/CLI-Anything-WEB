@@ -25,41 +25,13 @@ from cli_web.producthunt.core.models import Post, User
 # HTML Fixtures
 # ---------------------------------------------------------------------------
 
-POST_CARDS_HTML = """\
-<html><body>
-<div data-test="post-item-1101888">
-  <img src="https://ph-files.imgix.net/thumb1.png" />
-  <div data-test="post-name-1101888">
-    <a href="/products/stitch-2-0-by-google-2">1. Stitch 2.0 by Google</a>
-  </div>
-  <div>AI-powered design tool for rapid prototyping</div>
-  <a href="/topics/design-tools">Design Tools</a>
-  <a href="/topics/artificial-intelligence">Artificial Intelligence</a>
-  <button>42</button>
-  <button>587</button>
-</div>
-
-<div data-test="post-item-1101900">
-  <img src="https://ph-files.imgix.net/thumb2.png" />
-  <div data-test="post-name-1101900">
-    <a href="/products/acme-app">Acme App</a>
-  </div>
-  <div>Ship faster with less code</div>
-  <a href="/topics/developer-tools">Developer Tools</a>
-  <button>15</button>
-  <button>230</button>
-</div>
-
-<div data-test="post-item-1101910">
-  <img src="https://ph-files.imgix.net/thumb3.png" />
-  <div data-test="post-name-1101910">
-    <a href="/posts/cool-thing">3. Cool Thing</a>
-  </div>
-  <div>The coolest thing ever</div>
-  <button>5</button>
-  <button>99</button>
-</div>
-</body></html>
+POST_FEED_HTML = """\
+<html><body><script>
+self.__next_f.push([1,"streamed react server-components payload"])
+{"__typename":"Post","id":"1101888","name":"1. Stitch 2.0 by Google","tagline":"AI-powered design tool for rapid prototyping","slug":"stitch-2-0-by-google-2","votesCount":587,"commentsCount":42}
+{"__typename":"Post","id":"1101900","name":"Acme App","tagline":"Ship faster with less code","slug":"acme-app","votesCount":230,"commentsCount":15}
+{"__typename":"Post","id":"1101910","name":"3. Cool Thing","tagline":"The coolest thing ever","slug":"cool-thing","votesCount":99}
+</script></body></html>
 """
 
 PRODUCT_DETAIL_HTML = """\
@@ -107,12 +79,11 @@ def _mock_response(status_code: int, text: str = "", headers: dict | None = None
 # ---------------------------------------------------------------------------
 
 
-class TestParsePostCards(unittest.TestCase):
-    """Test _parse_post_cards with realistic HTML fixtures."""
+class TestExtractPosts(unittest.TestCase):
+    """Test _extract_posts against the Next.js RSC flight payload."""
 
     def setUp(self):
-        self.soup = BeautifulSoup(POST_CARDS_HTML, "html.parser")
-        self.posts = ProductHuntClient._parse_post_cards(self.soup)
+        self.posts = ProductHuntClient._extract_posts(POST_FEED_HTML)
 
     def test_returns_list_of_posts(self):
         self.assertIsInstance(self.posts, list)
@@ -136,23 +107,16 @@ class TestParsePostCards(unittest.TestCase):
         self.assertEqual(self.posts[2].rank, 3)
 
     def test_votes_and_comments(self):
-        # First button = comments, second = votes
-        self.assertEqual(self.posts[0].comments_count, 42)
         self.assertEqual(self.posts[0].votes_count, 587)
+        self.assertEqual(self.posts[0].comments_count, 42)
+        # commentsCount missing on the third post → defaults to 0
+        self.assertEqual(self.posts[2].comments_count, 0)
 
-    def test_topics_from_links(self):
-        self.assertIn("Design Tools", self.posts[0].topics)
-        self.assertIn("Artificial Intelligence", self.posts[0].topics)
-        self.assertIn("Developer Tools", self.posts[1].topics)
-
-    def test_tagline_from_sibling(self):
+    def test_tagline(self):
         self.assertEqual(self.posts[0].tagline, "AI-powered design tool for rapid prototyping")
         self.assertEqual(self.posts[1].tagline, "Ship faster with less code")
 
-    def test_thumbnail_url(self):
-        self.assertEqual(self.posts[0].thumbnail_url, "https://ph-files.imgix.net/thumb1.png")
-
-    def test_post_id_from_data_test(self):
+    def test_post_id(self):
         self.assertEqual(self.posts[0].id, "1101888")
 
     def test_url_built_from_slug(self):
