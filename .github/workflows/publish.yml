@@ -1,33 +1,43 @@
 name: Publish to PyPI
 
-# Publishes any Python package in the monorepo when release-please creates its
-# release tag. Covers cli-web-core, cli-web-devkit, every generated CLI
-# (cli-web-<app>-vX.Y.Z), and the cli-anything-web umbrella
-# (cli-anything-web-meta-vX.Y.Z).
+# Publishes a monorepo package to PyPI. Two triggers:
+#   * release: published     — automatic (requires release-please to run under a
+#                              PAT/App token; the default GITHUB_TOKEN does NOT
+#                              trigger this — see docs/PUBLISHING.md).
+#   * workflow_dispatch      — manual, given a release tag. Used for the first
+#                              release wave and for recovery/re-publishing.
 #
 # The package directory is resolved generically from release-please-config.json
-# (component -> path), so adding a new CLI needs no change here.
-#
-# Auth: a single account-scoped PyPI API token stored as the PYPI_API_TOKEN
-# secret on the "pypi" environment (see docs/PUBLISHING.md) — one secret
-# covers every package.
+# (component -> path). Auth: the account-scoped PYPI_API_TOKEN secret.
 
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. cli-web-futbin-v0.1.0)"
+        required: true
 
 permissions:
   contents: read
 
 jobs:
   publish:
-    # Only Python packages: every one is tagged with a "cli-web-" prefix, plus
-    # the umbrella. The plugin/workspace release (tag "vX.Y.Z") is excluded.
-    if: startsWith(github.event.release.tag_name, 'cli-web-') || startsWith(github.event.release.tag_name, 'cli-anything-web-meta-')
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.tag_name, 'cli-web-') ||
+      startsWith(github.event.release.tag_name, 'cli-anything-web-meta-')
     runs-on: ubuntu-latest
     environment: pypi
     steps:
+      - name: Determine release tag
+        id: tag
+        run: echo "tag=${{ github.event.release.tag_name || github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -35,8 +45,8 @@ jobs:
       - name: Resolve package directory from release-please config
         id: pkg
         run: |
-          TAG="${{ github.event.release.tag_name }}"
-          COMPONENT="${TAG%-v*}"   # cli-web-futbin-v0.1.1 -> cli-web-futbin
+          COMPONENT="${{ steps.tag.outputs.tag }}"
+          COMPONENT="${COMPONENT%-v*}"   # cli-web-futbin-v0.1.0 -> cli-web-futbin
           DIR=$(jq -r --arg c "$COMPONENT" \
             '.packages | to_entries[] | select(.value.component == $c) | .key' \
             release-please-config.json)
@@ -44,7 +54,7 @@ jobs:
             echo "::error::No package with component '$COMPONENT' in release-please-config.json"
             exit 1
           fi
-          echo "Resolved $TAG -> $DIR"
+          echo "Resolved ${{ steps.tag.outputs.tag }} -> $DIR"
           echo "dir=$DIR" >> "$GITHUB_OUTPUT"
 
       - name: Build distribution
