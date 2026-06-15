@@ -7,6 +7,12 @@ name: Publish backfill (daily)
 # Each run publishes as many as the limit allows; over a few days the whole
 # fleet lands. Progress is written to the run summary.
 #
+# A genuine 429 is retried a few times with backoff (rides short throttle
+# windows), then left for the next daily run. Any OTHER upload error is reported
+# as a real failure with twine's actual message — never silently bucketed as
+# "rate-limited" — so a misconfigured token or bad metadata is visible instead
+# of looking like throttling forever.
+#
 # Once everything is published this becomes a quick daily no-op — safe to delete
 # the workflow then.
 
@@ -21,6 +27,10 @@ permissions:
 jobs:
   backfill:
     runs-on: ubuntu-latest
+    # PYPI_API_TOKEN is an environment-scoped secret; the job must enter the
+    # `pypi` environment to see it (publish.yml does the same). Without this,
+    # secrets.PYPI_API_TOKEN is empty and every upload 403s.
+    environment: pypi
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,6 +57,12 @@ jobs:
                         | select(.value["release-type"] == "python")
                         | "\(.key)\t\(.value["package-name"])"' release-please-config.json)
 
+          # A 429 (or PyPI's worded equivalents) is throttling — worth retrying.
+          # Anything else is a real error we must surface, not hide as a 429.
+          is_ratelimit() {
+            printf '%s' "$1" | grep -qiE '429|too many requests|rate.?limit|new project (registration|creation)|temporarily unavailable'
+          }
+
           while IFS=$'\t' read -r dir pkg; do
             [ -z "$pkg" ] && continue
             code=$(curl -s -o /dev/null -w "%{http_code}" "https://pypi.org/pypi/$pkg/json")
@@ -55,18 +71,42 @@ jobs:
             fi
 
             rm -rf dist && mkdir -p dist
-            if ! python -m build "$dir" --outdir dist >/dev/null 2>&1; then
+            if ! build_out=$(python -m build "$dir" --outdir dist 2>&1); then
               echo "| \`$pkg\` | ⚠️ build failed |" >> "$GITHUB_STEP_SUMMARY"
+              printf '::error::build failed for %s\n%s\n' "$pkg" "$build_out"
               failed=$((failed + 1)); continue
             fi
 
-            if twine upload --skip-existing --non-interactive dist/* >/dev/null 2>&1; then
-              echo "| \`$pkg\` | ✅ published |" >> "$GITHUB_STEP_SUMMARY"
-              published=$((published + 1))
-            else
-              echo "| \`$pkg\` | ⏳ rate-limited — retry tomorrow |" >> "$GITHUB_STEP_SUMMARY"
-              ratelimited=$((ratelimited + 1))
-            fi
+            # Upload, retrying a genuine 429 a few times with backoff (15s, 30s,
+            # 60s). Capture twine's output so real errors are visible.
+            result="" up_out="" attempt=1 max=4 delay=15
+            while [ "$attempt" -le "$max" ]; do
+              if up_out=$(twine upload --skip-existing --non-interactive dist/* 2>&1); then
+                result=published; break
+              fi
+              if is_ratelimit "$up_out"; then
+                if [ "$attempt" -lt "$max" ]; then
+                  sleep "$delay"; delay=$((delay * 2)); attempt=$((attempt + 1)); continue
+                fi
+                result=ratelimited; break
+              fi
+              result=failed; break
+            done
+
+            case "$result" in
+              published)
+                echo "| \`$pkg\` | ✅ published |" >> "$GITHUB_STEP_SUMMARY"
+                published=$((published + 1)) ;;
+              ratelimited)
+                echo "| \`$pkg\` | ⏳ rate-limited — retry tomorrow |" >> "$GITHUB_STEP_SUMMARY"
+                ratelimited=$((ratelimited + 1)) ;;
+              *)
+                # Real, non-throttle failure: show the actual twine error.
+                err_line=$(printf '%s' "$up_out" | grep -iE 'error|invalid|forbidden|401|403' | head -n1)
+                echo "| \`$pkg\` | ❌ failed — ${err_line:-see logs} |" >> "$GITHUB_STEP_SUMMARY"
+                printf '::error::twine upload failed for %s\n%s\n' "$pkg" "$up_out"
+                failed=$((failed + 1)) ;;
+            esac
             sleep 5
           done <<< "$pkgs"
 
@@ -75,9 +115,9 @@ jobs:
           {
             echo ""
             echo "**Published this run: $published · already live: $already · "
-            echo "rate-limited: $ratelimited · build-failed: $failed**"
+            echo "rate-limited: $ratelimited · failed: $failed**"
             echo ""
             echo "Fleet on PyPI: **$live / $total**"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          echo "published=$published rate-limited=$ratelimited live=$live/$total"
+          echo "published=$published rate-limited=$ratelimited failed=$failed live=$live/$total"
