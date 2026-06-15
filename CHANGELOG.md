@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.13.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.13.0...v0.13.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* **ci:** give publish-backfill access to the PyPI token ([63b1fb0](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/63b1fb0060d440c377a6f7e5eb82651f5225f049))
+
 ## [0.13.0](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.12.1...v0.13.0) (2026-06-14)
 
 
