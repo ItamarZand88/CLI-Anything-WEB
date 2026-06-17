@@ -1,24 +1,28 @@
-name: Publish backfill (daily)
+name: Publish backfill (every 4h)
 
 # PyPI throttles NEW-project creation (~20/hr per account, ~40/hr per IP — see
 # docs/PUBLISHING.md), so the fleet's first-ever publish can't all land at once.
-# This job runs daily: it finds every package not yet on PyPI, builds it at its
-# current version (from main) and uploads with --skip-existing, tolerating 429s.
-# Each run publishes as many as the limit allows; over a few days the whole
-# fleet lands. Progress is written to the run summary.
+# In production the per-account budget refills only ~4 projects per ~24-34h
+# window, and a once-a-day run routinely fires while that window is empty and
+# publishes nothing. This job runs every 4 hours so it catches each window
+# within a few hours of it reopening: it finds every package not yet on PyPI,
+# builds it at its current version (from main) and uploads with --skip-existing,
+# tolerating 429s. Each run publishes as many as the limit allows. Progress is
+# written to the run summary.
 #
 # A genuine 429 is retried a few times with backoff (rides short throttle
-# windows), then left for the next daily run. Any OTHER upload error is reported
-# as a real failure with twine's actual message — never silently bucketed as
-# "rate-limited" — so a misconfigured token or bad metadata is visible instead
-# of looking like throttling forever.
+# windows), then left for the next run. Failed attempts cost no budget (PyPI
+# only counts successful creations), so the higher frequency is free. Any OTHER
+# upload error is reported as a real failure with twine's actual message — never
+# silently bucketed as "rate-limited" — so a misconfigured token or bad metadata
+# is visible instead of looking like throttling forever.
 #
-# Once everything is published this becomes a quick daily no-op — safe to delete
-# the workflow then.
+# Once everything is published this becomes a quick no-op — safe to delete the
+# workflow then.
 
 on:
   schedule:
-    - cron: "0 6 * * *" # daily, 06:00 UTC
+    - cron: "0 */4 * * *" # every 4h — catch each refill window promptly
   workflow_dispatch: {}
 
 permissions:
