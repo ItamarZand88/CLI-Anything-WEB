@@ -57,6 +57,42 @@ def print_channel_detail(channel: dict) -> None:
             click.echo()
 
 
+def print_transcript(data: dict) -> None:
+    """Print a transcript as timestamped lines."""
+    click.echo(f"\n  {data.get('title', '')}")
+    lang = data.get("language_code", "")
+    kind = data.get("kind", "")
+    tag = f"{lang} ({kind})" + (" [translated]" if data.get("is_translated") else "")
+    click.echo(f"  Transcript: {tag} — {data.get('segment_count', 0)} segments")
+    click.echo(f"  {'=' * 60}")
+    for seg in data.get("segments", []):
+        click.echo(f"  [{_timestamp(seg['start'])}] {seg['text']}")
+    click.echo()
+
+
+def print_transcript_list(data: dict) -> None:
+    """Print available transcript tracks for a video."""
+    transcripts = data.get("transcripts", [])
+    click.echo(f"\n  {data.get('title', '')}")
+    click.echo(f"  Available transcripts ({len(transcripts)})")
+    click.echo(f"  {'=' * 60}")
+    for t in transcripts:
+        flags = [t.get("kind", "")]
+        if t.get("translatable"):
+            flags.append("translatable")
+        click.echo(f"  {t.get('language_code', ''):<8} {t.get('name', '')}  ({', '.join(flags)})")
+    click.echo()
+
+
+def _timestamp(seconds: float) -> str:
+    """Format seconds as M:SS or H:MM:SS."""
+    h, rem = divmod(int(seconds), 3600)
+    m, s = divmod(rem, 60)
+    if h > 0:
+        return f"{h}:{m:02d}:{s:02d}"
+    return f"{m}:{s:02d}"
+
+
 def _format_duration(seconds: int) -> str:
     """Format seconds into H:MM:SS or M:SS."""
     if seconds <= 0:

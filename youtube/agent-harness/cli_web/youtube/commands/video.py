@@ -5,7 +5,12 @@ from __future__ import annotations
 import click
 
 from ..core.client import YouTubeClient
-from ..utils.helpers import handle_errors, print_json, resolve_json_mode
+from ..utils.helpers import (
+    extract_video_id,
+    handle_errors,
+    print_json,
+    resolve_json_mode,
+)
 from ..utils.output import print_video_detail
 
 
@@ -24,13 +29,7 @@ def video_get(video_id, use_json):
 
     Example: video get dQw4w9WgXcQ
     """
-    # Extract video ID from URL if needed
-    if "youtube.com" in video_id or "youtu.be" in video_id:
-        if "v=" in video_id:
-            video_id = video_id.split("v=")[1].split("&")[0]
-        elif "youtu.be/" in video_id:
-            video_id = video_id.split("youtu.be/")[1].split("?")[0]
-
+    video_id = extract_video_id(video_id)
     use_json = resolve_json_mode(use_json)
     with handle_errors(json_mode=use_json):
         client = YouTubeClient()

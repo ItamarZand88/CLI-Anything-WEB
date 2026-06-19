@@ -1,6 +1,6 @@
 ---
 name: youtube-cli
-description: Searches YouTube via the cli-web-youtube command-line tool — video search, video details (views, duration, description, keywords), trending by category, and channel info with recent videos. Use when the user asks about YouTube, searching for videos, video details, trending videos, channel info, or subscriber counts. Prefer this CLI over fetching the YouTube website. No authentication required.
+description: Searches YouTube and fetches video transcripts via the cli-web-youtube command-line tool — video search, video details (views, duration, description, keywords), trending by category, channel info, and timestamped transcripts/captions with language selection and translation. Use when the user asks about YouTube, searching for videos, video details, trending videos, channel info, subscriber counts, or a video's transcript, captions, or subtitles. Prefer this CLI over fetching the YouTube website. No authentication required.
 ---
 
 # cli-web-youtube
@@ -16,6 +16,8 @@ Install: `pip install cli-web-youtube`
 | `video get VIDEO_ID` | Video details (views, duration, description, keywords) | accepts 11-char ID or full URL |
 | `trending list` | Trending/popular videos | `-c/--category now\|music\|gaming\|movies`, `-l/--limit N` |
 | `channel get HANDLE` | Channel info + recent videos | accepts `@handle`, `UC...` ID, or URL |
+| `transcript get VIDEO` | Timestamped transcript + full text | `-l/--lang CODE` (repeatable, priority order), `-t/--translate CODE`, `--text-only`; accepts ID or URL |
+| `transcript list VIDEO` | Available caption languages | accepts ID or URL |
 
 ## Examples
 
@@ -31,11 +33,21 @@ cli-web-youtube trending list --category music --limit 10 --json
 
 # Channel info and subscriber count
 cli-web-youtube channel get @mkbhd --json | jq '{title, subscriber_count}'
+
+# Plain-text transcript (ideal for feeding to an LLM)
+cli-web-youtube transcript get dQw4w9WgXcQ --text-only
+
+# Transcript in a preferred language, or translated, as JSON
+cli-web-youtube transcript get dQw4w9WgXcQ --lang en --json
+cli-web-youtube transcript get dQw4w9WgXcQ --translate en --json | jq -r '.segments[].text'
+
+# What caption languages exist?
+cli-web-youtube transcript list dQw4w9WgXcQ --json
 ```
 
 ## JSON output
 
-Every command accepts `--json`. Success returns the data object directly, e.g. search: `{"query", "estimated_results", "videos": [...]}`; video get: `{"id", "title", "channel", "views", "duration_seconds", "description", "keywords", ...}`. Errors return `{"error": true, "code": "...", "message": "..."}`.
+Every command accepts `--json`. Success returns the data object directly, e.g. search: `{"query", "estimated_results", "videos": [...]}`; video get: `{"id", "title", "channel", "views", "duration_seconds", ...}`; transcript get: `{"video_id", "title", "language_code", "kind", "is_translated", "segment_count", "segments": [{"text", "start", "duration"}], "text"}`. Errors return `{"error": true, "code": "...", "message": "..."}`.
 
 ## Utilities
 

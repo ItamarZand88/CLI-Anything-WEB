@@ -410,3 +410,142 @@ class TestCLIClick:
         )
         assert result.exit_code == 0
         mock_client.video_detail.assert_called_once_with("dQw4w9WgXcQ")
+
+
+# ── Transcripts ──────────────────────────────────────────────
+
+
+class TestTranscript:
+    PLAYER_WITH_CAPTIONS = {
+        "videoDetails": {"videoId": "abc123", "title": "Test Video"},
+        "captions": {
+            "playerCaptionsTracklistRenderer": {
+                "captionTracks": [
+                    {
+                        "baseUrl": "https://www.youtube.com/api/timedtext?v=abc123&lang=en",
+                        "languageCode": "en",
+                        "name": {"simpleText": "English (auto-generated)"},
+                        "kind": "asr",
+                        "isTranslatable": True,
+                    },
+                    {
+                        "baseUrl": "https://www.youtube.com/api/timedtext?v=abc123&lang=es",
+                        "languageCode": "es",
+                        "name": {"runs": [{"text": "Spanish"}]},
+                        "isTranslatable": True,
+                    },
+                ]
+            }
+        },
+    }
+
+    JSON3 = json.dumps(
+        {
+            "events": [
+                {
+                    "tStartMs": 0,
+                    "dDurationMs": 1500,
+                    "segs": [{"utf8": "Hello"}, {"utf8": " world"}],
+                },
+                {"tStartMs": 1500, "dDurationMs": 2000, "segs": [{"utf8": "second line"}]},
+                {"tStartMs": 3500, "segs": [{"utf8": "\n"}]},  # whitespace-only → skipped
+                {"tStartMs": 4000},  # no segs → skipped
+            ]
+        }
+    )
+
+    def _client(self):
+        from cli_web.youtube.core.client import YouTubeClient
+
+        return YouTubeClient()
+
+    def test_list_transcripts(self):
+        c = self._client()
+        with patch.object(c, "_post", return_value=self.PLAYER_WITH_CAPTIONS):
+            out = c.list_transcripts("abc123")
+        assert out["title"] == "Test Video"
+        assert [t["language_code"] for t in out["transcripts"]] == ["en", "es"]
+        assert out["transcripts"][0]["kind"] == "auto"
+        assert out["transcripts"][1]["kind"] == "manual"
+        assert out["transcripts"][1]["name"] == "Spanish"
+
+    def test_transcript_parses_json3_and_prefers_manual(self):
+        c = self._client()
+        mock_resp = MagicMock(status_code=200, text=self.JSON3)
+        with (
+            patch.object(c, "_post", return_value=self.PLAYER_WITH_CAPTIONS),
+            patch.object(c._session, "get", return_value=mock_resp) as mget,
+        ):
+            out = c.transcript("abc123")
+        # Spanish is human-authored; English is asr → prefer Spanish.
+        assert out["language_code"] == "es"
+        assert out["kind"] == "manual"
+        assert out["segment_count"] == 2
+        assert out["segments"][0] == {"text": "Hello world", "start": 0.0, "duration": 1.5}
+        assert out["text"] == "Hello world second line"
+        assert "fmt=json3" in mget.call_args[0][0]
+
+    def test_transcript_language_selection_and_translate(self):
+        c = self._client()
+        mock_resp = MagicMock(status_code=200, text=self.JSON3)
+        with (
+            patch.object(c, "_post", return_value=self.PLAYER_WITH_CAPTIONS),
+            patch.object(c._session, "get", return_value=mock_resp) as mget,
+        ):
+            out = c.transcript("abc123", languages=["en"], translate="fr")
+        assert out["language_code"] == "fr"
+        assert out["is_translated"] is True
+        url = mget.call_args[0][0]
+        assert "lang=en" in url and "tlang=fr" in url
+
+    def test_transcript_unknown_language_raises(self):
+        c = self._client()
+        with patch.object(c, "_post", return_value=self.PLAYER_WITH_CAPTIONS):
+            with pytest.raises(NotFoundError):
+                c.transcript("abc123", languages=["de"])
+
+    def test_transcript_no_captions_raises(self):
+        c = self._client()
+        player = {"videoDetails": {"videoId": "x", "title": "t"}}
+        with patch.object(c, "_post", return_value=player):
+            with pytest.raises(NotFoundError):
+                c.transcript("x")
+
+    def test_extract_video_id(self):
+        from cli_web.youtube.utils.helpers import extract_video_id
+
+        assert extract_video_id("dQw4w9WgXcQ") == "dQw4w9WgXcQ"
+        assert extract_video_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=5") == "dQw4w9WgXcQ"
+        assert extract_video_id("https://youtu.be/dQw4w9WgXcQ?si=x") == "dQw4w9WgXcQ"
+        assert extract_video_id("https://www.youtube.com/shorts/dQw4w9WgXcQ") == "dQw4w9WgXcQ"
+
+    @patch("cli_web.youtube.commands.transcript.YouTubeClient")
+    def test_transcript_get_command_json(self, mock_class):
+        mock_client = MagicMock()
+        mock_client.transcript.return_value = {
+            "video_id": "abc123",
+            "title": "T",
+            "language_code": "en",
+            "kind": "manual",
+            "is_translated": False,
+            "segment_count": 1,
+            "segments": [{"text": "hi", "start": 0.0, "duration": 1.0}],
+            "text": "hi",
+        }
+        mock_class.return_value = mock_client
+        result = CliRunner().invoke(cli, ["transcript", "get", "abc123", "--json"])
+        assert result.exit_code == 0
+        assert json.loads(result.output)["text"] == "hi"
+
+    @patch("cli_web.youtube.commands.transcript.YouTubeClient")
+    def test_transcript_get_text_only(self, mock_class):
+        mock_client = MagicMock()
+        mock_client.transcript.return_value = {
+            "text": "just the words",
+            "segments": [],
+            "segment_count": 0,
+        }
+        mock_class.return_value = mock_client
+        result = CliRunner().invoke(cli, ["transcript", "get", "abc123", "--text-only"])
+        assert result.exit_code == 0
+        assert result.output.strip() == "just the words"

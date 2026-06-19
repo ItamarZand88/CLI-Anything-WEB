@@ -40,6 +40,18 @@ def handle_errors(json_mode: bool = False):
         sys.exit(1)
 
 
+def extract_video_id(value: str) -> str:
+    """Extract an 11-char video ID from a YouTube URL, or return the input as-is."""
+    if "youtube.com" in value or "youtu.be" in value:
+        if "v=" in value:
+            return value.split("v=")[1].split("&")[0]
+        if "youtu.be/" in value:
+            return value.split("youtu.be/")[1].split("?")[0]
+        if "/shorts/" in value:
+            return value.split("/shorts/")[1].split("?")[0]
+    return value
+
+
 def resolve_json_mode(use_json: bool) -> bool:
     """Resolve --json flag, checking parent context too."""
     if use_json:

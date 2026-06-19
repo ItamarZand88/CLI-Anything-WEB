@@ -131,6 +131,131 @@ class YouTubeClient:
         microformat = resp.get("microformat")
         return format_video_detail(video_details, microformat)
 
+    # ── Transcripts ───────────────────────────────────────────
+
+    def _caption_tracks(self, video_id: str) -> tuple[list[dict], str]:
+        """Return (caption_tracks, video_title) from the player response."""
+        resp = self._post("player", {"videoId": video_id})
+        details = resp.get("videoDetails")
+        if not details:
+            raise NotFoundError(f"Video not found: {video_id}")
+        tracks = (
+            resp.get("captions", {})
+            .get("playerCaptionsTracklistRenderer", {})
+            .get("captionTracks", [])
+        )
+        return tracks, details.get("title", "")
+
+    @staticmethod
+    def _track_label(track: dict) -> str:
+        name = track.get("name", {})
+        if "simpleText" in name:
+            return name["simpleText"]
+        return "".join(r.get("text", "") for r in name.get("runs", []))
+
+    @staticmethod
+    def _select_track(tracks: list[dict], languages: list[str] | None) -> dict:
+        """Pick a caption track by language priority, else manual, else first."""
+        if languages:
+            for lang in languages:
+                lang_l = lang.lower()
+                for track in tracks:
+                    if track.get("languageCode", "").lower() == lang_l:
+                        return track
+            available = ", ".join(sorted({t.get("languageCode", "") for t in tracks}))
+            raise NotFoundError(f"No transcript for languages {languages}. Available: {available}")
+        for track in tracks:  # prefer a human-authored track over auto-generated
+            if track.get("kind") != "asr":
+                return track
+        return tracks[0]
+
+    @staticmethod
+    def _parse_json3(payload: str) -> list[dict]:
+        """Parse YouTube timedtext json3 into [{text, start, duration}]."""
+        import json as _json
+
+        try:
+            data = _json.loads(payload)
+        except _json.JSONDecodeError as exc:
+            raise ParseError(f"Failed to parse transcript: {exc}") from exc
+        segments = []
+        for event in data.get("events", []):
+            segs = event.get("segs")
+            if not segs:
+                continue
+            text = "".join(s.get("utf8", "") for s in segs).strip()
+            if not text:
+                continue
+            segments.append(
+                {
+                    "text": text,
+                    "start": round(event.get("tStartMs", 0) / 1000.0, 3),
+                    "duration": round(event.get("dDurationMs", 0) / 1000.0, 3),
+                }
+            )
+        return segments
+
+    def list_transcripts(self, video_id: str) -> dict:
+        """List available caption tracks for a video."""
+        tracks, title = self._caption_tracks(video_id)
+        return {
+            "video_id": video_id,
+            "title": title,
+            "transcripts": [
+                {
+                    "language_code": t.get("languageCode", ""),
+                    "name": self._track_label(t),
+                    "kind": "auto" if t.get("kind") == "asr" else "manual",
+                    "translatable": bool(t.get("isTranslatable")),
+                }
+                for t in tracks
+            ],
+        }
+
+    def transcript(
+        self,
+        video_id: str,
+        languages: list[str] | None = None,
+        translate: str | None = None,
+    ) -> dict:
+        """Fetch a video transcript as timestamped segments plus full text.
+
+        languages: preferred language codes in priority order (e.g. ["en", "en-US"]);
+                   falls back to a human-authored track, then the first available.
+        translate: target language code — uses YouTube's caption translation.
+        """
+        tracks, title = self._caption_tracks(video_id)
+        if not tracks:
+            raise NotFoundError(f"No transcripts available for video: {video_id}")
+
+        track = self._select_track(tracks, languages)
+        base_url = track.get("baseUrl", "")
+        if not base_url:
+            raise ParseError(f"Caption track has no URL for video: {video_id}")
+
+        url = base_url + ("&" if "?" in base_url else "?") + "fmt=json3"
+        if translate:
+            url += f"&tlang={translate}"
+
+        try:
+            resp = self._session.get(url)
+        except Exception as exc:
+            raise NetworkError(f"Failed to fetch transcript: {exc}") from exc
+        if resp.status_code >= 400:
+            raise YouTubeError(f"HTTP {resp.status_code} fetching transcript")
+
+        segments = self._parse_json3(resp.text)
+        return {
+            "video_id": video_id,
+            "title": title,
+            "language_code": translate or track.get("languageCode", ""),
+            "kind": "auto" if track.get("kind") == "asr" else "manual",
+            "is_translated": bool(translate),
+            "segment_count": len(segments),
+            "segments": segments,
+            "text": " ".join(s["text"] for s in segments).strip(),
+        }
+
     # ── Trending ──────────────────────────────────────────────
 
     def trending(self, category: str = "now") -> list[dict]:

@@ -18,6 +18,7 @@ import click
 from cli_web.youtube import __version__
 from cli_web.youtube.commands.channel import channel_group
 from cli_web.youtube.commands.search import search_group
+from cli_web.youtube.commands.transcript import transcript_group
 from cli_web.youtube.commands.trending import trending_group
 from cli_web.youtube.commands.video import video_group
 from cli_web.youtube.core.exceptions import YouTubeError
@@ -46,6 +47,7 @@ cli.add_command(search_group)
 cli.add_command(video_group)
 cli.add_command(trending_group)
 cli.add_command(channel_group)
+cli.add_command(transcript_group)
 
 
 # ── REPL ──────────────────────────────────────────────────────
@@ -67,6 +69,15 @@ def _print_repl_help() -> None:
     print("    --json                     Output as JSON")
     print()
     print("  channel get <handle>         Channel info + recent videos")
+    print("    --json                     Output as JSON")
+    print()
+    print("  transcript get <id_or_url>   Video transcript (timestamped)")
+    print("    -l, --lang CODE            Preferred language(s), in priority order")
+    print("    -t, --translate CODE       Translate into a language")
+    print("    --text-only                Plain text only (no timestamps)")
+    print("    --json                     Output as JSON")
+    print()
+    print("  transcript list <id_or_url>  Available transcript languages")
     print("    --json                     Output as JSON")
     print()
     print("  help                         Show this help")

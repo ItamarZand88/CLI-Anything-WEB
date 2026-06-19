@@ -291,7 +291,9 @@
         "search videos",
         "video get",
         "trending list",
-        "channel get"
+        "channel get",
+        "transcript get",
+        "transcript list"
       ],
       "install": "pip install -e youtube/agent-harness",
       "canary": [
