@@ -70,9 +70,7 @@ class AmazonClient:
 
     # ── Internal helpers ────────────────────────────────────────────────
 
-    def _get(
-        self, url: str, params: dict | None = None, headers: dict | None = None
-    ) -> Any:
+    def _get(self, url: str, params: dict | None = None, headers: dict | None = None) -> Any:
         """Make a GET request with error mapping."""
         try:
             resp = self._client.get(url, params=params, headers=headers)

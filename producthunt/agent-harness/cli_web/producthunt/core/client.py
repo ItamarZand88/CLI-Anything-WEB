@@ -147,8 +147,7 @@ class ProductHuntClient:
         posts = self._extract_posts(self._fetch(BASE_URL))
         if not posts:
             raise ParsingError(
-                "No posts found on the Product Hunt homepage — "
-                "the page structure may have changed."
+                "No posts found on the Product Hunt homepage — the page structure may have changed."
             )
         return posts
 
