@@ -61,6 +61,14 @@
       "bump-minor-pre-major": true,
       "include-component-in-tag": true
     },
+    "reddit/agent-harness": {
+      "release-type": "python",
+      "component": "cli-web-reddit",
+      "package-name": "cli-web-reddit",
+      "bump-minor-pre-major": true,
+      "include-component-in-tag": true,
+      "release-as": "0.1.1"
+    },
     "futbin/agent-harness": {
       "release-type": "python",
       "component": "cli-web-futbin",
@@ -121,14 +129,6 @@
       "release-type": "python",
       "component": "cli-web-pexels",
       "package-name": "cli-web-pexels",
-      "bump-minor-pre-major": true,
-      "include-component-in-tag": true,
-      "release-as": "0.1.1"
-    },
-    "reddit/agent-harness": {
-      "release-type": "python",
-      "component": "cli-web-reddit",
-      "package-name": "cli-web-reddit",
       "bump-minor-pre-major": true,
       "include-component-in-tag": true,
       "release-as": "0.1.1"
