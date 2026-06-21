@@ -83,7 +83,8 @@ class RedditClient:
             )
         if resp.status_code == 403:
             raise AuthError(
-                "Access denied. Token may have expired. Run: cli-web-reddit auth login",
+                "Access denied. Reddit requires a logged-in session for reads "
+                "(the anonymous API is blocked). Run: cli-web-reddit auth login",
                 recoverable=True,
             )
         if resp.status_code == 404:
