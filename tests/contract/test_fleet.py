@@ -16,6 +16,10 @@ Run: ``pytest tests/contract -m contract``
 
 from __future__ import annotations
 
+import importlib
+from importlib.metadata import entry_points
+
+import click
 import pytest
 from cli_web_core.testing import (
     assert_help_works,
@@ -67,3 +71,47 @@ def test_registered_command_groups_in_help(entry, cli_cmds):
     groups = {c.split()[0] for c in entry.commands}
     missing = [g for g in sorted(groups) if g not in help_text]
     assert not missing, f"{entry.name}: registry commands missing from --help: {missing}"
+
+
+def _installed_command_paths(entry_name: str) -> set[str]:
+    """Return the installed Click leaf commands, excluding fleet utilities."""
+    ep = next(ep for ep in entry_points(group="console_scripts") if ep.name == entry_name)
+    module = importlib.import_module(ep.module)
+    root = next(
+        (
+            candidate
+            for attr in ("cli", "main")
+            if isinstance((candidate := getattr(module, attr, None)), click.Group)
+        ),
+        None,
+    )
+    if root is None:
+        loaded = ep.load()
+        assert isinstance(loaded, click.Group), f"{entry_name}: Click root group not found"
+        root = loaded
+
+    paths: set[str] = set()
+
+    def walk(command: click.Command, path: list[str]) -> None:
+        if isinstance(command, click.Group):
+            context = click.Context(command)
+            for name in command.list_commands(context):
+                child = command.get_command(context, name)
+                if child is not None:
+                    walk(child, [*path, name])
+        elif path:
+            paths.add(" ".join(path))
+
+    walk(root, [])
+    return paths - {"doctor", "mcp-serve"}
+
+
+@pytest.mark.parametrize("entry", _params())
+def test_registry_lists_every_installed_command(entry):
+    """The README and registry site command lists must match the installed CLI."""
+    installed = _installed_command_paths(entry.name)
+    registered = set(entry.commands)
+    assert registered == installed, (
+        f"{entry.name}: registry command drift; "
+        f"missing={sorted(installed - registered)}, stale={sorted(registered - installed)}"
+    )

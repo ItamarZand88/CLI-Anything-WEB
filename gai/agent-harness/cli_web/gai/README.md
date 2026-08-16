@@ -6,6 +6,7 @@ CLI for Google AI Mode — submit questions and get AI-generated answers with so
 
 ```bash
 pip install cli-web-gai
+playwright install chromium
 ```
 
 ## Usage

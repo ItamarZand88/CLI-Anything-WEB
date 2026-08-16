@@ -112,7 +112,7 @@ The agent opens a browser, asks you to log in if needed, captures traffic, and g
 | [`cli-web-airbnb`](airbnb/) | Airbnb | SSR HTML + niobeClientData (curl_cffi) | None | [📖 Skill](.claude/skills/airbnb-cli/SKILL.md) | Search stays, listing details, amenities, host info, autocomplete locations |
 | [`cli-web-amazon`](amazon/) | amazon.com | SSR HTML + REST JSON (curl_cffi) | None | [📖 Skill](.claude/skills/amazon-cli/SKILL.md) | Search products, view details, browse bestsellers |
 | [`cli-web-tripadvisor`](tripadvisor/) | TripAdvisor | SSR HTML + JSON-LD (curl_cffi) | None | [📖 Skill](.claude/skills/tripadvisor-cli/SKILL.md) | Search locations, hotels, restaurants, and attractions |
-| [`cli-web-linkedin`](linkedin/) | LinkedIn | GraphQL + Voyager REST (curl_cffi) | Cookie | [📖 Skill](.claude/skills/linkedin-cli/SKILL.md) | Search, feed, profiles, jobs, posts, reactions, comments, network, messaging (26 cmds) |
+| [`cli-web-linkedin`](linkedin/) | LinkedIn | GraphQL + Voyager REST (curl_cffi) | Cookie | [📖 Skill](.claude/skills/linkedin-cli/SKILL.md) | Search, feed, profiles, jobs, posts, reactions, comments, network, and messaging |
 | [`cli-web-capitoltrades`](capitoltrades/) | Capitol Trades | SSR HTML + BFF JSON (curl_cffi) | None | [📖 Skill](.claude/skills/capitoltrades-cli/SKILL.md) | US congressional stock trades (STOCK Act) — trades, politicians, issuers, price history |
 | [`cli-web-worldcup`](worldcup/) | ESPN / FIFA World Cup 2026 | REST JSON (ESPN + The Odds API) | None | [📖 Skill](.claude/skills/worldcup-cli/SKILL.md) | FIFA World Cup 2026 — fixtures, nations, squads, group standings, and bookmaker odds (read-only) |
 <!-- fleet-table:end -->
@@ -152,7 +152,7 @@ cli-web-futbin players search --name "Messi" --json
 
 **NotebookLM** — requires Google login
 ```bash
-pip install cli-web-notebooklm
+pip install "cli-web-notebooklm[auth]"
 cli-web-notebooklm auth login
 cli-web-notebooklm notebooks list --json
 ```
@@ -171,14 +171,14 @@ cli-web-unsplash photos search "mountains" --json
 
 **Booking.com** — hotel search
 ```bash
-pip install cli-web-booking
+pip install "cli-web-booking[auth]"
 cli-web-booking auth login        # required — fetches WAF browser cookies
 cli-web-booking search find "Paris" --json
 ```
 
 **Google Stitch** — requires Google SSO login
 ```bash
-pip install cli-web-stitch
+pip install "cli-web-stitch[auth]"
 cli-web-stitch auth login
 cli-web-stitch projects list --json
 ```
@@ -227,7 +227,7 @@ cli-web-tripadvisor attractions search "London" --json
 
 **ChatGPT** — ask questions, generate images
 ```bash
-pip install cli-web-chatgpt
+pip install "cli-web-chatgpt[auth]"
 cli-web-chatgpt auth login        # optional — required for image generation & conversations
 cli-web-chatgpt chat ask "Explain quantum computing in one sentence" --json
 cli-web-chatgpt chat image "A sunset over mountains" --output sunset.png --json
@@ -256,7 +256,7 @@ cli-web-amazon bestsellers electronics --json
 
 **LinkedIn** — search people/jobs/companies, feed, profiles, post, network, messaging (auth required)
 ```bash
-pip install cli-web-linkedin
+pip install "cli-web-linkedin[browser]"
 cli-web-linkedin auth login        # required — browser-based LinkedIn SSO
 
 # Search people and jobs

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "clis": [
     {
       "name": "cli-web-futbin",
@@ -27,12 +27,13 @@
         "sbc list",
         "sbc get",
         "evolutions list",
-        "evolutions get",
-        "config set",
+      "evolutions get",
+      "config get",
+      "config set",
         "config show",
         "config reset"
       ],
-      "install": "pip install -e futbin/agent-harness",
+      "install": "pip install cli-web-futbin",
       "canary": [
         [
           "market",
@@ -42,7 +43,10 @@
       ],
       "display_website": "FUTBIN",
       "skill": ".claude/skills/futbin-cli/SKILL.md",
-      "description": "EA FC player database — search, compare, prices, market analysis, arbitrage, trading signals"
+      "description": "EA FC player database — search, compare, prices, market analysis, arbitrage, trading signals",
+      "site_icon": "F",
+      "site_category": "Gaming",
+      "site_tags": ["gaming", "trading"]
     },
     {
       "name": "cli-web-notebooklm",
@@ -52,16 +56,37 @@
       "directory": "notebooklm/agent-harness",
       "namespace": "cli_web.notebooklm",
       "commands": [
-        "notebooks list",
-        "notebooks create",
-        "sources add",
-        "chat ask",
-        "artifacts generate"
+      "notebooks list",
+      "notebooks create",
+      "notebooks get",
+      "notebooks rename",
+      "notebooks delete",
+      "sources list",
+      "sources get",
+      "sources add-url",
+      "sources add-text",
+      "sources delete",
+      "chat ask",
+      "artifacts list",
+      "artifacts generate",
+      "artifacts generate-notes",
+      "artifacts download",
+      "artifacts list-audio-types",
+      "auth login",
+      "auth refresh",
+      "auth status",
+      "use",
+      "status",
+      "whoami"
       ],
-      "install": "pip install -e notebooklm/agent-harness",
+      "install": "pip install \"cli-web-notebooklm[auth]\"",
       "display_website": "Google NotebookLM",
       "skill": ".claude/skills/notebooklm-cli/SKILL.md",
-      "description": "Notebooks, sources, chat, 9 artifact types (audio, video, slides, quiz, mindmap)"
+      "description": "Notebooks, sources, chat, 9 artifact types (audio, video, slides, quiz, mindmap)",
+      "site_icon": "N",
+      "site_category": "Productivity",
+      "site_tags": ["productivity", "ai"],
+      "post_install": ["playwright install chromium"]
     },
     {
       "name": "cli-web-gh-trending",
@@ -74,7 +99,7 @@
         "repos list",
         "developers list"
       ],
-      "install": "pip install -e gh-trending/agent-harness",
+      "install": "pip install cli-web-gh-trending",
       "canary": [
         [
           "repos",
@@ -84,7 +109,10 @@
       ],
       "display_website": "GitHub Trending",
       "skill": ".claude/skills/gh-trending-cli/SKILL.md",
-      "description": "Trending repos & developers with language/time filters"
+      "description": "Trending repos & developers with language/time filters",
+      "site_icon": "G",
+      "site_category": "Developer Tools",
+      "site_tags": ["developer"]
     },
     {
       "name": "cli-web-producthunt",
@@ -94,10 +122,12 @@
       "directory": "producthunt/agent-harness",
       "namespace": "cli_web.producthunt",
       "commands": [
-        "posts list",
-        "posts get"
+      "posts list",
+      "posts get",
+      "posts leaderboard",
+      "users get"
       ],
-      "install": "pip install -e producthunt/agent-harness",
+      "install": "pip install cli-web-producthunt",
       "canary": [
         [
           "posts",
@@ -107,7 +137,10 @@
       ],
       "display_website": "Product Hunt",
       "skill": ".claude/skills/producthunt-cli/SKILL.md",
-      "description": "Today's launches, leaderboards, product details"
+      "description": "Today's launches, leaderboards, product details",
+      "site_icon": "P",
+      "site_category": "Developer Tools",
+      "site_tags": ["developer"]
     },
     {
       "name": "cli-web-unsplash",
@@ -117,12 +150,25 @@
       "directory": "unsplash/agent-harness",
       "namespace": "cli_web.unsplash",
       "commands": [
-        "photos search",
-        "photos get",
-        "photos download",
-        "topics list"
+      "photos search",
+      "photos get",
+      "photos download",
+      "photos random",
+      "photos stats",
+      "photos autocomplete",
+      "photos related",
+      "topics list",
+      "topics get",
+      "topics photos",
+      "collections search",
+      "collections get",
+      "collections photos",
+      "users search",
+      "users get",
+      "users photos",
+      "users collections"
       ],
-      "install": "pip install -e unsplash/agent-harness",
+      "install": "pip install cli-web-unsplash",
       "canary": [
         [
           "photos",
@@ -133,7 +179,11 @@
       ],
       "display_website": "Unsplash",
       "skill": ".claude/skills/unsplash-cli/SKILL.md",
-      "description": "Photo search, download, topics, collections, profiles"
+      "description": "Photo search, download, topics, collections, profiles",
+      "site_icon": "U",
+      "site_category": "Media",
+      "site_tags": ["media"],
+      "post_install": ["python -m camoufox fetch"]
     },
     {
       "name": "cli-web-booking",
@@ -150,10 +200,14 @@
         "auth status",
         "auth logout"
       ],
-      "install": "pip install -e booking/agent-harness",
+      "install": "pip install \"cli-web-booking[auth]\"",
       "display_website": "Booking.com",
       "skill": ".claude/skills/booking-cli/SKILL.md",
-      "description": "Hotel search, property details, destination resolution"
+      "description": "Hotel search, property details, destination resolution",
+      "site_icon": "B",
+      "site_category": "Travel & Booking",
+      "site_tags": ["travel"],
+      "post_install": ["playwright install chromium"]
     },
     {
       "name": "cli-web-stitch",
@@ -163,8 +217,9 @@
       "directory": "stitch/agent-harness",
       "namespace": "cli_web.stitch",
       "commands": [
-        "projects list",
-        "projects create",
+      "projects list",
+      "projects get",
+      "projects create",
         "projects rename",
         "projects duplicate",
         "projects delete",
@@ -172,14 +227,25 @@
         "screens list",
         "screens get",
         "screens download",
-        "design generate",
-        "design theme",
-        "design history"
+      "design generate",
+      "design theme",
+      "design history",
+      "design assets",
+      "auth login",
+      "auth import",
+      "auth status",
+      "use",
+      "status",
+      "app-config"
       ],
-      "install": "pip install -e stitch/agent-harness",
+      "install": "pip install \"cli-web-stitch[auth]\"",
       "display_website": "Google Stitch",
       "skill": ".claude/skills/stitch-cli/SKILL.md",
-      "description": "AI UI design — generate mobile/web app mockups from text prompts"
+      "description": "AI UI design — generate mobile/web app mockups from text prompts",
+      "site_icon": "S",
+      "site_category": "AI & Design",
+      "site_tags": ["ai"],
+      "post_install": ["playwright install chromium"]
     },
     {
       "name": "cli-web-pexels",
@@ -190,8 +256,9 @@
       "namespace": "cli_web.pexels",
       "commands": [
         "photos search",
-        "photos get",
-        "photos download",
+      "photos get",
+      "photos download",
+      "photos suggest",
         "videos search",
         "videos get",
         "videos download",
@@ -200,7 +267,7 @@
         "collections get",
         "collections discover"
       ],
-      "install": "pip install -e pexels/agent-harness",
+      "install": "pip install cli-web-pexels",
       "canary": [
         [
           "photos",
@@ -211,7 +278,10 @@
       ],
       "display_website": "Pexels",
       "skill": ".claude/skills/pexels-cli/SKILL.md",
-      "description": "Free stock photos & videos — search, download, collections, profiles"
+      "description": "Free stock photos & videos — search, download, collections, profiles",
+      "site_icon": "P",
+      "site_category": "Media",
+      "site_tags": ["media"]
     },
     {
       "name": "cli-web-reddit",
@@ -251,18 +321,23 @@
         "vote up",
         "vote down",
         "vote unvote",
-        "submit text",
-        "submit link",
+      "submit text",
+      "submit link",
+      "submit flairs",
         "comment add",
         "comment edit",
         "comment delete",
         "saved save",
         "saved unsave"
       ],
-      "install": "pip install -e reddit/agent-harness",
+      "install": "pip install cli-web-reddit",
       "display_website": "Reddit",
       "skill": ".claude/skills/reddit-cli/SKILL.md",
-      "description": "Feeds, subreddits, search, vote, comment, submit, save, inbox"
+      "description": "Feeds, subreddits, search, vote, comment, submit, save, inbox",
+      "site_icon": "R",
+      "site_category": "Social",
+      "site_tags": ["social"],
+      "post_install": ["playwright install chromium"]
     },
     {
       "name": "cli-web-gai",
@@ -275,7 +350,7 @@
         "search ask",
         "search followup"
       ],
-      "install": "pip install -e gai/agent-harness",
+      "install": "pip install cli-web-gai",
       "canary": [
         [
           "search",
@@ -288,7 +363,11 @@
       ],
       "display_website": "Google AI Mode",
       "skill": ".claude/skills/gai-cli/SKILL.md",
-      "description": "AI-powered search with source references"
+      "description": "AI-powered search with source references",
+      "site_icon": "A",
+      "site_category": "AI & ML",
+      "site_tags": ["ai"],
+      "post_install": ["playwright install chromium"]
     },
     {
       "name": "cli-web-youtube",
@@ -305,7 +384,7 @@
         "transcript get",
         "transcript list"
       ],
-      "install": "pip install -e youtube/agent-harness",
+      "install": "pip install cli-web-youtube",
       "canary": [
         [
           "search",
@@ -318,7 +397,10 @@
       ],
       "display_website": "YouTube",
       "skill": ".claude/skills/youtube-cli/SKILL.md",
-      "description": "Search videos, video details, trending, channel info"
+      "description": "Search videos, video details, trending, channel info",
+      "site_icon": "Y",
+      "site_category": "Media",
+      "site_tags": ["media"]
     },
     {
       "name": "cli-web-hackernews",
@@ -333,8 +415,10 @@
         "stories best",
         "stories ask",
         "stories show",
-        "stories jobs",
-        "stories view",
+      "stories jobs",
+      "stories view",
+      "stories max-item",
+      "stories updates",
         "search stories",
         "search comments",
         "user view",
@@ -351,7 +435,7 @@
         "favorite",
         "hide"
       ],
-      "install": "pip install -e hackernews/agent-harness",
+      "install": "pip install cli-web-hackernews",
       "canary": [
         [
           "stories",
@@ -363,7 +447,10 @@
       ],
       "display_website": "Hacker News",
       "skill": ".claude/skills/hackernews-cli/SKILL.md",
-      "description": "Stories, search, comments, users, upvote, submit, comment, favorite"
+      "description": "Stories, search, comments, users, upvote, submit, comment, favorite",
+      "site_icon": "H",
+      "site_category": "Developer Tools",
+      "site_tags": ["developer", "social"]
     },
     {
       "name": "cli-web-codewiki",
@@ -376,11 +463,12 @@
         "repos featured",
         "repos search",
         "wiki get",
-        "wiki sections",
-        "wiki section",
-        "chat ask"
+      "wiki sections",
+      "wiki section",
+      "wiki download",
+      "chat ask"
       ],
-      "install": "pip install -e codewiki/agent-harness",
+      "install": "pip install cli-web-codewiki",
       "canary": [
         [
           "repos",
@@ -390,7 +478,10 @@
       ],
       "display_website": "Google Code Wiki",
       "skill": ".claude/skills/codewiki-cli/SKILL.md",
-      "description": "AI-generated repo docs, wiki sections, Gemini chat, download as .md"
+      "description": "AI-generated repo docs, wiki sections, Gemini chat, download as .md",
+      "site_icon": "C",
+      "site_category": "Developer Tools",
+      "site_tags": ["developer", "ai"]
     },
     {
       "name": "cli-web-chatgpt",
@@ -413,10 +504,14 @@
         "auth status",
         "auth logout"
       ],
-      "install": "pip install -e chatgpt/agent-harness",
+      "install": "pip install \"cli-web-chatgpt[auth]\"",
       "display_website": "ChatGPT",
       "skill": ".claude/skills/chatgpt-cli/SKILL.md",
-      "description": "Ask questions, generate/download images, conversations, models"
+      "description": "Ask questions, generate/download images, conversations, models",
+      "site_icon": "G",
+      "site_category": "AI & ML",
+      "site_tags": ["ai"],
+      "post_install": ["python -m camoufox fetch", "playwright install chromium"]
     },
     {
       "name": "cli-web-airbnb",
@@ -432,7 +527,7 @@
         "listings availability",
         "autocomplete locations"
       ],
-      "install": "pip install -e airbnb/agent-harness",
+      "install": "pip install cli-web-airbnb",
       "canary": [
         [
           "autocomplete",
@@ -443,7 +538,10 @@
       ],
       "display_website": "Airbnb",
       "skill": ".claude/skills/airbnb-cli/SKILL.md",
-      "description": "Search stays, listing details, amenities, host info, autocomplete locations"
+      "description": "Search stays, listing details, amenities, host info, autocomplete locations",
+      "site_icon": "A",
+      "site_category": "Travel & Booking",
+      "site_tags": ["travel"]
     },
     {
       "name": "cli-web-amazon",
@@ -458,7 +556,7 @@
         "product get",
         "bestsellers"
       ],
-      "install": "pip install -e amazon/agent-harness",
+      "install": "pip install cli-web-amazon",
       "canary": [
         [
           "search",
@@ -468,7 +566,10 @@
       ],
       "display_website": "amazon.com",
       "skill": ".claude/skills/amazon-cli/SKILL.md",
-      "description": "Search products, view details, browse bestsellers"
+      "description": "Search products, view details, browse bestsellers",
+      "site_icon": "A",
+      "site_category": "Shopping",
+      "site_tags": ["shopping"]
     },
     {
       "name": "cli-web-tripadvisor",
@@ -486,7 +587,7 @@
         "attractions search",
         "attractions get"
       ],
-      "install": "pip install -e tripadvisor/agent-harness",
+      "install": "pip install cli-web-tripadvisor",
       "canary": [
         [
           "locations",
@@ -497,7 +598,10 @@
       ],
       "display_website": "TripAdvisor",
       "skill": ".claude/skills/tripadvisor-cli/SKILL.md",
-      "description": "Search locations, hotels, restaurants, and attractions"
+      "description": "Search locations, hotels, restaurants, and attractions",
+      "site_icon": "T",
+      "site_category": "Travel & Booking",
+      "site_tags": ["travel"]
     },
     {
       "name": "cli-web-linkedin",
@@ -517,7 +621,7 @@
         "search jobs",
         "profile get",
         "profile me",
-        "company",
+      "company get",
         "company follow",
         "company unfollow",
         "jobs search",
@@ -540,10 +644,14 @@
         "messaging read",
         "messaging send"
       ],
-      "install": "pip install -e linkedin/agent-harness",
+      "install": "pip install \"cli-web-linkedin[browser]\"",
       "display_website": "LinkedIn",
       "skill": ".claude/skills/linkedin-cli/SKILL.md",
-      "description": "Search, feed, profiles, jobs, posts, reactions, comments, network, messaging (26 cmds)"
+      "description": "Search, feed, profiles, jobs, posts, reactions, comments, network, and messaging",
+      "site_icon": "in",
+      "site_category": "Social",
+      "site_tags": ["social"],
+      "post_install": ["playwright install chromium"]
     },
     {
       "name": "cli-web-capitoltrades",
@@ -570,7 +678,7 @@
         "press list",
         "press get"
       ],
-      "install": "pip install -e capitoltrades/agent-harness",
+      "install": "pip install cli-web-capitoltrades",
       "canary": [
         [
           "--json",
@@ -580,7 +688,10 @@
       ],
       "display_website": "Capitol Trades",
       "skill": ".claude/skills/capitoltrades-cli/SKILL.md",
-      "description": "US congressional stock trades (STOCK Act) — trades, politicians, issuers, price history"
+      "description": "US congressional stock trades (STOCK Act) — trades, politicians, issuers, price history",
+      "site_icon": "CT",
+      "site_category": "Finance",
+      "site_tags": ["finance"]
     },
     {
       "name": "cli-web-worldcup",
@@ -598,7 +709,7 @@
         "standings list",
         "odds list"
       ],
-      "install": "pip install -e worldcup/agent-harness",
+      "install": "pip install cli-web-worldcup",
       "canary": [
         [
           "teams",
@@ -608,7 +719,10 @@
       ],
       "display_website": "ESPN / FIFA World Cup 2026",
       "skill": ".claude/skills/worldcup-cli/SKILL.md",
-      "description": "FIFA World Cup 2026 — fixtures, nations, squads, group standings, and bookmaker odds (read-only)"
+      "description": "FIFA World Cup 2026 — fixtures, nations, squads, group standings, and bookmaker odds (read-only)",
+      "site_icon": "WC",
+      "site_category": "Sports",
+      "site_tags": ["sports"]
     }
   ]
 }

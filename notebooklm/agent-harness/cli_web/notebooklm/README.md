@@ -7,7 +7,8 @@ Agent-native CLI for Google NotebookLM — create notebooks, add sources, ask qu
 ## Installation
 
 ```bash
-pip install -e .
+pip install "cli-web-notebooklm[auth]"
+playwright install chromium
 ```
 
 ## Auth

@@ -5,8 +5,8 @@ Agent-native CLI for [Booking.com](https://www.booking.com) — search hotels, g
 ## Install
 
 ```bash
-cd booking/agent-harness
-pip install -e .
+pip install "cli-web-booking[auth]"
+playwright install chromium
 ```
 
 ## Auth Setup

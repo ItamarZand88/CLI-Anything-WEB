@@ -5,8 +5,7 @@ CLI for browsing and interacting with Hacker News — top stories, search, comme
 ## Installation
 
 ```bash
-cd hackernews/agent-harness
-pip install -e .
+pip install cli-web-hackernews
 ```
 
 ## Usage

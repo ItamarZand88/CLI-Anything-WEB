@@ -6,7 +6,7 @@ description: Drives Google Stitch (stitch.withgoogle.com), the AI UI design tool
 # cli-web-stitch
 
 Generate and manage Google Stitch AI UI designs. Requires Google SSO auth (`auth login`).
-Install: `pip install cli-web-stitch`
+Install: `pip install "cli-web-stitch[auth]"`, then `playwright install chromium`.
 
 ## Commands
 

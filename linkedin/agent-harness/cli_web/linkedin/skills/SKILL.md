@@ -10,7 +10,8 @@ LinkedIn CLI — 26 commands across 10 groups: auth, feed, search, profile, comp
 ## Quick Start
 
 ```bash
-pip install cli-web-linkedin
+pip install "cli-web-linkedin[browser]"
+playwright install chromium
 cli-web-linkedin auth login           # Browser login (required)
 cli-web-linkedin feed --json
 cli-web-linkedin search people "python developer" --json

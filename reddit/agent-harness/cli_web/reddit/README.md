@@ -5,8 +5,8 @@ CLI for Reddit browsing and search. Browse feeds, subreddits, search posts, view
 ## Installation
 
 ```bash
-cd reddit/agent-harness
-pip install -e .
+pip install cli-web-reddit
+playwright install chromium
 ```
 
 ## Quick Start

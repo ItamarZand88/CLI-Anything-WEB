@@ -262,7 +262,7 @@ entry, then run the generators — never edit those outputs by hand:
 ```bash
 # 1. Add the entry to registry.json (schema below), then:
 cli-web-devkit registry validate     # entry <-> fleet cross-check
-cli-web-devkit docs                  # regenerates README table + install block
+cli-web-devkit docs                  # regenerates README regions + registry site data
 cli-web-devkit about --apply         # syncs the GitHub "About" CLI count (needs gh admin)
 cli-web-devkit resync --app <app>    # vendored files in sync + manifest updated
 cli-web-devkit drift                 # must report 0 drifted/missing
@@ -274,7 +274,6 @@ python -m pytest tests/contract -q -k <app>
 Remaining hand-edited files (independent — update in parallel if you like):
 - `CHANGELOG.md` — entry under [Unreleased] -> Added
 - `CLAUDE.md` — row in the Generated CLIs table
-- `docs/registry/index.html` — entry in the JS data array
 - `README.md` hero badge counts (outside the generated markers)
 - `cli_web/<app>/README.md` — fill in the scaffolded skeleton
 
@@ -316,8 +315,9 @@ Create `<git-root>/.claude/skills/<app>-cli/SKILL.md`:
 
 ## Update Repository README
 
-Add the new CLI to the examples table in `README.md` (CLI name, website, protocol,
-auth type, description) and add a quick-start example in the "Try Them" section.
+Add presentation metadata to `registry.json`, then run `cli-web-devkit docs` to
+regenerate the README table and registry site. Add a hand-written quick-start
+example in the README's "Try Them" section only when it adds distinct value.
 
 ### Update registry.json and CLAUDE.md
 
@@ -331,7 +331,11 @@ Add the new CLI to `registry.json` at the repo root:
   "directory": "<app>/agent-harness",
   "namespace": "cli_web.<app>",
   "commands": ["<cmd1>", "<cmd2>", ...],
-  "install": "pip install -e <app>/agent-harness"
+  "install": "pip install cli-web-<app>",
+  "description": "<one-line public description>",
+  "site_icon": "<short label>",
+  "site_category": "<display category>",
+  "site_tags": ["<filter-tag>"]
 }
 ```
 
@@ -365,12 +369,12 @@ The pipeline is NOT done until ALL of these are checked:
 ### Repo-Level Updates
 - [ ] `registry.json` — entry with name, website, protocol, auth, commands,
       install, description, skill path (+ `canary` read-only invocations for
-      no-auth CLIs). The CI matrix and README table derive from this entry.
+      no-auth CLIs). The CI matrix, README table, and registry site derive from
+      this entry.
 - [ ] `cli-web-devkit registry validate` + `docs` + `drift` all green
 - [ ] `python -m pytest tests/contract -k <app>` passes (offline contract)
 - [ ] `CHANGELOG.md` — entry added under [Unreleased] → Added
 - [ ] `CLAUDE.md` — new row in Generated CLIs table
-- [ ] `docs/registry/index.html` — entry added to JS data array
 - [ ] `README.md` hero badge counts updated (outside the generated markers)
 - [ ] Branch protection: if required status checks are pinned by job name, add
       the new matrix job names — the matrix itself updates automatically from

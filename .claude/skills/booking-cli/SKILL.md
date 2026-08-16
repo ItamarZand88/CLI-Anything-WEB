@@ -6,7 +6,7 @@ description: Searches Booking.com from the terminal via cli-web-booking — find
 # cli-web-booking
 
 Read-only Booking.com search: property search, property detail, destination autocomplete. AWS WAF protection is handled via stored cookies (`auth login`); autocomplete works without them.
-Install: `pip install cli-web-booking`
+Install: `pip install "cli-web-booking[auth]"`, then `playwright install chromium`.
 
 ## Commands
 

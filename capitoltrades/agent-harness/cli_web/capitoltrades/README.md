@@ -6,8 +6,7 @@ US congressional stock trades, politicians, issuers, and articles from the termi
 ## Install
 
 ```bash
-cd agent-harness
-pip install -e .
+pip install cli-web-capitoltrades
 ```
 
 Binary: `cli-web-capitoltrades`

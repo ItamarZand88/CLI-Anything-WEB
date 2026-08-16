@@ -5,8 +5,7 @@ CLI for [Google Code Wiki](https://codewiki.google/) — browse AI-generated doc
 ## Installation
 
 ```bash
-cd codewiki/agent-harness
-pip install -e .
+pip install cli-web-codewiki
 ```
 
 ## Usage

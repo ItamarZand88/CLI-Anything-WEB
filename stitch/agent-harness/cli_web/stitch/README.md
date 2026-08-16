@@ -5,14 +5,8 @@ Command-line interface for Google Stitch, the AI-powered design tool. Create, ma
 ## Installation
 
 ```bash
-cd stitch/agent-harness
-pip install -e .
-```
-
-For browser-based authentication (Google login):
-
-```bash
-pip install -e ".[auth]"
+pip install "cli-web-stitch[auth]"
+playwright install chromium
 ```
 
 ## Authentication
