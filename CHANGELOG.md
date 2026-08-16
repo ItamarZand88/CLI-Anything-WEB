@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.14.2](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.14.1...v0.14.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* harden fleet maintenance and live read commands ([#50](https://github.com/ItamarZand88/CLI-Anything-WEB/issues/50)) ([dd1107a](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/dd1107a07de11809befae8ecbb975f06022d13f9))
+
 ## [Unreleased]
 
 ### Fixed

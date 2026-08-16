@@ -4,7 +4,7 @@ from setuptools import find_namespace_packages, setup
 
 setup(
     name="cli-web-airbnb",
-    version="0.1.1",
+    version="0.1.2",
     description="CLI for Airbnb — search stays, listings, and locations",
     packages=find_namespace_packages(include=["cli_web.*"]),
     install_requires=[

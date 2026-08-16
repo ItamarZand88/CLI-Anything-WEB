@@ -2,7 +2,7 @@ from setuptools import find_namespace_packages, setup
 
 setup(
     name="cli-web-producthunt",
-    version="0.3.0",
+    version="0.3.1",
     packages=find_namespace_packages(include=["cli_web.*"]),
     package_data={
         "": ["skills/*.md", "*.md"],
