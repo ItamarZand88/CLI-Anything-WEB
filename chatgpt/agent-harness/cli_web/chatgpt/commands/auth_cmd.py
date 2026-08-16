@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import click
 
-from ..core.auth import clear_auth, is_logged_in, load_auth, login_browser
+from ..core.auth import clear_auth, is_logged_in, login_browser
 from ..utils.helpers import handle_errors
 from ..utils.output import print_json
 
@@ -21,7 +21,7 @@ def login(ctx) -> None:
     json_mode = ctx.obj.get("json", False) if ctx.obj else False
 
     with handle_errors(json_mode=json_mode):
-        auth_data = login_browser()
+        login_browser()
         if json_mode:
             print_json(
                 {
@@ -31,8 +31,6 @@ def login(ctx) -> None:
             )
         else:
             click.echo("Logged in successfully.")
-            if auth_data.get("device_id"):
-                click.echo(f"Device ID: {auth_data['device_id']}")
 
 
 @auth_group.command("status")
@@ -54,25 +52,15 @@ def status(ctx) -> None:
                 click.echo("Not logged in. Run: cli-web-chatgpt auth login")
             return
 
-        auth = load_auth()
-        token_preview = auth["access_token"][:20] + "..."
-        device_id = auth.get("device_id", "unknown")
-
         if json_mode:
             print_json(
                 {
                     "success": True,
-                    "data": {
-                        "logged_in": True,
-                        "device_id": device_id,
-                        "token_preview": token_preview,
-                    },
+                    "data": {"logged_in": True},
                 }
             )
         else:
             click.echo("Logged in.")
-            click.echo(f"Device ID: {device_id}")
-            click.echo(f"Token: {token_preview}")
 
 
 @auth_group.command("logout")

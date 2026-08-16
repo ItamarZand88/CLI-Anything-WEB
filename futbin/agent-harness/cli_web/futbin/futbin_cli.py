@@ -32,13 +32,15 @@ from cli_web.futbin.commands.players import players
 from cli_web.futbin.commands.sbc import sbc
 from cli_web.futbin.utils.repl_skin import ReplSkin
 
+from .utils.json_group import JsonGroup
+
 VERSION = "0.1.0"
 APP_NAME = "futbin"
 
 _skin = ReplSkin(APP_NAME, version=VERSION)
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, default=False, help="Output as JSON.")
 @click.version_option(VERSION, prog_name="cli-web-futbin")
 @click.pass_context

@@ -33,14 +33,16 @@ class Match:
         comps = ev.get("competitions") or [{}]
         comp = comps[0]
         home = away = ""
+        home_abbr = away_abbr = ""
         home_score = away_score = None
         for c in comp.get("competitors", []):
             name = (c.get("team") or {}).get("displayName", "")
+            abbr = (c.get("team") or {}).get("abbreviation", "")
             score = c.get("score")
             if c.get("homeAway") == "home":
-                home, home_score = name, score
+                home, home_abbr, home_score = name, abbr, score
             else:
-                away, away_score = name, score
+                away, away_abbr, away_score = name, abbr, score
         notes = comp.get("notes") or []
         stage = notes[0].get("headline", "") if notes else ""
         # The competition-level venue carries `fullName`; the event-level one
@@ -53,11 +55,16 @@ class Match:
         )
         return cls(
             id=str(ev.get("id", "")),
-            date=ev.get("date", ""),
-            name=ev.get("name", ""),
-            short_name=ev.get("shortName", ""),
-            status=((ev.get("status") or {}).get("type") or {}).get("description", ""),
-            stage=stage,
+            date=ev.get("date") or comp.get("date", ""),
+            name=ev.get("name") or (f"{away} at {home}" if home or away else ""),
+            short_name=ev.get("shortName")
+            or (f"{away_abbr} @ {home_abbr}" if home_abbr or away_abbr else ""),
+            status=(
+                ((ev.get("status") or comp.get("status") or {}).get("type") or {}).get(
+                    "description", ""
+                )
+            ),
+            stage=stage or (ev.get("season") or {}).get("name", ""),
             venue=venue,
             home=home,
             away=away,

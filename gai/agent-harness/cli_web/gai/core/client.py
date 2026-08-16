@@ -203,6 +203,19 @@ class GAIClient:
                 if (text) parts.push(text);
             }
 
+            // Google changes the answer's generated class names frequently.
+            // Fall back to the semantic turn container instead of returning a
+            // false-success empty answer when .Y3BBE has changed.
+            if (parts.length === 0) {
+                const clone = lastTurn.cloneNode(true);
+                for (const el of clone.querySelectorAll(
+                    'button, textarea, input, [role=button], script, style'
+                )) el.remove();
+                let text = (clone.innerText || '').trim();
+                text = text.split('AI can make mistakes')[0].trim();
+                if (text) parts.push(text);
+            }
+
             // Extract source links \u2014 handle Google redirect URLs and empty-text links
             const sources = [];
             const seen = new Set();
@@ -289,9 +302,13 @@ class GAIClient:
             for s in result.get("sources", [])
         ]
 
+        answer = result.get("answer", "").strip()
+        if not answer:
+            raise ParseError("Google returned an AI turn, but its answer could not be extracted.")
+
         return SearchResult(
             query=query,
-            answer=result.get("answer", ""),
+            answer=answer,
             sources=sources,
             follow_up_prompt=result.get("followUp", ""),
         )

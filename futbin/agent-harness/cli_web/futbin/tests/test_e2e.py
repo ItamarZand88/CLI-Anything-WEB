@@ -19,9 +19,7 @@ def _resolve_cli(name: str) -> list[str]:
         found = shutil.which(name)
         if found:
             return [found]
-        # Fall back to python -m
-        pkg = name.replace("cli-web-", "cli_web.").replace("-", "_")
-        return [sys.executable, "-m", pkg]
+        raise FileNotFoundError(f"{name} not found in PATH")
 
     # Development: use python -m
     pkg = "cli_web.futbin"
@@ -42,6 +40,13 @@ def _run(*args: str, check: bool = True) -> subprocess.CompletedProcess:
 
 
 # ── CLI Subprocess Tests ──────────────────────────────────────────────────────
+
+
+class TestCLISubprocess:
+    def test_cli_help(self):
+        result = _run("--help")
+        assert result.returncode == 0
+        assert "futbin" in result.stdout.lower() or "players" in result.stdout.lower()
 
 
 def test_cli_help():

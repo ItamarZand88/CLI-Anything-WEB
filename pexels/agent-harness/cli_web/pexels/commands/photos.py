@@ -59,6 +59,24 @@ def search(ctx, query, orientation, size, color, page, json_mode):
             print_pagination(result.get("pagination", {}))
 
 
+@photos.command("suggest")
+@click.argument("query")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
+@click.pass_context
+def suggest(ctx, query, json_mode):
+    """Return Pexels autocomplete suggestions for a query."""
+    json_mode = json_mode or ctx.obj.get("json", False)
+    with handle_errors(json_mode):
+        suggestions = PexelsClient().search_suggestions(query)
+        if json_mode:
+            from ..utils.output import print_json
+
+            print_json(suggestions)
+        else:
+            for suggestion in suggestions:
+                click.echo(suggestion)
+
+
 @photos.command()
 @click.argument("slug")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")

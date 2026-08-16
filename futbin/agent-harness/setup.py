@@ -11,6 +11,9 @@ setup(
     install_requires=[
         "click>=8.0",
         "httpx>=0.24",
+        # FUTBIN's Cloudflare edge requires a real browser when it challenges
+        # the plain HTTP transport. Keep this aligned with the canary cache.
+        "camoufox==0.5.4",
         "beautifulsoup4>=4.12",
         "rich>=13.0",
         "prompt_toolkit>=3.0",

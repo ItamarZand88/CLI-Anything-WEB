@@ -17,7 +17,12 @@ def _safe(text: str, width: int = 0) -> str:
 
 def print_json(data: Any) -> None:
     """Print data as formatted JSON to stdout."""
-    print(json.dumps(data, indent=2, default=str))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    print(json.dumps(payload, indent=2, default=str))
 
 
 def print_json_success(data: Any) -> None:

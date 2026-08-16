@@ -47,7 +47,10 @@ class CanaryReport:
 
     def to_dict(self) -> dict[str, object]:
         return {
-            "ok": not self.failures,
+            # A target blocking a hosted-runner IP is diagnostic context, not
+            # fleet breakage. Keep JSON semantics aligned with the CLI exit
+            # code, which fails only when actionable `broken` results exist.
+            "ok": not self.broken,
             "total": len(self.results),
             "failed": len(self.failures),
             "broken": len(self.broken),

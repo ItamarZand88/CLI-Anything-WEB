@@ -26,12 +26,13 @@ import click
 from .commands.chat import chat_group
 from .commands.repos import repos
 from .commands.wiki import wiki_group
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("codewiki", version="0.1.0")
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.version_option("0.1.0", prog_name="cli-web-codewiki")
 @click.option(
     "--json",

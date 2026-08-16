@@ -2,13 +2,13 @@
 
 ## Overview
 - **Site**: reddit.com
-- **Protocol**: REST JSON API (public: `.json` suffix, authenticated: OAuth via `oauth.reddit.com`)
-- **Auth**: Optional — public read-only access without login, full CRUD with login
+- **Protocol**: REST JSON API through authenticated `oauth.reddit.com`
+- **Auth**: Required — Reddit currently blocks anonymous `.json` reads
 - **HTTP Client**: `curl_cffi` with `impersonate='chrome'` (Reddit blocks plain httpx)
-- **Site Profile**: Optional-auth + Read/Write (read-only without auth, full CRUD with auth)
+- **Site Profile**: Auth-required + Read/Write
 
 ## API Bases
-- **Public**: `https://www.reddit.com` with `.json` suffix
+- **Legacy public**: `https://www.reddit.com` with `.json` suffix (currently blocked)
 - **OAuth**: `https://oauth.reddit.com` with `Bearer {token_v2}` header
 
 ## Auth

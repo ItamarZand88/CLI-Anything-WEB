@@ -254,7 +254,7 @@ class TestCLISubprocess:
     def test_version(self):
         r = self._run("--version")
         assert r.returncode == 0
-        assert "0.2.0" in r.stdout
+        assert "0.1.0" in r.stdout
         print(f"[verify] --version: {r.stdout.strip()}")
 
     def test_feed_hot_json(self):

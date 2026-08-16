@@ -44,31 +44,31 @@ def handle_errors(json_mode: bool = False):
             click.echo(json_error("AUTH_EXPIRED", str(exc)))
         else:
             click.echo(f"Error: {exc}", err=True)
-        sys.exit(1)
+        sys.exit(3)
     except NotFoundError as exc:
         if json_mode:
             click.echo(json_error("NOT_FOUND", str(exc)))
         else:
             click.echo(f"Error: {exc}", err=True)
-        sys.exit(1)
+        sys.exit(4)
     except RateLimitError as exc:
         if json_mode:
             click.echo(json_error("RATE_LIMITED", str(exc), retry_after=exc.retry_after))
         else:
             click.echo(f"Error: {exc}", err=True)
-        sys.exit(1)
+        sys.exit(5)
     except ServerError as exc:
         if json_mode:
             click.echo(json_error("SERVER_ERROR", str(exc)))
         else:
             click.echo(f"Error: {exc}", err=True)
-        sys.exit(2)
+        sys.exit(6)
     except NetworkError as exc:
         if json_mode:
             click.echo(json_error("NETWORK_ERROR", str(exc)))
         else:
             click.echo(f"Error: {exc}", err=True)
-        sys.exit(2)
+        sys.exit(7)
     except RedditError as exc:
         if json_mode:
             click.echo(json_error("ERROR", str(exc)))
@@ -81,7 +81,12 @@ def handle_errors(json_mode: bool = False):
 
 def print_json(data) -> None:
     """Print data as formatted JSON."""
-    click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
 def truncate(text: str | None, length: int = 50) -> str:

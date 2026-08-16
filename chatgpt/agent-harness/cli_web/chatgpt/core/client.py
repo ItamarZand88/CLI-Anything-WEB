@@ -111,6 +111,8 @@ class ChatGPTClient:
                 cookies=self._cookies(),
                 params=params,
             )
+        except AuthError:
+            raise
         except Exception as exc:
             raise NetworkError(f"Request failed: {exc}") from exc
 
@@ -140,6 +142,8 @@ class ChatGPTClient:
                 cookies=self._cookies(),
                 json=data or {},
             )
+        except AuthError:
+            raise
         except Exception as exc:
             raise NetworkError(f"Request failed: {exc}") from exc
 

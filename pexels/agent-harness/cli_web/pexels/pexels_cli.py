@@ -20,10 +20,12 @@ from cli_web.pexels.commands.videos import videos
 from cli_web.pexels.core.exceptions import PexelsError
 from cli_web.pexels.utils.repl_skin import ReplSkin
 
+from .utils.json_group import JsonGroup
+
 _skin = ReplSkin("pexels", version=__version__)
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.version_option(__version__, prog_name="cli-web-pexels")
 @click.pass_context

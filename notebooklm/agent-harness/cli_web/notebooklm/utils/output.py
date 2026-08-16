@@ -19,7 +19,12 @@ def _ts(unix_sec) -> str:
 
 def print_json(data: Any):
     """Print data as JSON."""
-    print(json.dumps(data, ensure_ascii=False, indent=2, default=str))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    print(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
 
 def notebook_to_dict(nb: Notebook) -> dict:

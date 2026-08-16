@@ -24,10 +24,12 @@ from cli_web.youtube.commands.video import video_group
 from cli_web.youtube.core.exceptions import YouTubeError
 from cli_web.youtube.utils.repl_skin import ReplSkin
 
+from .utils.json_group import JsonGroup
+
 _skin = ReplSkin(app="youtube", version=__version__)
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.version_option(__version__, prog_name="cli-web-youtube")
 @click.pass_context

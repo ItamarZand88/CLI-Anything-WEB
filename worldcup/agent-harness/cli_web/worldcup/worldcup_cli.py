@@ -16,6 +16,7 @@ import shlex
 
 import click
 
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin(app="worldcup", version="0.1.0", display_name="World Cup 2026")
@@ -24,7 +25,7 @@ _skin = ReplSkin(app="worldcup", version="0.1.0", display_name="World Cup 2026")
 # ── Main CLI group ─────────────────────────────────────────────────────────────
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.version_option("0.1.0", prog_name="cli-web-worldcup")
 @click.pass_context

@@ -17,8 +17,11 @@ import click
 
 from ..core.exceptions import (
     AuthError,
+    NetworkError,
     NotebookLMError,
+    NotFoundError,
     RateLimitError,
+    ServerError,
     error_code_for,
 )
 
@@ -139,7 +142,18 @@ def handle_errors(json_mode: bool = False):
             elif isinstance(exc, RateLimitError) and exc.retry_after:
                 hint = f"\n  Hint: Retry after {exc.retry_after:.0f}s"
             click.echo(f"Error: {exc}{hint}", err=True)
-        sys.exit(1)
+        exit_code = 1
+        if isinstance(exc, AuthError):
+            exit_code = 3
+        elif isinstance(exc, NotFoundError):
+            exit_code = 4
+        elif isinstance(exc, RateLimitError):
+            exit_code = 5
+        elif isinstance(exc, ServerError):
+            exit_code = 6
+        elif isinstance(exc, NetworkError):
+            exit_code = 7
+        sys.exit(exit_code)
     except Exception as exc:
         if json_mode:
             click.echo(

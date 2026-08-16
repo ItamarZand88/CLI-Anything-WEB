@@ -342,8 +342,8 @@ class TestCLIClick:
 
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert data["total"] == 1
-        assert data["results"][0]["id"] == "x1"
+        assert data["data"]["total"] == 1
+        assert data["data"]["results"][0]["id"] == "x1"
 
     def test_photos_get_json(self, runner):
         from cli_web.unsplash.unsplash_cli import cli
@@ -373,7 +373,7 @@ class TestCLIClick:
 
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert data["id"] == "abc"
+        assert data["data"]["id"] == "abc"
 
     def test_topics_list_json(self, runner):
         from cli_web.unsplash.unsplash_cli import cli
@@ -393,8 +393,8 @@ class TestCLIClick:
 
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert len(data) == 1
-        assert data[0]["slug"] == "nature"
+        assert len(data["data"]) == 1
+        assert data["data"][0]["slug"] == "nature"
 
     def test_json_error_on_not_found(self, runner):
         from cli_web.unsplash.unsplash_cli import cli

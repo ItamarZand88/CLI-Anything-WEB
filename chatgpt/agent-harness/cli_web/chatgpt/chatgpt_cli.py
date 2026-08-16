@@ -22,12 +22,13 @@ from .commands.auth_cmd import auth_group
 from .commands.chat import chat_group
 from .commands.conversations import conversations_group
 from .commands.images import images_group
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("chatgpt", version="0.1.0")
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.version_option("0.1.0", prog_name="cli-web-chatgpt")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context

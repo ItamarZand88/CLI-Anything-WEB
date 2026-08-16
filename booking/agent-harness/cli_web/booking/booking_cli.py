@@ -26,11 +26,12 @@ from . import __version__
 from .commands.auth_cmd import auth_group
 from .commands.properties import get_property
 from .commands.search import autocomplete, search_group
+from .utils.json_group import JsonGroup
 
 VERSION = __version__
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.version_option(VERSION, prog_name="cli-web-booking")
 @click.option("--json", "json_mode", is_flag=True, help="JSON output mode.")
 @click.pass_context

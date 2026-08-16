@@ -14,4 +14,9 @@ def json_error(code: str, message: str, **extra) -> str:
 
 def print_json(data) -> None:
     """Print data as formatted JSON to stdout."""
-    click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    click.echo(json.dumps(payload, indent=2, ensure_ascii=False))

@@ -14,6 +14,7 @@ import pytest
 from cli_web.worldcup.core.client import WorldcupClient
 from cli_web.worldcup.core.exceptions import (
     AuthError,
+    NetworkError,
     NotFoundError,
     RateLimitError,
     ServerError,
@@ -167,7 +168,7 @@ def test_odds_without_key_raises_auth_error():
         client.odds()
 
 
-# ── HTTP status mapping (mock httpx) ─────────────────────────────────────────
+# ── HTTP status mapping (mock transport) ─────────────────────────────────────
 
 
 class _Resp:
@@ -185,7 +186,7 @@ class _Resp:
     "status,exc",
     [
         (401, AuthError),
-        (403, AuthError),
+        (403, NetworkError),
         (404, NotFoundError),
         (429, RateLimitError),
         (500, ServerError),

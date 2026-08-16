@@ -23,12 +23,13 @@ from .commands.post import post
 from .commands.search import search
 from .commands.subreddit import sub
 from .commands.user import user
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("reddit", version="0.1.0")
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.option("--version", is_flag=True, help="Show version.")
 @click.pass_context
@@ -60,7 +61,7 @@ def _print_repl_help():
     """Print REPL help listing all commands and key options."""
     _skin.info("Available commands:")
     print()
-    _skin.section("Browse (no login needed)")
+    _skin.section("Browse (login required by Reddit)")
     print("  feed hot                  [--limit N] [--after CURSOR]")
     print("  feed new                  [--limit N] [--after CURSOR]")
     print("  feed top                  [--time hour|day|week|month|year|all] [--limit N]")

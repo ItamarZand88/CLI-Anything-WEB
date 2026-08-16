@@ -206,3 +206,18 @@ def design_history(ctx, project_id, json_mode):
                         f"[dim]{prompt_preview}[/]  "
                         f"({len(s.screens)} screens)"
                     )
+
+
+@design.command("assets")
+@click.option("--project", "project_id", default=None, help="Project ID (uses active if omitted)")
+@click.option("--json", "json_mode", is_flag=True, help="JSON output")
+@click.pass_context
+def design_assets(ctx, project_id, json_mode):
+    """Show raw colors, typography, and other project design assets."""
+    json_mode = json_mode or (ctx.obj.get("json", False) if ctx.obj else False)
+    with handle_errors(json_mode=json_mode), StitchClient() as client:
+        assets = client.get_design_assets(require_project(project_id))
+        if json_mode:
+            print_json(json_success(assets))
+        else:
+            _console.print_json(data=assets)

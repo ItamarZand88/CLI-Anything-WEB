@@ -8,4 +8,9 @@ from typing import Any
 
 def print_json(data: Any) -> None:
     """Print data as formatted JSON to stdout."""
-    print(json.dumps(data, ensure_ascii=False, indent=2, default=str))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    print(json.dumps(payload, ensure_ascii=False, indent=2, default=str))

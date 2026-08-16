@@ -107,6 +107,14 @@ class HackerNewsClient:
         ids = self.get_story_ids(feed)[:limit]
         return self._fetch_items_parallel(ids, Story)
 
+    def get_max_item_id(self) -> int:
+        """Return the current largest item ID."""
+        return int(self._get_json(f"{FIREBASE_BASE}/maxitem.json"))
+
+    def get_updates(self) -> dict:
+        """Return recently changed item and profile IDs."""
+        return self._get_json(f"{FIREBASE_BASE}/updates.json")
+
     # ------------------------------------------------------------------ items
 
     def get_item(self, item_id: int) -> dict:

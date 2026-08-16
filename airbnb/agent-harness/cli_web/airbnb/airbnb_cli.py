@@ -24,12 +24,13 @@ from .commands.autocomplete import autocomplete_group
 from .commands.listings import listings
 from .commands.search import search
 from .core.exceptions import AirbnbError
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("airbnb", version="0.1.0")
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output all results as JSON.")
 @click.option("--version", is_flag=True, help="Show version and exit.")
 @click.pass_context

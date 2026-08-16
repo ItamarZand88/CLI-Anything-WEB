@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import atexit
 import re
 import time
 from typing import Any
+from urllib.parse import urlencode
 
 import httpx
 from bs4 import BeautifulSoup
+from camoufox.sync_api import Camoufox
 from cli_web.futbin.core.models import (
     SBC,
     Evolution,
@@ -22,6 +25,7 @@ from cli_web.futbin.core.models import (
 )
 
 from .exceptions import (
+    FutbinError,
     NetworkError,
     NotFoundError,
     ParsingError,
@@ -67,6 +71,9 @@ class FutbinClient:
             timeout=30.0,
         )
         self._last_request = 0.0
+        self._browser_cm = None
+        self._browser = None
+        self._page = None
 
     BASE_URL = BASE_URL
 
@@ -84,6 +91,8 @@ class FutbinClient:
         except httpx.RequestError as exc:
             raise NetworkError(f"Request error: {exc}") from exc
         self._last_request = time.time()
+        if resp.status_code == 403:
+            return self._browser_get(path, params)  # type: ignore[return-value]
         if resp.status_code == 429:
             retry_after = resp.headers.get("Retry-After")
             raise RateLimitError(
@@ -98,6 +107,62 @@ class FutbinClient:
             )
         resp.raise_for_status()
         return resp
+
+    def _ensure_browser(self) -> None:
+        """Start a stealth browser and clear Cloudflare once per process."""
+        if self._page is not None:
+            return
+        try:
+            self._browser_cm = Camoufox(headless=True)
+            self._browser = self._browser_cm.__enter__()
+            self._page = self._browser.new_page()
+            self._page.goto(BASE_URL, wait_until="domcontentloaded", timeout=45000)
+            if self._page.title() == "Just a moment...":
+                self._page.wait_for_function("document.title !== 'Just a moment...'", timeout=45000)
+        except Exception as exc:
+            self._close_browser()
+            raise NetworkError(f"Failed to clear FUTBIN browser challenge: {exc}") from exc
+        atexit.register(self._close_browser)
+
+    def _browser_get(self, path: str, params: dict | None = None):
+        """Fetch through the cleared browser session and return a response shim."""
+        self._ensure_browser()
+        url = path if path.startswith("http") else f"{BASE_URL}{path}"
+        if params:
+            url = f"{url}?{urlencode({k: v for k, v in params.items() if v is not None})}"
+        try:
+            response = self._page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            if response is None:
+                raise NetworkError(f"No response for {url}")
+            status = response.status
+            try:
+                body = response.text()
+            except Exception:
+                # Playwright does not expose bodies for intermediate redirects;
+                # page.content() is the final document after navigation.
+                body = (
+                    self._page.locator("body").inner_text()
+                    if path.startswith("/players/search")
+                    else self._page.content()
+                )
+                status = 200
+            headers = response.headers
+        except FutbinError:
+            raise
+        except Exception as exc:
+            raise NetworkError(f"Browser request failed: {exc}") from exc
+        if status == 403:
+            raise NetworkError("FUTBIN's Cloudflare challenge could not be cleared")
+        return _BrowserResponse(status, body, headers)
+
+    def _close_browser(self) -> None:
+        if self._browser_cm is not None:
+            try:
+                self._browser_cm.__exit__(None, None, None)
+            except Exception:
+                pass
+            finally:
+                self._browser_cm = self._browser = self._page = None
 
     def _soup(self, path: str, params: dict | None = None) -> BeautifulSoup:
         resp = self._get(path, params)
@@ -1210,9 +1275,28 @@ class FutbinClient:
 
     def close(self):
         self._client.close()
+        self._close_browser()
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         self.close()
+
+
+class _BrowserResponse:
+    """Small httpx-compatible surface used by the existing parsers."""
+
+    def __init__(self, status_code: int, text: str, headers: dict):
+        self.status_code = status_code
+        self.text = text
+        self.headers = headers
+
+    def json(self):
+        import json
+
+        return json.loads(self.text)
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise NetworkError(f"HTTP {self.status_code} from FUTBIN")

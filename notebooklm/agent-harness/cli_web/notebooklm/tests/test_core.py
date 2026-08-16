@@ -888,14 +888,14 @@ class TestPersistentContext(unittest.TestCase):
 
 
 class TestHandleErrors(unittest.TestCase):
-    def test_auth_error_exits_1(self):
-        """handle_errors catches AuthError and exits with code 1."""
+    def test_auth_error_exits_3(self):
+        """handle_errors catches AuthError and exits with the canonical code."""
         from cli_web.notebooklm.utils.helpers import handle_errors
 
         with self.assertRaises(SystemExit) as ctx:
             with handle_errors():
                 raise AuthError("session expired")
-        self.assertEqual(ctx.exception.code, 1)
+        self.assertEqual(ctx.exception.code, 3)
 
     def test_generic_error_exits_2(self):
         """handle_errors catches unknown exceptions and exits with code 2."""

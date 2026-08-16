@@ -35,6 +35,7 @@ SHARED_FILES: dict[str, str] = {
     "cli-web-core/cli_web_core/repl_skin.py": "utils/repl_skin.py",
     "cli-web-core/cli_web_core/mcp_server.py": "utils/mcp_server.py",
     "cli-web-core/cli_web_core/doctor.py": "utils/doctor.py",
+    "cli-web-core/cli_web_core/json_group.py": "utils/json_group.py",
 }
 
 # Non-CLI vendored copies that must also track canon (relative to repo root).
@@ -44,6 +45,7 @@ EXTRA_VENDOR_TARGETS: dict[str, str] = {
     "cli-web-core/cli_web_core/repl_skin.py": "cli-anything-web-plugin/scripts/repl_skin.py",
     "cli-web-core/cli_web_core/mcp_server.py": "cli-anything-web-plugin/scripts/mcp_server.py",
     "cli-web-core/cli_web_core/doctor.py": "cli-anything-web-plugin/scripts/doctor.py",
+    "cli-web-core/cli_web_core/json_group.py": "cli-anything-web-plugin/scripts/json_group.py",
 }
 
 

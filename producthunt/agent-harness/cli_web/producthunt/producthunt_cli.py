@@ -30,13 +30,15 @@ from cli_web.producthunt.commands.posts import posts
 from cli_web.producthunt.commands.users import users
 from cli_web.producthunt.utils.repl_skin import ReplSkin
 
+from .utils.json_group import JsonGroup
+
 VERSION = "0.1.0"
 APP_NAME = "producthunt"
 
 _skin = ReplSkin(APP_NAME, version=VERSION)
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "use_json", is_flag=True, help="Force JSON output in REPL mode.")
 @click.version_option(VERSION, prog_name="cli-web-producthunt")
 @click.pass_context

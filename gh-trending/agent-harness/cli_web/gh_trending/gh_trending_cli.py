@@ -23,13 +23,15 @@ from cli_web.gh_trending.commands.repos import repos_group
 from cli_web.gh_trending.core.exceptions import AppError
 from cli_web.gh_trending.utils.repl_skin import ReplSkin
 
+from .utils.json_group import JsonGroup
+
 _skin = ReplSkin(app="gh_trending", version="0.1.0", display_name="GitHub Trending")
 
 
 # ---------------------------------------------------------------------------- main CLI
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON (applies to all commands).")
 @click.version_option("0.1.0", prog_name="cli-web-gh-trending")
 @click.pass_context

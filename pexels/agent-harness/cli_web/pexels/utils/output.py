@@ -7,7 +7,12 @@ import click
 
 def print_json(data):
     """Print data as formatted JSON."""
-    click.echo(json.dumps(data, indent=2, default=str, ensure_ascii=False))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    click.echo(json.dumps(payload, indent=2, default=str, ensure_ascii=False))
 
 
 def print_error_json(exc):

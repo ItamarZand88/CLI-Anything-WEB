@@ -7,6 +7,16 @@ into clean, flat dictionaries for CLI output and --json serialization.
 from __future__ import annotations
 
 
+def _canonical_slug(attrs: dict) -> str | None:
+    """Return the route slug Pexels accepts, including the media ID."""
+    slug = attrs.get("slug")
+    media_id = attrs.get("id")
+    if not slug or not media_id:
+        return slug
+    suffix = f"-{media_id}"
+    return slug if str(slug).endswith(suffix) else f"{slug}{suffix}"
+
+
 def normalize_photo(item: dict) -> dict:
     """Normalize a photo item from search results."""
     attrs = item.get("attributes", {})
@@ -15,7 +25,7 @@ def normalize_photo(item: dict) -> dict:
     return {
         "id": attrs.get("id"),
         "type": "photo",
-        "slug": attrs.get("slug"),
+        "slug": _canonical_slug(attrs),
         "title": attrs.get("title"),
         "description": attrs.get("description"),
         "width": attrs.get("width"),
@@ -39,7 +49,7 @@ def normalize_photo_detail(medium: dict, details: dict) -> dict:
     return {
         "id": attrs.get("id"),
         "type": "photo",
-        "slug": attrs.get("slug"),
+        "slug": _canonical_slug(attrs),
         "title": attrs.get("title"),
         "description": attrs.get("description"),
         "alt": attrs.get("alt"),
@@ -80,7 +90,7 @@ def normalize_video(item: dict) -> dict:
     return {
         "id": attrs.get("id"),
         "type": "video",
-        "slug": attrs.get("slug"),
+        "slug": _canonical_slug(attrs),
         "title": attrs.get("title"),
         "description": attrs.get("description"),
         "width": attrs.get("width"),
@@ -104,7 +114,7 @@ def normalize_video_detail(medium: dict) -> dict:
     return {
         "id": attrs.get("id"),
         "type": "video",
-        "slug": attrs.get("slug"),
+        "slug": _canonical_slug(attrs),
         "title": attrs.get("title"),
         "description": attrs.get("description"),
         "width": attrs.get("width"),

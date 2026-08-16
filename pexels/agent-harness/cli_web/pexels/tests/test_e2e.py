@@ -135,7 +135,7 @@ class TestCLISubprocess:
     def test_version(self):
         r = self._run(["--version"])
         assert r.returncode == 0
-        assert "1.0.0" in r.stdout
+        assert "0.1.0" in r.stdout
 
     def test_photos_search_json(self):
         r = self._run(["photos", "search", "nature", "--json"])

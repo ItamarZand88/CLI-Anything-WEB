@@ -124,6 +124,8 @@ class TestCLISubprocess:
             capture_output=True,
             text=True,
             check=check,
+            encoding="utf-8",
+            errors="replace",
         )
 
     def test_help(self):

@@ -19,12 +19,13 @@ import shlex
 import click
 
 from .commands.search import close_client, search_group
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin(app="gai", version="0.1.0")
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.version_option(package_name="cli-web-gai")
 @click.pass_context

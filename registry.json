@@ -217,7 +217,7 @@
       "name": "cli-web-reddit",
       "website": "reddit.com",
       "protocol": "REST JSON API (curl_cffi)",
-      "auth": "optional (OAuth via token_v2)",
+      "auth": "required (OAuth via token_v2)",
       "directory": "reddit/agent-harness",
       "namespace": "cli_web.reddit",
       "commands": [
@@ -276,6 +276,16 @@
         "search followup"
       ],
       "install": "pip install -e gai/agent-harness",
+      "canary": [
+        [
+          "search",
+          "ask",
+          "What is 2+2?",
+          "--timeout",
+          "45",
+          "--json"
+        ]
+      ],
       "display_website": "Google AI Mode",
       "skill": ".claude/skills/gai-cli/SKILL.md",
       "description": "AI-powered search with source references"

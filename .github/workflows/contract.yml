@@ -14,8 +14,8 @@ jobs:
   contract:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
@@ -26,6 +26,26 @@ jobs:
 
       - name: Vendored shared-file drift check
         run: cli-web-devkit drift
+
+      - name: Strict fleet checklist
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+
+          for cli in json.load(open("registry.json"))["clis"]:
+              subprocess.run(
+                  [
+                      "python",
+                      "cli-anything-web-plugin/scripts/validate-checklist.py",
+                      cli["directory"],
+                      "--app-name",
+                      cli["name"].removeprefix("cli-web-"),
+                      "--strict",
+                  ],
+                  check=True,
+              )
+          PY
 
       - name: Fleet contract suite
         env:

@@ -143,8 +143,9 @@ class PexelsClient:
 
     def get_photo(self, slug: str) -> dict:
         """Get photo detail by slug (e.g., 'green-leaves-1072179')."""
-        if slug.isdigit():
-            slug = f"photo-{slug}"
+        media_id = slug if slug.isdigit() else slug.rsplit("-", 1)[-1]
+        if media_id.isdigit():
+            slug = f"photo-{media_id}"
         props = self._get_page(f"/photo/{slug}/")
         medium = props.get("medium", {})
         if not medium:
@@ -174,8 +175,9 @@ class PexelsClient:
 
     def get_video(self, slug: str) -> dict:
         """Get video detail by slug."""
-        if slug.isdigit():
-            slug = f"video-{slug}"
+        media_id = slug if slug.isdigit() else slug.rsplit("-", 1)[-1]
+        if media_id.isdigit():
+            slug = f"video-{media_id}"
         props = self._get_page(f"/video/{slug}/")
         medium = props.get("medium", {})
         if not medium:

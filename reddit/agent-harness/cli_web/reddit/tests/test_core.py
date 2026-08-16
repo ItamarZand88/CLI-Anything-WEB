@@ -432,23 +432,23 @@ class TestHelpers:
     def test_truncate_empty(self):
         assert truncate("") == ""
 
-    def test_handle_errors_not_found_exit_1(self):
+    def test_handle_errors_not_found_exit_4(self):
         with pytest.raises(SystemExit) as exc:
             with handle_errors():
                 raise NotFoundError("gone")
-        assert exc.value.code == 1
+        assert exc.value.code == 4
 
-    def test_handle_errors_server_error_exit_2(self):
+    def test_handle_errors_server_error_exit_6(self):
         with pytest.raises(SystemExit) as exc:
             with handle_errors():
                 raise ServerError("down", status_code=503)
-        assert exc.value.code == 2
+        assert exc.value.code == 6
 
-    def test_handle_errors_network_error_exit_2(self):
+    def test_handle_errors_network_error_exit_7(self):
         with pytest.raises(SystemExit) as exc:
             with handle_errors():
                 raise NetworkError("timeout")
-        assert exc.value.code == 2
+        assert exc.value.code == 7
 
     def test_handle_errors_keyboard_interrupt_exit_130(self):
         with pytest.raises(SystemExit) as exc:
@@ -480,11 +480,11 @@ class TestHelpers:
         data = json.loads(out)
         assert data["code"] == "NETWORK_ERROR"
 
-    def test_handle_errors_rate_limit_exit_1(self):
+    def test_handle_errors_rate_limit_exit_5(self):
         with pytest.raises(SystemExit) as exc:
             with handle_errors():
                 raise RateLimitError("slow down", retry_after=30)
-        assert exc.value.code == 1
+        assert exc.value.code == 5
 
     def test_resolve_json_mode_explicit_true(self):
         assert resolve_json_mode(True) is True
@@ -527,8 +527,8 @@ class TestCLIClick:
         result = runner.invoke(cli, ["feed", "hot", "--json", "--limit", "3"])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert "posts" in data
-        assert len(data["posts"]) == 1
+        assert "posts" in data["data"]
+        assert len(data["data"]["posts"]) == 1
 
     @patch("cli_web.reddit.commands.search.RedditClient")
     def test_search_posts_json(self, MockClient):
@@ -541,7 +541,7 @@ class TestCLIClick:
         result = runner.invoke(cli, ["search", "posts", "python", "--json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert "posts" in data
+        assert "posts" in data["data"]
 
     @patch("cli_web.reddit.commands.feed.RedditClient")
     def test_root_json_flows_to_subcommand(self, MockClient):
@@ -555,7 +555,7 @@ class TestCLIClick:
         result = runner.invoke(cli, ["--json", "feed", "hot", "--limit", "3"])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert "posts" in data
+        assert "posts" in data["data"]
 
     @patch("cli_web.reddit.commands.feed.RedditClient")
     def test_feed_hot_json_error_on_not_found(self, MockClient):
@@ -581,7 +581,7 @@ class TestCLIClick:
         result = runner.invoke(cli, ["feed", "new", "--json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert "posts" in data
+        assert "posts" in data["data"]
 
     @patch("cli_web.reddit.commands.search.RedditClient")
     def test_search_posts_json_error_on_network(self, MockClient):

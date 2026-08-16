@@ -6,8 +6,9 @@ from typing import Any
 
 import httpx
 
-from .auth import fetch_tokens, fetch_user_info, load_cookies
+from .auth import fetch_tokens, fetch_user_info, load_cookies, refresh_auth
 from .exceptions import (
+    AuthError,
     NetworkError,
     NotebookLMError,
     NotFoundError,
@@ -72,6 +73,7 @@ class NotebookLMClient:
         params: list,
         source_path: str = "/",
         retry_on_auth: bool = True,
+        _auth_attempt: int = 0,
     ) -> Any:
         """Execute a batchexecute RPC call.
 
@@ -123,9 +125,27 @@ class NotebookLMClient:
         except httpx.RequestError as e:
             raise NetworkError(f"Network error: {e}") from e
 
-        if resp.status_code in (401, 403) and retry_on_auth:
+        if resp.status_code in (401, 403):
+            if not retry_on_auth or _auth_attempt >= 2:
+                raise AuthError(
+                    "NotebookLM session expired after automatic refresh", recoverable=False
+                )
+            if _auth_attempt == 0:
+                try:
+                    self._cookies = load_cookies()
+                except AuthError:
+                    pass  # Keep the in-memory cookies when no disk source exists.
+            else:
+                self._cookies = refresh_auth()
+            self._csrf = self._session_id = self._build_label = None
             self._refresh_tokens()
-            return self._call(rpc_id, params, source_path, retry_on_auth=False)
+            return self._call(
+                rpc_id,
+                params,
+                source_path,
+                retry_on_auth=True,
+                _auth_attempt=_auth_attempt + 1,
+            )
 
         if resp.status_code == 404:
             raise NotFoundError(f"Not found: {resp.text[:200]}")
@@ -317,7 +337,7 @@ class NotebookLMClient:
     def ask(self, notebook_id: str, query: str) -> str:
         return self.chat_query(notebook_id, query)
 
-    def chat_query(self, notebook_id: str, query: str) -> str:
+    def chat_query(self, notebook_id: str, query: str, _auth_attempt: int = 0) -> str:
         """Ask a question to a notebook.
 
         Uses GenerateFreeFormStreamed endpoint.
@@ -378,8 +398,20 @@ class NotebookLMClient:
             raise NetworkError(f"Network error: {e}") from e
 
         if resp.status_code in (401, 403):
+            if _auth_attempt >= 2:
+                raise AuthError(
+                    "NotebookLM session expired after automatic refresh", recoverable=False
+                )
+            if _auth_attempt == 0:
+                try:
+                    self._cookies = load_cookies()
+                except AuthError:
+                    pass
+            else:
+                self._cookies = refresh_auth()
+            self._csrf = self._session_id = self._build_label = None
             self._refresh_tokens()
-            return self.chat_query(notebook_id, query)
+            return self.chat_query(notebook_id, query, _auth_attempt=_auth_attempt + 1)
 
         if resp.status_code == 429:
             raise RateLimitError("Rate limited — please wait and try again")

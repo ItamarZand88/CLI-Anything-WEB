@@ -27,8 +27,8 @@ from .core.auth import (
     login_from_cookies_json,
 )
 from .core.client import NotebookLMClient
-from .core.exceptions import AuthError, NotebookLMError
-from .utils.output import error, handle_error, print_json, print_user
+from .utils.json_group import JsonGroup
+from .utils.output import print_json, print_user
 from .utils.repl_skin import ReplSkin
 
 APP_NAME = "notebooklm"
@@ -37,19 +37,22 @@ VERSION = "0.1.0"
 _skin = ReplSkin(APP_NAME, version=VERSION)
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.version_option("0.1.0", prog_name="cli-web-notebooklm")
 @click.pass_context
-def main(ctx):
+def main(ctx, json_mode):
     """cli-web-notebooklm — NotebookLM CLI.
 
     Run without a subcommand to enter interactive REPL mode.
     """
+    ctx.ensure_object(dict)
+    ctx.obj["json"] = json_mode
     if ctx.invoked_subcommand is None:
-        _run_repl()
+        _run_repl(json_mode)
 
 
-def _run_repl():
+def _run_repl(json_mode=False):
     """Interactive REPL mode."""
     _skin.print_banner()
     _skin.info("Type 'help' for available commands, 'quit' to exit.")
@@ -71,6 +74,8 @@ def _run_repl():
             continue
 
         args = shlex.split(line)
+        if json_mode:
+            args = ["--json", *args]
         try:
             main.main(args, standalone_mode=False, prog_name="cli-web-notebooklm")
         except SystemExit:
@@ -118,6 +123,7 @@ def _print_repl_help():
     print("    whoami                                         Show current user")
     print("    auth login                                     Login via browser")
     print("    auth status                                    Check auth status")
+    print("    auth refresh                                   Refresh session tokens")
     print("  quit                                             Exit REPL")
 
 
@@ -140,15 +146,20 @@ def auth():
 
 @auth.command("login")
 @click.option("--cookies-json", default=None, help="Import cookies from a JSON file")
-def auth_login(cookies_json):
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
+@click.pass_context
+def auth_login(ctx, cookies_json, as_json):
     """Log in to NotebookLM via browser (Google account required)."""
-    try:
+    from .utils.helpers import handle_errors
+
+    as_json = as_json or bool((ctx.find_root().obj or {}).get("json"))
+    with handle_errors(json_mode=as_json):
         if cookies_json:
             login_from_cookies_json(cookies_json)
         else:
             login_browser()
-    except AuthError as e:
-        error(str(e))
+        if as_json:
+            print_json({"logged_in": True})
 
 
 @auth.command("status")
@@ -173,13 +184,18 @@ def auth_status(as_json):
 
 
 @auth.command("refresh")
-def auth_refresh():
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
+@click.pass_context
+def auth_refresh(ctx, as_json):
     """Re-extract CSRF and session tokens from NotebookLM homepage.
 
     This refreshes tokens when they've rotated but cookies are still valid.
     If cookies themselves have expired, run 'auth login' instead.
     """
-    try:
+    from .utils.helpers import handle_errors
+
+    as_json = as_json or bool((ctx.find_root().obj or {}).get("json"))
+    with handle_errors(json_mode=as_json):
         from .core.auth import fetch_tokens, load_cookies
 
         cookies = load_cookies()
@@ -200,9 +216,10 @@ def auth_refresh():
             ),
             encoding="utf-8",
         )
-        click.echo(f"[OK] Tokens refreshed -- session {session_id[:8]}...")
-    except AuthError as e:
-        error(f"{e}\n\nTokens AND cookies expired. Run: cli-web-notebooklm auth login")
+        if as_json:
+            print_json({"refreshed": True})
+        else:
+            click.echo("[OK] Tokens refreshed")
 
 
 # ── Context commands ─────────────────────────────────────────────────────────
@@ -210,11 +227,14 @@ def auth_refresh():
 
 @main.command("use")
 @click.argument("notebook_id")
-def use_notebook(notebook_id):
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
+@click.pass_context
+def use_notebook(ctx, notebook_id, as_json):
     """Set the current notebook context (persists across sessions)."""
     from .utils.helpers import handle_errors, set_context_value
 
-    with handle_errors():
+    as_json = as_json or bool((ctx.find_root().obj or {}).get("json"))
+    with handle_errors(json_mode=as_json):
         client = NotebookLMClient()
         nb = client.get_notebook(notebook_id)
         set_context_value("notebook_id", nb.id)
@@ -223,7 +243,10 @@ def use_notebook(notebook_id):
         from .core.session import get_session
 
         get_session().set_notebook(nb.id, nb.title)
-        _skin.success(f"Now using: {nb.display_title()} ({nb.id})")
+        if as_json:
+            print_json({"notebook_id": nb.id, "notebook_title": nb.title})
+        else:
+            _skin.success(f"Now using: {nb.display_title()} ({nb.id})")
 
 
 @main.command("status")
@@ -260,7 +283,9 @@ def show_status(as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 def whoami(as_json):
     """Show current user information."""
-    try:
+    from .utils.helpers import handle_errors
+
+    with handle_errors(json_mode=as_json):
         client = NotebookLMClient()
         user = client.get_user()
         if as_json:
@@ -273,10 +298,6 @@ def whoami(as_json):
             )
         else:
             print_user(user)
-    except NotebookLMError as e:
-        handle_error(e, as_json)
-    except Exception as e:
-        handle_error(e, as_json)
 
 
 # MCP server mode — exposes every command as an MCP tool over stdio.

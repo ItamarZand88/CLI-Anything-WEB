@@ -53,7 +53,7 @@ class RPCError(StitchError):
 # --- JSON error code mapping (matches utils/helpers.py conventions) ---
 
 EXCEPTION_CODE_MAP = {
-    AuthError: "AUTH_ERROR",
+    AuthError: "AUTH_EXPIRED",
     RateLimitError: "RATE_LIMITED",
     NetworkError: "NETWORK_ERROR",
     ServerError: "SERVER_ERROR",

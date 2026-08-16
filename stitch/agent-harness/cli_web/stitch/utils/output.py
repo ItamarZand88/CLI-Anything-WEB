@@ -29,7 +29,12 @@ def json_error(code: str, message: str, **extra) -> dict:
 
 def print_json(obj: Any):
     """Pretty-print a JSON-serialisable object."""
-    print(json.dumps(obj, indent=2, default=str))
+    payload = (
+        obj
+        if isinstance(obj, dict) and ("success" in obj or obj.get("error"))
+        else {"success": True, "data": obj}
+    )
+    print(json.dumps(payload, indent=2, default=str))
 
 
 # ── Timestamp formatting ─────────────────────────────────────────────
