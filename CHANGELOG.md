@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.14.3](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.14.2...v0.14.3) (2026-08-16)
+
+
+### Bug Fixes
+
+* **docs:** sync public installs and registry site ([#52](https://github.com/ItamarZand88/CLI-Anything-WEB/issues/52)) ([23e17d9](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/23e17d942c6934ec7d9576f620cc476d3ed12686))
+
 ## [0.14.2](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.14.1...v0.14.2) (2026-08-16)
 
 
