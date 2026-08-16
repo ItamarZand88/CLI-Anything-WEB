@@ -234,7 +234,7 @@ def versions(name, year, use_json):
             from rich.progress import Progress
 
             detailed = []
-            with Progress() as progress:
+            with Progress(disable=use_json) as progress:
                 task = progress.add_task(
                     f"Fetching {len(candidates)} versions...", total=len(candidates)
                 )

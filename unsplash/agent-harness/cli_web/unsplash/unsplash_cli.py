@@ -23,12 +23,13 @@ from .commands.collections import collections
 from .commands.photos import photos
 from .commands.topics import topics
 from .commands.users import users
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("unsplash", version="0.1.0")
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.option("--version", is_flag=True, help="Show version.")
 @click.pass_context

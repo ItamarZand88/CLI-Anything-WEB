@@ -310,8 +310,9 @@ class TestOutput:
         print_json({"id": 1, "title": "Test"})
         captured = capsys.readouterr()
         data = json.loads(captured.out)
-        assert data["id"] == 1
-        assert data["title"] == "Test"
+        assert data["success"] is True
+        assert data["data"]["id"] == 1
+        assert data["data"]["title"] == "Test"
 
     def test_print_pagination_shows_info(self, capsys):
         pagination = {"current_page": 2, "total_pages": 10, "total_results": 500}

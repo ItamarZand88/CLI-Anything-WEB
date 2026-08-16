@@ -313,7 +313,7 @@ def scan(rating_min, rating_max, platform, limit, threshold, use_json):
             from rich.progress import Progress
 
             results = []
-            with Progress() as progress:
+            with Progress(disable=use_json) as progress:
                 task = progress.add_task("Analyzing players...", total=len(candidates))
                 for p in candidates:
                     try:

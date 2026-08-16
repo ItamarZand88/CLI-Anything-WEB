@@ -62,7 +62,7 @@ class Post:
             comments_count=card_data.get("comments_count", 0),
             topics=card_data.get("topics", []),
             thumbnail_url=card_data.get("thumbnail_url"),
-            rank=rank,
+            rank=card_data.get("rank") if card_data.get("rank") is not None else rank,
         )
 
 

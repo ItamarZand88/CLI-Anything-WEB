@@ -144,7 +144,7 @@ class TestSearchE2E:
 # ─── Subprocess Tests ───────────────────────────────────────────────────────
 
 
-class TestSubprocess:
+class TestCLISubprocess:
     def _run(self, args: str, timeout: int = 30) -> subprocess.CompletedProcess:
         cli_path = _resolve_cli("cli-web-hackernews")
         cmd = f"{cli_path} {args}"
@@ -154,6 +154,8 @@ class TestSubprocess:
             capture_output=True,
             text=True,
             timeout=timeout,
+            encoding="utf-8",
+            errors="replace",
         )
 
     def test_version(self):

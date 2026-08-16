@@ -16,6 +16,7 @@ import shlex
 
 import click
 
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("linkedin", version="0.1.0")
@@ -24,7 +25,7 @@ _skin = ReplSkin("linkedin", version="0.1.0")
 # ── Main CLI group ─────────────────────────────────────────────────────────────
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.version_option("0.1.0", prog_name="cli-web-linkedin")
 @click.pass_context
@@ -39,7 +40,7 @@ def cli(ctx, json_mode):
       cli-web-linkedin feed --json
       cli-web-linkedin post create "Hello LinkedIn!"
       cli-web-linkedin jobs search "software engineer" --limit 5
-      cli-web-linkedin company anthropic --json
+      cli-web-linkedin company get anthropic --json
     """
     ctx.ensure_object(dict)
     ctx.obj["json"] = json_mode
@@ -144,7 +145,7 @@ def _print_repl_help() -> None:
     print("  profile get USERNAME          View a LinkedIn profile")
     print("  profile me                    View your own profile")
     print()
-    print("  company NAME                  View a company page")
+    print("  company get NAME              View a company page")
     print("  company follow COMPANY_URN    Follow a company")
     print("  company unfollow COMPANY_URN  Unfollow a company")
     print()

@@ -227,31 +227,29 @@ class TestModels:
 class TestHelpers:
     """Verify handle_errors context manager and resolve_json_mode."""
 
-    def test_handle_errors_catches_auth_error_exit_1(self):
+    def test_handle_errors_catches_auth_error_exit_3(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise AuthError("expired")
-        assert exc_info.value.code == 1
+        assert exc_info.value.code == 3
 
-    def test_handle_errors_catches_not_found_error_exit_1(self):
+    def test_handle_errors_catches_not_found_error_exit_4(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise NotFoundError("no such user")
-        assert exc_info.value.code == 1
+        assert exc_info.value.code == 4
 
-    def test_handle_errors_catches_server_error_exit_2(self):
-        """ServerError is a LinkedinError so exits with code 1."""
+    def test_handle_errors_catches_server_error_exit_6(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise ServerError("internal error", status_code=500)
-        assert exc_info.value.code == 1
+        assert exc_info.value.code == 6
 
-    def test_handle_errors_catches_network_error_exit_1(self):
-        """NetworkError is a LinkedinError so exits with code 1."""
+    def test_handle_errors_catches_network_error_exit_7(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise NetworkError("DNS failed")
-        assert exc_info.value.code == 1
+        assert exc_info.value.code == 7
 
     def test_handle_errors_catches_generic_exception_exit_2(self):
         with pytest.raises(SystemExit) as exc_info:

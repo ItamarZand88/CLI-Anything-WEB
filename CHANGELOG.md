@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Fixed
+
+* enforce structured JSON envelopes, parse errors, and canonical auth exit codes across the fleet
+* verify browser payloads in `doctor` instead of reporting false-green GAI, Unsplash, and FUTBIN setups
+* restore live FUTBIN and World Cup reads with browser-compatible transports
+* bound and complete NotebookLM, Reddit, and Stitch authentication refresh flows
+* expose captured Hacker News, Pexels, Stitch, Unsplash, and World Cup read endpoints
+* repair LinkedIn company routing and Pexels search-to-detail slug round trips
+* improve Product Hunt post extraction and remove its non-functional period option
+* prevent GAI from returning successful empty answers and classify CAPTCHA blocks explicitly
+* bootstrap and cache Camoufox before the Unsplash live canary
+* add browser-aware canaries, strict fleet validation, subprocess E2E checks, and an enforced coverage floor
+* register the fleet's `unit` pytest marker and refresh maintenance tooling
+* correct the plugin repository metadata and publishing instructions
+
+### Security
+
+* pin third-party GitHub Actions to reviewed immutable revisions
+* add Dependabot coverage for Actions, pre-commit, and every Python package
+* add weekly CodeQL analysis using the security-extended query suite
+
 ## [0.14.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/v0.14.0...v0.14.1) (2026-06-21)
 
 

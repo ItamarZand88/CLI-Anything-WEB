@@ -63,7 +63,12 @@ def handle_errors(json_mode: bool = False):
 
 def print_json(data) -> None:
     """Print data as formatted JSON."""
-    click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
 def truncate(text: str | None, length: int = 50) -> str:

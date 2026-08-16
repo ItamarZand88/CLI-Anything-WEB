@@ -114,4 +114,9 @@ def handle_errors(json_mode: bool = False):
 
 def print_json(data) -> None:
     """Print data as formatted JSON to stdout."""
-    print(json.dumps(data, indent=2, ensure_ascii=False, default=str))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    print(json.dumps(payload, indent=2, ensure_ascii=False, default=str))

@@ -737,11 +737,11 @@ class TestHandleErrors:
     """Tests for ``handle_errors`` context manager."""
 
     @pytest.mark.unit
-    def test_auth_error_exit_code_1(self):
+    def test_auth_error_exit_code_3(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise AuthError("expired")
-        assert exc_info.value.code == 1
+        assert exc_info.value.code == 3
 
     @pytest.mark.unit
     def test_generic_exception_exit_code_2(self):
@@ -758,18 +758,18 @@ class TestHandleErrors:
         assert exc_info.value.code == 130
 
     @pytest.mark.unit
-    def test_not_found_error_exit_code_1(self):
+    def test_not_found_error_exit_code_4(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise NotFoundError("missing")
-        assert exc_info.value.code == 1
+        assert exc_info.value.code == 4
 
     @pytest.mark.unit
-    def test_rate_limit_exit_code_1(self):
+    def test_rate_limit_exit_code_5(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise RateLimitError("slow")
-        assert exc_info.value.code == 1
+        assert exc_info.value.code == 5
 
     @pytest.mark.unit
     def test_json_mode_outputs_structured_error(self, capsys):
@@ -779,7 +779,7 @@ class TestHandleErrors:
         out = capsys.readouterr().out
         data = json.loads(out)
         assert data["error"] is True
-        assert data["code"] == "AUTH_ERROR"
+        assert data["code"] == "AUTH_EXPIRED"
         assert "token expired" in data["message"]
 
     @pytest.mark.unit
@@ -809,18 +809,18 @@ class TestHandleErrors:
         assert x == 2
 
     @pytest.mark.unit
-    def test_server_error_exit_code_1(self):
+    def test_server_error_exit_code_6(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise ServerError("down", status_code=502)
-        assert exc_info.value.code == 1
+        assert exc_info.value.code == 6
 
     @pytest.mark.unit
-    def test_network_error_exit_code_1(self):
+    def test_network_error_exit_code_7(self):
         with pytest.raises(SystemExit) as exc_info:
             with handle_errors():
                 raise NetworkError("disconnected")
-        assert exc_info.value.code == 1
+        assert exc_info.value.code == 7
 
 
 class TestContextValueRoundTrip:

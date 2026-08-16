@@ -50,7 +50,12 @@ def resolve_json_mode(use_json: bool) -> bool:
 
 def print_json(data) -> None:
     """Print data as formatted JSON."""
-    click.echo(json.dumps(data, indent=2, default=str))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    click.echo(json.dumps(payload, indent=2, default=str))
 
 
 def print_error_json(exc: AppError) -> None:

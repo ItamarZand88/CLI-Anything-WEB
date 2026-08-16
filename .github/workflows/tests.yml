@@ -17,14 +17,14 @@ jobs:
     name: lint & registry
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref || github.ref }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Install ruff
-        run: pip install ruff==0.15.8
+        run: pip install ruff==0.16.3
       - name: Ruff lint
         run: ruff check .
       - name: Ruff format check
@@ -46,10 +46,10 @@ jobs:
     name: plugin & devkit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref || github.ref }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Install test tooling
@@ -70,10 +70,10 @@ jobs:
     outputs:
       clis: ${{ steps.set.outputs.clis }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref || github.ref }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Generate matrix from registry.json
@@ -91,10 +91,10 @@ jobs:
         python: ["3.10", "3.12"]
         cli: ${{ fromJSON(needs.matrix.outputs.clis) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref || github.ref }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python }}
       - name: Install CLI package
@@ -103,3 +103,12 @@ jobs:
         run: pip install pytest
       - name: Run unit tests
         run: python -m pytest ${{ matrix.cli.dir }}/cli_web/${{ matrix.cli.pkg }}/tests/test_core.py -v
+      - name: Run offline subprocess E2E tests
+        if: matrix.python == '3.12'
+        env:
+          CLI_WEB_FORCE_INSTALLED: "1"
+        run: |
+          test_file="${{ matrix.cli.dir }}/cli_web/${{ matrix.cli.pkg }}/tests/test_e2e.py"
+          if [ -f "$test_file" ]; then
+            python -m pytest "$test_file" -k "help or version" -v
+          fi

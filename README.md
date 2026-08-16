@@ -19,14 +19,14 @@
   <a href="https://github.com/ItamarZand88/CLI-Anything-WEB/stargazers"><img src="https://img.shields.io/github/stars/ItamarZand88/CLI-Anything-WEB?style=social" alt="GitHub Stars"></a>
   <a href="https://github.com/ItamarZand88/CLI-Anything-WEB/issues"><img src="https://img.shields.io/github/issues/ItamarZand88/CLI-Anything-WEB" alt="Issues"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
-  <img src="https://img.shields.io/badge/CLIs_generated-19-brightgreen" alt="19 CLIs">
+  <img src="https://img.shields.io/badge/CLIs_generated-20-brightgreen" alt="20 CLIs">
   <img src="https://img.shields.io/badge/claude%20code-plugin-blueviolet" alt="Claude Code Plugin">
   <a href="https://itamarzand88.github.io/CLI-Anything-WEB/registry/"><img src="https://img.shields.io/badge/registry-live-orange" alt="CLI Registry"></a>
 </p>
 
 <p align="center">
   <a href="#-quick-start"><img src="https://img.shields.io/badge/Quick_Start-blue?style=for-the-badge" alt="Quick Start"></a>
-  <a href="#-examples"><img src="https://img.shields.io/badge/19_CLIs-brightgreen?style=for-the-badge" alt="Examples"></a>
+  <a href="#-examples"><img src="https://img.shields.io/badge/20_CLIs-brightgreen?style=for-the-badge" alt="Examples"></a>
   <a href="#-supported-protocols"><img src="https://img.shields.io/badge/7_Protocols-orange?style=for-the-badge" alt="Protocols"></a>
   <a href="#-contributing"><img src="https://img.shields.io/badge/Contributing-purple?style=for-the-badge" alt="Contributing"></a>
 </p>
@@ -103,7 +103,7 @@ The agent opens a browser, asks you to log in if needed, captures traffic, and g
 | [`cli-web-booking`](booking/) | Booking.com | GraphQL + HTML (curl_cffi) | WAF cookies | [📖 Skill](.claude/skills/booking-cli/SKILL.md) | Hotel search, property details, destination resolution |
 | [`cli-web-stitch`](stitch/) | Google Stitch | batchexecute RPC | Google SSO | [📖 Skill](.claude/skills/stitch-cli/SKILL.md) | AI UI design — generate mobile/web app mockups from text prompts |
 | [`cli-web-pexels`](pexels/) | Pexels | SSR + __NEXT_DATA__ (curl_cffi) | None | [📖 Skill](.claude/skills/pexels-cli/SKILL.md) | Free stock photos & videos — search, download, collections, profiles |
-| [`cli-web-reddit`](reddit/) | Reddit | REST JSON API (curl_cffi) | Optional (OAuth) | [📖 Skill](.claude/skills/reddit-cli/SKILL.md) | Feeds, subreddits, search, vote, comment, submit, save, inbox |
+| [`cli-web-reddit`](reddit/) | Reddit | REST JSON API (curl_cffi) | Required (OAuth via token_v2) | [📖 Skill](.claude/skills/reddit-cli/SKILL.md) | Feeds, subreddits, search, vote, comment, submit, save, inbox |
 | [`cli-web-gai`](gai/) | Google AI Mode | Browser-rendered (Playwright) | None | [📖 Skill](.claude/skills/gai-cli/SKILL.md) | AI-powered search with source references |
 | [`cli-web-youtube`](youtube/) | YouTube | InnerTube REST API (httpx) | None | [📖 Skill](.claude/skills/youtube-cli/SKILL.md) | Search videos, video details, trending, channel info |
 | [`cli-web-hackernews`](hackernews/) | Hacker News | REST API — Firebase + Algolia (httpx) | Cookie (optional) | [📖 Skill](.claude/skills/hackernews-cli/SKILL.md) | Stories, search, comments, users, upvote, submit, comment, favorite |
@@ -192,7 +192,7 @@ cli-web-pexels photos search "mountains" --json
 **Reddit** — feeds, search, vote, comment, submit
 ```bash
 pip install cli-web-reddit
-cli-web-reddit auth login         # optional — required for voting, commenting, submitting
+cli-web-reddit auth login         # required by Reddit for all current API reads
 cli-web-reddit feed hot --limit 5 --json
 ```
 
@@ -284,6 +284,20 @@ cli-web-capitoltrades --json politicians top --by trades --page-size 10
 
 # Rich issuer data with 1-year price history
 cli-web-capitoltrades --json issuers search nvidia
+```
+
+**YouTube** — videos, channels, trending, and transcripts (no auth)
+```bash
+pip install cli-web-youtube
+cli-web-youtube search videos "python tutorial" --limit 5 --json
+cli-web-youtube transcript get dQw4w9WgXcQ --json
+```
+
+**World Cup 2026** — fixtures, teams, rosters, and standings (no auth)
+```bash
+pip install cli-web-worldcup
+cli-web-worldcup fixtures list --limit 5 --json
+cli-web-worldcup teams list --json
 ```
 
 ### Agent-Native: Claude uses the CLIs automatically

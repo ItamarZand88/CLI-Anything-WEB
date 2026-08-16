@@ -141,7 +141,7 @@ cli-web-linkedin
 ├── feed [--count N]               # View feed posts with likes/comments
 ├── profile get <username>         # View user profile
 ├── profile me                     # View own profile
-├── company <name>                 # View company page (via search)
+├── company get <name>             # View company page (via search)
 ├── company follow <urn>           # Follow a company
 ├── company unfollow <urn>         # Unfollow a company
 ├── jobs search <query>            # Search jobs (REST)

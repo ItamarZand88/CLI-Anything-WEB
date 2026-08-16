@@ -53,6 +53,33 @@ def stories_new(ctx, limit, json_mode):
             click.echo(f"\n{len(stories)} stories\n")
 
 
+@stories_group.command("max-item")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
+def max_item(json_mode):
+    """Show the largest current Hacker News item ID."""
+    json_mode = resolve_json_mode(json_mode)
+    with handle_errors(json_mode=json_mode), HackerNewsClient() as client:
+        item_id = client.get_max_item_id()
+        if json_mode:
+            print_json({"max_item_id": item_id})
+        else:
+            click.echo(item_id)
+
+
+@stories_group.command("updates")
+@click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
+def updates(json_mode):
+    """Show recently changed item and user IDs."""
+    json_mode = resolve_json_mode(json_mode)
+    with handle_errors(json_mode=json_mode), HackerNewsClient() as client:
+        data = client.get_updates()
+        if json_mode:
+            print_json(data)
+        else:
+            click.echo(f"Items: {', '.join(map(str, data.get('items', [])))}")
+            click.echo(f"Profiles: {', '.join(data.get('profiles', []))}")
+
+
 @stories_group.command("best")
 @click.option("-n", "--limit", default=30, show_default=True, help="Number of stories to show.")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")

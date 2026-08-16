@@ -27,7 +27,7 @@ CONTEXT_FILE = CONFIG_DIR / "context.json"
 # ── Error handling ────────────────────────────────────────────────────
 
 _EXCEPTION_CODE_MAP = {
-    AuthError: "AUTH_ERROR",
+    AuthError: "AUTH_EXPIRED",
     RateLimitError: "RATE_LIMITED",
     NetworkError: "NETWORK_ERROR",
     ServerError: "SERVER_ERROR",
@@ -57,32 +57,41 @@ def handle_errors(json_mode: bool = False):
             _print_json_error("USAGE_ERROR", str(exc))
         else:
             click.echo(f"Error: {exc}", err=True)
-        raise SystemExit(1) from exc
+        raise SystemExit(2) from exc
     except AuthError as exc:
         if json_mode:
-            _print_json_error("AUTH_ERROR", str(exc))
+            _print_json_error("AUTH_EXPIRED", str(exc))
         else:
             click.echo(f"Auth error: {exc}", err=True)
-        raise SystemExit(1) from exc
+        raise SystemExit(3) from exc
     except NotFoundError as exc:
         if json_mode:
             _print_json_error("NOT_FOUND", str(exc))
         else:
             click.echo(f"Not found: {exc}", err=True)
-        raise SystemExit(1) from exc
+        raise SystemExit(4) from exc
     except RateLimitError as exc:
         if json_mode:
-            _print_json_error("RATE_LIMITED", str(exc))
+            payload = {"error": True, "code": "RATE_LIMITED", "message": str(exc)}
+            if exc.retry_after is not None:
+                payload["retry_after"] = exc.retry_after
+            click.echo(json.dumps(payload, indent=2))
         else:
             click.echo(f"Rate limited: {exc}", err=True)
-        raise SystemExit(1) from exc
+        raise SystemExit(5) from exc
     except (NetworkError, ServerError, RPCError, StitchError) as exc:
         code = _EXCEPTION_CODE_MAP.get(type(exc), "STITCH_ERROR")
         if json_mode:
             _print_json_error(code, str(exc))
         else:
             click.echo(f"Error: {exc}", err=True)
-        raise SystemExit(1) from exc
+        if isinstance(exc, NetworkError):
+            exit_code = 7
+        elif isinstance(exc, ServerError):
+            exit_code = 6
+        else:
+            exit_code = 1
+        raise SystemExit(exit_code) from exc
     except Exception as exc:
         if json_mode:
             _print_json_error("INTERNAL_ERROR", str(exc))

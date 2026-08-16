@@ -53,7 +53,9 @@ def get_team(ctx, team, json_mode):
     json_mode = json_mode or (ctx.obj or {}).get("json", False)
     with handle_errors(json_mode):
         with WorldcupClient() as client:
-            row = resolve_team(team, _all_teams(client))
+            resolved = resolve_team(team, _all_teams(client))
+            raw = client.team(resolved["id"])
+            row = Team.from_team(raw.get("team") or {}).to_dict()
 
         if json_mode:
             print_json({"success": True, "data": row})

@@ -8,20 +8,17 @@ from ..core.client import LinkedinClient
 from ..utils.helpers import get_text, handle_errors, print_json, resolve_json_mode
 
 
-@click.group("company", invoke_without_command=True)
-@click.argument("name", required=False)
+@click.group("company")
+def company():
+    """View, follow, or unfollow companies."""
+
+
+@company.command("get")
+@click.argument("name")
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON.")
 @click.pass_context
-def company(ctx, name, json_mode):
-    """View a company page, or follow/unfollow companies."""
-    ctx.ensure_object(dict)
-    if json_mode:
-        ctx.obj["json"] = True
-    if ctx.invoked_subcommand is not None:
-        return
-    if not name:
-        click.echo(ctx.get_help())
-        return
+def get_company(ctx, name, json_mode):
+    """View a company page by name or slug."""
     json_mode = resolve_json_mode(json_mode, ctx)
     with handle_errors(json_mode):
         with LinkedinClient() as client:

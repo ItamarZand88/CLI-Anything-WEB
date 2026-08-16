@@ -23,9 +23,10 @@ from .commands.design import design
 from .commands.projects import projects
 from .commands.screens import screens
 from .utils.helpers import get_context_value, handle_errors, set_context_value
+from .utils.json_group import JsonGroup
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.version_option("0.1.0", prog_name="cli-web-stitch")
 @click.option("--json", "json_mode", is_flag=True, help="JSON output")
 @click.pass_context
@@ -41,6 +42,23 @@ cli.add_command(auth)
 cli.add_command(projects)
 cli.add_command(screens)
 cli.add_command(design)
+
+
+@cli.command("app-config")
+@click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
+@click.pass_context
+def app_config(ctx, use_json):
+    """Show Stitch feature configuration and account limits."""
+    from .core.client import StitchClient
+    from .utils.output import print_json
+
+    use_json = use_json or bool((ctx.find_root().obj or {}).get("json"))
+    with handle_errors(json_mode=use_json), StitchClient() as client:
+        data = client.get_app_config()
+        if use_json:
+            print_json(data)
+        else:
+            click.echo(json.dumps(data, indent=2, default=str))
 
 
 @cli.command("use")

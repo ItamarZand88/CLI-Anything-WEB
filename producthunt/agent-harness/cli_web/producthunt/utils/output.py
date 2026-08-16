@@ -11,7 +11,12 @@ def print_json(data):
         output = data.to_dict()
     else:
         output = data
-    print(json.dumps(output, indent=2, default=str))
+    payload = (
+        output
+        if isinstance(output, dict) and ("success" in output or output.get("error"))
+        else {"success": True, "data": output}
+    )
+    print(json.dumps(payload, indent=2, default=str))
 
 
 def print_table(rows: list[list[str]], headers: list[str]):

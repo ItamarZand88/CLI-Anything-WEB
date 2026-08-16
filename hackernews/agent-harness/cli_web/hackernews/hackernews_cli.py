@@ -32,13 +32,15 @@ from cli_web.hackernews.commands.user import user_group
 from cli_web.hackernews.core.exceptions import AppError
 from cli_web.hackernews.utils.repl_skin import ReplSkin
 
+from .utils.json_group import JsonGroup
+
 _skin = ReplSkin(app="hackernews", version="0.2.0", display_name="Hacker News")
 
 
 # ---------------------------------------------------------------------------- main CLI
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output as JSON (applies to all commands).")
 @click.version_option("0.2.0", prog_name="cli-web-hackernews")
 @click.pass_context

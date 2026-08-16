@@ -67,15 +67,9 @@ def get_post(slug, use_json):
 
 
 @posts.command("leaderboard")
-@click.option(
-    "--period",
-    type=click.Choice(["daily", "weekly", "monthly"], case_sensitive=False),
-    default="daily",
-    help="Leaderboard period (default: daily).",
-)
 @click.option("--date", "date_str", default=None, help="Date as YYYY-MM-DD (optional).")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
-def leaderboard(period, date_str, use_json):
+def leaderboard(date_str, use_json):
     """Show the Product Hunt leaderboard."""
     year = month = day = None
     if date_str:
@@ -89,7 +83,7 @@ def leaderboard(period, date_str, use_json):
 
     with handle_errors(json_mode=use_json):
         client = ProductHuntClient()
-        results = client.list_leaderboard(period=period.lower(), year=year, month=month, day=day)
+        results = client.list_leaderboard(year=year, month=month, day=day)
 
         if use_json:
             print_json(results)

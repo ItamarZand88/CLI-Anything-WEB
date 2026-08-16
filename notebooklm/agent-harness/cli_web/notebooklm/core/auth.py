@@ -345,6 +345,30 @@ def load_cookies() -> dict:
         raise AuthError(f"Corrupted auth file: {e}. Run: cli-web-notebooklm auth login") from e
 
 
+def refresh_auth() -> dict:
+    """Refresh stored cookies from the persistent browser profile headlessly."""
+    try:
+        from playwright.sync_api import sync_playwright
+
+        with _windows_playwright_event_loop(), sync_playwright() as playwright:
+            context = playwright.chromium.launch_persistent_context(
+                user_data_dir=str(BROWSER_PROFILE_DIR),
+                headless=True,
+                args=["--disable-blink-features=AutomationControlled"],
+                ignore_default_args=["--enable-automation"],
+            )
+            page = context.pages[0] if context.pages else context.new_page()
+            page.goto(BASE_URL, wait_until="domcontentloaded", timeout=30000)
+            cookies = _extract_cookies(context.cookies())
+            context.close()
+    except Exception as exc:
+        raise AuthError(f"Headless auth refresh failed: {exc}", recoverable=False) from exc
+    if not cookies:
+        raise AuthError("Session expired — run: cli-web-notebooklm auth login", recoverable=False)
+    _save_auth({"cookies": cookies})
+    return cookies
+
+
 def fetch_tokens(cookies: dict) -> tuple[str, str, str]:
     """Fetch and extract CSRF token, session ID, and build label from homepage.
 

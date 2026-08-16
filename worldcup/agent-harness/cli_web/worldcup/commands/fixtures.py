@@ -61,11 +61,11 @@ def get_fixture(ctx, event_id, json_mode):
     json_mode = json_mode or (ctx.obj or {}).get("json", False)
     with handle_errors(json_mode):
         with WorldcupClient() as client:
-            raw = client.scoreboard(dates=_TOURNAMENT_RANGE)
-        events = [ev for ev in raw.get("events", []) if str(ev.get("id")) == str(event_id)]
-        if not events:
+            raw = client.event_summary(event_id)
+        event = raw.get("header") or {}
+        if not event.get("id"):
             raise NotFoundError(f"No match with id {event_id}")
-        match = Match.from_event(events[0]).to_dict()
+        match = Match.from_event(event).to_dict()
 
         if json_mode:
             print_json({"success": True, "data": match})

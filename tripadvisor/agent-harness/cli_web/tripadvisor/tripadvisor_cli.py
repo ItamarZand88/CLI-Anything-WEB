@@ -24,12 +24,13 @@ from .commands.hotels import hotels
 from .commands.locations import locations
 from .commands.restaurants import restaurants
 from .core.exceptions import TripAdvisorError
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 _skin = ReplSkin("tripadvisor", version="0.1.0")
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option("--json", "json_mode", is_flag=True, help="Output all results as JSON.")
 @click.option("--version", is_flag=True, help="Show version and exit.")
 @click.pass_context

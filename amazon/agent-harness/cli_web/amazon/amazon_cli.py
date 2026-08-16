@@ -23,6 +23,7 @@ from .commands.product import product
 from .commands.search import search
 from .commands.suggest import suggest
 from .core.exceptions import AmazonError
+from .utils.json_group import JsonGroup
 from .utils.repl_skin import ReplSkin
 
 __version__ = "1.0.0"
@@ -52,7 +53,7 @@ def _print_repl_help():
     print()
 
 
-@click.group(invoke_without_command=True)
+@click.group(cls=JsonGroup, invoke_without_command=True)
 @click.option(
     "--json", "json_mode", is_flag=True, default=False, help="Output all results as JSON."
 )

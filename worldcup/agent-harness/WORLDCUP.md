@@ -21,8 +21,8 @@ Group standings: `https://site.api.espn.com/apis/v2/sports/soccer/fifa.world/sta
 (by name: `gamesPlayed`, `wins`, `ties`, `losses`, `pointsFor`,
 `pointsAgainst`, `pointDifferential`, `points`, `rank`).
 
-All ESPN endpoints are plain JSON, no auth, no anti-bot — a normal
-User-Agent is sufficient.
+All ESPN endpoints are plain JSON and require no auth. ESPN's Akamai edge does
+inspect the TLS fingerprint, so the client uses a browser-compatible transport.
 
 ## The Odds API (free API key)
 

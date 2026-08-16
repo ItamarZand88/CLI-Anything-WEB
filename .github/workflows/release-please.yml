@@ -17,7 +17,7 @@ jobs:
       pr_branch: ${{ steps.rp.outputs.prs_created == 'true' && 'release-please--branches--main' || '' }}
     steps:
       - id: rp
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         # Manifest mode: packages, changelog sections, and extra-files live
         # in release-please-config.json / .release-please-manifest.json.
         #

@@ -232,9 +232,7 @@ class TestCLISubprocess:
         )
 
         if result.returncode != 0:
-            # May fail if cookies expired
-            print(f"Search failed: {result.stderr}")
-            pytest.skip("Search failed — WAF cookies may have expired")
+            pytest.fail(f"Search failed — WAF cookies may have expired: {result.stderr}")
 
         data = json.loads(result.stdout)
         assert data["success"] is True

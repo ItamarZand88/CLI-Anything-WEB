@@ -9,7 +9,14 @@ from contextlib import contextmanager
 
 import click
 
-from ..core.exceptions import LinkedinError
+from ..core.exceptions import (
+    AuthError,
+    LinkedinError,
+    NetworkError,
+    NotFoundError,
+    RateLimitError,
+    ServerError,
+)
 
 
 # --- Windows UTF-8 fix (always include) ---
@@ -46,7 +53,18 @@ def handle_errors(json_mode: bool = False):
             print_json(exc.to_dict())
         else:
             click.secho(f"Error: {exc}", fg="red", err=True)
-        raise SystemExit(1) from exc
+        exit_code = 1
+        if isinstance(exc, AuthError):
+            exit_code = 3
+        elif isinstance(exc, NotFoundError):
+            exit_code = 4
+        elif isinstance(exc, RateLimitError):
+            exit_code = 5
+        elif isinstance(exc, ServerError):
+            exit_code = 6
+        elif isinstance(exc, NetworkError):
+            exit_code = 7
+        raise SystemExit(exit_code) from exc
     except Exception as exc:
         if json_mode:
             print_json({"error": True, "code": "INTERNAL_ERROR", "message": str(exc)})
@@ -67,7 +85,12 @@ def resolve_json_mode(json_mode: bool, ctx: click.Context | None = None) -> bool
 
 def print_json(data) -> None:
     """Print data as formatted JSON to stdout."""
-    print(json.dumps(data, indent=2, ensure_ascii=False, default=str))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    print(json.dumps(payload, indent=2, ensure_ascii=False, default=str))
 
 
 def get_text(obj, *keys) -> str:

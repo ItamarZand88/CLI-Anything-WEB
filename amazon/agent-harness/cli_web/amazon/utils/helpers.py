@@ -26,7 +26,12 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 
 def print_json(data: Any) -> None:
     """Print data as pretty JSON."""
-    click.echo(json.dumps(data, ensure_ascii=False, indent=2))
+    payload = (
+        data
+        if isinstance(data, dict) and ("success" in data or data.get("error"))
+        else {"success": True, "data": data}
+    )
+    click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 # ---------------------------------------------------------------------------

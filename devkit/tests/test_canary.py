@@ -129,6 +129,7 @@ def test_run_canaries_antibot_block_is_not_broken(tmp_path, monkeypatch):
     report = run_canaries(root)
     assert report.blocked and not report.broken
     assert report.blocked[0].status == "blocked"
+    assert report.to_dict()["ok"] is True
 
 
 def test_run_canaries_logic_break_is_broken(tmp_path, monkeypatch):

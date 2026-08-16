@@ -379,8 +379,8 @@ class TestCLIClick:
         result = runner.invoke(cli, ["search", "videos", "test", "--json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert data["query"] == "test"
-        assert len(data["videos"]) == 1
+        assert data["data"]["query"] == "test"
+        assert len(data["data"]["videos"]) == 1
 
     @patch("cli_web.youtube.commands.video.YouTubeClient")
     def test_video_get_json(self, mock_class):
@@ -396,7 +396,7 @@ class TestCLIClick:
         result = runner.invoke(cli, ["video", "get", "abc123", "--json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert data["id"] == "abc123"
+        assert data["data"]["id"] == "abc123"
 
     @patch("cli_web.youtube.commands.video.YouTubeClient")
     def test_video_get_extracts_id_from_url(self, mock_class):
@@ -573,7 +573,7 @@ class TestTranscript:
         mock_class.return_value = mock_client
         result = CliRunner().invoke(cli, ["transcript", "get", "abc123", "--json"])
         assert result.exit_code == 0
-        assert json.loads(result.output)["text"] == "hi"
+        assert json.loads(result.output)["data"]["text"] == "hi"
 
     @patch("cli_web.youtube.commands.transcript.YouTubeClient")
     def test_transcript_get_text_only(self, mock_class):

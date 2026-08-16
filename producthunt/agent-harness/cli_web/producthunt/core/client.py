@@ -119,8 +119,13 @@ class ProductHuntClient:
                 continue
             seen.add(slug)
             votes = re.search(r'"votesCount":(\d+)', frag)
+            score = re.search(r'"(?:latestScore|launchDayScore)":([0-9.]+)', frag)
             comments = re.search(r'"commentsCount":(\d+)', frag)
             post_id = re.search(r'"id":"(\d+)"', frag)
+            thumbnail = _field(frag, "thumbnailImageUuid")
+            topic_section = frag.split('"topics":', 1)[-1].split('"contest":', 1)[0]
+            topics = re.findall(r'"name":"((?:[^"\\]|\\.)*)"', topic_section)
+            daily_rank = re.search(r'"dailyRank":(\d+)', frag)
             posts.append(
                 Post.from_card(
                     {
@@ -128,10 +133,18 @@ class ProductHuntClient:
                         "name": name,
                         "tagline": _field(frag, "tagline") or "",
                         "slug": slug,
-                        "votes_count": int(votes.group(1)) if votes else 0,
+                        "description": _field(frag, "tagline") or "",
+                        "votes_count": int(votes.group(1))
+                        if votes
+                        else round(float(score.group(1)))
+                        if score
+                        else 0,
                         "comments_count": int(comments.group(1)) if comments else 0,
-                        "topics": [],
-                        "thumbnail_url": None,
+                        "topics": [json.loads(f'"{topic}"') for topic in topics],
+                        "thumbnail_url": f"https://ph-files.imgix.net/{thumbnail}"
+                        if thumbnail
+                        else None,
+                        "rank": int(daily_rank.group(1)) if daily_rank else None,
                     }
                 )
             )
@@ -221,10 +234,9 @@ class ProductHuntClient:
         for ``daily``, or the plain ``/leaderboard`` page for others.
 
         The only supported URL pattern is ``/leaderboard/daily/YYYY/M/D``.
-        Product Hunt does not expose weekly or monthly leaderboard pages
-        as scrapable lists, so *period* is accepted for API compatibility
-        but always resolves to the daily leaderboard.
         """
+        if period != "daily":
+            raise ValueError("Product Hunt only exposes a daily leaderboard")
         if year is not None and month is not None and day is not None:
             url = f"{BASE_URL}/leaderboard/daily/{year}/{month}/{day}"
         else:
@@ -234,7 +246,11 @@ class ProductHuntClient:
             today = _date.today()
             url = f"{BASE_URL}/leaderboard/daily/{today.year}/{today.month}/{today.day}"
 
-        return self._extract_posts(self._fetch(url))
+        posts = self._extract_posts(self._fetch(url))
+        for rank, post in enumerate(posts, 1):
+            if post.rank is None:
+                post.rank = rank
+        return posts
 
     # ------------------------------------------------------------------
     # Users

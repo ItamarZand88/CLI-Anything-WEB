@@ -9,7 +9,9 @@ setup(
     python_requires=">=3.10",
     install_requires=[
         "click>=8.0",
-        "httpx",
+        # ESPN rejects httpx's TLS fingerprint with an Akamai 403 even though
+        # the feed is public. curl_cffi supplies a normal browser fingerprint.
+        "curl_cffi>=0.11",
         "rich>=13.0",
         "prompt_toolkit>=3.0",
     ],

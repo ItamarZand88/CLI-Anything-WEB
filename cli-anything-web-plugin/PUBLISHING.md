@@ -34,22 +34,16 @@ cd ~/.claude/plugins
 tar -xzf cli-anything-web-plugin-v0.1.0.tar.gz
 ```
 
-## Option 2: GitHub Repository (Recommended)
+## Option 2: Install from the canonical GitHub repository
 
 ```bash
-cd cli-anything-web-plugin
-git init
-git add .
-git commit -m "Initial commit: cli-anything-web plugin v0.1.0"
-gh repo create cli-anything-web-plugin --public --source=. --remote=origin
-git push -u origin main
+git clone https://github.com/ItamarZand88/CLI-Anything-WEB.git
+cd CLI-Anything-WEB
+claude --plugin-dir "$PWD/cli-anything-web-plugin"
 ```
 
-Users can install directly:
-```bash
-cd ~/.claude/plugins
-git clone https://github.com/yourusername/cli-anything-web-plugin.git cli-anything-web
-```
+The plugin is maintained inside the monorepo. Do not publish the
+`cli-anything-web-plugin/` subdirectory as a separate repository.
 
 ## Publishing Generated CLIs to PyPI
 
@@ -106,6 +100,12 @@ CLI_WEB_FORCE_INSTALLED=1 python3 -m pytest cli_web/<app>/tests/ -v -s
 ```
 
 ### Publish to PyPI
+
+Packages in the canonical monorepo are released by Release Please and the
+`Publish to PyPI` GitHub Actions workflow. For a recovery publish, dispatch the
+workflow with the existing release tag; do not upload an untagged local tree.
+
+For a newly generated CLI outside the monorepo, the manual flow is:
 
 ```bash
 pip install build twine

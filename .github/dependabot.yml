@@ -1,0 +1,56 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - github-actions
+
+  - package-ecosystem: pip
+    directories:
+      - /
+      - /airbnb/agent-harness
+      - /amazon/agent-harness
+      - /booking/agent-harness
+      - /capitoltrades/agent-harness
+      - /chatgpt/agent-harness
+      - /cli-web-core
+      - /codewiki/agent-harness
+      - /devkit
+      - /futbin/agent-harness
+      - /gai/agent-harness
+      - /gh-trending/agent-harness
+      - /hackernews/agent-harness
+      - /linkedin/agent-harness
+      - /meta
+      - /notebooklm/agent-harness
+      - /pexels/agent-harness
+      - /producthunt/agent-harness
+      - /reddit/agent-harness
+      - /stitch/agent-harness
+      - /tripadvisor/agent-harness
+      - /unsplash/agent-harness
+      - /worldcup/agent-harness
+      - /youtube/agent-harness
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      fleet-python-dependencies:
+        patterns:
+          - "*"
+    labels:
+      - dependencies
+      - python
+
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - tooling

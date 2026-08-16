@@ -8,6 +8,7 @@ import click
 from curl_cffi import requests as curl_requests
 
 from ..core.client import UnsplashClient
+from ..core.exceptions import UnsplashError
 from ..core.models import format_photo_detail, format_photo_summary
 from ..utils.helpers import handle_errors, print_json
 from ..utils.output import photo_detail_display, photo_table
@@ -58,6 +59,20 @@ def search(query, orientation, color, order_by, page, per_page, use_json):
             photo_table(results, title=f"Search: {query}")
 
 
+@photos.command("autocomplete")
+@click.argument("query")
+@click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
+def autocomplete(query, use_json):
+    """Return Unsplash autocomplete suggestions."""
+    with handle_errors(json_mode=use_json):
+        data = UnsplashClient().autocomplete(query)
+        if use_json:
+            print_json(data)
+        else:
+            for suggestion in data.get("autocomplete", []):
+                click.echo(suggestion.get("query") or suggestion)
+
+
 @photos.command("get")
 @click.argument("photo_id")
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
@@ -71,6 +86,20 @@ def get(photo_id, use_json):
             print_json(detail)
         else:
             photo_detail_display(detail)
+
+
+@photos.command("related")
+@click.argument("photo_id")
+@click.option("--json", "use_json", is_flag=True, help="Output as JSON.")
+def related(photo_id, use_json):
+    """List photos related to a photo ID."""
+    with handle_errors(json_mode=use_json):
+        data = UnsplashClient().get_photo_related(photo_id)
+        results = [format_photo_summary(p) for p in data.get("results", [])]
+        if use_json:
+            print_json({"results": results})
+        else:
+            photo_table(results, title=f"Related to {photo_id}")
 
 
 @photos.command("random")
@@ -114,7 +143,7 @@ def download(photo_id, size, output, use_json):
         urls = photo.get("urls", {})
         url = urls.get(size)
         if not url:
-            raise click.ClickException(f"No '{size}' URL available for photo {photo_id}")
+            raise UnsplashError(f"No '{size}' URL available for photo {photo_id}")
 
         if not output:
             output = f"{photo.get('id', photo_id)}_{size}.jpg"
@@ -122,7 +151,7 @@ def download(photo_id, size, output, use_json):
         out_path = Path(output)
         resp = curl_requests.get(url, impersonate="chrome131", timeout=60)
         if resp.status_code >= 400:
-            raise click.ClickException(f"Download failed: HTTP {resp.status_code}")
+            raise UnsplashError(f"Download failed: HTTP {resp.status_code}")
         out_path.write_bytes(resp.content)
 
         file_size = out_path.stat().st_size

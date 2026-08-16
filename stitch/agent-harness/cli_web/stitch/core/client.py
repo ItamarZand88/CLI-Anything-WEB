@@ -5,7 +5,7 @@ from typing import Any
 
 import httpx
 
-from .auth import fetch_tokens, fetch_user_info, load_cookies
+from .auth import fetch_tokens, fetch_user_info, load_cookies, refresh_auth
 from .exceptions import (
     AuthError,
     NetworkError,
@@ -69,6 +69,7 @@ class StitchClient:
         params: list,
         source_path: str = "/",
         retry_on_auth: bool = True,
+        _auth_attempt: int = 0,
     ) -> Any:
         """Execute a batchexecute RPC call."""
         self._ensure_auth()
@@ -106,9 +107,25 @@ class StitchClient:
         except httpx.RequestError as e:
             raise NetworkError(f"Network error: {e}") from e
 
-        if resp.status_code in (401, 403) and retry_on_auth:
+        if resp.status_code in (401, 403):
+            if not retry_on_auth or _auth_attempt >= 2:
+                raise AuthError("Stitch session expired after automatic refresh", recoverable=False)
+            if _auth_attempt == 0:
+                try:
+                    self._cookies = load_cookies()
+                except AuthError:
+                    pass  # Keep the in-memory cookies when no disk source exists.
+            else:
+                self._cookies = refresh_auth()
+            self._csrf = self._session_id = self._build_label = None
             self._refresh_tokens()
-            return self._call(rpc_id, params, source_path, retry_on_auth=False)
+            return self._call(
+                rpc_id,
+                params,
+                source_path,
+                retry_on_auth=True,
+                _auth_attempt=_auth_attempt + 1,
+            )
 
         if resp.status_code == 404:
             raise NotFoundError(f"Not found: {resp.text[:200]}")
@@ -145,6 +162,10 @@ class StitchClient:
                 if p:
                     projects.append(p)
         return projects
+
+    def get_app_config(self) -> Any:
+        """Return Stitch feature configuration and account limits."""
+        return self._call(RPCMethod.GET_APP_CONFIG, [])
 
     def get_project(self, project_id: str) -> Project | None:
         """Get project details."""
@@ -504,10 +525,22 @@ class StitchClient:
                     sessions.append(s)
         return sessions
 
+    def get_design_assets(self, project_id: str) -> Any:
+        """Return the raw design assets for a project."""
+        resource_name = _to_resource(project_id)
+        return self._call(
+            RPCMethod.GET_DESIGN_ASSETS,
+            [resource_name],
+            source_path=f"/projects/{_bare_id(project_id)}",
+        )
+
     # ── User ──────────────────────────────────────────────────────────────
 
     def get_user(self) -> User | None:
         """Get current user info."""
+        # Exercise the documented RPC first. The public shape varies by rollout,
+        # so the stable User model still comes from bootstrap metadata below.
+        self._call(RPCMethod.GET_USER_INFO, [])
         self._ensure_auth()
         info = fetch_user_info(self._cookies or {})
         if info:

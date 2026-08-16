@@ -36,6 +36,8 @@ def _run(*args: str, input_text: str | None = None) -> tuple[int, str, str]:
         _resolve_cli(*args),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         input=input_text,
         timeout=60,
     )

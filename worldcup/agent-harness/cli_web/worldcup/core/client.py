@@ -1,6 +1,6 @@
 """HTTP client for cli-web-worldcup.
 
-Two read-only upstreams, both plain JSON over httpx:
+Two read-only upstreams, both plain JSON over HTTPS:
 
 - **ESPN** (``site.api.espn.com``) — public, no auth. ``fifa.world`` is the
   men's FIFA World Cup. Fixtures, teams, rosters, and group standings.
@@ -11,7 +11,7 @@ Two read-only upstreams, both plain JSON over httpx:
 
 from __future__ import annotations
 
-import httpx
+from curl_cffi import requests
 
 from .exceptions import AuthError, NetworkError, raise_for_status
 
@@ -29,19 +29,21 @@ class WorldcupClient:
 
     def __init__(self, odds_api_key: str | None = None):
         self._odds_api_key = odds_api_key
-        self._client = httpx.Client(
-            timeout=httpx.Timeout(connect=10.0, read=30.0, write=30.0, pool=30.0),
+        # ESPN's Akamai edge currently returns 403 to httpx's TLS fingerprint.
+        # A browser fingerprint is required even though the endpoint is public.
+        self._client = requests.Session(
+            impersonate="chrome",
             headers={"User-Agent": "cli-web-worldcup/0.1.0"},
-            follow_redirects=True,
         )
 
     def _get(self, url: str, params: dict | None = None) -> dict:
         try:
-            resp = self._client.get(url, params=params)
-        except httpx.ConnectError as exc:
-            raise NetworkError(f"Connection failed: {exc}") from exc
-        except httpx.TimeoutException as exc:
-            raise NetworkError(f"Request timed out: {exc}") from exc
+            resp = self._client.get(url, params=params, timeout=30, allow_redirects=True)
+        except requests.errors.RequestsError as exc:
+            raise NetworkError(f"Request failed: {exc}") from exc
+        # A 403 from a public ESPN feed is edge blocking, not expired auth.
+        if resp.status_code == 403 and url.startswith("https://site.api.espn.com/"):
+            raise NetworkError("ESPN rejected the request at its edge (HTTP 403)")
         raise_for_status(resp)
         try:
             return resp.json()

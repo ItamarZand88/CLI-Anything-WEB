@@ -137,12 +137,57 @@ def _check_optional_deps() -> list[DoctorCheck]:
     return checks
 
 
+def _check_browser_runtime(app_name: str) -> list[DoctorCheck]:
+    """Verify browser payloads required by public browser-backed CLIs."""
+    if app_name == "gai":
+        if importlib.util.find_spec("playwright") is None:
+            return [DoctorCheck("chromium browser", "fail", "playwright is not installed")]
+        try:
+            from playwright.sync_api import sync_playwright
+
+            with sync_playwright() as playwright:
+                executable = Path(playwright.chromium.executable_path)
+            if executable.is_file():
+                return [DoctorCheck("chromium browser", "ok", str(executable))]
+            return [
+                DoctorCheck(
+                    "chromium browser",
+                    "fail",
+                    "payload missing — run: python -m playwright install chromium",
+                )
+            ]
+        except Exception as exc:
+            return [DoctorCheck("chromium browser", "fail", str(exc))]
+
+    if app_name in {"unsplash", "futbin"}:
+        if importlib.util.find_spec("camoufox") is None:
+            return [DoctorCheck("camoufox browser", "fail", "camoufox is not installed")]
+        try:
+            from camoufox.pkgman import camoufox_path
+
+            executable = Path(camoufox_path())
+            if executable.exists():
+                return [DoctorCheck("camoufox browser", "ok", str(executable))]
+            return [
+                DoctorCheck(
+                    "camoufox browser",
+                    "fail",
+                    "payload missing — run: python -m camoufox fetch",
+                )
+            ]
+        except Exception as exc:
+            return [DoctorCheck("camoufox browser", "fail", str(exc))]
+
+    return []
+
+
 def run_doctor(app_name: str, pkg: str) -> list[DoctorCheck]:
     checks = [
         _check_python(),
         _check_entry_point(app_name),
         _check_config_dir(app_name),
         *_check_auth(app_name, pkg),
+        *_check_browser_runtime(app_name),
         *_check_optional_deps(),
     ]
     return checks
