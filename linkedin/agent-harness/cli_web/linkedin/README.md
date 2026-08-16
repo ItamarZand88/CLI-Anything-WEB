@@ -9,7 +9,8 @@ Search LinkedIn for people, jobs, and companies. View profiles, feed, and compan
 ## Installation
 
 ```bash
-pip install cli-web-linkedin
+pip install "cli-web-linkedin[browser]"
+playwright install chromium
 ```
 
 ## Authentication

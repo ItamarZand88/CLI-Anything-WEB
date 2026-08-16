@@ -11,15 +11,16 @@ Get from zero to a working CLI in under 5 minutes.
 ## Install the Plugin
 
 ```bash
-git clone https://github.com/ItamarZand88/CLI-Anything-WEB.git
-cd CLI-Anything-Web
-claude plugin install ./cli-anything-web-plugin
+# Inside Claude Code
+/plugin marketplace add ItamarZand88/CLI-Anything-WEB
+/plugin install cli-anything-web
+/reload-plugins
 ```
 
 ## Generate a CLI for Any Website
 
 ```bash
-claude "/cli-anything-web https://example.com"
+/cli-anything-web https://example.com
 ```
 
 The plugin walks through 4 phases automatically: capture traffic, analyze APIs, generate code, and publish.
@@ -29,7 +30,7 @@ The plugin walks through 4 phases automatically: capture traffic, analyze APIs, 
 The easiest way to see what gets generated — install and run `cli-web-gh-trending`:
 
 ```bash
-pip install -e gh-trending/agent-harness
+pip install cli-web-gh-trending
 cli-web-gh-trending repos list
 cli-web-gh-trending repos list --language python --since weekly --json
 ```
@@ -42,6 +43,6 @@ cli-web-gh-trending
 
 ## Next Steps
 
-- See the full [README](README.md) for architecture details and all 19 generated CLIs
+- See the full [README](README.md) for architecture details and all 20 generated CLIs
 - Browse `registry.json` for a machine-readable index of every CLI
 - Read `CLAUDE.md` for contributor conventions

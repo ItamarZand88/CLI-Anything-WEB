@@ -7,8 +7,7 @@ CLI for browsing Product Hunt — today's top launches, leaderboards, product de
 ## Installation
 
 ```bash
-cd producthunt/agent-harness
-pip install -e .
+pip install cli-web-producthunt
 cli-web-producthunt --help
 ```
 

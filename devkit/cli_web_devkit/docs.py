@@ -1,14 +1,16 @@
-"""Generate fleet documentation from registry.json.
+"""Generate fleet documentation and the registry site from registry.json.
 
 README.md's CLI table and install command are generated artifacts: the
 content between ``<!-- fleet-table:start -->`` / ``<!-- fleet-table:end -->``
 and ``<!-- fleet-install:start -->`` / ``<!-- fleet-install:end -->`` markers
-is rewritten from the registry, so the docs can never drift from the fleet
-again. ``--check`` mode (used in CI) fails if the README is stale.
+is rewritten from the registry. The GitHub Pages registry's fleet count and
+JavaScript data are generated from the same source. ``--check`` mode (used in
+CI) fails if either public surface is stale.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -28,6 +30,10 @@ TABLE_START = "<!-- fleet-table:start -->"
 TABLE_END = "<!-- fleet-table:end -->"
 INSTALL_START = "<!-- fleet-install:start -->"
 INSTALL_END = "<!-- fleet-install:end -->"
+SITE_COUNT_START = "<!-- fleet-count:start -->"
+SITE_COUNT_END = "<!-- fleet-count:end -->"
+SITE_DATA_START = "// fleet-data:start"
+SITE_DATA_END = "// fleet-data:end"
 
 
 def render_table(registry: Registry) -> str:
@@ -72,6 +78,33 @@ def render_install(registry: Registry) -> str:
     )
 
 
+def render_site_data(registry: Registry) -> str:
+    """Render the public registry cards from the machine-readable registry."""
+    cards = []
+    for entry in registry.clis:
+        extra = entry.extra
+        cards.append(
+            {
+                "name": entry.app_dir,
+                "icon": extra.get("site_icon", entry.app_dir[:1].upper()),
+                "site": extra.get("display_website", entry.website),
+                "desc": extra.get("description", ""),
+                "category": extra.get("site_category", "Other"),
+                "tags": extra.get("site_tags", ["other"]),
+                "proto": entry.protocol,
+                "auth": _AUTH_DISPLAY.get(entry.auth, entry.auth),
+                "cmds": entry.commands,
+                "install": entry.install,
+                "setup": extra.get("post_install", []),
+                "n": len(entry.commands),
+                "url": (
+                    f"https://github.com/ItamarZand88/CLI-Anything-WEB/tree/main/{entry.app_dir}"
+                ),
+            }
+        )
+    return "const data = " + json.dumps(cards, ensure_ascii=False, indent=2) + ";"
+
+
 def _replace_region(text: str, start: str, end: str, content: str) -> str:
     pattern = re.compile(re.escape(start) + r".*?" + re.escape(end), re.S)
     if not pattern.search(text):
@@ -80,15 +113,37 @@ def _replace_region(text: str, start: str, end: str, content: str) -> str:
 
 
 def generate(root: Path, check: bool = False) -> bool:
-    """Regenerate README regions. Returns True if the README was up to date."""
+    """Regenerate public docs. Returns True if every generated region was current."""
     registry = Registry.load(root / "registry.json")
     readme = root / "README.md"
-    original = readme.read_text(encoding="utf-8")
+    readme_original = readme.read_text(encoding="utf-8")
 
-    updated = _replace_region(original, TABLE_START, TABLE_END, render_table(registry))
-    updated = _replace_region(updated, INSTALL_START, INSTALL_END, render_install(registry))
+    readme_updated = _replace_region(
+        readme_original, TABLE_START, TABLE_END, render_table(registry)
+    )
+    readme_updated = _replace_region(
+        readme_updated, INSTALL_START, INSTALL_END, render_install(registry)
+    )
 
-    fresh = updated == original
-    if not check and not fresh:
-        readme.write_text(updated, encoding="utf-8")
+    site = root / "docs" / "registry" / "index.html"
+    site_original = site.read_text(encoding="utf-8")
+    site_updated = _replace_region(
+        site_original,
+        SITE_COUNT_START,
+        SITE_COUNT_END,
+        f"{len(registry.clis)} CLIs",
+    )
+    site_updated = _replace_region(
+        site_updated,
+        SITE_DATA_START,
+        SITE_DATA_END,
+        render_site_data(registry),
+    )
+
+    fresh = readme_updated == readme_original and site_updated == site_original
+    if not check:
+        if readme_updated != readme_original:
+            readme.write_text(readme_updated, encoding="utf-8")
+        if site_updated != site_original:
+            site.write_text(site_updated, encoding="utf-8")
     return fresh

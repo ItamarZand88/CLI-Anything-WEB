@@ -8,8 +8,7 @@ Search players, check prices, compare stats, browse SBCs and Evolutions.
 ## Installation
 
 ```bash
-cd futbin/agent-harness
-pip install -e .
+pip install cli-web-futbin
 ```
 
 No authentication required — FUTBIN is a public site.

@@ -6,8 +6,7 @@ No API key or authentication required.
 ## Installation
 
 ```bash
-cd unsplash/agent-harness
-pip install -e .
+pip install cli-web-unsplash
 python -m camoufox fetch   # one-time: downloads the stealth browser used to bypass the anti-bot challenge
 ```
 

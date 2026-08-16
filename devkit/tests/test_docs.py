@@ -1,4 +1,6 @@
-from cli_web_devkit.docs import generate, render_install, render_table
+import json
+
+from cli_web_devkit.docs import generate, render_install, render_site_data, render_table
 from cli_web_devkit.paths import repo_root
 from cli_web_devkit.registry import Registry
 
@@ -28,6 +30,18 @@ def test_install_block_covers_whole_fleet():
     assert "```bash" in block
 
 
-def test_real_readme_is_fresh():
-    """README fleet sections must match registry (run `cli-web-devkit docs`)."""
-    assert generate(ROOT, check=True), "README.md fleet sections are stale"
+def test_site_data_has_one_public_install_per_cli():
+    data = render_site_data(REGISTRY)
+    cards = json.loads(data.removeprefix("const data = ").removesuffix(";"))
+    assert len(cards) == len(REGISTRY.clis)
+    cards_by_name = {card["name"]: card for card in cards}
+    for entry in REGISTRY.clis:
+        card = cards_by_name[entry.app_dir]
+        assert card["install"] == entry.install
+        assert card["setup"] == entry.extra.get("post_install", [])
+        assert card["cmds"] == entry.commands
+
+
+def test_public_docs_are_fresh():
+    """README and registry site must match registry (run `cli-web-devkit docs`)."""
+    assert generate(ROOT, check=True), "README.md or registry site generated data is stale"

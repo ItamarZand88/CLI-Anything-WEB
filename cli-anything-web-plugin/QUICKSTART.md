@@ -10,6 +10,14 @@ npx @playwright/cli@latest --version
 ```
 If this fails, install Node.js from https://nodejs.org/
 
+Install the plugin inside Claude Code:
+
+```bash
+/plugin marketplace add ItamarZand88/CLI-Anything-WEB
+/plugin install cli-anything-web
+/reload-plugins
+```
+
 ## Step 2: Generate a CLI (5-10 minutes)
 
 ```bash

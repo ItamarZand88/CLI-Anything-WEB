@@ -12,10 +12,13 @@
 
 ## Quick Start
 
-### Step 1: Load the plugin
+### Step 1: Install the plugin
 
 ```bash
-claude --plugin-dir /path/to/cli-anything-web-plugin
+# Inside Claude Code
+/plugin marketplace add ItamarZand88/CLI-Anything-WEB
+/plugin install cli-anything-web
+/reload-plugins
 ```
 
 ### Step 2: Generate a CLI

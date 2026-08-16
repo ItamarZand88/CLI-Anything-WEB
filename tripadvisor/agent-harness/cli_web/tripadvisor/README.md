@@ -10,8 +10,7 @@ protection is bypassed with curl_cffi Safari-iOS impersonation.
 ## Installation
 
 ```bash
-cd tripadvisor/agent-harness
-pip install -e .
+pip install cli-web-tripadvisor
 ```
 
 Binary: `cli-web-tripadvisor`

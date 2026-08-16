@@ -107,10 +107,31 @@ def validate(root: Path) -> list[str]:
             problems.append(f"{e.name}: name must start with 'cli-web-'")
         if not e.namespace.startswith("cli_web."):
             problems.append(f"{e.name}: namespace must start with 'cli_web.'")
-        if e.directory not in e.install:
-            problems.append(f"{e.name}: install command does not reference {e.directory!r}")
+        if (
+            not e.install.startswith("pip install ")
+            or e.name not in e.install
+            or " -e " in e.install
+        ):
+            problems.append(
+                f"{e.name}: install must be a public PyPI command for {e.name!r}, got {e.install!r}"
+            )
         if not e.commands:
             problems.append(f"{e.name}: commands list is empty")
+        for field_name in ("description", "site_icon", "site_category", "site_tags"):
+            if not e.extra.get(field_name):
+                problems.append(f"{e.name}: missing public site metadata {field_name!r}")
+        readme_candidates = (pkg_dir / "README.md", harness / "README.md")
+        package_readme = next((path for path in readme_candidates if path.is_file()), None)
+        if package_readme is None:
+            problems.append(f"{e.name}: package README is missing")
+        else:
+            readme_text = package_readme.read_text(encoding="utf-8")
+            setup_commands = [e.install, *e.extra.get("post_install", [])]
+            missing_setup = [command for command in setup_commands if command not in readme_text]
+            if missing_setup:
+                problems.append(
+                    f"{e.name}: package README is missing setup commands {missing_setup!r}"
+                )
 
     for harness in sorted(root.glob("*/agent-harness")):
         app_dir = harness.parent.name

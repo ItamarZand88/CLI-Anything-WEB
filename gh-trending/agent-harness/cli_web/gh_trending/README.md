@@ -5,8 +5,7 @@ A CLI for [GitHub Trending](https://github.com/trending) — explore trending re
 ## Installation
 
 ```bash
-cd gh-trending/agent-harness
-pip install -e .
+pip install cli-web-gh-trending
 ```
 
 ## Usage

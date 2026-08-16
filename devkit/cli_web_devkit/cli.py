@@ -37,14 +37,14 @@ def _cmd_docs(args: argparse.Namespace) -> int:
     fresh = generate_docs(args.root, check=args.check)
     if args.check:
         if fresh:
-            print("README.md fleet sections are up to date")
+            print("Public README and registry site are up to date")
             return 0
         print(
-            "README.md fleet sections are STALE — run: cli-web-devkit docs",
+            "Public README or registry site is STALE — run: cli-web-devkit docs",
             file=sys.stderr,
         )
         return 1
-    print("README.md regenerated" if not fresh else "README.md already up to date")
+    print("Public docs regenerated" if not fresh else "Public docs already up to date")
     return 0
 
 

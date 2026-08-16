@@ -5,8 +5,7 @@ CLI for [Pexels](https://www.pexels.com/) — free stock photos and videos from 
 ## Installation
 
 ```bash
-cd pexels/agent-harness
-pip install -e .
+pip install cli-web-pexels
 ```
 
 ## Usage

@@ -6,7 +6,7 @@ description: Browses and interacts with Reddit via the cli-web-reddit command-li
 # cli-web-reddit
 
 Browse Reddit without auth; vote, comment, submit, and manage subscriptions after `auth login`.
-Install: `pip install cli-web-reddit`
+Install: `pip install cli-web-reddit`, then `playwright install chromium`.
 
 ## Commands
 

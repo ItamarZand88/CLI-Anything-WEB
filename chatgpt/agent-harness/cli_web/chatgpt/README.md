@@ -5,8 +5,8 @@ CLI for ChatGPT web interface — ask questions, generate images, download image
 ## Installation
 
 ```bash
-cd chatgpt/agent-harness
-pip install -e ".[auth]"
+pip install "cli-web-chatgpt[auth]"
+python -m camoufox fetch
 playwright install chromium
 ```
 
