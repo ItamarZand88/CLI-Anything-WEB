@@ -165,7 +165,9 @@ def _check_browser_runtime(app_name: str) -> list[DoctorCheck]:
         try:
             from camoufox.pkgman import camoufox_path
 
-            executable = Path(camoufox_path())
+            # Doctor is diagnostic and must never download a browser or write
+            # to the cache as a side effect of checking the local setup.
+            executable = Path(camoufox_path(download_if_missing=False))
             if executable.exists():
                 return [DoctorCheck("camoufox browser", "ok", str(executable))]
             return [

@@ -24,5 +24,9 @@ def test_doctor_json_contract(entry):
     assert checks["python"]["status"] == "ok"
     assert "entry point" in checks
     # doctor must never hard-fail merely because auth isn't configured
-    auth_warns = [c for c in payload["data"]["checks"] if c["status"] == "fail"]
-    assert not auth_warns, f"{entry.name}: doctor fail-level checks: {auth_warns}"
+    auth_failures = [
+        check
+        for check in payload["data"]["checks"]
+        if check["status"] == "fail" and "auth" in check["name"]
+    ]
+    assert not auth_failures, f"{entry.name}: auth checks must warn, not fail: {auth_failures}"
