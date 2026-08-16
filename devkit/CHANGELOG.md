@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-devkit-v0.3.2...cli-web-devkit-v0.3.3) (2026-08-16)
+
+
+### Bug Fixes
+
+* **docs:** sync public installs and registry site ([#52](https://github.com/ItamarZand88/CLI-Anything-WEB/issues/52)) ([23e17d9](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/23e17d942c6934ec7d9576f620cc476d3ed12686))
+
 ## [0.3.2](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-devkit-v0.3.1...cli-web-devkit-v0.3.2) (2026-08-16)
 
 

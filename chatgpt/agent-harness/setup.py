@@ -4,7 +4,7 @@ from setuptools import find_namespace_packages, setup
 
 setup(
     name="cli-web-chatgpt",
-    version="0.1.1",
+    version="0.1.2",
     description="CLI for ChatGPT web interface — ask questions, generate images, manage conversations",
     packages=find_namespace_packages(include=["cli_web.*"]),
     package_data={"": ["skills/*.md", "*.md"]},

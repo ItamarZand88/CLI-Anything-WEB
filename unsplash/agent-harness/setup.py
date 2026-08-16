@@ -4,7 +4,7 @@ from setuptools import find_namespace_packages, setup
 
 setup(
     name="cli-web-unsplash",
-    version="0.1.2",
+    version="0.1.3",
     description="CLI for Unsplash photo search and discovery",
     packages=find_namespace_packages(include=["cli_web.*"]),
     package_data={

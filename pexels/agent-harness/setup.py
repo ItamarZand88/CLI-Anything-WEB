@@ -4,7 +4,7 @@ from setuptools import find_namespace_packages, setup
 
 setup(
     name="cli-web-pexels",
-    version="0.1.1",
+    version="0.1.2",
     description="CLI for Pexels free stock photos and videos",
     packages=find_namespace_packages(include=["cli_web.*"]),
     package_data={
