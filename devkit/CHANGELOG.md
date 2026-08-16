@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-devkit-v0.3.1...cli-web-devkit-v0.3.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* harden fleet maintenance and live read commands ([#50](https://github.com/ItamarZand88/CLI-Anything-WEB/issues/50)) ([dd1107a](https://github.com/ItamarZand88/CLI-Anything-WEB/commit/dd1107a07de11809befae8ecbb975f06022d13f9))
+
 ## [0.3.1](https://github.com/ItamarZand88/CLI-Anything-WEB/compare/cli-web-devkit-v0.3.0...cli-web-devkit-v0.3.1) (2026-06-20)
 
 

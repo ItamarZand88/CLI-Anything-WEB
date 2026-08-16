@@ -4,7 +4,7 @@ from setuptools import find_namespace_packages, setup
 
 setup(
     name="cli-web-gh-trending",
-    version="0.1.1",
+    version="0.1.2",
     description="CLI for GitHub Trending repositories and developers",
     packages=find_namespace_packages(include=["cli_web.*"]),
     package_data={
