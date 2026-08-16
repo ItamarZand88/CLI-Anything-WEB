@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+from importlib.metadata import version
 
 import pytest
 
@@ -104,7 +105,7 @@ class TestCLISubprocess:
         """--version outputs version string."""
         result = self._run("--version")
         assert result.returncode == 0
-        assert "0.1.0" in result.stdout
+        assert version("cli-web-gai") in result.stdout
 
     def test_search_ask_json(self):
         """search ask with --json returns valid JSON."""
