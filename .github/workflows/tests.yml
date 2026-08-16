@@ -110,5 +110,40 @@ jobs:
         run: |
           test_file="${{ matrix.cli.dir }}/cli_web/${{ matrix.cli.pkg }}/tests/test_e2e.py"
           if [ -f "$test_file" ]; then
-            python -m pytest "$test_file" -k "help or version" -v
+            smoke_tests="$(
+              python - "$test_file" <<'PY'
+          import ast
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          smoke_names = {
+              "test_help",
+              "test_help_loads",
+              "test_help_output",
+              "test_cli_help",
+              "test_version",
+              "test_cli_version",
+              "test_version_works",
+          }
+          for node in ast.parse(path.read_text(encoding="utf-8")).body:
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                  if node.name in smoke_names:
+                      print(f"{path}::{node.name}")
+              elif isinstance(node, ast.ClassDef):
+                  for function in node.body:
+                      if (
+                          isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef))
+                          and function.name in smoke_names
+                      ):
+                          print(f"{path}::{node.name}::{function.name}")
+          PY
+            )"
+            if [ -z "$smoke_tests" ]; then
+              echo "No exact help/version subprocess tests found in $test_file" >&2
+              exit 1
+            fi
+            # Node IDs cannot contain spaces in this fleet, so intentional
+            # word splitting passes each collected smoke test separately.
+            python -m pytest -o addopts= $smoke_tests -v
           fi

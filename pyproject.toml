@@ -52,6 +52,7 @@ testpaths = [
 addopts = "-q"
 markers = [
     "contract: fleet-wide contract tests (require installed CLIs)",
+    "e2e: end-to-end tests that may exercise installed command entry points",
     "live: tests that hit live external services",
     "unit: isolated tests that do not access live services",
 ]

@@ -4,17 +4,18 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Sequence
 from typing import Any
 
 import click
 
 
-class JsonGroup(click.Group):  # type: ignore[misc]
+class JsonGroup(click.Group):
     """Render Click usage errors as JSON when ``--json`` was requested."""
 
     def main(
         self,
-        args: list[str] | tuple[str, ...] | None = None,
+        args: Sequence[str] | None = None,
         prog_name: str | None = None,
         complete_var: str | None = None,
         standalone_mode: bool = True,
