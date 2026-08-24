@@ -18,7 +18,7 @@ setup(
         # it. After install, run once: python -m camoufox fetch
         # Keep the Python library and downloaded browser payload reproducible.
         # The scheduled canary caches the payload using this file's hash.
-        "camoufox==0.5.4",
+        "camoufox==0.5.5",
         # The image CDN (images.unsplash.com) is not challenged — plain
         # curl_cffi is used to download photo bytes.
         "curl_cffi",
